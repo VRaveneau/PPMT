@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+        <title>Progressive Pattern Mining Tool</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script src="Vis/vis.js" type="text/javascript"></script>
+        <script src="D3/d3.js" type="text/javascript"></script>
+        <script src="ClientScript.js" type="text/javascript"></script>
+<!--         <script src="TimelineScript.js" type="text/javascript"></script> -->
+<!--         <script src="http://api.simile-widgets.org/timeline/2.3.1/timeline-api.js?bundle=true" type="text/javascript"></script> -->
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <link href="Vis/vis.css" rel="stylesheet" type="text/css" />
+    </head>
+
+<!-- 	<body onload="onLoad();" onresize="onResize();"> 			Uniquement si on utilise la timeline MIT-->
+	<body>
+	
+		<div id="wrapper">
+			<div id="header">
+<!-- 				<h2>Progressive Pattern Mining Tool</h2> -->
+				<div class="button" id="startMining"> <a href="#" OnClick="startMining()">Start mining</a> </div>
+				<div class="button" id="stopMining"> <a href="#" OnClick="stopMining()">Stop mining</a> </div>
+				<div class="button" id="goToTimelineStart"> <a href="#" OnClick="goToTimelineStart()">Go to first event</a> </div>
+				<div class="button" id="timelineOverview"> <a href="#" OnClick="timelineOverview()">View all events</a> </div>
+<!-- 				<div class="button" id="requestData"> <a href="#" OnClick="requestData()">Obtain Dataset</a> </div> -->
+				<div class="button" id="drawLiftMatrix"> <a href="#" OnClick="drawLift()">Draw lift matrix</a> </div>
+<!-- 				<div class="button" id="steeringOnWriteSampleData"> <a href="#" OnClick="requestSteering('create')">Steer on create</a> </div> -->
+			</div>
+			<div id="timeline-view">
+				<h4>Timeline view:</h4>
+				<div id="timeline">
+				
+				</div>
+			</div>
+			<div id="pattern-view">
+				<h4>Discovered patterns:</h4>
+				<div id="pattern-list">
+					<ul id="patterns">
+					</ul>
+				</div>
+			</div>
+			<div id="chart-view">
+				<h4>Lift matrix:</h4>
+				<div id="chart-lift">
+				
+				</div>
+			</div>
+			<div id="dataset-info">
+<!-- 				<h4>Current dataset:</h4> -->
+				<h4>Dataset information:</h4>
+				<p> Number of users : <span id="nbUsers">??</span><p>
+<!-- 				<p> Current user : <span id="currentUser"></span><p> -->
+				<p> Number of different events : <span id="nbDiffEvents">??</span></p>
+				<p> Number of discovered patterns : </p>
+				<ul id="listNbPatternsStartingBy">
+					<li> Total : <span id="nbTotal">0</span></li>
+				</ul>
+			</div>
+		</div>
+		
+	</body>
+</html>

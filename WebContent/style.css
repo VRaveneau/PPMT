@@ -1,0 +1,116 @@
+@CHARSET "UTF-8";
+
+html {
+	height: 100%;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 80%;
+    background-color: #ffffff;
+    height: 100%;
+}
+
+.button {
+    display: inline;
+    color: #fff;
+    background-color: #4d4d4d;
+    padding: 8px;
+    margin: auto;
+    border-radius: 8px;
+    -moz-border-radius: 8px;
+    -webkit-border-radius: 8px;
+    box-shadow: none;
+    border: solid;
+}
+
+.button:hover {
+    background-color: #999999;
+}
+.button a, a:visited, a:hover, a:active {
+    color: #fff;
+    text-decoration: none;
+}
+
+#timeline-view {
+	width: 69%;
+	min-height: 600px;
+	max-height: 69%;
+	float: left;
+/*     background-color: #999999; */
+}
+
+#timeline {
+	min-height: 600px;
+	max-height: 600px;
+	overflow-y: auto;
+}
+
+#dataset-info {
+	width: 30%;
+	max-height: 30%;
+	margin-left: 70%;
+	overflow: auto;
+}
+
+#pattern-view {
+	width: 30%;
+	max-height: 69%;
+	margin-left: 70%;
+/*     background-color: #888888; */
+}
+
+#pattern-list {
+	border: solid;
+	border-width: 2px;
+	border-radius: 7px;
+	height: 600px;
+	overflow: auto;
+}
+
+#patterns {
+	list-style-type: none;
+}
+
+#patterns .pattern{
+	margin: 15px;
+}
+
+#pattern-list .item {
+	border: solid;
+	border-width: 1px;
+	border-radius: 5px;
+	padding: 3px;
+	margin: 2px;
+}
+
+#chart-view {
+	float: left;
+	max-height: 60%;
+	max-width: 100%;
+	overflow: auto;
+}
+
+#chart-lift {
+	max-height: 100%;
+	max-width: 100%;
+	overflow: auto;
+}
+
+.liftCell {
+	float: left;
+	width: 20px;
+	height: 20px;
+	border: solid;
+	border-width: 1px;
+}
+
+
+.headerCell {
+	height: 20px;
+	float: left;
+}
+
+.vis-item {
+	
+}
