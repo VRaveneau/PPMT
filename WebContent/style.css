@@ -8,7 +8,7 @@ body {
     font-family: Arial, Helvetica, sans-serif;
     font-size: 80%;
     background-color: #ffffff;
-    height: 100%;
+    height: 97%;
 }
 
 .button {
@@ -113,4 +113,195 @@ body {
 
 .vis-item {
 	
+}
+
+
+
+/********************************/
+/*								*/
+/* 			New content 		*/
+/*								*/
+/********************************/
+
+
+/********************************/
+/* 			General Layout 		*/
+/********************************/
+
+#wrapper {
+	width: 100%;
+	height: 100%;
+}
+
+#left {
+/* 	min-width: 30%; */
+	max-width: 30%;
+	min-height: 100%;
+	max-height: 100%;
+	background-color: lightblue;
+	float: left;
+}
+
+#center {
+	min-width: 40%;
+	max-width: 40%;
+	min-height: 90%;
+	max-height: 90%;
+	background-color: lightyellow;
+	float: left;
+}
+
+#right {
+	min-width: 30%;
+	max-width: 30%;
+	min-height: 90%;
+	max-height: 90%;
+	background-color: pink;
+	float: left;
+}
+
+#bottom {
+	min-width: 70%;
+	max-width: 70%;
+/* 	min-height: 10%; */
+	max-height: 10%;
+	background-color: lightgreen;
+	float: right;
+}
+
+.leftAligned {
+	float: left;
+	margin-right: 10px;
+}
+
+.lastItem {
+	margin-right: 0px;
+}
+
+.rightAligned {
+	float: right;
+}
+
+.firstItem {
+	margin-left: 0px;
+}
+
+/********************************/
+/* 			Control tabs 		*/
+/********************************/
+
+/* Style the left-tabs */
+ul.controlTabs {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+/* Float the list items side by side */
+ul.controlTabs li {float: left;}
+
+/* Style the links inside the list items */
+ul.controlTabs li a {
+    display: inline-block;
+    color: black;
+    text-align: center;
+    padding: 8px 14px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+/* Change background color of links on hover */
+ul.controlTabs li a:hover {background-color: #ddd;}
+
+/* Create an active/current tablink class */
+ul.controlTabs li a:focus, .active {background-color: #ccc;}
+
+/* Style the tab content */
+.controlTabContent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+.controlTabContent p {
+	text-align: left;
+}
+
+.controlTabContent input {
+	float: right;
+}
+
+.controlTabContent input.numberInput {
+	float: right;
+	width: 100px;
+}
+
+#Trace button {
+	width: 80%;
+}
+
+table {
+	width: 100%;
+}
+
+.searchBarArea {
+    overflow: hidden;
+}
+
+.searchBarArea input.searchButton {
+	float: right;
+}
+
+.searchBarArea div {
+    overflow: hidden;
+    padding: 0 5px
+}
+
+.searchField {
+	width: 100%;
+}
+
+/********************************/
+/* 			Pattern tabs 		*/
+/********************************/
+
+/* Style the right-tabs */
+ul.patternTabs {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+/* Float the list items side by side */
+ul.patternTabs li {float: left;}
+
+/* Style the links inside the list items */
+ul.patternTabs li a {
+    display: inline-block;
+    color: black;
+    text-align: center;
+    padding: 8px 14px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+/* Change background color of links on hover */
+ul.patternTabs li a:hover {background-color: #ddd;}
+
+/* Create an active/current tablink class */
+ul.patternTabs li a:focus, .active {background-color: #ccc;}
+
+/* Style the tab content */
+.patternTabContent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
 }

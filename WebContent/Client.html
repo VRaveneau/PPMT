@@ -16,15 +16,135 @@
 	<body>
 	
 		<div id="wrapper">
+		
+			<div id="left">
+			
+				<ul class="controlTabs">
+					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Algorithm')" id="defaultControlTab">Algorithm</a></li>
+					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Trace')">Trace</a></li>
+					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Events</a></li>
+					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
+					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Filters')">Filters</a></li>
+				</ul>
+				
+				<div id="Algorithm" class="controlTabContent">
+					<p>Minimal support <input type="number" class="numberInput" form="algorithmForm" min="1" required></p>
+					<p>Window size <input type="number" class="numberInput" form="algorithmForm" min="1" required></p>
+					<p>Maximum gap <input type="number" class="numberInput" form="algorithmForm" min="0" required></p>
+					<form id="algorithmForm">
+						<input type="submit" value="Rerun">
+					</form>
+					<!-- rerun button -->
+				</div>
+				
+				<div id="Trace" class="controlTabContent">
+					<!-- Info on trace -->
+					<hr>
+					<button type="button">Create event</button><br>
+					<button type="button">Delete event</button><br>
+					<button type="button">Truncate trace</button><br>
+					<button type="button">Delete user</button>
+					<hr>
+					<p>History:</p>
+					<!-- history -->
+					<div id="history">
+						
+					</div>
+				</div>
+				
+				<div id="Events" class="controlTabContent">
+					<form>
+						<div class="searchBarArea">
+							<input type="submit" class="searchButton" value="Search">
+							<div><input type="text" class="searchField"></div>
+						</div>
+					</form>
+				
+					<table id="eventTable">
+						<tr>
+							<th>Event</th>
+							<th>Logo</th>
+							<th>Color</th>
+						</tr>
+					</table>
+				</div>
+				
+				<div id="Users" class="controlTabContent">
+					<form>
+						<div class="searchBarArea">
+							<input type="submit" class="searchButton" value="Search">
+							<div><input type="text" class="searchField"></div>
+						</div>
+					</form>
+					
+					<table id="userTable">
+						<tr>
+							<th>User</th>
+							<th>Displayed</th>
+						</tr>
+					</table>
+				</div>
+				
+				<div id="Filters" class="controlTabContent">
+					<p>Users:</p>
+					<p>Support:</p>
+					<p>Gap:</p>
+					<p>Window:</p>
+					<p>Size:</p>
+				</div>
+				
+			</div>
+		
+			<div id="center">
+				<div id="timeline-view">
+					<div id="timeline">
+					
+					</div>
+				</div>
+			
+			</div>
+		
+			<div id="right">
+				
+				<form>
+					<div class="searchBarArea">
+						<input type="submit" class="searchButton" value="Search">
+						<div><input type="text" class="searchField"></div>
+					</div>
+				</form>
+			
+				<ul class="patternTabs">
+					<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'List')" id="defaultPatternTab">List</a></li>
+					<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Graph')">Graph</a></li>
+				</ul>
+				
+				<div id="List" class="patternTabContent">
+					<p>List of patterns</p>
+				</div>
+				
+				<div id="Graph" class="patternTabContent">
+					<p>Graph of patterns</p>
+				</div>
+				
+			</div>
+			
+			<div id="bottom">
+				<p class="leftAligned">Runtime: <span id="runtime"></span></p>
+				<p class="leftAligned lastItem">Data used: <span id="dataUsed"></span></p>
+				<p class="rightAligned">Focusing on: <span id="focus"></span></p>
+			</div>
+		
+<!-- 		
+		
 			<div id="header">
-<!-- 				<h2>Progressive Pattern Mining Tool</h2> -->
+				<h2>Progressive Pattern Mining Tool</h2>
 				<div class="button" id="startMining"> <a href="#" OnClick="startMining()">Start mining</a> </div>
 				<div class="button" id="stopMining"> <a href="#" OnClick="stopMining()">Stop mining</a> </div>
 				<div class="button" id="goToTimelineStart"> <a href="#" OnClick="goToTimelineStart()">Go to first event</a> </div>
 				<div class="button" id="timelineOverview"> <a href="#" OnClick="timelineOverview()">View all events</a> </div>
-<!-- 				<div class="button" id="requestData"> <a href="#" OnClick="requestData()">Obtain Dataset</a> </div> -->
+				<div class="button" id="requestData"> <a href="#" OnClick="requestData()">Obtain Dataset</a> </div>
 				<div class="button" id="drawLiftMatrix"> <a href="#" OnClick="drawLift()">Draw lift matrix</a> </div>
-<!-- 				<div class="button" id="steeringOnWriteSampleData"> <a href="#" OnClick="requestSteering('create')">Steer on create</a> </div> -->
+				<div class="button" id="steeringOnWriteSampleData"> <a href="#" OnClick="requestSteering('create')">Steer on create</a> </div>
 			</div>
 			<div id="timeline-view">
 				<h4>Timeline view:</h4>
@@ -46,16 +166,20 @@
 				</div>
 			</div>
 			<div id="dataset-info">
-<!-- 				<h4>Current dataset:</h4> -->
+				<h4>Current dataset:</h4>
 				<h4>Dataset information:</h4>
 				<p> Number of users : <span id="nbUsers">??</span><p>
-<!-- 				<p> Current user : <span id="currentUser"></span><p> -->
+				<p> Current user : <span id="currentUser"></span><p>
 				<p> Number of different events : <span id="nbDiffEvents">??</span></p>
 				<p> Number of discovered patterns : </p>
 				<ul id="listNbPatternsStartingBy">
 					<li> Total : <span id="nbTotal">0</span></li>
 				</ul>
 			</div>
+			
+ -->			
+			
+			
 		</div>
 		
 	</body>
