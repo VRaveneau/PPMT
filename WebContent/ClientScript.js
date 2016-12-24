@@ -11,17 +11,41 @@ var itemColors = {};
 var datasetInfo = {};
 var availableColors = [];
 
+var datasetInfoIsDefault = true;
+var historyDisplayIsDefault = true;
+var eventDisplayIsDefault = true;
+
 webSocket.onopen = processOpen;
 webSocket.onmessage = processMessage;
 webSocket.onclose = processClose;
 webSocket.onerror = processError;
 
+
+/************************************************************/
+/*															*/
+/*						Old functions						*/
+/*															*/
+/************************************************************/
+
+
+/************************************/
+/*				Kept				*/
+/************************************/
+
+/**
+ * Handling the connection to the server
+ */
 function processOpen(message) {
-	console.log("Server connect." + "\n");
+	console.log("Server connected." + "\n");
 	requestData();
 	createTimeline();
 	timelineOverview();
 }
+
+/**
+ * Handling the reception of a message from the server
+ */
+
 function processMessage(message) {
 	//console.log("Receive from server => " + message.data + "\n");
 	var msg = JSON.parse(message.data);
@@ -48,12 +72,37 @@ function processMessage(message) {
 		receiveDatasetInfo(msg);
 	}
 }
+
+/**
+ * Handling the disconnection with the server
+ */
 function processClose(message) {
-	console.log("Server disconnect." + "\n");
+	console.log("Server disconnected." + "\n");
 }
+
+/**
+ * Handling error messages from the server
+ */
 function processError(message) {
 	console.log("Error" + "\n");
 }
+
+/**
+ * Initializing the system at the start
+ */
+function init() {
+	//setReadyToStart();				Commented out while updating the app
+
+	document.getElementById("defaultControlTab").click();	// Set the "algorithm" tab active by default
+	document.getElementById("defaultPatternTab").click();	// Set the "list" pattern-tab active by default
+	
+	resetDatasetInfo();	// Set the display of information on the dataset
+	resetHistory();	// Reset the history display
+}
+/************************************/
+/*				Pending				*/
+/************************************/
+
 
 function startMining() {
 	setReadyToStop();
@@ -81,16 +130,6 @@ function resetPatternsData() {
 	
 	patterns = {};
 	patternProbabilities = {};
-}
-
-function init() {
-	setReadyToStart();
-	
-	// Set the "algorithm" tab active by default
-	document.getElementById("defaultControlTab").click();
-	// Set the "list" pattern-tab active by default
-	document.getElementById("defaultPatternTab").click();
-	
 }
 
 function createTimeline() {
@@ -368,7 +407,6 @@ function getLift(A, B) {
 //	var step = 255.0 / (max - min);
 //	return v*step;
 //}
-
 function getColorGradiant(v) {
 	var step = 255.0;
 	return Math.round(255-(v-1)*step);
@@ -580,7 +618,68 @@ function hsvToRgb(h, s, v) {
 	return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
-// Manage the left-side (control) tabs
+/************************************************************/
+/*															*/
+/*						New functions						*/
+/*															*/
+/************************************************************/
+
+/************************************************/
+/*				Display functions				*/
+/************************************************/
+
+/**
+ * Display information on the dataset when there is no dataset
+ */
+function resetDatasetInfo() {
+	var infoDiv;
+	
+	console.log("info reset");
+	infoDiv = document.getElementById("datasetInfo");
+	infoDiv.textContent = "No dataset selected, select a dataset to display more information";
+	
+	datasetInfoIsDefault = true;
+}
+
+/**
+ * Reset the display of the history of actions
+ */
+function resetHistory() {
+	var historyDiv;
+	
+	console.log("history reset");
+	historyDiv = document.getElementById("history");
+	historyDiv.textContent = "No history to display";
+	
+	historyDisplayIsDefault = true;
+}
+
+/**
+ * Reset the display of events
+ */
+function resetEvents() {	
+	console.log("Event list reset");
+	document.getElementById("noEvent").style.display = "initial";
+	
+	eventDisplayIsDefault = true;
+}
+
+/**
+ * Display information on the dataset in the "Trace" control tab. TODO Make it do something
+ */
+function displayDatasetInfo() {
+	var infoDiv = document.getElementById("datasetInfo");
+	
+	datasetInfoIsDefault = false;
+}
+
+/************************************************/
+/*				Handling the tabs				*/
+/************************************************/
+
+/**
+ * Manage the left-side (control) tabs
+ */
 function openControlTab(evt, tabName) {
     // Declare all variables
     var i, tabcontent, tablinks;
@@ -602,25 +701,26 @@ function openControlTab(evt, tabName) {
     evt.currentTarget.className += " active";
 }
 
-
-//Manage the right-side (patterns) tabs
+/**
+ * Manage the right-side (patterns) tabs
+ */
 function openPatternTab(evt, tabName) {
- // Declare all variables
- var i, tabcontent, tablinks;
-
- // Get all elements with class="patternTabContent" and hide them
- tabcontent = document.getElementsByClassName("patternTabContent");
- for (i = 0; i < tabcontent.length; i++) {
-     tabcontent[i].style.display = "none";
- }
-
- // Get all elements with class="patternTabLink" and remove the class "active"
- tablinks = document.getElementsByClassName("patternTabLink");
- for (i = 0; i < tablinks.length; i++) {
-     tablinks[i].className = tablinks[i].className.replace(" active", "");
- }
-
- // Show the current tab, and add an "active" class to the link that opened the tab
- document.getElementById(tabName).style.display = "block";
- evt.currentTarget.className += " active";
+	// Declare all variables
+	var i, tabcontent, tablinks;
+	
+	// Get all elements with class="patternTabContent" and hide them
+	tabcontent = document.getElementsByClassName("patternTabContent");
+	for (i = 0; i < tabcontent.length; i++) {
+		tabcontent[i].style.display = "none";
+	}
+	
+	// Get all elements with class="patternTabLink" and remove the class "active"
+	tablinks = document.getElementsByClassName("patternTabLink");
+	for (i = 0; i < tablinks.length; i++) {
+		tablinks[i].className = tablinks[i].className.replace(" active", "");
+	}
+	
+	// Show the current tab, and add an "active" class to the link that opened the tab
+	document.getElementById(tabName).style.display = "block";
+	evt.currentTarget.className += " active";
 }
