@@ -1,24 +1,44 @@
-window.onload = init;
-var webSocket = new WebSocket("ws://localhost:8080/ProgressivePatternMiningTool/serverendpointppmt");
+console.log("start");
+
+window.addEventListener ? 
+		window.addEventListener("load",init,false) : 
+		window.attachEvent && window.attachEvent("onload",init);
+
+var webSocket = null;
 var timeline = null;
+var timelineXAxis = null;
+var timelineOverview = null;
+var timelineOverviewXAxis = null;
 var timelineIds = 0;
-var timelineItems = new vis.DataSet([]);
+//var timelineItems = new vis.DataSet([]);
+
+// Timeline brushing
+var brush = null;
+var zoom = null;
+var x = null;
+var xOverview = null;
+var xAxis = null;
+var xAxisOverview = null;
+var y = null;
+var yOverview = null;
+var area = null;
+var area2 = null;
+var tlHeight = null;
 
 var patterns = {};
 var occurrences = {}
 var patternProbabilities = {};
 var itemColors = {};
+var shapes = d3.symbols;
+var itemShapes = {};	// TODO request a list of shapes from the server to populate this list
 var datasetInfo = {};
 var availableColors = [];
+
+var history = [];
 
 var datasetInfoIsDefault = true;
 var historyDisplayIsDefault = true;
 var eventDisplayIsDefault = true;
-
-webSocket.onopen = processOpen;
-webSocket.onmessage = processMessage;
-webSocket.onclose = processClose;
-webSocket.onerror = processError;
 
 
 /************************************************************/
@@ -37,9 +57,10 @@ webSocket.onerror = processError;
  */
 function processOpen(message) {
 	console.log("Server connected." + "\n");
-	requestData();
-	createTimeline();
-	timelineOverview();
+	requestDatasetInfo("Agavue");	// TODO request the information on the dataset to the server
+	requestEventTypes("Agavue");	// TODO provide info about the event types
+	requestDataset("Agavue");	// TODO request the data to the server
+	//timelineOverview();	// TODO Check if still necessary after the new timeline, if so comment it out
 }
 
 /**
@@ -59,17 +80,32 @@ function processMessage(message) {
 		removePatternFromList(msg.id);
 	}
 	if (msg.action === "newEvent") {
+		/*
 		if (msg.end.length > 0) {
 			addToTimeline(msg.type, msg.start, msg.quantity, msg.end);
 		} else {
 			addToTimeline(msg.type, msg.start, msg.quantity);
-		}
+		}*/
 	}
 	if (msg.action === "refresh") {
-	  	timeline.setItems(timelineItems);
+	  	console.log("Refresh received, but the handling of such message is disabled");
+		//timeline.setItems(timelineItems);
 	}
-	if (msg.action === "datasetInfo") {
+	if (msg.action === "datasetInfo") {	// Reception of information about the dataset
 		receiveDatasetInfo(msg);
+	}
+	if (msg.action === "data") {	// Reception of data
+		if (msg.type === "userList")
+			receiveUserList(msg);
+	}
+	if (msg.action === "eventTypes") {	// Reception of data on the event types
+		receiveEventTypes(msg);
+	}
+	if (msg.action === "trace") {	// Reception of a trace
+		displayUserTrace(msg);
+	}
+	if (msg.action === "patterns") {	// Reception of patterns
+		displayUserPatterns(msg);
 	}
 }
 
@@ -92,13 +128,147 @@ function processError(message) {
  */
 function init() {
 	//setReadyToStart();				Commented out while updating the app
-
-	document.getElementById("defaultControlTab").click();	// Set the "algorithm" tab active by default
+	
+	console.log("init");
+	
+	document.getElementById("defaultControlTab").click();	// Set the "trace" tab active by default
 	document.getElementById("defaultPatternTab").click();	// Set the "list" pattern-tab active by default
+
+	createTimeline();	// TODO Initialize the timeline
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
+	
+	/*function getRootUri() {
+		var h = document.location.hostname == "" ? "localhost" : document.location.hostname;
+		var p = document.location.port == "" ? "8080" : document.location.port;
+		console.log("ws://" + h + ":" +p);
+		return "ws://" + h + ":" +p;
+	}*/
+	
+	//websocket = new WebSocket(getRootUri() + "/ppmt/wsppmt");
+	//webSocket = new WebSocket("ws://localhost:8080/ppmt/wsppmt");
+	webSocket = new WebSocket("ws://localhost:8080/ppmt/wsppmt");
+	//webSocket = new WebSocket("ws://ppmt.univ-nantes.fr/ProgressivePatternMiningTool/wsppmt");
+	//webSocket = new WebSocket("ws://localhost:8080/ppmt/serverendpointppmt");
+
+	webSocket.onopen = processOpen;
+	webSocket.onmessage = processMessage;
+	webSocket.onclose = processClose;
+	webSocket.onerror = processError;
 }
+
+/**
+ * Requests a dataset to the server
+ */
+function requestDataset(datasetName) {
+	var action = {
+			action: "request",
+			object: "dataset",
+			dataset: datasetName
+	};
+	webSocket.send(JSON.stringify(action));
+}
+
+/**
+ * Requests information about a dataset to the server
+ */
+function requestDatasetInfo(datasetName) {
+	var action = {
+			action: "request",
+			object: "datasetInfo",
+			dataset: datasetName
+	};
+	webSocket.send(JSON.stringify(action));
+}
+
+/**
+ * Requests the events of the trace of a given user
+ * @param user The user 
+ * @returns
+ */
+function requestUserTrace(user, datasetName) {
+	var action = {
+			action: "request",
+			object: "trace",
+			user: user,
+			dataset: datasetName
+	};
+	webSocket.send(JSON.stringify(action));
+	requestUserPatterns(user, datasetName);
+}
+
+/**
+ * Requests the patterns of a given user
+ * @param user The user 
+ * @returns
+ */
+function requestUserPatterns(user, datasetName) {
+	var action = {
+			action: "request",
+			object: "patterns",
+			user: user,
+			dataset: datasetName
+	};
+	webSocket.send(JSON.stringify(action));
+}
+
+/**
+ * Requests information about the events of a dataset
+ * @param datasetName
+ * @returns
+ */
+function requestEventTypes(datasetName) {
+	var action = {
+			action: "request",
+			object: "eventTypes",
+			dataset: datasetName
+	};
+	webSocket.send(JSON.stringify(action));
+}
+
+/**
+ * Receives information about a dataset from the server
+ * @param message The message containing the information
+ * @returns
+ */
+function receiveDatasetInfo(message) {
+	console.log("number of sequences : " + message.numberOfSequences);
+	datasetInfo["numberOfSequences"] = parseInt(message.numberOfSequences);
+	datasetInfo["numberOfDifferentEvents"] = parseInt(message.numberOfDifferentEvents);
+	datasetInfo["numberOfEvents"] = parseInt(message.nbEvents);
+	var userList = [];
+	for (var i=0; i < datasetInfo["numberOfSequences"];i++)
+		userList.push(message["user"+i.toString()]);
+	datasetInfo["users"] = userList;
+	datasetInfo["firstEvent"] = message.firstEvent;
+	datasetInfo["lastEvent"] = message.lastEvent;
+	datasetInfo["name"] = message.name;
+	
+	displayDatasetInfo();
+	addToHistory('Dataset loaded');
+	
+	timeline.updateContextBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
+	
+	/*updateTimelineBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
+	updateTimelineOverviewBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);*/
+	
+	// Maj des bornes de la timeline
+	//d3.select
+	
+	// Old content
+	/*var node = document.getElementById("nbDiffEvents");
+	node.textContent = message.nbDifferentEvents;
+	
+	// generate a color for each event
+	availableColors = generateColors(datasetInfo["numberOfDifferentEvents"]);
+	console.log("color: "+availableColors[0]);
+	
+	// display the available users
+	node = document.getElementById("nbUsers");
+	node.textContent = datasetInfo["users"].split(';').length;*/
+}
+
 /************************************/
 /*				Pending				*/
 /************************************/
@@ -134,36 +304,7 @@ function resetPatternsData() {
 
 function createTimeline() {
 	var container = document.getElementById('timeline');
-
-	// Create a DataSet (allows two way data-binding)
-	var items = new vis.DataSet([
-//	   {id: 1, content: 'item 1', start: '2013-04-20'},
-//	   {id: 2, content: 'item 2', start: '2013-04-14'},
-//	   {id: 3, content: 'item 3', start: '2013-04-18'},
-//	   {id: 4, content: 'item 4', start: '2013-04-16', end: '2013-04-19'},
-//	   {id: 5, content: 'item 5', start: '2013-04-25'},
-//	   {id: 6, content: 'item 6', start: '2013-04-27'}
-	]);
-
-	// Configuration for the Timeline
-	var options = {
-			minHeight: "300px",
-			template: function (item) {
-				var event = item.content.split(' ');
-				if (itemColors[event[0]] == null) {
-					var color = availableColors.shift();
-					itemColors[event[0]] = 'rgb('+color+')';
-				}
-				return "<p style='background-color:"+itemColors[event[0]]+";'>"+item.content+"</p>";
-			}
-	};
-
-	// Create a Timeline
-	timeline = new vis.Timeline(container, items, options);
-	
-	/*while(webSocket.readyState == webSocket.CONNECTING) {
-		
-	}*/
+	timeline = new Timeline("timeline",{});
 	
 }
 
@@ -358,32 +499,6 @@ function goToTimelineStart() {
 
 function timelineOverview() {
 	timeline.fit();
-}
-
-function requestData() {
-	var action = {
-			action: "request",
-			object: "data",
-			dataset: ""
-	};
-	webSocket.send(JSON.stringify(action));
-}
-
-function receiveDatasetInfo(message) {
-	console.log("number of sequences : " + message.seqNumber);
-	datasetInfo["numberOfSequences"] = parseInt(message.seqNumber);
-	datasetInfo["numberOfDifferentEvents"] = parseInt(message.nbDifferentEvents);
-	datasetInfo["users"] = message.users;
-	var node = document.getElementById("nbDiffEvents");
-	node.textContent = message.nbDifferentEvents;
-	
-	// generate a color for each event
-	availableColors = generateColors(datasetInfo["numberOfDifferentEvents"]);
-	console.log("color: "+availableColors[0]);
-	
-	// display the available users
-	node = document.getElementById("nbUsers");
-	node.textContent = datasetInfo["users"].split(';').length;
 }
 
 function getProbabilityOfIntersection(A, B) {	
@@ -624,9 +739,376 @@ function hsvToRgb(h, s, v) {
 /*															*/
 /************************************************************/
 
+function addToHistory(action) {
+	var history = d3.select("#history");
+	if (historyDisplayIsDefault) {
+		history.text("");
+		historyDisplayIsDefault = false;
+	}
+	var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
+	var now = formatTime(new Date());
+	history.append("p").text(now.toString()+" : "+action);
+}
+
+/****************************************************/
+/*				Data handling functions				*/
+/****************************************************/
+
+function receiveUserList(message) {
+	console.log("Receiving a list of users")
+	var nbUsers = parseInt(message.size);
+	console.log("Adding "+message.size+" users");
+	for (var i = 0; i < nbUsers; i++) {
+		// Add the user to the list
+		var userRow = d3.select("#userTableBody").append("tr");
+		var userInfo = message[i.toString()].split(";");
+		// Renaming the user for a nicer display
+		userRow.append("td")
+			.text("User"+(i+1).toString()/*userInfo[0]*/)
+			.attr("class","userColumn")
+			.attr("sorttable_customkey",i+1);
+		userRow.append("td").text(userInfo[1]);
+		// Date format : yyyy-MM-dd HH:mm:ss
+		var startDate = userInfo[2].split(" ");
+		var part1 = startDate[0].split("-");
+		var part2 = startDate[1].split(":");
+		var d1 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		var startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
+		var startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4)+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		var endDate = userInfo[3].split(" ");
+		part1 = endDate[0].split("-");
+		part2 = endDate[1].split(":");
+		var d2 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		var endCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
+		var endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4)+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		// Calculates the duration of the trace
+		var minutes = 1000 * 60;
+		var hours = minutes * 60;
+		var days = hours * 24;
+		var years = days * 365;
+		var endTime = d2.getTime();
+		var startTime = d1.getTime();
+		var timeDiff = endTime-startTime;
+		
+		var td = userRow.append("td").attr("sorttable_customkey",timeDiff);
+		
+		var result = "";
+		var tmpValue = 0;
+		if (Math.floor(timeDiff / years) > 0) {
+			tmpValue = Math.floor(timeDiff / years);
+			result += tmpValue+"y ";
+			timeDiff = timeDiff - tmpValue*years;
+		}
+		if (Math.floor(timeDiff / days) > 0) {
+			tmpValue = Math.floor(timeDiff / days);
+			result += tmpValue+"d ";
+			timeDiff = timeDiff - tmpValue*days;
+		}
+		if (Math.floor(timeDiff / hours) > 0) {
+			tmpValue = Math.floor(timeDiff / hours);
+			result += tmpValue+"h ";
+			timeDiff = timeDiff - tmpValue*hours;
+		}
+		if (Math.floor(timeDiff / minutes) > 0) {
+			tmpValue = Math.floor(timeDiff / minutes);
+			result += tmpValue+"m ";
+			timeDiff = timeDiff - tmpValue*minutes;
+		}
+		tmpValue = Math.floor(timeDiff / 1000);
+		result += tmpValue+"s";
+		
+		td.text(result);
+		userRow.append("td").text(startDateFormated).attr("sorttable_customkey",startCustomKey);
+		userRow.append("td").text(endDateFormated).attr("sorttable_customkey",endCustomKey);
+		
+		let userName = userInfo[0];
+		userRow.on("click", function(){
+			//console.log(userName);
+			requestUserTrace(userName, "Agavue");
+			d3.event.stopPropagation();
+		});
+	}
+	// sorting by event per user
+	var userTH = document.getElementById("eventsPerUserColumn");
+	sorttable.innerSortFunction.apply(userTH, []);
+}
+
+var colorList = {};
+
+function receiveEventTypes(message) {
+	//var typeList = message.types.split(";");
+	var nbEvents = parseInt(message.size);
+	console.log("Receiving "+nbEvents+" event types");
+	// Starting to generate the symbols and colors associated to the event types
+	var nbColors = Math.ceil(nbEvents/shapes.length);
+	var colors = [];
+	for (var i = 1; i <= nbColors; i++)
+		colors.push(selectColor(i, nbColors));
+		//colors.push(selectColor(i, nbColors));
+	// Symbols and colors are generated
+	if (nbEvents > 0)
+		document.getElementById("noEvent").textContent = "";
+	for (var i = 0; i< nbEvents; i++) {
+		var eventRow = d3.select("#eventTableBody").append("tr");
+		var eventInfo = message[i.toString()].split(";");
+		var eType = "";
+		var eCode = "";
+		var eNbOccs = "";
+		for (var j=0; j < eventInfo.length;j++) {
+			var info = eventInfo[j].split(":");
+			if (info[0] === "code")
+				eCode = shapes[i%shapes.length];
+				//eCode = info[1];
+			else if (info[0] === "type")
+				eType = info[1];
+			else if (info[0] === "nbOccs")
+				eNbOccs = info[1];
+		}
+		colorList[eType] = colors[i%colors.length];
+		itemShapes[eType] = shapes[i%shapes.length];
+		var eColor = colors[i%colors.length];
+		eventRow.append("td").text(eType);
+		eventRow.append("td").text(eNbOccs);
+		var symbolRow = eventRow.append("td")
+					.attr("sorttable_customkey", (i%shapes.length)*100+i%colors.length);
+		var symbolRowSvg = symbolRow.append("svg")
+			.attr("width", 20)
+			.attr("height", 20);
+		/*switch (itemShapes[eType]) {
+			case "circle":
+				symbolRowSvg.append("circle")
+				.attr("cx",Math.floor(10))
+				.attr("cy",Math.floor(10))
+				.attr("transform","translate(20,0)")
+				.attr("r", 5)
+				.style("stroke", d3.hsl(parseFloat(eColor),100,50))
+				.
+				.style("fill","none");
+				break;
+			case "square":
+				symbolRowSvg.append("rect")
+				.attr("x",Math.floor(5))
+				.attr("y",Math.floor(5))
+				.attr("transform","translate(20,0)")
+				.attr("width", 10)
+				.attr("height",10)
+				.style("stroke", d3.hsl(parseFloat(eColor),100,50))
+				.style("fill","none");
+				break;
+			case "triangle":*/
+				symbolRowSvg.append("path")
+				.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
+				.attr("transform","translate(10,10)")
+				.attr("stroke", d3.hsl(parseFloat(eColor),100,50))
+				.attr("fill","none");
+		//};
+	}
+	
+	/*for (var type in typeList) {
+		var eventRow = d3.select("#eventTableBody").append("tr");
+		eventRow.append("td").text(type);
+		eventRow.append("td").text("");
+		eventRow.append("td").text("");
+	}*/
+	// sorting by occurrences
+	var userTH = document.getElementById("eventsOccurrencesColumn");
+	sorttable.innerSortFunction.apply(userTH, []);
+	
+}
+
+function selectColor(colorNum, colors){
+    if (colors < 1) colors = 1; // defaults to one color - avoid divide by zero
+    return colorNum * (360 / colors) % 360;
+    //return "hsl(" + (colorNum * (360 / colors) % 360) + ",100%,50%)";
+}
+
 /************************************************/
 /*				Display functions				*/
 /************************************************/
+
+/**
+ * Requests the trace of a user and display it
+ */
+function displayUserTrace(trace) {
+	var traceSize = parseInt(trace.numberOfEvents);
+	console.log(traceSize+" events in the trace :");
+	
+	var data = [];
+	for(var i=0; i < traceSize; i++) {
+		data.push(trace[i.toString().split(';')]);
+	}
+	var dataColored = [];
+	for(var i=0; i < data.length; i++) {
+		dataColored.push({"data":data[i]+";"+colorList[data[i].split(";")[0]],"shape":+itemShapes[data[i].split(";")[0]]});
+	}
+	
+	timeline.addData(dataColored);
+	return;
+	
+	timeline.moveFocus(trace.first, trace.last);
+	return;
+	updateTimelineBounds(trace.first, trace.last);
+	
+	
+
+	var area = d3.area()
+	    .curve(d3.curveMonotoneX)
+	    .x(function(d) { return x(d[1]); })
+	    .y0(tlHeight)
+	    .y(function(d) { return y(1); });
+
+
+	  timeline.append("path")
+	      .datum(data)
+	      .attr("class", "area")
+	      .attr("d", area);
+}
+
+function displayUserPatterns(patterns) {
+	var size = parseInt(patterns.numberOfPatterns);
+	console.log(size+" patterns obtenus");
+	
+	var sizes = {};
+	var lengths = [];
+	for (var i=0; i<size; i++) {
+		var p = patterns[i.toString()].split(" ");
+		if (sizes.hasOwnProperty(p.length.toString()))
+			sizes[p.length.toString()].push(p);
+		else {
+			lengths.push(p.length);
+			sizes[p.length.toString()] = [];
+			sizes[p.length.toString()].push(p);
+		}
+	}
+	lengths = lengths.sort(sortNumber);
+	resetUserPatterns();
+	for (var i = 0; i<lengths.length;i++) {
+		for (var j=0; j < sizes[lengths[i].toString()].length; j++) {
+			//addToPatterns(sizes[lengths[i].toString()][j], lengths[i]);
+			var patternList = d3.select("#List");
+			var sz = lengths[i];
+			var ptrn = sizes[lengths[i].toString()][j];
+			if (sz == 1) {
+				patternList.append("div")
+				.attr("class",sz+"-pattern")
+				.attr("id", ptrn[0].trim())
+				.text(ptrn[0].trim());
+			} else {
+				patternList.select("#"+ptrn.slice(0,sz-1).join(" ").trim()).append("div")
+				.attr("class",sz+"-pattern")
+				.attr("id", ptrn.join(" ").trim())
+				.style("padding-left",sz*3+"px")
+				.text(ptrn.join(" ").trim());
+			}
+		}
+	}
+}
+
+function sortNumber(a,b) {
+	return a-b;
+}
+
+function resetUserPatterns() {
+	d3.select("#List").selectAll("div").remove();
+}
+
+function addToPatterns(pattern, size) {
+	var patternList = d3.select("#List");
+	if (size == 1) {
+		patternList.append("div")
+		.attr("class",size+"-pattern")
+		.attr("id", pattern[0])
+		.text(pattern[0]);
+	} else {
+		patternList.select("#"+pattern.slice(0,size-1).join(" ")).append("div")
+		.attr("class",size+"-pattern")
+		.attr("id", pattern.join(" "))
+		.style("padding-left",size*3+"px")
+		.text(pattern.join(" "));
+	}
+}
+
+/**
+ * Updates the start and end date of the timeline
+ */
+function updateTimelineBounds(start, end) {
+	return;
+	var margin = {top: 20, right: 30, bottom: 30, left: 30},
+    width = d3.select("#timeline").node().getBoundingClientRect().width - margin.left - margin.right;
+	// set the ranges
+	console.log("updating the timeline bounds :"+start+" to "+end);
+	
+	var startDate = start.split(" ");
+	var endDate = end.split(" ");
+	var startString = startDate[0]+" "
+			+startDate[1]+" "
+			+startDate[2]+" "
+			+startDate[3]+" "
+			+startDate[5];
+	var endString = endDate[0]+" "
+			+endDate[1]+" "
+			+endDate[2]+" "
+			+endDate[3]+" "
+			+endDate[5];
+	
+	var timeFormat = d3.timeParse('%a %b %d %H:%M:%S %Y');
+	
+	var x = d3.scaleTime()
+			.domain([timeFormat(startString),timeFormat(endString)])
+			.range([0,width]);
+	
+	console.log("Range setup");
+	var xAxis = d3.axisBottom(x);
+	console.log("Calling the axis");
+
+	timelineXAxis.call(xAxis);
+}
+
+/**
+ * Updates the start and end date of the timeline overview
+ */
+function updateTimelineOverviewBounds(start, end) {
+	return;
+	var margin = {top: 20, right: 30, bottom: 30, left: 30},
+    width = d3.select("#timelineOverview").node().getBoundingClientRect().width - margin.left - margin.right;
+	// set the ranges
+	console.log("updating the timeline overview bounds :"+start+" to "+end);
+	
+	var startDate = start.split(" ");
+	var endDate = end.split(" ");
+	var startString = startDate[0]+" "
+			+startDate[1]+" "
+			+startDate[2]+" "
+			+startDate[3]+" "
+			+startDate[5];
+	var endString = endDate[0]+" "
+			+endDate[1]+" "
+			+endDate[2]+" "
+			+endDate[3]+" "
+			+endDate[5];
+	
+	var timeFormat = d3.timeParse('%a %b %d %H:%M:%S %Y');
+	
+	var x = d3.scaleTime()
+			.domain([timeFormat(startString),timeFormat(endString)])
+			.range([0,width]);
+	
+	console.log("Range setup");
+	var xAxis = d3.axisBottom(x);
+	console.log("Calling the axis");
+
+	timelineOverviewXAxis.call(xAxis);
+}
 
 /**
  * Display information on the dataset when there is no dataset
@@ -669,8 +1151,71 @@ function resetEvents() {
  */
 function displayDatasetInfo() {
 	var infoDiv = document.getElementById("datasetInfo");
+	infoDiv.textContent = "";
+	
+	var pStartSpan = document.createElement("p");
+	var txtStartSpan = document.createTextNode("First event: "+formatDate(datasetInfo["firstEvent"]));
+	var pEndSpan = document.createElement("p");
+	var txtEndSpan = document.createTextNode("Last event: "+formatDate(datasetInfo["lastEvent"]));
+	var pNbEvent = document.createElement("p");
+	var txtNbEvent = document.createTextNode("Number of events: "+datasetInfo["numberOfEvents"]);
+	var pNbEvent = document.createElement("p");
+	var txtNbEvent = document.createTextNode("Number of event types: "+datasetInfo["numberOfDifferentEvents"]);
+	var pNbUsers = document.createElement("p");
+	var txtNbUsers = document.createTextNode("Number of users: "+datasetInfo["users"].length)	
+	
+	//d3.select("#datasetName").text(datasetInfo["name"]);
+	
+	pNbEvent.appendChild(txtNbEvent);
+	infoDiv.appendChild(pNbEvent);
+
+	pNbUsers.appendChild(txtNbUsers);
+	infoDiv.appendChild(pNbUsers);
+	
+	pStartSpan.appendChild(txtStartSpan);
+	infoDiv.appendChild(pStartSpan);
+	pEndSpan.appendChild(txtEndSpan);
+	infoDiv.appendChild(pEndSpan);
 	
 	datasetInfoIsDefault = false;
+	
+	console.log("Info displayed");
+}
+
+function formatDate(date) {
+	// Agavue format : Sun Mar 31 01:32:10 CET 2013
+	var parts = date.split(" ");
+	if (parts.length != 6)
+		return date;
+	var month = "";
+	switch(parts[1]) {
+		case "Jan":
+			return " January "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Feb":
+			return " February "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Mar":
+			return " March "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Apr":
+			return " April "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "May":
+			return " May "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Jun":
+			return " June "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Jul":
+			return " July "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Aug":
+			return " August "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Sep":
+			return " September "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Oct":
+			return " October "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Nov":
+			return " November "+parts[2]+", "+parts[5]+", "+parts[3];
+		case "Dec":
+			return " December "+parts[2]+", "+parts[5]+", "+parts[3];
+		default:
+			return parts[1]+" "+parts[2]+", "+parts[5]+", "+parts[3];
+	}
 }
 
 /************************************************/

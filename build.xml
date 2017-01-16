@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. --><project basedir="." default="build" name="ProgressivePatternMiningTool">
+    <property environment="env"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="1.7"/>
+    <property name="source" value="1.7"/>
+    <path id="GlassFish System Libraries.libraryclasspath">
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/bean-validator.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/cdi-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/endorsed/javax.annotation-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/endorsed/jaxb-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/endorsed/webservices-api-osgi.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/glassfish-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/ha-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.batch-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.ejb-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.el.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.enterprise.concurrent-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.enterprise.concurrent.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.enterprise.deploy-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.faces.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.inject.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.interceptor-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.jms-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.json.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.mail.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.management.j2ee-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.persistence.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.resource-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.security.auth.message-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.security.jacc-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.servlet-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.servlet.jsp-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.servlet.jsp.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.servlet.jsp.jstl-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.servlet.jsp.jstl.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.transaction-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.websocket-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.ws.rs-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.xml.registry-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/javax.xml.rpc-api.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jaxb-extra-osgi.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jaxb-osgi.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-bean-validation.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-cdi1x-servlet.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-cdi1x-transaction.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-cdi1x.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-client.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-common.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-container-grizzly2-http.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-container-servlet-core.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-container-servlet.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-entity-filtering.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-gf-ejb.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-guava.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-media-jaxb.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-media-json-jackson.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-media-json-jettison.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-media-json-processing.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-media-moxy.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-media-multipart.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-media-sse.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-mvc-connector.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-mvc-jsp.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-mvc.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/jersey-server.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/org.eclipse.persistence.antlr.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/org.eclipse.persistence.asm.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/org.eclipse.persistence.core.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/org.eclipse.persistence.dbws.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/org.eclipse.persistence.jpa.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/org.eclipse.persistence.jpa.jpql.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/org.eclipse.persistence.jpa.modelgen.processor.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/org.eclipse.persistence.moxy.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/org.eclipse.persistence.oracle.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/webservices-connector.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/webservices-extra-jdk-packages.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/webservices-osgi.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/webservices.security.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/glassfish/modules/weld-osgi-bundle.jar"/>
+        <pathelement location="../../Documents/Work/glassfish-4.1.1/glassfish4/mq/lib/jaxm-api.jar"/>
+    </path>
+    <path id="Web App Libraries.libraryclasspath"/>
+    <path id="EAR Libraries.libraryclasspath"/>
+    <path id="ProgressivePatternMiningTool.classpath">
+        <pathelement location="build/classes"/>
+        <path refid="GlassFish System Libraries.libraryclasspath"/>
+        <path refid="Web App Libraries.libraryclasspath"/>
+        <path refid="EAR Libraries.libraryclasspath"/>
+    </path>
+    <target name="init">
+        <mkdir dir="build/classes"/>
+        <copy includeemptydirs="false" todir="build/classes">
+            <fileset dir="src">
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="build/classes"/>
+    </target>
+    <target depends="clean" name="cleanall"/>
+    <target depends="build-subprojects,build-project" name="build"/>
+    <target name="build-subprojects"/>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="build/classes" includeantruntime="false" source="${source}" target="${target}">
+            <src path="src"/>
+            <classpath refid="ProgressivePatternMiningTool.classpath"/>
+        </javac>
+    </target>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+  	<target name="war" description="Bundles the application as a WAR file" depends="clean, build">
+  	    <mkdir dir="WebContent/WEB-INF/classes"/>
+  	     
+  	    <copy includeemptydirs="false" todir="WebContent/WEB-INF/classes">
+  	            <fileset dir="build/classes">
+  	            <include name="**/*.class"/>
+  	            </fileset>
+  	    </copy>
+  	     
+  	    <war destfile="UploadServlet30.war"
+  	        basedir="WebContent"
+  	        needxmlfile="false">
+  	    </war>
+  	</target>
+</project>

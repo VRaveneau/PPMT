@@ -3,9 +3,7 @@
 	<head>
         <title>Progressive Pattern Mining Tool</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <script src="Vis/vis.js" type="text/javascript"></script>
-        <script src="D3/d3.js" type="text/javascript"></script>
-        <script src="ClientScript.js" type="text/javascript"></script>
+<!--         <script src="Vis/vis.js" type="text/javascript"></script> -->
 <!--         <script src="TimelineScript.js" type="text/javascript"></script> -->
 <!--         <script src="http://api.simile-widgets.org/timeline/2.3.1/timeline-api.js?bundle=true" type="text/javascript"></script> -->
         <link rel="stylesheet" type="text/css" href="style.css">
@@ -16,39 +14,40 @@
 	<body>
 	
 		<div id="wrapper">
-		
+			<div id="banner">
+			
+				<div><span class="caps">P</span>rogressive <span class="caps">P</span>attern <span class="caps">M</span>ining <span class="caps">T</span>ool</div>
+			
+			</div>
+			
+			<div id="top">
+			
+			</div>
+			
 			<div id="left">
 			
 				<ul class="controlTabs">
-					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Algorithm')" id="defaultControlTab">Algorithm</a></li>
-					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Trace')">Trace</a></li>
+					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Trace')" id="defaultControlTab">Trace</a></li>
 					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Events</a></li>
 					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
+					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Algorithm')">Algorithm</a></li>
 					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Filters')">Filters</a></li>
 				</ul>
 				
-				<div id="Algorithm" class="controlTabContent">
-					<p>Minimal support <input type="number" class="numberInput" form="algorithmForm" min="1" required></p>
-					<p>Window size <input type="number" class="numberInput" form="algorithmForm" min="1" required></p>
-					<p>Maximum gap <input type="number" class="numberInput" form="algorithmForm" min="0" required></p>
-					<form id="algorithmForm">
-						<input type="submit" value="Rerun">
-					</form>
-					<!-- rerun button -->
-				</div>
-				
 				<div id="Trace" class="controlTabContent">
 					<!-- Info on trace -->
+					<p>This dataset:</p>
 					<div id="datasetInfo">
 						
 					</div>
 					<hr>
+					<p>You can:</p>
 					<button type="button">Create event</button><br>
 					<button type="button">Delete event</button><br>
 					<button type="button">Truncate trace</button><br>
 					<button type="button">Delete user</button>
 					<hr>
-					<p>History:</p>
+					<p>You did:</p>
 					<!-- history -->
 					<div id="history">
 						
@@ -63,12 +62,16 @@
 						</div>
 					</form>
 				
-					<table id="eventTable">
-						<tr>
-							<th>Event</th>
-							<th>Logo</th>
-							<th>Color</th>
-						</tr>
+					<table id="eventTable" class="sortable">
+						<thead>
+							<tr>
+								<th>Event type</th>
+								<th id="eventsOccurrencesColumn" class="sorttable_numeric">Nb events</th>
+								<th class="sorttable_numeric">Symbol</th>
+							</tr>
+						</thead>
+						<tbody id="eventTableBody">
+						</tbody>
 					</table>
 					<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
 				</div>
@@ -81,12 +84,31 @@
 						</div>
 					</form>
 					
-					<table id="userTable">
-						<tr>
-							<th>User</th>
-							<th>Displayed</th>
-						</tr>
-					</table>
+					<div id="userTableArea">
+						<table id="userTable" class="sortable">
+							<thead>
+								<tr>
+									<th class="userColumn sorttable_numeric">User</th>
+									<th id="eventsPerUserColumn" class="sorttable_numeric">Nb events</th>
+									<th class="sorttable_numeric">Duration</th>
+									<th class="sorttable_numeric">Start</th>
+									<th class="sorttable_numeric">End</th>
+								</tr>
+							</thead>
+							<tbody id="userTableBody">
+							</tbody>
+						</table>
+					</div>
+				</div>
+				
+				<div id="Algorithm" class="controlTabContent">
+					<p>Minimal support <input type="number" class="numberInput" form="algorithmForm" min="1" required></p>
+					<p>Window size <input type="number" class="numberInput" form="algorithmForm" min="1" required></p>
+					<p>Maximum gap <input type="number" class="numberInput" form="algorithmForm" min="0" required></p>
+					<form id="algorithmForm">
+						<input type="submit" value="Rerun">
+					</form>
+					<!-- rerun button -->
 				</div>
 				
 				<div id="Filters" class="controlTabContent">
@@ -98,45 +120,51 @@
 				</div>
 				
 			</div>
-		
-			<div id="center">
-				<div id="timeline-view">
-					<div id="timeline">
+			
+			<!--  <div id="display">  -->
+				<div id="center">
+					<div id="timeline-view">
+						<div id="timeline">
+						
+						</div>
+						<div id="timelineOverview">
+						
+						</div>
+						
+					</div>
+				
+				</div>
+			
+				<div id="right">
 					
+					<form>
+						<div class="searchBarArea">
+							<input type="submit" class="searchButton" value="Search">
+							<div><input type="text" class="searchField"></div>
+						</div>
+					</form>
+				
+					<ul class="patternTabs">
+						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'List')" id="defaultPatternTab">List</a></li>
+						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Graph')">Graph</a></li>
+					</ul>
+					
+					<div id="List" class="patternTabContent">
+						<p>List of patterns</p>
 					</div>
-				</div>
-			
-			</div>
-		
-			<div id="right">
-				
-				<form>
-					<div class="searchBarArea">
-						<input type="submit" class="searchButton" value="Search">
-						<div><input type="text" class="searchField"></div>
+					
+					<div id="Graph" class="patternTabContent">
+						<p>Graph of patterns</p>
 					</div>
-				</form>
-			
-				<ul class="patternTabs">
-					<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'List')" id="defaultPatternTab">List</a></li>
-					<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Graph')">Graph</a></li>
-				</ul>
-				
-				<div id="List" class="patternTabContent">
-					<p>List of patterns</p>
+					
 				</div>
 				
-				<div id="Graph" class="patternTabContent">
-					<p>Graph of patterns</p>
+				<div id="bottom">
+					<p class="leftAligned">Runtime: <span id="runtime"></span></p>
+					<p class="leftAligned lastItem">Data used: <span id="dataUsed"></span></p>
+					<p class="rightAligned">Focusing on: <span id="focus"></span></p>
 				</div>
-				
-			</div>
-			
-			<div id="bottom">
-				<p class="leftAligned">Runtime: <span id="runtime"></span></p>
-				<p class="leftAligned lastItem">Data used: <span id="dataUsed"></span></p>
-				<p class="rightAligned">Focusing on: <span id="focus"></span></p>
-			</div>
+			<!-- </div> -->
 		
 <!-- 		
 		
@@ -185,6 +213,9 @@
 			
 			
 		</div>
-		
+		<script src="D3/d3.js" type="text/javascript"></script>
+	    <script src="ClientScript.js" type="text/javascript"></script>
+	    <script src="SortTable/sorttable.js" type="text/javascript"></script>
+	    <script src="ScatterplotTimeline.js" type="text/javascript"></script>
 	</body>
 </html>

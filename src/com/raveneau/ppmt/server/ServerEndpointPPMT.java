@@ -16,12 +16,12 @@ import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
 @ApplicationScoped
-@ServerEndpoint("/serverendpointppmt")
+@ServerEndpoint("/wsppmt")
 public class ServerEndpointPPMT {
 	
 	@Inject
 	private SessionHandler sessionHandler;
-	
+
 	@OnOpen
 	public void handleOpen(Session session) {
 		System.out.println("Client connected");
@@ -30,29 +30,40 @@ public class ServerEndpointPPMT {
 	
 	@OnMessage
 	public void handleMessage(String message, Session session) {
-		try (JsonReader reader = Json.createReader(new StringReader(message))) {
-			JsonObject jsonMessage = reader.readObject();
-			
-			if ("startMining".equals(jsonMessage.getString("action"))) {
-		  		sessionHandler.startMining();
-		  	}
-			if ("stopMining".equals(jsonMessage.getString("action"))) {
-		  		sessionHandler.stopMining();
-		  	}
-			if ("request".equals(jsonMessage.getString("action"))) {
-		  		if ("data".equals(jsonMessage.getString("object"))) {
-		  			System.out.println("user requests data");
-		  			sessionHandler.provideDatasetInfo();
-		  			sessionHandler.provideData();
-		  		}
-		  	}
-			if ("steerOnPattern".equals(jsonMessage.getString("action"))) {
-		  		sessionHandler.requestSteeringOnPattern(jsonMessage.getString("pattern"));
-		  	}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		JsonReader reader = Json.createReader(new StringReader(message));
+		JsonObject jsonMessage = reader.readObject();
+		
+		if ("startMining".equals(jsonMessage.getString("action"))) {
+	  		sessionHandler.startMining();
+	  	}
+		if ("stopMining".equals(jsonMessage.getString("action"))) {
+	  		sessionHandler.stopMining();
+	  	}
+		if ("request".equals(jsonMessage.getString("action"))) {
+	  		if ("dataset".equals(jsonMessage.getString("object"))) {
+	  			System.out.println("user requests data on the "+jsonMessage.getString("dataset")+" dataset");
+	  			sessionHandler.provideData(jsonMessage.getString("dataset"));
+	  		} else
+	  		if ("datasetInfo".equals(jsonMessage.getString("object"))) {
+	  			System.out.println("user requests information on the "+jsonMessage.getString("dataset")+" dataset");
+	  			sessionHandler.provideDatasetInfo(jsonMessage.getString("dataset"));
+	  		} else
+	  		if ("eventTypes".equals(jsonMessage.getString("object"))) {
+	  			System.out.println("user requests event types on the "+jsonMessage.getString("dataset")+" dataset");
+	  			sessionHandler.provideEventTypesInfo(jsonMessage.getString("dataset"));
+	  		} else
+	  		if ("trace".equals(jsonMessage.getString("object"))) {
+	  			System.out.println("user requests the trace of user "+jsonMessage.getString("user")+" in dataset "+jsonMessage.getString("dataset"));
+	  			sessionHandler.provideTrace(jsonMessage.getString("user"), jsonMessage.getString("dataset"));
+	  		} else
+	  		if ("patterns".equals(jsonMessage.getString("object"))) {
+	  			System.out.println("user requests the patterns of user "+jsonMessage.getString("user")+" in dataset "+jsonMessage.getString("dataset"));
+	  			sessionHandler.providePatterns(jsonMessage.getString("user"), jsonMessage.getString("dataset"));
+	  		}
+	  	}
+		if ("steerOnPattern".equals(jsonMessage.getString("action"))) {
+	  		sessionHandler.requestSteeringOnPattern(jsonMessage.getString("pattern"));
+	  	}
 	}
 	
 	@OnClose

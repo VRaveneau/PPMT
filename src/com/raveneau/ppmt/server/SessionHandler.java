@@ -16,13 +16,17 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.json.spi.JsonProvider;
 import javax.swing.event.EventListenerList;
 import javax.websocket.Session;
 
 import com.raveneau.ppmt.algorithms.AlgorithmHandler;
+import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.events.SteeringListener;
 import com.raveneau.ppmt.patterns.Pattern;
 
@@ -34,13 +38,19 @@ public class SessionHandler {
 	private final Map<Pattern, List<String>> patterns = new HashMap<>();
 	private AlgorithmHandler algorithmHandler = new AlgorithmHandler(this);
 	private final EventListenerList listeners = new EventListenerList();
+	private DatasetManager datasetManager = DatasetManager.getInstance();
 	
 	public SessionHandler() {
 		super();
+		System.out.println("Call to the session handler constructor : "+this.hashCode()); // TODO Find out why the constructor is called twice -> or make it singleton ?
 		addSteeringListener(algorithmHandler);
+		// Provide a dataset to the datasetManager
+		datasetManager.addDataset("Agavue", "C:/Users/vincent/workspaceNeon/ProgressivePatternMiningTool/Data/Agavue/agavue_full_clean.csv", false);	
 	}
 
 	public void addSession(Session session) {
+		System.out.println("Adding session to the session handler : "+this.hashCode());
+		datasetManager.loadDataset("Agavue");
 		sessions.add(session);
 		for (Pattern pattern : patterns.keySet()) {
 			JsonObject addMessage = createAddMessage(pattern, patterns.get(pattern).get(0));
@@ -180,7 +190,26 @@ public class SessionHandler {
     	patterns.clear();
     }
 
-	public void provideData() throws IOException {
+    public void provideData(String datasetName) {
+    	System.out.println("Handler starts to provide data");
+    	JsonProvider provider = JsonProvider.provider();
+    	
+    	// provide the user list
+    	List<String> userList = datasetManager.getUsers(datasetName);
+    	JsonObjectBuilder dataMessageBuilder = null;
+		dataMessageBuilder = provider.createObjectBuilder()
+			.add("action", "data")
+			.add("type", "userList")
+			.add("size", userList.size());
+		for (int i=0; i < userList.size(); i++) 
+			dataMessageBuilder.add(Integer.toString(i), userList.get(i));
+		sendToAllConnectedSessions(dataMessageBuilder.build());
+		
+    	System.out.println("|-Handler provided the data");
+    }
+    
+    // Old version of the above method
+	public void provideDataOld(String datasetName) throws IOException {
 		System.out.println("Handler starts to provide data"); //$NON-NLS-1$
 		JsonProvider provider = JsonProvider.provider();
 		
@@ -265,9 +294,105 @@ public class SessionHandler {
 		System.out.println("Refresh sent"); //$NON-NLS-1$
 	}
 
-	public void provideDatasetInfo() {
-		// TODO Auto-generated method stub
+	public void provideDatasetInfo(String datasetName) {
+		JsonObjectBuilder dataMessage = null;
+		JsonProvider provider = JsonProvider.provider();
 		
+		System.out.println("requesting infos");
+		
+		// date of first and last events
+		String firstEvent = datasetManager.getFirstEvent(datasetName);
+		String lastEvent = datasetManager.getLastEvent(datasetName);
+		// list of events
+		List<String> events = datasetManager.getEventTypes(datasetName);
+		// Number of events
+		String nbEvents = Integer.toString(datasetManager.getNbEvents(datasetName));
+		// list of users
+		List<String> users = datasetManager.getUsersName(datasetName);
+		// Name of the dataset
+		String name = datasetManager.getDatasetName(datasetName);
+		
+		dataMessage = provider.createObjectBuilder()
+				.add("action", "datasetInfo")
+				.add("numberOfSequences", users.size())
+				.add("numberOfDifferentEvents", events.size())
+				.add("nbEvents", nbEvents)
+				.add("firstEvent", firstEvent)
+				.add("lastEvent", lastEvent)
+				.add("name", name);
+
+		int count = 0;
+		for (String u : users) {
+			dataMessage.add("user"+Integer.toString(count), u);
+			count++;
+		}
+		
+		sendToAllConnectedSessions(dataMessage.build());
+	}
+
+	public void provideTrace(String user, String dataset) {
+		JsonObjectBuilder dataMessage = null;
+		JsonProvider provider = JsonProvider.provider();
+		
+		System.out.println("requesting trace");
+		
+		List<Map<String,String>> trace = datasetManager.getTrace(user, dataset);
+		
+		dataMessage = provider.createObjectBuilder()
+				.add("action", "trace")
+				.add("numberOfEvents", trace.size())
+				.add("first", datasetManager.getFirstEvent(user, dataset))
+				.add("last", datasetManager.getLastEvent(user, dataset));
+
+		int count = 0;
+		for (Map<String,String> attr : trace) {
+			String attrList = attr.get("type")+";"+attr.get("start");
+			dataMessage.add(Integer.toString(count), attrList);
+			count++;
+		}
+		
+		sendToAllConnectedSessions(dataMessage.build());
+	}
+
+	public void providePatterns(String user, String dataset) {
+		JsonObjectBuilder dataMessage = null;
+		JsonProvider provider = JsonProvider.provider();
+		
+		System.out.println("requesting patterns");
+		
+		List<String> userPatterns = datasetManager.getPatterns(user, dataset);
+		
+		dataMessage = provider.createObjectBuilder()
+				.add("action", "patterns")
+				.add("numberOfPatterns", userPatterns.size());
+
+		int count = 0;
+		for (String p : userPatterns) {
+			dataMessage.add(Integer.toString(count), p);
+			count++;
+		}
+		
+		sendToAllConnectedSessions(dataMessage.build());
+	}
+
+	public void provideEventTypesInfo(String datasetName) {
+		JsonObjectBuilder dataMessage = null;
+		JsonProvider provider = JsonProvider.provider();
+		
+		System.out.println("requesting event types");
+		
+		// list of event types
+		List<String> et = datasetManager.getEventTypes(datasetName);
+		
+		dataMessage = provider.createObjectBuilder()
+				.add("action", "eventTypes")
+				.add("size", et.size());
+		int count = 0;
+		for (String t : et) {
+			dataMessage.add(Integer.toString(count), t);
+			count++;
+		}
+		sendToAllConnectedSessions(dataMessage.build());
 	}
 
 	public void requestSteeringOnPattern(String pattern) {
