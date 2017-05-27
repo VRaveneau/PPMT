@@ -47,12 +47,36 @@ body {
 	min-height: 600px;
 	max-height: 69%;
 	float: left;
+	position: relative;
 /*     background-color: #999999; */
 }
 
 #timeline {
-	height: 500px;
+	height: 600px;
+	width: 100%;
+	position: absolute;
+	top: 0;
 	/*overflow-y: auto;*/
+}
+
+.displayControlForm {
+	float: left;
+}
+
+#centerOverlay {
+	height: 600px;
+	line-height: 600px;
+	width: 100%;
+	position: absolute;
+	top: 0;
+	text-align: center;
+	background-color: white;
+	color: black;
+	opacity: 0.8;
+}
+
+#timeline form {
+	float: left;
 }
 
 #timelineOverview {
@@ -140,7 +164,10 @@ body {
 	
 }
 
-
+.trace-action-button {
+	max-width: 25%;
+	float: left;
+}
 
 /********************************/
 /*								*/
@@ -149,11 +176,11 @@ body {
 /********************************/
 
 table.sortable tbody tr:nth-child(2n) td {
-  background: #e3e2e2;
+  /*background: #e3e2e2;*/
 }
 
 table.sortable tbody tr:nth-child(2n+1) td {
-  background: #c3c3c3;
+ /* background: #c3c3c3;*/
 }
 
 /* Display the sorting arrows permanently in sortable tables */
@@ -186,7 +213,7 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 }
 
 #top {
-	width: 77%;
+	width: 54%;
 	/*max-*/height: 3%;
 	margin: 0px;
 	text-align: left;
@@ -230,7 +257,7 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 #right {
 	width: 23%;
 	/*min-height: 90%;
-	max-*/height: 90.5%;
+	max-*/height: 93%;
 	/*background-color: pink;*/
 	float: right;
 	/*position: relative;
@@ -272,6 +299,13 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	margin-left: 0px;
 }
 
+.no-margin-top {
+	margin-top: 0px;
+}
+
+.no-margin-bottom {
+	margin-bottom: 0px;
+}
 /********************************/
 /* 			Control tabs 		*/
 /********************************/
@@ -284,7 +318,7 @@ ul.controlTabs {
     overflow: hidden;
     border: 1px solid #ccc;
     background-color: #73adc3;
-    height: 5%;
+    /*height: 5%;*/
 }
 
 /* Float the list items side by side */
@@ -393,6 +427,12 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
     padding: 6px 12px;
     border: 1px solid #ccc;
     border-top: none;
+    height: 100%;
+}
+
+#List {
+	overflow: auto;
+	max-height: 90%;
 }
 
 /********************************/
@@ -401,7 +441,7 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
 
 #Users {
 	max-height: 100%;
-	overflow: auto;
+	overflow: hidden;
 }
 
 #userTableArea {
@@ -420,7 +460,14 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
 	word-wrap: break-word;
 }
 
+#userTableBody tr.selectedUserRow {
+  /*background: #5C9FB9;*/
+  font-weight: bold;
+}
 
+#userTableBody tr:not(.selectedUserRow) {
+	font-weight: normal;
+}
 
 .area {
   fill: steelblue;
@@ -431,4 +478,111 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
   cursor: move;
   fill: none;
   pointer-events: all;
+}
+
+.text-centered {
+	text-align: center;
+}
+
+.grey-text {
+	color: grey;
+}
+
+#algorithmForm input[type="number"] {
+	max-width: 75 px;
+}
+
+#algorithmForm p {
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.zoomInfoSpan {
+	color: lightgrey;
+	font-style: italic;
+}
+
+.zoomInfoSpan.currentZoom {
+	color: black;
+	font-style: normal;
+}
+
+/********************/
+/*	Sliders			*/
+/********************/
+
+#sliderGap {
+	width: 100%;
+	height: 50px;
+}
+
+#sliderGap p {
+	margin: 0px;
+}
+	
+.slider {
+	width: 100%;
+	height: 50px;	
+}
+
+.ticks {
+  font: 10px sans-serif;
+}
+
+.track {
+  stroke: #black;
+  stroke-opacity: 0.3;
+  stroke-width: 5px;
+  stroke-linecap: round;
+}
+
+.bluetrack {
+  stroke: #lightblue;
+  stroke-width: 5px;
+  stroke-linecap: round;
+}
+
+.handleSlider {
+  fill: #fff;
+  stroke: #000;
+  stroke-opacity: 0.5;
+  stroke-width: 1.25px;
+}
+
+.boundary {
+  fill: #grey;
+  stroke: #000;
+  stroke-opacity: 0.5;
+  stroke-width: 1.25px;
+}
+
+/********************/
+/*	Tooltip			*/
+/********************/
+
+#tt {
+ position:absolute;
+ display:block;
+ /*background:url(images/tt_left.gif) top left no-repeat;*/
+ }
+ #tttop {
+ display:block;
+ height:5px;
+ margin-left:5px;
+ /*background:url(images/tt_top.gif) top right no-repeat;*/
+ overflow:hidden;
+ }
+ #ttcont {
+ display:block;
+ padding:2px 12px 3px 7px;
+ margin-left:5px;
+ background:#666;
+ color:#fff;
+ }
+#ttbot {
+display:block;
+height:5px;
+margin-left:5px;
+/*background:url(images/tt_bottom.gif) top right no-repeat;*/
+overflow:hidden;
 }

@@ -49,7 +49,10 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 	public AlgorithmHandler(SessionHandler sessionHandler) {
 		this.sessionHandler = sessionHandler;
 		try {
-			inputPath = setupDataForSPAM(Messages.getString("AlgorithmHandler.0"),null); //$NON-NLS-1$
+			// Localhost version
+			//inputPath = setupDataForSPAM(Messages.getString("AlgorithmHandler.0"),null);
+			// Server version
+			inputPath = setupDataForSPAM(Messages.getString("AlgorithmHandler.5"),null); //$NON-NLS-1$
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -177,9 +180,15 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 		int lastKey = 0;
 		String outFile = ""; //$NON-NLS-1$
 		if (user == null) {
-			outFile = Messages.getString("AlgorithmHandler.1"); //$NON-NLS-1$
+			// Localhost version
+			//outFile = Messages.getString("AlgorithmHandler.1");
+			// Server version
+			outFile = Messages.getString("AlgorithmHandler.6"); //$NON-NLS-1$
 		} else {
-			outFile = Messages.getString("AlgorithmHandler.2")+user; //$NON-NLS-1$
+			// Localhost version
+			//outFile = Messages.getString("AlgorithmHandler.2")+user;
+			// Server version
+			outFile = Messages.getString("AlgorithmHandler.7")+user; //$NON-NLS-1$
 		}
 		BufferedWriter writer = new BufferedWriter(new FileWriter(outFile));
 		Date currentStart = null;
@@ -250,7 +259,10 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 	private String setupDataForSPAM(String input, String user) throws IOException {
 		
 		int lastKey = 0;
-		BufferedWriter writer = new BufferedWriter(new FileWriter(Messages.getString("AlgorithmHandler.3"))); //$NON-NLS-1$
+		// Localhost version
+		//BufferedWriter writer = new BufferedWriter(new FileWriter(Messages.getString("AlgorithmHandler.3")));
+		// Server version
+		BufferedWriter writer = new BufferedWriter(new FileWriter(Messages.getString("AlgorithmHandler.8"))); //$NON-NLS-1$
 		Date previousEnd = null;
 		
 		// read the file
@@ -286,7 +298,10 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 		}
 		writer.close();
 		reader.close();
-		return Messages.getString("AlgorithmHandler.4"); //$NON-NLS-1$
+		// Localhost version
+		//return Messages.getString("AlgorithmHandler.4");
+		// Server version
+		return Messages.getString("AlgorithmHandler.9"); //$NON-NLS-1$
 	}
 
 	private Map<String, String> retrieveItemsFromSPAM(List<Integer> items, List<String> sIDs) {

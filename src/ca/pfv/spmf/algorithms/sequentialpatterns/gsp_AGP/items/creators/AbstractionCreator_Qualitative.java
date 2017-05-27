@@ -289,7 +289,7 @@ public class AbstractionCreator_Qualitative implements AbstractionCreator {
      * @param previousItemIndex Item index of the previous item in the pattern
      * @return The position where the item is
      */
-    public int[] findPositionOfItemInSequence(Sequence sequence, Item itemPair, Abstraction_Generic absPair, Abstraction_Generic previousAbs, int itemsetIndex, int itemIndex, int previousItemsetIndex, int previousItemIndex) {
+    public int[] findPositionOfItemInSequence(Sequence sequence, Item itemPair, Abstraction_Generic absPair, int itemsetIndex, int itemIndex, int previousItemsetIndex, int previousItemIndex) {
         Abstraction_Qualitative abs = (Abstraction_Qualitative) absPair;
         int[] pos = null;
         //If our item has an equal relation
@@ -303,11 +303,11 @@ public class AbstractionCreator_Qualitative implements AbstractionCreator {
             int itemsetIndexToSearchFor = itemsetIndex;
             int itemIndexToSearchFor = itemIndex;
             //If the current itemset index and the previous one point out to the same position
-            if (itemsetIndex == previousItemsetIndex) {
+            /*if (itemsetIndex == previousItemsetIndex) {	TODO Check if appropriate	// Uncomment this block if pattern in the same itemset are allowed
                 //We make the current itemset index to point to the next itemset, starting from the first item index
                 itemsetIndexToSearchFor++;
                 itemIndexToSearchFor = 0;
-            }
+            }*/
             //And, finally, we look for the item in all the itemsets that appear later than the original itemset index
             //pos = sequence.searchForAnItemInLaterItemset(itemPair, itemsetIndexToSearchFor, itemIndexToSearchFor);
             pos = sequence.searchForTheFirstAppearance(itemsetIndexToSearchFor, itemIndexToSearchFor, itemPair);
@@ -356,10 +356,20 @@ public class AbstractionCreator_Qualitative implements AbstractionCreator {
         }
         if (different) {//If we cannot compose any candidate we return null
             return null;
-        } else {/*otherwise, we first check if the junction of their appearing 
+        } else {
+        /*
+         * Relevant version for episodes
+         */
+	    	Pattern newPattern = pattern1.clonePattern();
+	        newPattern.add(pattern2.getLastElement());
+	        return newPattern;
+        /*
+         * Relevant version for sequential patterns
+         */
+        /*otherwise, we first check if the junction of their appearing 
          * sets still has more appearances than the minimum relative support is
          */
-            BitSet intersection = (BitSet) pattern1.getAppearingIn().clone();
+           /* BitSet intersection = (BitSet) pattern1.getAppearingIn().clone();
             intersection.and(pattern2.getAppearingIn());
             //If we have more appearences than the minSupport is
             if (intersection.cardinality() >= minSupport) {
@@ -369,7 +379,7 @@ public class AbstractionCreator_Qualitative implements AbstractionCreator {
                 return newPattern;
             } else {//Otherwise, it never could be frequent and we can remove it
                 return null;
-            }
+            }*/
         }
     }
 
@@ -384,8 +394,8 @@ public class AbstractionCreator_Qualitative implements AbstractionCreator {
      * @param i the candidate item in which we start
      * @param position The position list for all the candiate elements
      */
-    public void isCandidateInSequence(CandidateInSequenceFinder finder, Pattern candidate, Sequence sequence, int k, int i, List<int[]> position) {
-        finder.isCandidatePresentInTheSequence_qualitative(candidate, sequence, k, 0, position);
+    public void isCandidateInSequence(CandidateInSequenceFinder finder, Pattern candidate, Sequence sequence, int k, int i, List<int[]> position, long maxDuration, int minGap, int maxGap) {
+        finder.isCandidatePresentInTheSequence_qualitative(candidate, sequence, k, 0, position, maxDuration, minGap, maxGap);
     }
 
     public List<Pattern> generateSize2Candidates(AbstractionCreator creator, Pattern pat1, Pattern pat2) {

@@ -6,7 +6,10 @@ package ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.patterns;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.abstractions.ItemAbstractionPair;
 
@@ -44,8 +47,16 @@ public class Pattern implements Comparable<Pattern> {
      * Bitset when we keep the sequence IDs where the pattern it appears
      */
     private BitSet appearingIn;
+    
+    private Map<Integer, List<Integer>> appearencesBySequence = new HashMap<>();
+    
+    private Map<Integer,long[]> appearenceTimestamps = new HashMap<>();
+    private Map<Integer,String> appearenceUsers = new HashMap<>();
     //private Boolean frequent = null;
+    private int support = 0;
 
+    private int nextAppearenceId = 0;
+    
     /**
      * Standard constructor that sets all the attributes to empty values
      */
@@ -96,11 +107,82 @@ public class Pattern implements Comparable<Pattern> {
     }
     
     /**
+     * Function working with itemsets of only one element
+     * 
      * Get a string representation of this itemset. Adjusted to SPMF format.
      * @param outputSequenceIdentifiers if true, sequence identifiers will be output
      * @return the string representation
      */
     public String toStringToFile(boolean outputSequenceIdentifiers) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < elements.size(); i++) {
+            if(i==elements.size()-1){
+                if(i!=0)
+                    result.append(elements.get(i).toStringToFile());
+                else
+                    result.append(elements.get(i).getItem());
+            }
+            else if(i==0){
+                result.append(elements.get(i).getItem());
+            }else{
+                result.append(elements.get(i).toStringToFile());
+            }
+            
+        }
+        result.append(" #SUP: ");
+        result.append(getSupport());
+        // if the user wants the sequence IDs, we will show them
+        if(outputSequenceIdentifiers) {
+        	// Mean duration
+        	List<Long> durations = new ArrayList<>();
+        	String durationString = "";
+        	long minDuration = -1;
+        	long maxDuration = -1;
+        	double standardDeviation = 0;
+        	long totalDuration = 0;
+        	if (elements.size() > 1) {
+	        	for (int i = appearingIn.nextSetBit(0); i >= 0; i = appearingIn.nextSetBit(i+1)) {
+	        		for (Integer idToLook : appearencesBySequence.get(i)) {
+		        		long[] ts = appearenceTimestamps.get(idToLook);
+		        		long duration = (ts[1]-ts[0])/1000;
+		        		if (minDuration < 0 || minDuration > duration)
+		        			minDuration = duration;
+		        		if (maxDuration < 0 || maxDuration < duration)
+		        			maxDuration = duration;
+		        		
+		        		durationString += Long.toString(duration)+" ";
+		        		durations.add(new Long(duration));
+		        		standardDeviation += duration*duration;
+		        		totalDuration += duration;
+	        		}
+	        	}
+	        	standardDeviation /= getSupport();
+	        	double meanDuration = (totalDuration*1.0)/durations.size();
+	        	standardDeviation -= meanDuration*meanDuration;
+	        	standardDeviation = Math.sqrt(standardDeviation);
+	        	result.append(" #SD: "+standardDeviation);
+	        	result.append(" #MINDUR: "+minDuration);
+	        	result.append(" #MAXDUR: "+maxDuration);
+	        	Collections.sort(durations);
+	        	if (durations.size() > 0) {
+		        	result.append(" #MEANDUR: "+meanDuration);
+		        	result.append(" #MEDIANDUR: "+durations.get(durations.size()/2));
+	        	}
+	        	result.append(" #DUR: ");
+	        	result.append(durationString);
+        	}
+        }
+        return result.toString();
+    }
+    
+    /**
+     * Function working as coded by AGP
+     * 
+     * Get a string representation of this itemset. Adjusted to SPMF format.
+     * @param outputSequenceIdentifiers if true, sequence identifiers will be output
+     * @return the string representation
+     */
+    public String toStringToFileInital(boolean outputSequenceIdentifiers) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < elements.size(); i++) {
             if(i==elements.size()-1){
@@ -124,6 +206,10 @@ public class Pattern implements Comparable<Pattern> {
         	result.append(" #SID: ");
         	for (int i = appearingIn.nextSetBit(0); i >= 0; i = appearingIn.nextSetBit(i+1)) {
         		result.append(i);
+        		if (elements.size() > 1) {
+	        		long[] ts = appearenceTimestamps.get(new Integer(i));
+	        		result.append("("+ts[0]+"-"+ts[1]+")");
+        		}
         		result.append(" ");
         	}
         }
@@ -307,13 +393,70 @@ public class Pattern implements Comparable<Pattern> {
      */
     public void addAppearance(Integer sequenceId) {
         appearingIn.set(sequenceId);
+        if (!appearencesBySequence.containsKey(sequenceId)) {
+        	appearencesBySequence.put(sequenceId, new ArrayList<Integer>());
+        }
+    	appearencesBySequence.get(sequenceId).add(new Integer(nextAppearenceId));
+    	nextAppearenceId++;
+    	
+    	support++;
+    }
+
+    /**
+     * Add a sequence ID in the sequence Id set
+     * @param sequenceId  the sequence id
+     */
+    public void addAppearance(Integer sequenceId, long[] timestamps, String user) {
+        appearingIn.set(sequenceId);
+        if (!appearencesBySequence.containsKey(sequenceId)) {
+        	appearencesBySequence.put(sequenceId, new ArrayList<Integer>());
+        }
+    	appearencesBySequence.get(sequenceId).add(new Integer(nextAppearenceId));
+        appearenceTimestamps.put(new Integer(nextAppearenceId), timestamps);
+        appearenceUsers.put(new Integer(nextAppearenceId), user);
+    	nextAppearenceId++;
+    	
+    	support++;
+    }
+    
+    public List<String> getAppearenceUserInSequence(Integer seqId) {
+    	List<String> result = new ArrayList<>();
+    	for (Integer occId : appearencesBySequence.get(seqId))
+    		result.add(appearenceUsers.get(occId));
+    	
+    	return result;
+    }
+    
+    public String getAppearenceUser(Integer occId) {
+    	return appearenceUsers.get(occId);
+    }
+    
+    public List<long[]> getAppearanceTimestampInSequence(Integer seqId) {
+    	List<long[]> result = new ArrayList<>();
+    	for (Integer occId : appearencesBySequence.get(seqId))
+    		result.add(appearenceTimestamps.get(occId));
+    	
+    	return result;
+    }
+    
+    public long[] getAppearanceTimestamp(Integer occId) {
+    	return appearenceTimestamps.get(occId);
     }
 
     /**
      * It returns the support of a pattern
      * @return the support
      */
-    public double getSupport() {
-        return appearingIn.cardinality();
+    public int getSupport() {
+        return support;
+    	//return appearingIn.cardinality();
+    }
+    
+    public List<Integer> getSequenceIds() {
+    	List<Integer> result = new ArrayList<>();
+    	for (int i = appearingIn.nextSetBit(0); i >= 0; i = appearingIn.nextSetBit(i+1)) {
+    		result.add(new Integer(i));
+    	}
+    	return result;
     }
 }

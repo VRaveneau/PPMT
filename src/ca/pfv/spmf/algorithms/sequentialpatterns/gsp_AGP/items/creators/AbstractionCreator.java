@@ -52,11 +52,11 @@ public interface AbstractionCreator {
 
     public Abstraction_Generic createAbstraction(long timeActual, long timeAnterior);
 
-    public int[] findPositionOfItemInSequence(Sequence secuencia, Item itemPar, Abstraction_Generic absPar, Abstraction_Generic absAnterior, int indexItemset,int indexitem, int indexItemsetAnterior,int indexitemAnterior);
+    public int[] findPositionOfItemInSequence(Sequence secuencia, Item itemPar, Abstraction_Generic absPar, int indexItemset,int indexitem, int indexItemsetAnterior,int indexitemAnterior);
 
     public Pattern generateCandidates(AbstractionCreator creador, Pattern patron1, Pattern patron2,double minSupport);
 
-    public void isCandidateInSequence(CandidateInSequenceFinder buscador, Pattern candidato, Sequence secuencia, int k, int i, List<int[]> posicion);
+    public void isCandidateInSequence(CandidateInSequenceFinder buscador, Pattern candidato, Sequence secuencia, int k, int i, List<int[]> posicion, long maxDuration, int minGap, int maxGap);
 
     public List<Pattern> generateSize2Candidates(AbstractionCreator creador, Pattern get, Pattern get0);
 }

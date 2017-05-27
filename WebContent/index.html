@@ -20,18 +20,94 @@
 			
 			</div>
 			
-			<div id="top">
+				<div id="right">
+				
+					<div class="text-centered">The Patterns</div>
+					
+					<form>
+						<div class="searchBarArea">
+							<input type="submit" class="searchButton" value="Search">
+							<div><input type="text" class="searchField"></div>
+						</div>
+					</form>
+				
+					<ul class="patternTabs">
+						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'List')" id="defaultPatternTab">Full list</a></li>
+						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Metrics')">Metrics</a></li>
+						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Algorithm')">Mining</a></li>
+					</ul>
+					
+					<div id="List" class="patternTabContent">
+						<!-- <p>List of patterns</p> -->
+					</div>
+					
+					<div id="Metrics" class="patternTabContent">
+						<p>More information about the patterns!</p>
+					</div>
+				
+					<div id="Algorithm" class="patternTabContent">
+					<form id="algorithmForm" onSubmit="return runAlgorithm()">
+						<p >	Minimal support&nbsp;
+							<input type="number" class="numberInput" id="inputMinSup" form="algorithmForm" min="0" max="1" step="0.01" required>
+							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMinSup>none</span>)</span>
+						</p>
+						<p> Window size&nbsp;
+							<input type="number" class="numberInput" id="inputWindowSize" form="algorithmForm" min="1" max="31536000" required>
+							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentWindowSize>none</span>)</span>
+						</p>
+						<p> Maximum size&nbsp;
+							<input type="number" class="numberInput" id="inputMaxSize" form="algorithmForm" min="1" max="10000" required>
+							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxSize>none</span>)</span>
+						</p>
+						<p> Maximum gap&nbsp;
+							<input type="number" class="numberInput" id="inputMaxGap" form="algorithmForm" min="0" max="10000" required>
+							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxGap>none</span>)</span>
+						</p>
+						
+							<input type="submit" value="Run">
+						</form>
+						<p><a href="javascript:void(0)" onclick="runAlgoToFile()">Run algo and save to file</a></p>
+						<!-- rerun button -->
+						<br>
+						<hr>
+						<div id="sliderSupport">
+							<p>Support:</p>
+						</div>
+						<div id="sliderGap">
+							<p>Gap:</p>
+						</div>
+						<div id="sliderWindow">
+							<p>Window:</p>
+							<svg class="slider"></svg>
+						</div>
+						<div id="sliderSize">
+							<p>Size:</p>
+							<svg class="slider"></svg>
+						</div>
+					</div>
+					
+				</div>
 			
+			<div id="top">
+				<!-- Activity indicator, disabled for now
+				<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
+					<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
+				</svg> -->
+				<p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p>
+				<p class="leftAligned no-margin-top no-margin-bottom" id="userHighlight">No user</p>
+				<p class="leftAligned lastItem no-margin-top no-margin-bottom" id="userHighlight">No event type</p>
+				<p class="rightAligned"></p>
 			</div>
 			
 			<div id="left">
-			
+				
+				<div class="text-centered">The data</div>
+				
 				<ul class="controlTabs">
 					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Trace')" id="defaultControlTab">Trace</a></li>
-					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Events</a></li>
+					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Event types</a></li>
 					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
-					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Algorithm')">Algorithm</a></li>
-					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Filters')">Filters</a></li>
+					<!-- <li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Filters')">Filters</a></li>   -->
 				</ul>
 				
 				<div id="Trace" class="controlTabContent">
@@ -42,10 +118,10 @@
 					</div>
 					<hr>
 					<p>You can:</p>
-					<button type="button">Create event</button><br>
-					<button type="button">Delete event</button><br>
-					<button type="button">Truncate trace</button><br>
-					<button type="button">Delete user</button>
+					<button type="button" class='trace-action-button'>Create event</button>
+					<button type="button" class='trace-action-button'>Delete event</button>
+					<button type="button" class='trace-action-button'>Truncate trace</button>
+					<button type="button" class='trace-action-button'>Delete user</button>
 					<hr>
 					<p>You did:</p>
 					<!-- history -->
@@ -101,23 +177,9 @@
 					</div>
 				</div>
 				
-				<div id="Algorithm" class="controlTabContent">
-					<p>Minimal support <input type="number" class="numberInput" form="algorithmForm" min="1" required></p>
-					<p>Window size <input type="number" class="numberInput" form="algorithmForm" min="1" required></p>
-					<p>Maximum gap <input type="number" class="numberInput" form="algorithmForm" min="0" required></p>
-					<form id="algorithmForm">
-						<input type="submit" value="Rerun">
-					</form>
-					<!-- rerun button -->
-				</div>
-				
-				<div id="Filters" class="controlTabContent">
+				<!-- <div id="Filters" class="controlTabContent">
 					<p>Users:</p>
-					<p>Support:</p>
-					<p>Gap:</p>
-					<p>Window:</p>
-					<p>Size:</p>
-				</div>
+				</div>   -->
 				
 			</div>
 			
@@ -127,40 +189,19 @@
 						<div id="timeline">
 						
 						</div>
-						<div id="timelineOverview">
+						<!-- <div id="timelineOverview">
+						
+						</div> -->
+						<div id="centerOverlay">
 						
 						</div>
-						
 					</div>
 				
-				</div>
-			
-				<div id="right">
-					
-					<form>
-						<div class="searchBarArea">
-							<input type="submit" class="searchButton" value="Search">
-							<div><input type="text" class="searchField"></div>
-						</div>
-					</form>
-				
-					<ul class="patternTabs">
-						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'List')" id="defaultPatternTab">List</a></li>
-						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Graph')">Graph</a></li>
-					</ul>
-					
-					<div id="List" class="patternTabContent">
-						<p>List of patterns</p>
-					</div>
-					
-					<div id="Graph" class="patternTabContent">
-						<p>Graph of patterns</p>
-					</div>
-					
 				</div>
 				
 				<div id="bottom">
-					<p class="leftAligned">Runtime: <span id="runtime"></span></p>
+					<p class="leftAligned">Runtime: <span id="runtime">00:00</span></p>
+					<p class="leftAligned"><span id="currentAlgorithmWork">Algorithm not running</span></p>
 					<p class="leftAligned lastItem">Data used: <span id="dataUsed"></span></p>
 					<p class="rightAligned">Focusing on: <span id="focus"></span></p>
 				</div>
@@ -214,8 +255,11 @@
 			
 		</div>
 		<script src="D3/d3.js" type="text/javascript"></script>
+		<script src="lz-string.js" type="text/javascript"></script> <!-- -->
 	    <script src="ClientScript.js" type="text/javascript"></script>
 	    <script src="SortTable/sorttable.js" type="text/javascript"></script>
-	    <script src="ScatterplotTimeline.js" type="text/javascript"></script>
+	    <script src="tooltip.js" type="text/javascript"></script>
+	    <!-- <script src="ScatterplotTimeline.js" type="text/javascript"></script> <!-- -->
+	    <!-- <script src="CanvasTimeline.js" type="text/javascript"></script> <!--   -->
 	</body>
 </html>

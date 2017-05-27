@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.raveneau.ppmt.datasets.Dataset;
+
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.creators.AbstractionCreator;
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.creators.ItemAbstractionPairCreator;
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.patterns.Pattern;
@@ -82,25 +84,30 @@ public class SequenceDatabase {
      * @throws IOException 
      */
     public void loadFile(String path, double minSupportAbsolute) throws IOException {
+    	//System.out.println("SequenceDatabase.loadFile():");
+    	//System.out.println("----------------------------");
         String thisLine;
         BufferedReader myInput = null;
         try {
             FileInputStream fis = new FileInputStream(new File(path));
             myInput = new BufferedReader(new InputStreamReader(fis));
+            int count = 0;
             while ((thisLine = myInput.readLine()) != null) {
                 // si la linea no es un comentario
                 if (thisLine.charAt(0) != '#') {
                     // añade una secuencia
                     addSequence(thisLine.split(" "));
+                    count++;
                 }
             }
+           // System.out.println("File processed, "+count+" lines sent to 'addSequence'.");
             double minSupRelative = (int) Math.ceil(minSupportAbsolute * sequences.size());
            // double support = (int) (minSupport * sequences.size());
             Set<Item> items = frequentItems.keySet();
             Set<Item> itemsToRemove = new HashSet<Item>();
             for (Item item : items) {
                 Pattern pattern = frequentItems.get(item);
-                if (pattern.getSupport() < minSupRelative) {
+                if (pattern.getSupport() < minSupportAbsolute) {
                     itemsToRemove.add(item);
                 }
             }
@@ -111,11 +118,52 @@ public class SequenceDatabase {
             // Commented out to keep the unfrequent items in the database
             //shrinkDatabase(frequentItems.keySet());
         } catch (Exception e) {
+        	e.printStackTrace();
         } finally {
             if (myInput != null) {
                 myInput.close();
             }
         }
+    }
+    
+    /**
+     * It loads the database contained in the dataset given as parameter.
+     * Besides, all the frequent 1-patterns are identified and the original database
+     * is updated by removing the non-frequent items
+     * @param dataset The dataset
+     * @param minSupportAbsolute Minimum absolute support
+     */
+    public void loadDataset(Dataset dataset, int minSupportAbsolute, int windowSize) {
+    	// List of events in the form : type(coded as integer);start(in milliseconds);user
+    	System.out.println("Requesting the mineable dataset");
+    	List<List<String>> windows = dataset.getDatasetForMining(windowSize);
+    	System.out.println("Mineable dataset received");
+    	// Add all the sequences
+    	//int count = 0;
+    	for (List<String> sequence : windows) {
+    		/*if (count == 10)
+    			break;
+    		count++;*/
+    		addSequence(sequence);
+    	}
+    	
+    	//double minSupRelative = (int) Math.ceil(minSupportAbsolute * sequences.size());
+        // double support = (int) (minSupport * sequences.size());
+         Set<Item> items = frequentItems.keySet();
+         Set<Item> itemsToRemove = new HashSet<Item>();
+         for (Item item : items) {
+             Pattern pattern = frequentItems.get(item);
+             if (pattern.getSupport() < minSupportAbsolute) {
+                 itemsToRemove.add(item);
+             }
+         }
+         for (Item nonFrequent : itemsToRemove) {
+             frequentItems.remove(nonFrequent);
+         }
+
+         // Commented out to keep the unfrequent items in the database
+         //shrinkDatabase(frequentItems.keySet());
+    	
     }
     
     /**
@@ -130,29 +178,31 @@ public class SequenceDatabase {
         int start = 0;
 
         for (int i = start; i < integers.length; i++) {
-            if (integers[i].codePointAt(0) == '<') {  // Timestamp
-                String value = integers[i].substring(1, integers[i].length() - 1);
-                timestamp = Long.parseLong(value);
-                itemset.setTimestamp(timestamp);
-            } else if (integers[i].equals("-1")) { // indica el final de un itemset
-                long time = itemset.getTimestamp() + 1;
-                sequence.addItemset(itemset);
-                itemset = new Itemset();
-                itemset.setTimestamp(time);
-            } else if (integers[i].equals("-2")) { // indica el final de la secuencia
-                sequences.add(sequence);
-            } else {
-                // extract the value for an item
-                Item item = itemFactory.getItem(Integer.parseInt(integers[i]));
-                Pattern pattern = frequentItems.get(item);
-                if (pattern == null) {
-                    pattern = patternCreator.createPattern(creadorPares.getItemAbstractionPair(item, abstractionCreator.CreateDefaultAbstraction()));
-                    frequentItems.put(item, pattern);
-                }
-                pattern.addAppearance(sequence.getId());
-                itemset.addItem(item);
-
-            }
+        	if (integers[i].length() > 0) {
+	            if (integers[i].codePointAt(0) == '<') {  // Timestamp
+	                String value = integers[i].substring(1, integers[i].length()/* - 1*/);// vr: -1 unnecessary
+	                timestamp = Long.parseLong(value);
+	                itemset.setTimestamp(timestamp);
+	            } else if (integers[i].equals("-1")) { // indica el final de un itemset
+	                long time = itemset.getTimestamp() + 1;
+	                sequence.addItemset(itemset);
+	                itemset = new Itemset();
+	                itemset.setTimestamp(time);
+	            } else if (integers[i].equals("-2")) { // indica el final de la secuencia
+	                sequences.add(sequence);
+	            } else {
+	                // extract the value for an item
+	                Item item = itemFactory.getItem(Integer.parseInt(integers[i]));
+	                Pattern pattern = frequentItems.get(item);
+	                if (pattern == null) {
+	                    pattern = patternCreator.createPattern(creadorPares.getItemAbstractionPair(item, abstractionCreator.CreateDefaultAbstraction()));
+	                    frequentItems.put(item, pattern);
+	                }
+	                pattern.addAppearance(sequence.getId());
+	                itemset.addItem(item);
+	
+	            }
+        	}
         }
     }
 
@@ -160,6 +210,41 @@ public class SequenceDatabase {
         sequences.add(sequence);
     }
 
+    public void addSequence(List<String> sequenceToAdd) {
+    	ItemAbstractionPairCreator creadorPares = ItemAbstractionPairCreator.getInstance();
+        long timestamp;
+        Sequence sequence = new Sequence(sequences.size());
+        Itemset itemset = new Itemset();
+        int start = 0;
+
+        for (String event : sequenceToAdd) {
+        	String[] splitEvent =event.split(";");
+        	//System.out.println("=_=_=_=_=_=");
+        	//System.out.println(event);
+        	// Getting the timestamp
+        	timestamp = Long.parseLong(splitEvent[1]);
+        	itemset.setTimestamp(timestamp);
+        	//itemset.setUser(splitEvent[2]);
+        	sequence.setUser(splitEvent[2]);
+        	// Getting the value for the item
+        	Item item = itemFactory.getItem(Integer.parseInt(splitEvent[0]));
+            Pattern pattern = frequentItems.get(item);
+            if (pattern == null) {
+                pattern = patternCreator.createPattern(creadorPares.getItemAbstractionPair(item, abstractionCreator.CreateDefaultAbstraction()));
+                frequentItems.put(item, pattern);
+            }
+            pattern.addAppearance(sequence.getId());
+            itemset.addItem(item);
+            // Adding the item as an itemset
+            sequence.addItemset(itemset);
+            itemset = new Itemset();
+        }
+        // Adding the sequence to the sequence pool
+        //System.out.println("=-=-=-=-=-=");
+        //System.out.println(sequence);
+        sequences.add(sequence);
+    }
+    
     @Override
     public String toString() {
         StringBuilder r = new StringBuilder();
@@ -168,6 +253,24 @@ public class SequenceDatabase {
             r.append(":  ");
             r.append(sequence.toString());
             r.append('\n');
+        }
+        return r.toString();
+    }
+
+    public String toStringSampled(int nbSeq) {
+        StringBuilder r = new StringBuilder();
+        
+        r.append("First "+nbSeq+" sequences:\n");
+        int count = 0;
+        
+        for (Sequence sequence : sequences) {
+        	if (count == nbSeq)
+        		break;
+            r.append(sequence.getId());
+            r.append(":  ");
+            r.append(sequence.toString());
+            r.append('\n');
+            count++;
         }
         return r.toString();
     }

@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.raveneau.ppmt.patterns.PatternManager;
+
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.CandidateInSequenceFinder;
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.Item;
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.Sequence;
@@ -72,21 +74,33 @@ class SupportCounting {
      * @param k the level where we are checking
      * @param minSupportAbsolute the absolute minimum support, i.e. the minimum number of
      * sequences where a candidate have to appear
+     * @param patternManager 
      * @return the set of frequent patterns.
      */
-    public Set<Pattern> countSupport(List<Pattern> candidateSet, int k, double minSupportAbsolute) {
+    public Set<Pattern> countSupport(List<Pattern> candidateSet, int k, double minSupportAbsolute, PatternManager patternManager, long maxDuration, int minGap, int maxGap) {
         indexationMap.clear();
-        //For each sequence of the original database
-        for (Sequence sequence : database.getSequences()) {
-            //we check for each candidate if it appears in that sequence
-            checkCandidateInSequence(sequence, k, candidateSet);
-        }
         Set<Pattern> result = new LinkedHashSet<Pattern>();
-        //We keep all the frequent candidates and we put them in the indexation map
+        //For each candidate
         for (Pattern candidate : candidateSet) {
+            //we check for each sequence of the original database if it appears in it
+            checkCandidateInSequence(k, candidate, maxDuration, minGap, maxGap);
             if (candidate.getSupport() >= minSupportAbsolute) {
                 result.add(candidate);
                 putInIndexationMap(candidate);
+                // vr : adding the occurrences to the pattern manager
+                int cSupport = (int) candidate.getSupport();
+                List<String> cItems = new ArrayList<>();
+                List<Integer> sIds = candidate.getSequenceIds();
+                List<String> users = new ArrayList<>();
+                List<long[]> timestamps = new ArrayList<>();
+                for (ItemAbstractionPair i : candidate.getElements()) {
+                	cItems.add(i.getItem().getId().toString());
+                }
+                for (Integer seqId : sIds) {
+                	users.addAll(candidate.getAppearenceUserInSequence(seqId));
+                	timestamps.addAll(candidate.getAppearanceTimestampInSequence(seqId));
+                }
+                patternManager.addPattern(cItems, cSupport, sIds, users, timestamps);
             }
         }
         candidateSet = null;
@@ -98,11 +112,14 @@ class SupportCounting {
      * We check, for a sequence, if each candidate from the candidate set it appears or not
      * @param sequence a sequence
      * @param k he level where we are checking
+     * @param maxGap 
+     * @param minGap 
+     * @param maxDuration 
      * @param candidateSet the candidate set
      */
-    private void checkCandidateInSequence(Sequence sequence, int k, List<Pattern> candidateSet) {
-        //For each candidate
-        for (Pattern candidate : candidateSet) {
+    private void checkCandidateInSequence(int k, Pattern candidate, long maxDuration, int minGap, int maxGap) {
+        //For each sequence in the database
+        for (Sequence sequence : database.getSequences()) {
             //We define a list of k positions, all initialized at itemset 0, item 0, i.e. first itemset, first item.
             List<int[]> position = new ArrayList<int[]>(k);
             for (int i = 0; i < k; i++) {
@@ -110,12 +127,28 @@ class SupportCounting {
             }
             CandidateInSequenceFinder finder = new CandidateInSequenceFinder(abstractionCreator);
             //we check if the current candidate appears in the sequence
-            abstractionCreator.isCandidateInSequence(finder, candidate, sequence, k, 0, position);
+            abstractionCreator.isCandidateInSequence(finder, candidate, sequence, k, 0, position, maxDuration, minGap, maxGap);
             if (finder.isPresent()) {
+            	/*
+            	 * Version with the initial finder (one occurrence)
+            	 */
+            	
                 /*if we have a positive result, we add the sequence Id to the list
                 * of appearances associated with the candidate pattern
                 */
-                candidate.addAppearance(sequence.getId());
+            	/*long[] ts = new long[2];
+            	ts[0]=finder.getTimestampStart();
+            	ts[1]=finder.getTimestampEnd();
+                candidate.addAppearance(sequence.getId(), ts, sequence.getUser());*/
+            	//System.out.println(finder.getUser() + " or " + candidate.getAppearenceUser(sequence.getId()));
+                
+                /*
+                 * Version with the new finder (episodes)
+                 */
+            	// For every found occurrence
+            	for (long[] occ : finder.getFoundOccurrences()) {
+	            	candidate.addAppearance(sequence.getId(), occ, sequence.getUser());
+            	}
             }
         }
     }

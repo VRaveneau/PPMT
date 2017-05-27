@@ -39,18 +39,25 @@ public final class Itemset{
      * Temporal instant when the itemset occurs
      */
     private long timestamp = 0;
-
+    
+    private String user = null;
+    
     /**
      * Constructor from an item and a timestamp
      * @param item
      * @param timestamp 
      */
-    public Itemset(Item item, long timestamp) {
+    public Itemset(Item item, long timestamp, String user) {
         addItem(item);
         setTimestamp(timestamp);
+        setUser(user);
     }
 
-    /**
+    public void setUser(String user) {
+		this.user = user;
+	}
+
+	/**
      * Constructor from a collection of items and a timestamp
      * @param collection
      * @param timestamp 
@@ -192,9 +199,14 @@ public final class Itemset{
                 //we return the position where the item is
                 return i;
             }else if(compareOutput<0){
-                break;
+                continue;
             }
         }
         return -1;
     }
+
+	public String getUser() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.raveneau.ppmt.patterns.PatternManager;
+
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.Item;
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.SequenceDatabase;
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.Sequences;
@@ -45,14 +47,15 @@ import ca.pfv.spmf.tools.MemoryLogger;
  * @author Antonio Gomariz Peñalver 
  */
 public class AlgoGSP {
-
     /**
      * minimum support threshold. Range: from 0 up to 1
      */
     protected double minSupRelative;
-    protected double minGap;
-    protected double maxGap;
+    protected int minGap;
+    protected int maxGap;
     protected double windowSize;
+    protected long maxDuration;
+    protected int maxPatternSize;
     /**
      * Absolute minimum support threshold. It indicates the minimum number of
      * sequences that we need to find.
@@ -83,11 +86,13 @@ public class AlgoGSP {
      * Constructor for GSP algorithm. It initializes most of the class'
      * attributes.
      */
-    public AlgoGSP(double minSupRelative, double mingap, double maxgap, double windowSize, AbstractionCreator abstractionCreator) {
-        this.minSupRelative = minSupRelative;
+    public AlgoGSP(int minSupAbsolute, int maxPatternSize, int mingap, int maxgap, double windowSize, long maxDuration, AbstractionCreator abstractionCreator) {
+        this.minSupAbsolute = minSupAbsolute;
+        this.maxPatternSize = maxPatternSize;
         this.minGap = mingap;
         this.maxGap = maxgap;
         this.windowSize = windowSize;
+        this.maxDuration = maxDuration;
         this.abstractionCreator = abstractionCreator;
         this.isSorted = false;
     }
@@ -104,9 +109,9 @@ public class AlgoGSP {
      * @return the frequent sequences found in the original database
      * @throws IOException
      */
-    public Sequences runAlgorithm(SequenceDatabase database, boolean keepPatterns, boolean verbose, String outputFilePath, boolean outputSequenceIdentifiers) throws IOException {
+    public Sequences runAlgorithm(SequenceDatabase database, boolean keepPatterns, boolean verbose, String outputFilePath, boolean outputSequenceIdentifiers, PatternManager patternManager) throws IOException {
         this.outputSequenceIdentifiers = outputSequenceIdentifiers;
-    	
+        
     	patterns = new Sequences("FREQUENT SEQUENTIAL PATTERNS");
         // if the user want to keep the result into memory
         if (outputFilePath == null) {
@@ -117,10 +122,16 @@ public class AlgoGSP {
 
         /*we calculate in how many sequences a pattern have to appear to be
          correctly considered as frequent*/
-        this.minSupAbsolute = (int) Math.ceil(minSupRelative * database.size());
+        /*this.minSupAbsolute = (int) Math.ceil(minSupRelative * database.size());
         if (this.minSupAbsolute == 0) { // protection
             this.minSupAbsolute = 1;
-        }
+        }*/
+        /*we calculate in in which percentage of the sequences a pattern have to appear to be
+        correctly considered as frequent*/
+       this.minSupRelative = (double) ((this.minSupAbsolute*100) / database.size());
+       if (this.minSupAbsolute == 0) { // protection
+           this.minSupAbsolute = 1;
+       }
 
         CandidateGeneration candidateGenerator = new CandidateGeneration();
         SupportCounting supportCounter = new SupportCounting(database, abstractionCreator);
@@ -129,9 +140,15 @@ public class AlgoGSP {
         MemoryLogger.getInstance().reset();
         
         start = System.currentTimeMillis();
-        runGsp(database, candidateGenerator, supportCounter, keepPatterns, verbose);
+        // Sends the start signal to the pattern manager
+        // TODO move the call to another object than the pattern manager
+        patternManager.signalStart(start);
+        runGsp(database, candidateGenerator, supportCounter, keepPatterns, verbose, patternManager);
         end = System.currentTimeMillis();
-
+        // Sends the end signal to the pattern manager
+        // TODO move the call to another object than the pattern manager
+        patternManager.signalEnd(end);
+        
         // close the output file if the result was saved to a file
         if (writer != null) {
             writer.close();
@@ -152,7 +169,7 @@ public class AlgoGSP {
      * @param verbose flat activated for debugging purposes
      * @throws IOException
      */
-    protected void runGsp(SequenceDatabase database, CandidateGeneration candidateGenerator, SupportCounting supportCounter, boolean keepPatterns, boolean verbose) throws IOException {
+    protected void runGsp(SequenceDatabase database, CandidateGeneration candidateGenerator, SupportCounting supportCounter, boolean keepPatterns, boolean verbose, PatternManager patternManager) throws IOException {
         //we get the frequent items found in the original database
         frequentItems = database.frequentItems();
         /* And we add the sequences as the 1-level of patterns. NOTE: we need them
@@ -177,13 +194,17 @@ public class AlgoGSP {
         //From k=1
         int k = 1;
         //We repeat the same loop. MAIN LOOP
-        while (frequentSet != null && !frequentSet.isEmpty()) {
+        while (frequentSet != null && !frequentSet.isEmpty() && k < this.maxPatternSize) {
             //We start with the k+1 level
             k++;
             if (verbose) {
                 System.out.println("k=" + k);
                 System.out.println("generating candidates...");
             }
+            // Send a signal to the pattern manager indicating that we start the level
+            // TODO move the call to another object than the pattern manager
+            patternManager.signalNewLevel(k);
+            
             //We get the candidate set
             candidateSet = candidateGenerator.generateCandidates(frequentSet, abstractionCreator, indexationMap, k, minSupAbsolute);
             frequentSet = null;
@@ -200,7 +221,7 @@ public class AlgoGSP {
             // check the memory usage for statistics
             MemoryLogger.getInstance().checkMemory();
             
-            frequentSet = supportCounter.countSupport(candidateSet, k, minSupAbsolute);
+            frequentSet = supportCounter.countSupport(candidateSet, k, minSupAbsolute, patternManager, maxDuration, minGap, maxGap);
             if (verbose) {
                 System.out.println(frequentSet.size() + " frequent patterns\n");
             }

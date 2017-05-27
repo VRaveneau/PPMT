@@ -45,6 +45,12 @@ Timeline = function(elemId, options) {
 	
 	self.typeHeight = {};
 	self.parentNode = document.getElementById(elemId);
+	/*self.canvas = d3.select(self.parentNode).append("canvas")
+		.attr("width",self.parentNode.clientWidth)
+		.attr("height",self.parentNode.clientHeight);
+	self.canvasContext = self.canvas.node().getContext("2d");*/
+	//self.fakeSVG = document.createElement("svg");
+	//self.fakeSVG = document.createElement("custom");
 	self.svg = d3.select(self.parentNode).append("svg")
 		.attr("width",self.parentNode.clientWidth)
 		.attr("height",self.parentNode.clientHeight);
@@ -219,14 +225,14 @@ Timeline = function(elemId, options) {
 		//console.log(csvData);
 		
 		self.xFocus.domain(d3.extent(csvData, function(d) { return d.time; }));
-		self.yFocus.domain([0.0, 20.0]);
+		self.yFocus.domain([0.0, d3.extent(csvData, function(d) { return d.height; })[1]]);
 	  //this.xContext.domain(this.xFocus.domain());
 
 		
 		self.focus.selectAll(".dot").remove()
 			.data(csvData)
 			.enter().append("path")
-			.attr("d",d3.symbol().type(function(d) {return itemShapes[d.type];d3.symbol().type(d.shape);d3.symbolStar;d3.symbol().type(d.shape);d3.symbolStar;d.shape;})
+			.attr("d",d3.symbol().type(function(d) {return itemShapes[d.type];})
 								.size(function(d) {return 50;}))
 			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
 			.attr("stroke", function(d) {return d3.hsl(d.color,100,50)})
@@ -252,7 +258,7 @@ Timeline = function(elemId, options) {
 
 		self.focus.select(".axis--x")/*
 	      .attr("transform", "translate(0," + height + ")")*/
-	      .call(this.xAxisFocus);
+	      .call(self.xAxisFocus);
 
 		self.focus.select(".axis--y")
 	      .call(self.yAxisFocus);
@@ -285,11 +291,13 @@ Timeline = function(elemId, options) {
 		.attr("height", self.heightFocus)
 		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
 		.call(self.zoom);*/
+		//self.drawCanvas();
 	};
 
 	// Prepare data that arrives as a list of pairs [eventType,time]
 	// to be displayed
-	self.prepareEvent = function(e) {
+	//	--> Version with a line per event type
+	/*self.prepareEvent = function(e) {
 		var splitted = e.data.split(";");
 		if(!self.typeHeight.hasOwnProperty(splitted[0].toString()))
   			self.typeHeight[splitted[0]] = 0.5+Object.keys(self.typeHeight).length*0.5;
@@ -299,6 +307,44 @@ Timeline = function(elemId, options) {
 				"height": self.typeHeight[splitted[0]],
 				"color":parseFloat(splitted[2]),
 				"shape":e.shape};
+	}*/
+
+	// Prepare data that arrives as a list of pairs [eventType,time]
+	// to be displayed
+	//	--> Version with a line per event at a given time
+	self.prepareEvent = function(e) {
+		var splitted = e.data.split(";");
+		if(!self.typeHeight.hasOwnProperty(splitted[1]))
+  			self.typeHeight[splitted[1]] = 0.5;
+		else
+			self.typeHeight[splitted[1]] = self.typeHeight[splitted[1]]+0.5;
+		var shapeHeight = self.typeHeight[splitted[1]];
+  		var timeFormat = d3.timeParse('%Y-%m-%d %H:%M:%S');
+		return {"type":splitted[0],
+				"time":timeFormat(splitted[1]),
+				"height": shapeHeight,
+				"color":parseFloat(splitted[2]),
+				"shape":e.shape};
+	}
+	
+	self.drawCanvas = function() {
+		console.log("Drawing canvas");
+		self.canvasContext.fillStyle = "#fff";
+		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
+		self.canvasContext.fill();
+		
+		var elts = self.focus.selectAll(".dot");
+		elts.each(function(d) {
+			var node = d3.select(this);
+			console.log("drawing node");
+			self.canvasContext.beginPath();
+			self.canvasContext.fillStyle = node.attr("fillStyle");
+			self.canvasContext.strokeStyle = node.attr("strokeStyle");
+			self.canvasContext.rect(node.attr("x"), node.attr("y"),node.attr("size"),node.attr("size"));
+			self.canvasContext.fill();
+			self.canvasContext.stroke();
+			self.canvasContext.closePath();
+		});
 	}
 	
 	self.moveFocus = function(start, end) { 		// UNFINISHED

@@ -42,6 +42,8 @@ public class Sequence {
      */
     private int id;
 
+    private String user = null;
+    
     /**
      * Constructor for a Sequence.
      * @param id an integer identifier
@@ -140,6 +142,9 @@ public class Sequence {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("");
+        sb.append("{u=");
+        sb.append(user);
+        sb.append(" : ");
         for (Itemset itemset : itemsets) {
             sb.append("{t=");
             sb.append(itemset.getTimestamp());
@@ -151,7 +156,7 @@ public class Sequence {
             }
             sb.append('}');
         }
-        return sb.append("    ").toString();
+        return sb.append(" }   ").toString();
     }
 
     /**
@@ -170,6 +175,14 @@ public class Sequence {
         id=integer;
     }
 
+    public String getUser() {
+    	return user;
+    }
+    
+    public void setUser(String u) {
+    	user = u;
+    }
+    
     /**
      * Obtains a list  the itemsets that compose the sequence
      * @return the list of itemsets
@@ -228,11 +241,10 @@ public class Sequence {
                 //the beginning index is 0 or itemIndex if we are in the itemset referred by itemsetIndex
                 int beginning = (i == (itemsetIndex)) ? (itemIndex) : 0;
                 //We search for the item in our current itemset
-                int pos = currentItemset.binarySearch(item);
+                //int pos = currentItemset.binarySearch(item);
                 
                 //uncomment the line of below if you'd rather run a lineal search
-                //int pos = currentItemset.linealSearch(item);
-                
+                int pos = currentItemset.linealSearch(item);
                 //If the index returned by the search method is positive and equal or greater than our beginning item index
                 if (pos >= beginning) {
                     //We return the pair <i,pos>, where i is the  current itemset index and pos the current item index in that itemset
@@ -359,4 +371,29 @@ public class Sequence {
         size+=(itemsets.get(itemsetIndex).size()-itemIndex-1);
         return size;
     }
+
+    /**
+     * Returns the number of items between two positions
+     * @param firstPos The first position, a pair <itemsetIndex, itemIndexInItemset>
+     * @param secondPos The second position, a pair <itemsetIndex, itemIndexInItemset>
+     * @return
+     */
+	public int getGap(int[] firstPos, int[] secondPos) {
+		int itemCount = 0;
+		Itemset firstItemset = itemsets.get(firstPos[0]);
+		// if the two positions are not in the same itemset
+		if (firstPos[0] != secondPos[0]) {
+			// Add the items of the itemset given by firstPos that are after the item given by firstPos
+			itemCount = firstItemset.size() - firstPos[1] - 1;
+			// Add the items of the itemsets between the itemsets of firstPos and secondPos
+			for (int i = firstPos[0]+1; i < secondPos[0]; i++) {
+				itemCount += itemsets.get(i).size();
+			}
+			// Add the items of the itemset given by secondPos that are before the item given by secondPos
+			itemCount += secondPos[1];
+		} else {
+			itemCount = secondPos[1] - firstPos[1] -1;
+		}
+		return itemCount;
+	}
 }
