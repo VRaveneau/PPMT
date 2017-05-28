@@ -2933,7 +2933,17 @@ var Timeline = function(elemId, options) {
 			    	console.log('Warning : too may colors needed for the main hidden canvas');
 			    }
 			    
-			    // Create the info we want in the tooltip
+			    /* Create the info we want in the tooltip
+			    * Structure : [year,
+			    * start,
+			    * end,
+			    * nbEventsInBin,
+			    * user1;user2;...,
+			    * type1;type2;...,
+			    * type1:nbOcc;type2:nbOcc;...
+			    * nbEventsInSubBin,
+			    * rgbColorValue1;rgbColorValue2;rgbColorValue3]
+			   	*/
 			    let subBinInfo = [];
 			    subBinInfo.push(bins[iBin][0]);
 			    subBinInfo.push(bins[iBin][1]);
@@ -2942,8 +2952,8 @@ var Timeline = function(elemId, options) {
 			    subBinInfo.push(bins[iBin][4]);
 			    subBinInfo.push(bins[iBin][5]);
 			    subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
-			    subBinInfo.push(colorsFound[t]+'-'+"rgb("+color.join(',')+")");
-			    console.log(colorsFound[t]+'-'+"rgb("+color.join(',')+")");
+			    subBinInfo.push(colorsProportion[colorsFound[t]]);
+			    subBinInfo.push(color);
 			    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;//bins[iBin];
 			    
 			    // Drawing on the hidden canvas for the tooltip
@@ -3517,6 +3527,17 @@ var Timeline = function(elemId, options) {
 	}
 	
 	self.displayToolTip = function(data) {
+		/* Structure : 
+		 * [year,
+	     * start,
+	     * end,
+	     * nbEventsInBin,
+	     * user1;user2;...,
+	     * type1;type2;...,
+	     * type1:nbOcc;type2:nbOcc;...
+	     * nbEventsInSubBin,
+	     * rgbColorValue1,rgbColorValue2,rgbColorValue3]
+	   	 */
 		var message = "";
 		
 		switch(self.displayMode) {
@@ -3538,12 +3559,29 @@ var Timeline = function(elemId, options) {
 				});
 				//console.log("post-sort: "+nbOccs);
 				message = "From "+data[1]+" to "+data[2]+"<br>";
-				message += nbUsers+" users<br>";
-				message += data[3]+" events:";
+				message += data[3]+" events across "+nbUsers+" users<br>";
+				message += data[7]+" in this subpart:";
 				for (var i = 0; i < nbOccs.length; i++) {
 					var occ = nbOccs[i].split(":");
 					var percentage = parseInt(occ[1])/parseInt(data[3]);
-					message += "<br>&nbsp;&nbsp;"+occ[0]+" : "+occ[1]+" ("+(percentage*100).toPrecision(3)+"%)";
+					
+					//Create an svg node outside of the DOM to get its inner HTML
+					var divOutsideOfDom = document.createElementNS("http://www.w3.org/1999/xhtml","div");
+					divOutsideOfDom.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
+					
+					var div = d3.select(divOutsideOfDom);
+					var svg = div.append("svg")
+						.attr("width", 16)
+						.attr("height", 16);
+					svg.append("path")
+						.attr("d",d3.symbol().type(itemShapes[occ[0]]).size(60))
+						.attr("transform","translate(8,8)")
+						.attr("stroke", d3.rgb(parseInt(data[8][0]),parseInt(data[8][1]),parseInt(data[8][2]))/*"hsl("+colorList[occ[0]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+						.attr("fill","none");
+					//console.log("Html :");
+					//console.log(svg.html());
+					message += "<br>"+div.html()+"&nbsp;"+occ[0]+" : "+occ[1]+" ("+(percentage*100).toPrecision(3)+"%)";
+					div.remove();
 				}
 			}
 			break;
