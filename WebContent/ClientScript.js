@@ -1180,7 +1180,6 @@ function receiveEventTypes(message) {
 	var colors = [];
 	for (var i = 1; i <= nbColors; i++)
 		colors.push(selectColor(i, nbColors));
-		//colors.push(selectColor(i, nbColors));
 	// Symbols and colors are generated
 	if (nbEvents > 0)
 		document.getElementById("noEvent").textContent = "";
@@ -1201,6 +1200,7 @@ function receiveEventTypes(message) {
 				eNbOccs = info[1];
 		}
 		if (message.dataset == "Agavue") {
+			colors = getAgavueColors();
 			eColor = getEventColorForAgavue(eType);
 			eCode = getEventShapeForAgavue(eType);
 			colorList[eType] = eColor;
@@ -1214,39 +1214,19 @@ function receiveEventTypes(message) {
 		//var eColor = colors[i%colors.length];
 		eventRow.append("td").text(eType);
 		eventRow.append("td").text(eNbOccs);
+		//var symbolRow = eventRow.append("td")
+			//		.attr("sorttable_customkey", (i%colors.length)*100+i%shapes.length);
 		var symbolRow = eventRow.append("td")
-					.attr("sorttable_customkey", (i%shapes.length)*100+i%colors.length);
+			.attr("sorttable_customkey", (colors.indexOf(eColor))*100+shapes.indexOf(eCode));
+		console.log("code for "+eType+": "+(colors.indexOf(eColor))*100+shapes.indexOf(eCode) + '('+colors.indexOf(eColor)+'*100+'+shapes.indexOf(eCode));
 		var symbolRowSvg = symbolRow.append("svg")
 			.attr("width", 20)
 			.attr("height", 20);
-		/*switch (itemShapes[eType]) {
-			case "circle":
-				symbolRowSvg.append("circle")
-				.attr("cx",Math.floor(10))
-				.attr("cy",Math.floor(10))
-				.attr("transform","translate(20,0)")
-				.attr("r", 5)
-				.style("stroke", d3.hsl(parseFloat(eColor),100,50))
-				.
-				.style("fill","none");
-				break;
-			case "square":
-				symbolRowSvg.append("rect")
-				.attr("x",Math.floor(5))
-				.attr("y",Math.floor(5))
-				.attr("transform","translate(20,0)")
-				.attr("width", 10)
-				.attr("height",10)
-				.style("stroke", d3.hsl(parseFloat(eColor),100,50))
-				.style("fill","none");
-				break;
-			case "triangle":*/
-				symbolRowSvg.append("path")
-				.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
-				.attr("transform","translate(10,10)")
-				.attr("stroke", "hsl("+colorList[eType]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
-				.attr("fill","none");
-		//};
+		symbolRowSvg.append("path")
+			.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
+			.attr("transform","translate(10,10)")
+			.attr("stroke", "hsl("+colorList[eType]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+			.attr("fill","none");
 	}
 	
 	/*for (var type in typeList) {
@@ -1285,9 +1265,17 @@ function selectColor(colorNum, colors){
 	}
 }
 
+/**
+ * Returns a set of colors tailored for the Agavue dataset
+ * @returns
+ */
+function getAgavueColors() {
+	return [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
+}
+
 function getEventColorForAgavue(eventType) {
 	console.log("Getting event Colors for agavue");
-	var colors = [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
+	var colors = getAgavueColors();
 	switch(eventType.trim()) {
 	// App related events
 	case "appInit" :

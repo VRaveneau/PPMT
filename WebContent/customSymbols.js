@@ -2,8 +2,6 @@
 //	works with the content of d3-symbol-extra.js
 //  from https://github.com/YellowTugboat/d3-symbol-extra
 
-file:///Users/vincent/Documents/workspace/ProgressivePatternMiningTool.zip_expanded/ProgressivePatternMiningTool/WebContent/index.html
-
 var extendedSymbolTypes = d3.symbols;
 
 extendedSymbolTypes.push(d3.symbolPentagon);
