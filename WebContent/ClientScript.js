@@ -10,7 +10,6 @@ var timelineXAxis = null;
 var timelineOverview = null;
 var timelineOverviewXAxis = null;
 var timelineIds = 0;
-//var timelineItems = new vis.DataSet([]);
 
 var patternsLoaded = false;
 var patternsReceived = false;
