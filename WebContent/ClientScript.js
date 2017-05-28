@@ -409,7 +409,7 @@ function init() {
  * @returns
  */
 function enableCentralOverlay(message) {
-	console.log("Enable central overlay");
+	//console.log("Enable central overlay");
 	var node = d3.select("#centerOverlay")
 				.style("visibility","initial")
 				.text(message);
@@ -1218,7 +1218,7 @@ function receiveEventTypes(message) {
 			//		.attr("sorttable_customkey", (i%colors.length)*100+i%shapes.length);
 		var symbolRow = eventRow.append("td")
 			.attr("sorttable_customkey", (colors.indexOf(eColor))*100+shapes.indexOf(eCode));
-		console.log("code for "+eType+": "+(colors.indexOf(eColor))*100+shapes.indexOf(eCode) + '('+colors.indexOf(eColor)+'*100+'+shapes.indexOf(eCode));
+		//console.log("code for "+eType+": "+(colors.indexOf(eColor))*100+shapes.indexOf(eCode) + '('+colors.indexOf(eColor)+'*100+'+shapes.indexOf(eCode));
 		var symbolRowSvg = symbolRow.append("svg")
 			.attr("width", 20)
 			.attr("height", 20);
@@ -1811,7 +1811,7 @@ function addPatternToList(message) {
 	var pSupport = parseInt(message.support);
 	var pString = "";
 	
-	console.log("receiving Pattern "+pString);
+	//console.log("receiving Pattern "+pString);
 	
 	for (var i = 0; i < pSize; i++) {
 		pString += message[i];
@@ -2880,14 +2880,18 @@ var Timeline = function(elemId, options) {
 		     * Structure : [year,start,end,nbEvents,user1;user2;...,???,type1:nbOcc;type2:nbOcc;...]
 		     */
 		    var colorsProportion = {}; // nbOccs for each color
+		    var eventTypesAssociatedToColor = {}; // nbOccs per event for each color
 		    var eventsInfo = bins[iBin][6].split(";");
 		    for (var t=0 ; t < eventsInfo.length ; t++) {
 		    	var details = eventsInfo[t].split(":");
 		    	var eColor = getEventColorForAgavue(details[0]);
-		    	if (!colorsProportion[eColor])
+		    	if (!colorsProportion[eColor]) {
 		    		colorsProportion[eColor] = parseInt(details[1]);
-		    	else
+		    		eventTypesAssociatedToColor[eColor] = [];
+		    	} else {
 		    		colorsProportion[eColor] += parseInt(details[1]);
+		    	}
+	    		eventTypesAssociatedToColor[eColor].push(eventsInfo[t]);
 		    }
 		    var evtNbr = parseInt(bins[iBin][3]);
 		    var colorsFound = Object.keys(colorsProportion);
@@ -2915,9 +2919,42 @@ var Timeline = function(elemId, options) {
 			    self.canvasContext.stroke();
 			    //  self.canvasContext.fillRect(x, binHeight, x2-x, y);
 			    self.canvasContext.closePath();
+			    
+			    // Attributing a color to data link for the hidden canvas
+			    var color = [];
+			    // via http://stackoverflow.com/a/15804183
+			    if(nextColor < 16777215){
+			    	color.push(nextColor & 0xff); // R
+			    	color.push((nextColor & 0xff00) >> 8); // G 
+			    	color.push((nextColor & 0xff0000) >> 16); // B
+
+			    	nextColor += 1;
+			    } else {
+			    	console.log('Warning : too may colors needed for the main hidden canvas');
+			    }
+			    
+			    // Create the info we want in the tooltip
+			    let subBinInfo = [];
+			    subBinInfo.push(bins[iBin][0]);
+			    subBinInfo.push(bins[iBin][1]);
+			    subBinInfo.push(bins[iBin][2]);
+			    subBinInfo.push(bins[iBin][3]);
+			    subBinInfo.push(bins[iBin][4]);
+			    subBinInfo.push(bins[iBin][5]);
+			    subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
+			    subBinInfo.push(colorsFound[t]+'-'+"rgb("+color.join(',')+")");
+			    console.log(colorsFound[t]+'-'+"rgb("+color.join(',')+")");
+			    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;//bins[iBin];
+			    
+			    // Drawing on the hidden canvas for the tooltip
+				self.hiddenCanvasContext.beginPath();
+			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
+			    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
+			    self.hiddenCanvasContext.closePath();
+			    
 			    cumulatedHeight += colorsProportion[colorsFound[t]];
 		    } 		    
-		    
+		    /*
 		    // Attributing a color to data link
 		    var color = [];
 		    // via http://stackoverflow.com/a/15804183
@@ -2937,7 +2974,7 @@ var Timeline = function(elemId, options) {
 			self.hiddenCanvasContext.beginPath();
 		    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
 		    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
-		    self.hiddenCanvasContext.closePath();
+		    self.hiddenCanvasContext.closePath();*/
 		    
 		    // Drawing the text
 		    /*self.canvasContext.fillStyle = "black";
@@ -3504,10 +3541,6 @@ var Timeline = function(elemId, options) {
 				message += nbUsers+" users<br>";
 				message += data[3]+" events:";
 				for (var i = 0; i < nbOccs.length; i++) {
-					if (i == 10) {
-						message += "<br>&nbsp;&nbsp;...";
-						break;
-					}
 					var occ = nbOccs[i].split(":");
 					var percentage = parseInt(occ[1])/parseInt(data[3]);
 					message += "<br>&nbsp;&nbsp;"+occ[0]+" : "+occ[1]+" ("+(percentage*100).toPrecision(3)+"%)";
