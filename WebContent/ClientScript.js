@@ -2942,7 +2942,7 @@ var Timeline = function(elemId, options) {
 			    * type1;type2;...,
 			    * type1:nbOcc;type2:nbOcc;...
 			    * nbEventsInSubBin,
-			    * rgbColorValue1;rgbColorValue2;rgbColorValue3]
+			    * hslColorValue1]
 			   	*/
 			    let subBinInfo = [];
 			    subBinInfo.push(bins[iBin][0]);
@@ -2953,7 +2953,7 @@ var Timeline = function(elemId, options) {
 			    subBinInfo.push(bins[iBin][5]);
 			    subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
 			    subBinInfo.push(colorsProportion[colorsFound[t]]);
-			    subBinInfo.push(color);
+			    subBinInfo.push(colorsFound[t]);
 			    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;//bins[iBin];
 			    
 			    // Drawing on the hidden canvas for the tooltip
@@ -3536,7 +3536,7 @@ var Timeline = function(elemId, options) {
 	     * type1;type2;...,
 	     * type1:nbOcc;type2:nbOcc;...
 	     * nbEventsInSubBin,
-	     * rgbColorValue1,rgbColorValue2,rgbColorValue3]
+	     * hslColorValue1]
 	   	 */
 		var message = "";
 		
@@ -3576,7 +3576,7 @@ var Timeline = function(elemId, options) {
 					svg.append("path")
 						.attr("d",d3.symbol().type(itemShapes[occ[0]]).size(60))
 						.attr("transform","translate(8,8)")
-						.attr("stroke", d3.rgb(parseInt(data[8][0]),parseInt(data[8][1]),parseInt(data[8][2]))/*"hsl("+colorList[occ[0]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+						.attr("stroke", "hsl("+parseInt(data[8])+",100%,50%)"/*d3.rgb(parseInt(data[8][0]),parseInt(data[8][1]),parseInt(data[8][2]))/*"hsl("+colorList[occ[0]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
 						.attr("fill","none");
 					//console.log("Html :");
 					//console.log(svg.html());
