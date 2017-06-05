@@ -1136,6 +1136,7 @@ function receiveUserList(message) {
 		userRow.on("click", function(){
 			if (d3.event.shiftKey) { // Shift + click, steering
 				requestSteeringOnUser(userInfo[0]);
+				d3.event.stopPropagation();
 			} else { // normal click, highlight
 				//console.log(userName);
 				setHighlights("User"+(iClick+1).toString());
@@ -1844,6 +1845,7 @@ function addPatternToList(message) {
 		.on("click", function() {
 			if (d3.event.shiftKey) { // Shift + click, steering
 				requestSteeringOnPattern(message.id);
+				d3.event.stopPropagation();
 			} else { // Normal click, displays the occurrences
 				if (timeline.hasPatternOccurrences(message.id) == false)
 					requestPatternOccurrences(message.id, "Agavue");
