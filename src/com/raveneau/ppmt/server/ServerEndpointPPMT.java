@@ -115,6 +115,9 @@ public class ServerEndpointPPMT {
 		if ("steerOnPattern".equals(jsonMessage.getString("action"))) {
 	  		sessionHandler.requestSteeringOnPattern(jsonMessage.getString("patternId"),session);
 	  	}
+		if ("steerOnUser".equals(jsonMessage.getString("action"))) {
+	  		sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
+	  	}
 	}
 	
 	@OnClose

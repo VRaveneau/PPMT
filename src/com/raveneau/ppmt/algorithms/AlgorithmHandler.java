@@ -419,13 +419,13 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 	@Override
 	public void steeringRequestedOnUser(String user) {
 		// TODO Auto-generated method stub
-		
+		System.out.println("Steering requested on user "+user);
 	}
 
 	@Override
 	public void steeringRequestedOnTime(String start, String end) {
 		// TODO Auto-generated method stub
-		
+		System.out.println("Steering requested on time between "+start+" and "+end);
 	}
 
 	@Override

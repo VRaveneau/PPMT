@@ -622,7 +622,12 @@ public class SessionHandler {
 		for(SteeringListener listener : getSteeringListeners(session)) {
 			listener.steeringRequestedOnPattern(Integer.parseInt(patternId));
 		}
-		
+	}
+
+	public void requestSteeringOnUser(String userId, Session session) {
+		for(SteeringListener listener : getSteeringListeners(session)) {
+			listener.steeringRequestedOnUser(userId);
+		}
 	}
 
 	public void addSteeringListener(SteeringListener listener, Session session) {

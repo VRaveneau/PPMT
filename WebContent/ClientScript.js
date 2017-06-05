@@ -924,6 +924,15 @@ function requestSteeringOnPattern(patternId) {
 	webSocket.send(JSON.stringify(action));
 }
 
+function requestSteeringOnUser(userId) {
+	console.log('requesting steering on user '+userId);
+	var action = {
+			action: "steerOnuser",
+			userId: userId
+	};
+	webSocket.send(JSON.stringify(action));
+}
+
 
 // Generates nbColors different RGB colors
 function generateColors(nbColors) {
@@ -1125,11 +1134,15 @@ function receiveUserList(message) {
 		
 		let userName = userInfo[0];
 		userRow.on("click", function(){
-			//console.log(userName);
-			setHighlights("User"+(iClick+1).toString());
-			highlightUserRow("User"+(iClick+1).toString())
-			//requestUserTrace(userName, "Agavue");
-			d3.event.stopPropagation();
+			if (d3.event.shiftKey) { // Shift + click, steering
+				requestSteeringOnUser(userInfo[0]);
+			} else { // normal click, highlight
+				//console.log(userName);
+				setHighlights("User"+(iClick+1).toString());
+				highlightUserRow("User"+(iClick+1).toString())
+				//requestUserTrace(userName, "Agavue");
+				d3.event.stopPropagation();
+			}
 		});
 		// Request the display of the trace
 		//requestUserTrace(userName, "Agavue");
