@@ -43,15 +43,14 @@ public class SessionHandler {
 	private int patternId = 0;
 	private final Set<Session> sessions = new HashSet<>();
 	private final Map<Pattern, List<String>> patterns = new HashMap<>();
-	private AlgorithmHandler algorithmHandler = new AlgorithmHandler(this);
-	private final EventListenerList listeners = new EventListenerList();
 	private DatasetManager datasetManager = DatasetManager.getInstance();
-	private Map<Session, GspThread> gspHandlers = new HashMap<>();
+	private final Map<Session, EventListenerList> listeners = new HashMap<>();
+	//private Map<Session, GspThread> gspHandlers = new HashMap<>();
+	private Map<Session, AlgorithmHandler> algorithmHandlers = new HashMap<>();
 	
 	public SessionHandler() {
 		super();
 		System.out.println("Call to the session handler constructor : "+this.hashCode()); // TODO Find out why the constructor is called twice -> or make it singleton ?
-		addSteeringListener(algorithmHandler);
 		// Provide a dataset to the datasetManager
 		// Localhost path
 		//datasetManager.addDataset("Agavue", "C:/Users/vincent/workspaceNeon/ProgressivePatternMiningTool/Data/Agavue/agavue_full_clean.csv", false);
@@ -70,6 +69,11 @@ public class SessionHandler {
 		datasetManager.loadDataset("Agavue");
 		
 		sessions.add(session);
+		algorithmHandlers.put(session, new AlgorithmHandler(this, datasetManager, session));
+		listeners.put(session, new EventListenerList());
+		
+		addSteeringListener(algorithmHandlers.get(session), session);
+		
 		for (Pattern pattern : patterns.keySet()) {
 			JsonObject addMessage = createAddMessage(pattern, patterns.get(pattern).get(0));
 			sendToSession(session, addMessage);
@@ -86,7 +90,7 @@ public class SessionHandler {
         return new HashMap<>(patterns);
     }
 
-	public void addPattern(Pattern pattern, String sIDs) {
+	/*public void addPattern(Pattern pattern, String sIDs) {
     	pattern.setId(patternId);
     	List<String> tab = new ArrayList<>();
     	tab.add(sIDs);
@@ -94,7 +98,7 @@ public class SessionHandler {
     	patternId++;
     	JsonObject addMessage = createAddMessage(pattern, sIDs);
     	sendToAllConnectedSessions(addMessage);
-    }
+    }*/
 	
     /*public void addPattern(Pattern pattern, String sIDs, String occs) {
     	pattern.setId(patternId);
@@ -157,7 +161,7 @@ public class SessionHandler {
         return addMessage;
     }*/
 	
-	private JsonObject createDatasetInfosMessage() {
+	/*private JsonObject createDatasetInfosMessage() {
 		JsonProvider provider = JsonProvider.provider();
 		Map<String, String> infos = null;
 		try {
@@ -176,7 +180,7 @@ public class SessionHandler {
     			.add("users", infos.get("users")) //$NON-NLS-1$ //$NON-NLS-2$
     			.build();
 		return infoMessage;
-	}
+	}*/
 
 
     private void sendToAllConnectedSessions(JsonObject message) {
@@ -206,9 +210,9 @@ public class SessionHandler {
     
     
     
-    public void startMining(Session session) {
+    public void startMining(Session session) { // Should not be used
     	patternId = 0;
-    	algorithmHandler.startMining();
+    	//algorithmHandlers.get(session).startMining();
     }
 
     public void stopMining(Session session) {
@@ -615,22 +619,22 @@ public class SessionHandler {
 	}
 
 	public void requestSteeringOnPattern(String pattern, Session session) {
-		for(SteeringListener listener : getSteeringListeners()) {
+		for(SteeringListener listener : getSteeringListeners(session)) {
 			listener.steeringRequestedOnPattern(pattern);
 		}
 		
 	}
 
-	public void addSteeringListener(SteeringListener listener) {
-		listeners.add(SteeringListener.class, listener);
+	public void addSteeringListener(SteeringListener listener, Session session) {
+		listeners.get(session).add(SteeringListener.class, listener);
 	}
 
-	public void removeSteeringListener(SteeringListener listener) {
-		listeners.remove(SteeringListener.class, listener);
+	public void removeSteeringListener(SteeringListener listener, Session session) {
+		listeners.get(session).remove(SteeringListener.class, listener);
 	}
 	
-	private SteeringListener[] getSteeringListeners() {
-		return listeners.getListeners(SteeringListener.class);
+	private SteeringListener[] getSteeringListeners(Session session) {
+		return listeners.get(session).getListeners(SteeringListener.class);
 	}
 
 	public void provideUserList(String datasetName, Session session) {
@@ -657,6 +661,8 @@ public class SessionHandler {
 	}
 	
 	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, String datasetName, Session session) {
+		/*
+			Code before the new AlgorithmHandler
 		Dataset dataset = datasetManager.getDataset(datasetName);
 		dataset.addPatternManagerToSession(session, this); // deletes all the previously known patterns
 		System.out.println("Creating the GSP thread");
@@ -669,7 +675,9 @@ public class SessionHandler {
 		
 		System.out.println("Running the GSP Thread");
 		t.start();
-		
+		*/
+		AlgorithmHandler algoHandler = algorithmHandlers.get(session);
+		algoHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName);
 	}
 
 	public void alertOfNewPattern(Session session, Pattern p) {

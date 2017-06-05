@@ -46,10 +46,10 @@ public class ServerEndpointPPMT {
 				sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, "Agavue", session);
 			}
 		}
-		if ("startMining".equals(jsonMessage.getString("action"))) {
+		if ("startMining".equals(jsonMessage.getString("action"))) {   // Now unused
 	  		sessionHandler.startMining(session);
 	  	}
-		if ("stopMining".equals(jsonMessage.getString("action"))) {
+		if ("stopMining".equals(jsonMessage.getString("action"))) { // Now unused
 	  		sessionHandler.stopMining(session);
 	  	}
 		if ("request".equals(jsonMessage.getString("action"))) {

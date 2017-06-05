@@ -18,7 +18,10 @@ import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.swing.event.EventListenerList;
+import javax.websocket.Session;
 
+import com.raveneau.ppmt.datasets.Dataset;
+import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.events.SteeringListener;
 import com.raveneau.ppmt.events.ThreadListener;
 import com.raveneau.ppmt.patterns.Pattern;
@@ -30,46 +33,37 @@ import javafx.util.Pair;
 public class AlgorithmHandler implements SteeringListener, ThreadListener {
 
 	private SessionHandler sessionHandler;
+	private Session session;
+	private DatasetManager datasetManager;
+	private Dataset dataset;
 	
-	private HashMap<String, Integer> typeToInt = new HashMap<>();
-	private HashMap<Integer, String> intToType = new HashMap<>();
-	private HashMap<String, String> userToIP = new HashMap<>();
-	private HashMap<String, String> IPToUser = new HashMap<>();
+//	private HashMap<String, Integer> typeToInt = new HashMap<>();
+//	private HashMap<Integer, String> intToType = new HashMap<>();
+//	private HashMap<String, String> userToIP = new HashMap<>();
+//	private HashMap<String, String> IPToUser = new HashMap<>();
 	
-	private HashMap<Integer,List<Pair<Integer,String>>> sequences = new HashMap<>();
+//	private HashMap<Integer,List<Pair<Integer,String>>> sequences = new HashMap<>();
 	
-	private SpamThread mainSpamThread = null;
-	private SpamThread secondarySpamThread = null;
-	private String inputPath = null;
-	private String outputPath = "SPAMoutput"; //$NON-NLS-1$
-	private double minSupRel = 0.32;
-	private boolean showSequenceIdentifiersInOutput = true;
-	private AlgoSPAM spam = new AlgoSPAM();
+	private GspThread mainAlgorithm = null;
+	private Thread mainThread = null;
+	private GspThread secondaryAlgorithm = null;
+	private Thread secondaryThread = null;
+//	private String inputPath = null;
+//	private String outputPath = "SPAMoutput"; //$NON-NLS-1$
+//	private double minSupRel = 0.32;
+//	private boolean showSequenceIdentifiersInOutput = true;
 	
-	public AlgorithmHandler(SessionHandler sessionHandler) {
+	public AlgorithmHandler(SessionHandler sessionHandler, DatasetManager datasetManager, Session session) {
 		this.sessionHandler = sessionHandler;
-		try {
-			// Localhost version
-			//inputPath = setupDataForSPAM(Messages.getString("AlgorithmHandler.0"),null);
-			// Server version
-			inputPath = setupDataForSPAM(Messages.getString("AlgorithmHandler.5"),null); //$NON-NLS-1$
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
+		this.session = session;
+		this.datasetManager = datasetManager;
+	}
+
+	public Session getSession() {
+		return this.session;
 	}
 	
-/* OLD	public AlgorithmHandler(SessionHandler sessionHandler) {
-		this.sessionHandler = sessionHandler;
-		try {
-			inputPath = setupDataForSPAM("C:/Users/vincent/workspaceNeon/ProgressivePatternMiningTool/Data/Agavue/FormatedEvents.txt",null);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-	}*/
-
-	public void startMining() {
+	public void startMining(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, String datasetName) {
 //		String input;
 //		try {
 //			input = setupDataForSPAM("C:/Users/vincent/workspaceNeon/ProgressivePatternMiningTool/Data/Agavue/FormatedEvents.txt");
@@ -87,16 +81,22 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 //			e1.printStackTrace();
 //		}
 		
-		if (mainSpamThread == null) {
-			mainSpamThread = new SpamThread(inputPath, outputPath, minSupRel, showSequenceIdentifiersInOutput, -3, true, this);
-			mainSpamThread.start();
+		if (mainAlgorithm == null) {
+			this.dataset = datasetManager.getDataset(datasetName);
+			this.dataset.addPatternManagerToSession(session, sessionHandler); // deletes all the previously known patterns
+			mainAlgorithm = new GspThread(this.dataset, session);
+			mainAlgorithm.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
+			
+			this.mainThread = new Thread(mainAlgorithm);
+			mainThread.start();
 //			try {
 //				mainSpamThread.join();
 //			} catch (InterruptedException e) {
 //				e.printStackTrace();
 //			}
 		} else {
-			//mainSpamThread
+			System.out.println("Error : Trying to start mining while already running");
+			System.out.println("  Tip : Steering should be used instead, or a restart");
 		}
 		
 //		try {
@@ -106,7 +106,7 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 //		}
 	}
 
-	public Map<String, String> getInfosAboutDataset(String input) throws IOException {
+	/*public Map<String, String> getInfosAboutDataset(String input) throws IOException {
 
 		int lastKey = 0;
 		int lastUser = 0;
@@ -165,7 +165,7 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 		}
 		result.put("users", userList.substring(0, userList.length()-1)); //$NON-NLS-1$
 		return result;
-	}
+	}*/
 	
 	/**
 	 * Expects one event per line, all properties separated by ";"
@@ -175,7 +175,7 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 	 * @return
 	 * @throws IOException 
 	 */
-	private String newSetupDataForSPAM(String input,String user) throws IOException {
+	/*private String newSetupDataForSPAM(String input,String user) throws IOException {
 		
 		int lastKey = 0;
 		String outFile = ""; //$NON-NLS-1$
@@ -246,7 +246,7 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 		reader.close();
 		
 		return outFile;
-	}
+	}*/
 	
 	/**
 	 * Expects one event per line, all properties separated by ";"
@@ -256,7 +256,7 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 	 * @return
 	 * @throws IOException 
 	 */
-	private String setupDataForSPAM(String input, String user) throws IOException {
+	/*private String setupDataForSPAM(String input, String user) throws IOException {
 		
 		int lastKey = 0;
 		// Localhost version
@@ -302,25 +302,25 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 		//return Messages.getString("AlgorithmHandler.4");
 		// Server version
 		return Messages.getString("AlgorithmHandler.9"); //$NON-NLS-1$
-	}
+	}*/
 
-	private Map<String, String> retrieveItemsFromSPAM(List<Integer> items, List<String> sIDs) {
+	/*private Map<String, String> retrieveItemsFromSPAM(List<Integer> items, List<String> sIDs) {
 		Map<String, String> decodedPattern = new HashMap<>();
 		for (int i = 0; i < items.size(); i++) {
 			decodedPattern.put(intToType.get(items.get(i)), sIDs.get(i));
 		}
 		return decodedPattern;
-	}
+	}*/
 	
-	private List<String> retrievePatternFromSPAM(List<Integer> pattern) {
+	/*private List<String> retrievePatternFromSPAM(List<Integer> pattern) {
 		List<String> decodedPattern = new ArrayList<>();
 		for (Integer i : pattern) {
 			decodedPattern.add(intToType.get(i));
 		}
 		return decodedPattern;
-	}
+	}*/
 	
-	private String retrieve_pattern_occurrences(List<Integer> pattern, String[] seqs) {
+	/*private String retrieve_pattern_occurrences(List<Integer> pattern, String[] seqs) {
     	String results = ""; //$NON-NLS-1$
     	for (String s: seqs) {
     		String current_seq = ""; //$NON-NLS-1$
@@ -343,9 +343,9 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
     		results += current_seq+";"; //$NON-NLS-1$
     	}
     	return results.substring(0, results.length()-2);
-    }
+    }*/
 	
-	private String retrieve_items_occurrences(List<Integer> items, List<String> sIDs) {
+	/*private String retrieve_items_occurrences(List<Integer> items, List<String> sIDs) {
 		String results = ""; //$NON-NLS-1$
 		for (Integer i : items) {
 			//System.out.println(sIDs);
@@ -367,17 +367,17 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 			results += "-"; //$NON-NLS-1$
 		}
 		return results.substring(0, results.length()-2);
-	}
+	}*/
 	
-	public void receivePattern(List<Integer> pattern, String sIDs) {
+	/*public void receivePattern(List<Integer> pattern, String sIDs) {
 		//System.out.println("Receiving items "+items);
 		List<String> decodedPattern = retrievePatternFromSPAM(pattern);
 		//String occs = retrieve_pattern_occurrences(pattern, sIDs.split(" "));
 		//sessionHandler.addPattern(new Pattern(decodedPattern), sIDs, occs);
 		sessionHandler.addPattern(new Pattern(decodedPattern), sIDs);
-	}
+	}*/
 
-	public void receiveItems(List<Integer> items, List<String> sIDs) {
+	/*public void receiveItems(List<Integer> items, List<String> sIDs) {
 		//System.out.println("Receiving items "+items);
 		Map<String, String> decodedItems = retrieveItemsFromSPAM(items, sIDs);
 		//String[] occs = retrieve_items_occurrences(items, sIDs).split("-");
@@ -391,37 +391,52 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 			//sessionHandler.addPattern(new Pattern(p), s, occ);
 			sessionHandler.addPattern(new Pattern(p), s);
 		}
-	}
+	}*/
 
 	@Override
 	public void steeringRequestedOnPattern(String pattern) {
-		// TODO Auto-generated method stub
-		System.out.println("Steering on pattern " + pattern + " (" + typeToInt.get(pattern) + ")"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+		System.out.println("Steering on pattern " + pattern /* + " (" + typeToInt.get(pattern) + ")"*/);
 		System.out.println("Pausing the main mining"); //$NON-NLS-1$
-		mainSpamThread.suspend();
-		if (secondarySpamThread == null) {
-			System.out.println("scondary thread didn't exist"); //$NON-NLS-1$
-			secondarySpamThread = new SpamThread(inputPath, outputPath+"-2", minSupRel, showSequenceIdentifiersInOutput, typeToInt.get(pattern), false, this); //$NON-NLS-1$
-			System.out.println("Starting the steering thread"); //$NON-NLS-1$
-			secondarySpamThread.start();
+		mainThread.suspend();
+		if (secondaryAlgorithm == null) {
+			System.out.println("secondary thread didn't exist");
+			secondaryAlgorithm = new GspThread(dataset, session);
+			// TODO Add a call to update parameters for the new algoGsp
+			System.out.println("Starting the steering thread");
+			this.secondaryThread = new Thread(secondaryAlgorithm);
+			secondaryThread.start();
 		} else {
-			System.out.println("scondary thread exist, interruption and reallocation"); //$NON-NLS-1$
-			secondarySpamThread.interrupt();
-			secondarySpamThread = new SpamThread(inputPath, outputPath+"-2", minSupRel, showSequenceIdentifiersInOutput, typeToInt.get(pattern), false, this); //$NON-NLS-1$
-			System.out.println("Starting the steering thread"); //$NON-NLS-1$
-			secondarySpamThread.start();
+			System.out.println("secondary thread exists, interruption and reallocation");
+			secondaryThread.interrupt();
+			secondaryAlgorithm = new GspThread(dataset, session);
+			// TODO Add a call to update parameters for the new algoGsp
+			System.out.println("Starting the steering thread");
+			this.secondaryThread = new Thread(secondaryAlgorithm);
+			secondaryThread.start();
 		}
 	}
 
 	@Override
-	public void threadTerminated(boolean mainThread) {
-		if (mainThread) {
-			System.out.println("Receiving main thread termination signal."); //$NON-NLS-1$
+	public void steeringRequestedOnUser(String user) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void steeringRequestedOnTime(String start, String end) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void threadTerminated(boolean isMainThread) {
+		if (isMainThread) {
+			System.out.println("Receiving main thread termination signal.");
 		} else {
-			System.out.println("Receiving thread termination signal."); //$NON-NLS-1$
-			System.out.println("Going back to the main mining process."); //$NON-NLS-1$
+			System.out.println("Receiving thread termination signal.");
+			System.out.println("Going back to the main mining process.");
 			
-			mainSpamThread.resume();
+			mainThread.resume();
 //			if (mainSpamThread.getState() == State.WAITING) {
 //				mainSpamThread.notify();
 //			} else {

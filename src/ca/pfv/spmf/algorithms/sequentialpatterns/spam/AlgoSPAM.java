@@ -277,7 +277,8 @@ public class AlgoSPAM{
 	 */
 	private void outputItems(List<Integer> frequentItems, List<String> sIDs, AlgorithmHandler algorithmHandler) {
 		//System.out.println("Outputing items "+ frequentItems);
-		algorithmHandler.receiveItems(frequentItems, sIDs);
+		// Commented out due to the receiveItems method being commented or removed
+		//algorithmHandler.receiveItems(frequentItems, sIDs);
 	}
 	
 	private void outputPattern(Prefix prefix, String sIDs, AlgorithmHandler algorithmHandler) {
@@ -295,7 +296,8 @@ public class AlgoSPAM{
 				pattern.add(itemset.get(0));
 			}
 		}
-		algorithmHandler.receivePattern(pattern, sIDs);
+		// Commented out due to the receivePattern method being commented or removed
+		//algorithmHandler.receivePattern(pattern, sIDs);
 	}
 
 	/**
