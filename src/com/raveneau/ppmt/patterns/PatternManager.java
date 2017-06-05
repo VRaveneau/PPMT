@@ -34,6 +34,9 @@ public class PatternManager {
 	private String inputPath = "/home/raveneau/data/Agavue/ReadablePatterns/";
 	private Map<Integer, List<String>> patternIdToUser = new HashMap<>();
 	
+	private Map<Integer, ExtractionState> patternExtractionState = new HashMap<>();
+	private Map<Integer, ExtractionState> levelExtractionState = new HashMap<>();
+	
 	private Map<Integer,Pattern> allPatterns = new HashMap<>();
 	
 	private Session session = null;
@@ -139,7 +142,7 @@ public class PatternManager {
 		//System.out.println(lineCount+" patterns loaded in "+loadTime+"ms.");
 	}
 	
-	public void addPattern(List<String> items, Integer support, List<Integer> sIds, List<String> users, List<long[]> timestamps) {
+	public void addPattern(List<String> items, Integer support, List<Integer> sIds, List<String> users, List<long[]> timestamps, boolean hasAllOccurrences) {
 		Pattern p = new Pattern(items);
 		p.setSupport(support);
 		//p.setSequenceId(sIds);
@@ -156,6 +159,11 @@ public class PatternManager {
 			currentPatternId = patternItemsToId.get(itemsString).intValue();
 			p.setId(patternItemsToId.get(itemsString).intValue());
 		}
+		
+		if (hasAllOccurrences)
+			patternExtractionState.put(new Integer(currentPatternId), ExtractionState.COMPLETE);
+		else
+			patternExtractionState.put(new Integer(currentPatternId), ExtractionState.PARTIAL);
 		
 		//System.out.println("seqs, users,ts : "+sIds.size()+" - "+users.size()+" - "+timestamps.size());
 		// Adding all occurrences of the pattern
@@ -228,6 +236,7 @@ public class PatternManager {
 	 */
 	public void signalNewLevel(int k) {
 		sessionHandler.signalNewLevel(session, k);
+		this.levelExtractionState.put(new Integer(k), ExtractionState.PARTIAL);
 	}
 
 	/**
@@ -242,5 +251,9 @@ public class PatternManager {
 	 */
 	public void signalDataLoaded() {
 		sessionHandler.signalDataLoaded(session);
+	}
+	
+	public void signalLevelExtracted(int k) {
+		this.levelExtractionState.put(new Integer(k), ExtractionState.COMPLETE);
 	}
 }

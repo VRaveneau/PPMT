@@ -100,7 +100,7 @@ class SupportCounting {
                 	users.addAll(candidate.getAppearenceUserInSequence(seqId));
                 	timestamps.addAll(candidate.getAppearanceTimestampInSequence(seqId));
                 }
-                patternManager.addPattern(cItems, cSupport, sIds, users, timestamps);
+                patternManager.addPattern(cItems, cSupport, sIds, users, timestamps, true);
             }
         }
         candidateSet = null;
