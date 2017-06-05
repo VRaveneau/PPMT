@@ -376,7 +376,7 @@ function processError(message) {
 function init() {
 	//setReadyToStart();				Commented out while updating the app
 	
-	console.log("init");
+	console.log("Init");
 	
 	document.getElementById("defaultControlTab").click();	// Set the "trace" tab active by default
 	document.getElementById("defaultPatternTab").click();	// Set the "list" pattern-tab active by default
@@ -743,7 +743,7 @@ function updatePatternInfos(firstItem) {
 function switchSelectedLi(li, pattern, ev) {
 
 	if (ev.ctrlKey)
-		requestSteering(pattern);
+		requestSteeringOnPattern(pattern);
 	console.log("selecting "+pattern);
 	/*if (li.style.backgroundColor === "rgb(255,255,255)") {
 		li.style.backgroundColor = "rgb(255,255,51)";
@@ -915,10 +915,11 @@ function drawLiftD3() {
 	
 }
 
-function requestSteering(patternRequested) {
+function requestSteeringOnPattern(patternId) {
+	console.log('requesting steering on patternId '+patternId);
 	var action = {
 			action: "steerOnPattern",
-			pattern: patternRequested
+			patternId: patternId
 	};
 	webSocket.send(JSON.stringify(action));
 }
@@ -1828,16 +1829,20 @@ function addPatternToList(message) {
 		.text(pString+" ("+message.support+")")
 		.attr("patternId",message.id)
 		.on("click", function() {
-			if (timeline.hasPatternOccurrences(message.id) == false)
-				requestPatternOccurrences(message.id, "Agavue");
-			else
-				timeline.displayPatternOccurrences(message.id);
-			if (txtSpan.style("font-weight") == "normal")
-				txtSpan.style("font-weight","bold");
-			else
-				txtSpan.style("font-weight","normal");
-			d3.event.stopPropagation();
-			console.log("click on "+message.id)
+			if (d3.event.shiftKey) { // Shift + click, steering
+				requestSteeringOnPattern(message.id);
+			} else { // Normal click, displays the occurrences
+				if (timeline.hasPatternOccurrences(message.id) == false)
+					requestPatternOccurrences(message.id, "Agavue");
+				else
+					timeline.displayPatternOccurrences(message.id);
+				if (txtSpan.style("font-weight") == "normal")
+					txtSpan.style("font-weight","bold");
+				else
+					txtSpan.style("font-weight","normal");
+				d3.event.stopPropagation();
+				console.log("click on "+message.id);
+			}
 		});
 	for (var k = 0; k < pSize; k++) {
 		pSvg.append("path")

@@ -394,8 +394,8 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 	}*/
 
 	@Override
-	public void steeringRequestedOnPattern(String pattern) {
-		System.out.println("Steering on pattern " + pattern /* + " (" + typeToInt.get(pattern) + ")"*/);
+	public void steeringRequestedOnPattern(int patternId) {
+		System.out.println("Steering on pattern id " + Integer.toString(patternId) + " (" + dataset.getPatternManager(session).getPattern(patternId) + ")");
 		System.out.println("Pausing the main mining"); //$NON-NLS-1$
 		mainThread.suspend();
 		if (secondaryAlgorithm == null) {

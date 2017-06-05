@@ -5,7 +5,7 @@ import java.util.EventListener;
 import javax.websocket.Session;
 
 public interface SteeringListener extends EventListener { 
-	void steeringRequestedOnPattern(String pattern);
+	void steeringRequestedOnPattern(int id);
 	void steeringRequestedOnUser(String user);
 	void steeringRequestedOnTime(String start, String end);
 }

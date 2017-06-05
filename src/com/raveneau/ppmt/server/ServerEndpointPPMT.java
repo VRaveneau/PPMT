@@ -113,7 +113,7 @@ public class ServerEndpointPPMT {
 	  		}
 	  	}
 		if ("steerOnPattern".equals(jsonMessage.getString("action"))) {
-	  		sessionHandler.requestSteeringOnPattern(jsonMessage.getString("pattern"),session);
+	  		sessionHandler.requestSteeringOnPattern(jsonMessage.getString("patternId"),session);
 	  	}
 	}
 	
