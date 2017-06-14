@@ -30,17 +30,17 @@ import com.raveneau.ppmt.server.SessionHandler;
 import ca.pfv.spmf.algorithms.sequentialpatterns.spam.AlgoSPAM;
 import javafx.util.Pair;
 
-public class AlgorithmHandler implements SteeringListener, ThreadListener {
+public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 
 	private SessionHandler sessionHandler;
 	private Session session;
 	private DatasetManager datasetManager;
 	private Dataset dataset;
 	
-	private GspThread mainAlgorithm = null;
-	private Thread mainThread = null;
-	private GspThread secondaryAlgorithm = null;
-	private Thread secondaryThread = null;
+	private GspParameters algorithmParameters;
+	
+	private GspThread algorithm = null;
+	private Thread thread = null;
 	
 	public AlgorithmHandler(SessionHandler sessionHandler, DatasetManager datasetManager, Session session) {
 		this.sessionHandler = sessionHandler;
@@ -54,14 +54,17 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 	
 	public void startMining(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, String datasetName) {
 		
-		if (mainAlgorithm == null) {
+		if (algorithm == null) {
+			this.algorithmParameters = new GspParameters();
+			this.algorithmParameters.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
+			
 			this.dataset = datasetManager.getDataset(datasetName);
 			this.dataset.addPatternManagerToSession(session, sessionHandler); // deletes all the previously known patterns
-			mainAlgorithm = new GspThread(this.dataset, session);
-			mainAlgorithm.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
+			algorithm = new GspThread(this.dataset, session, algorithmParameters);
+			// Useless if the parameters are passed in the constructor //algorithm.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 			
-			this.mainThread = new Thread(mainAlgorithm);
-			mainThread.start();
+			this.thread = new Thread(algorithm);
+			thread.start();
 		} else {
 			System.out.println("Error : Trying to start mining while already running");
 			System.out.println("  Tip : Steering should be used instead, or a restart");
@@ -70,7 +73,13 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 
 	@Override
 	public void steeringRequestedOnPattern(int patternId) {
-		System.out.println("Steering on pattern id " + Integer.toString(patternId) + " (" + dataset.getPatternManager(session).getPattern(patternId) + ")");
+		System.out.println("AlgoHandler: Steering on pattern id " + Integer.toString(patternId) + " (" + dataset.getPatternManager(session).getPattern(patternId).itemsToString() + ")");
+		
+		this.algorithmParameters.requestSteeringOnPattern(patternId);
+		/*
+		 * Version if two threads are used
+		 * 
+		 * System.out.println("Steering on pattern id " + Integer.toString(patternId) + " (" + dataset.getPatternManager(session).getPattern(patternId) + ")");
 		System.out.println("Pausing the main mining"); //$NON-NLS-1$
 		mainThread.suspend();
 		if (secondaryAlgorithm == null) {
@@ -88,7 +97,7 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 			System.out.println("Starting the steering thread");
 			this.secondaryThread = new Thread(secondaryAlgorithm);
 			secondaryThread.start();
-		}
+		}*/
 	}
 
 	@Override
@@ -103,6 +112,7 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 		System.out.println("Steering requested on time between "+start+" and "+end);
 	}
 
+	/* Belongs to ThreadListener, used for SPAM
 	@Override
 	public void threadTerminated(boolean isMainThread) {
 		if (isMainThread) {
@@ -118,5 +128,5 @@ public class AlgorithmHandler implements SteeringListener, ThreadListener {
 //				System.out.println("!!! Main mining process wasn't waiting, but : "+ mainSpamThread.getState());
 //			}
 		}
-	}
+	}*/
 }

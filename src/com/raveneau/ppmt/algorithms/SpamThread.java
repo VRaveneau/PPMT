@@ -41,7 +41,8 @@ public class SpamThread extends Thread {
 			e.printStackTrace();
 		}
 		System.out.println("SPAM done;");
-		algorithmHandler.threadTerminated(mainThread);
+		// commented out while the algorithmHandler is tailored for GSP
+		//algorithmHandler.threadTerminated(mainThread);
 	}
 	
 	

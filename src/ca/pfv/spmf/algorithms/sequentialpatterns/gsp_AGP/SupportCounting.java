@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.raveneau.ppmt.algorithms.GspParameters;
+import com.raveneau.ppmt.algorithms.SteeringTypes;
+import com.raveneau.ppmt.patterns.ExtractionState;
 import com.raveneau.ppmt.patterns.PatternManager;
 
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.CandidateInSequenceFinder;
@@ -55,6 +58,7 @@ class SupportCounting {
      */
     private Map<Item, Set<Pattern>> indexationMap;
     private AbstractionCreator abstractionCreator;
+	private boolean steeringHasOccurred;
 
     /**
      * The only constructor
@@ -65,6 +69,7 @@ class SupportCounting {
         this.database = database;
         this.abstractionCreator = creador;
         this.indexationMap = new HashMap<Item, Set<Pattern>>();
+        this.steeringHasOccurred = false;
     }
 
     /**
@@ -77,14 +82,48 @@ class SupportCounting {
      * @param patternManager 
      * @return the set of frequent patterns.
      */
-    public Set<Pattern> countSupport(List<Pattern> candidateSet, int k, double minSupportAbsolute, PatternManager patternManager, long maxDuration, int minGap, int maxGap) {
+    public Set<Pattern> countSupport(List<Pattern> candidateSet, int k, GspParameters parameters,/*double minSupportAbsolute,*/ PatternManager patternManager/*, long maxDuration, int minGap, int maxGap*/) {
         indexationMap.clear();
         Set<Pattern> result = new LinkedHashSet<Pattern>();
         //For each candidate
         for (Pattern candidate : candidateSet) {
+        	List<String> candidateItems = new ArrayList<>();
+        	for (ItemAbstractionPair abstractionPair : candidate.getElements()) {
+        		candidateItems.add(abstractionPair.getItem().getId().toString());
+        	}
+        	// if the candidate is already a pattern fully extracted, skip it
+        	Integer candidatePotentialId = patternManager.getPatternId(candidateItems);
+        	if (candidatePotentialId != null) {
+        		if (patternManager.getPatternExtractionState(candidatePotentialId) == ExtractionState.COMPLETE) {
+                    putInIndexationMap(candidate);
+        			continue;
+        		}
+        	}
+        	if (parameters.steeringIsRequested()) {
+        		System.out.println("SupportCounting: acknowledging steering request");
+        		parameters.startRequestedSteering();
+        		this.steeringHasOccurred = true;
+        	}
+        	/*		STEERING on pattern, check if the pattern matches		*/
+        	if (parameters.steeringIsOccurring() &&
+        			parameters.getSteeringTypeOccurring() == SteeringTypes.PATTERN) {
+        		List<String> steeringTargetItems = patternManager.getPattern(parameters.getSteeringPatternIdOccurring()).getItems();
+        		//List<ItemAbstractionPair> candidateItems = candidate.getElements();
+        		if (steeringTargetItems.size() > candidateItems.size())
+        			continue;
+        		else {
+        			boolean unmatch = false;
+            		for(int i=0; i < steeringTargetItems.size() && !unmatch; i++) {
+            			if (!steeringTargetItems.get(i).equals(candidateItems.get(i)))
+            				unmatch = true;
+            		}
+            		if (unmatch)
+            			continue;
+        		}
+        	}
             //we check for each sequence of the original database if it appears in it
-            checkCandidateInSequence(k, candidate, maxDuration, minGap, maxGap);
-            if (candidate.getSupport() >= minSupportAbsolute) {
+            checkCandidateInSequence(k, candidate, parameters.getMaxDuration(), parameters.getMinGap(), parameters.getMaxGap());
+            if (candidate.getSupport() >= parameters.getMinSupAbsolute()) {
                 result.add(candidate);
                 putInIndexationMap(candidate);
                 // vr : adding the occurrences to the pattern manager
@@ -174,5 +213,13 @@ class SupportCounting {
      */
     public Map<Item, Set<Pattern>> getIndexationMap() {
         return indexationMap;
+    }
+    
+    public boolean steeringHasOccurred() {
+    	return this.steeringHasOccurred;
+    }
+    
+    public void resetSteeringHasOccured() {
+    	this.steeringHasOccurred = false;
     }
 }

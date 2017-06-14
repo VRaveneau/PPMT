@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.raveneau.ppmt.algorithms.GspParameters;
 import com.raveneau.ppmt.patterns.PatternManager;
 
 import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.Item;
@@ -47,20 +48,25 @@ import ca.pfv.spmf.tools.MemoryLogger;
  * @author Antonio Gomariz Peñalver 
  */
 public class AlgoGSP {
+	protected GspParameters parameters;
+	protected int lastLevelCompleted = 0;
+	protected Map<Item, Set<Pattern>> lastIndexationMapCompleted = null;
+	protected Set<Pattern> lastFrequentSetCompleted = null;
+	
     /**
      * minimum support threshold. Range: from 0 up to 1
      */
-    protected double minSupRelative;
+    /*protected double minSupRelative;
     protected int minGap;
     protected int maxGap;
     protected double windowSize;
     protected long maxDuration;
-    protected int maxPatternSize;
+    protected int maxPatternSize;*/
     /**
      * Absolute minimum support threshold. It indicates the minimum number of
      * sequences that we need to find.
      */
-    protected double minSupAbsolute;
+    //protected double minSupAbsolute;
     /**
      * Set of frequent patterns. Whether the user chooses a to save in a file or
      * in the memory we use it to keep the different k-levels of frequent
@@ -86,13 +92,14 @@ public class AlgoGSP {
      * Constructor for GSP algorithm. It initializes most of the class'
      * attributes.
      */
-    public AlgoGSP(int minSupAbsolute, int maxPatternSize, int mingap, int maxgap, double windowSize, long maxDuration, AbstractionCreator abstractionCreator) {
-        this.minSupAbsolute = minSupAbsolute;
+    public AlgoGSP(GspParameters parameters,/*int minSupAbsolute, int maxPatternSize, int mingap, int maxgap, double windowSize, long maxDuration,*/ AbstractionCreator abstractionCreator) {
+        /*this.minSupAbsolute = minSupAbsolute;
         this.maxPatternSize = maxPatternSize;
         this.minGap = mingap;
         this.maxGap = maxgap;
         this.windowSize = windowSize;
-        this.maxDuration = maxDuration;
+        this.maxDuration = maxDuration;*/
+    	this.parameters = parameters;
         this.abstractionCreator = abstractionCreator;
         this.isSorted = false;
     }
@@ -128,10 +135,16 @@ public class AlgoGSP {
         }*/
         /*we calculate in in which percentage of the sequences a pattern have to appear to be
         correctly considered as frequent*/
+        /* Version without the GspParameters
        this.minSupRelative = (double) ((this.minSupAbsolute*100) / database.size());
        if (this.minSupAbsolute == 0) { // protection
            this.minSupAbsolute = 1;
-       }
+       }*/
+        /* version with the GspParameters */
+        if (this.parameters.getMinSupAbsolute() == 0) { // protection
+            this.parameters.setMinSupAbsolute(1);
+        }
+        this.parameters.setMinSupRelative((float) ((this.parameters.getMinSupAbsolute()*100) / database.size()));
 
         CandidateGeneration candidateGenerator = new CandidateGeneration();
         SupportCounting supportCounter = new SupportCounting(database, abstractionCreator);
@@ -193,71 +206,104 @@ public class AlgoGSP {
         numberOfFrequentPatterns += frequentItems.size();
         //From k=1
         int k = 1;
-        //We repeat the same loop. MAIN LOOP
-        while (frequentSet != null && !frequentSet.isEmpty() && k < this.maxPatternSize) {
-            //We start with the k+1 level
-            k++;
-            if (verbose) {
-                System.out.println("k=" + k);
-                System.out.println("generating candidates...");
-            }
-            // Send a signal to the pattern manager indicating that we start the level
-            // TODO move the call to another object than the pattern manager
-            patternManager.signalNewLevel(k);
-            
-            //We get the candidate set
-            candidateSet = candidateGenerator.generateCandidates(frequentSet, abstractionCreator, indexationMap, k, minSupAbsolute);
-            frequentSet = null;
-            //And we break the loop if the set of candidates is empty
-            if (candidateSet == null) {
-                break;
-            }
-            //Otherwise we continue counting the support of each candidate of the set
-            if (verbose) {
-                System.out.println(candidateSet.size() + "  Candidates have been created!");
-                System.out.println("checking frequency...");
-            }
-            
-            // check the memory usage for statistics
-            MemoryLogger.getInstance().checkMemory();
-            
-            frequentSet = supportCounter.countSupport(candidateSet, k, minSupAbsolute, patternManager, maxDuration, minGap, maxGap);
-            if (verbose) {
-                System.out.println(frequentSet.size() + " frequent patterns\n");
-            }
-            
-            
-            // check the memory usage for statistics
-            MemoryLogger.getInstance().checkMemory();
-
-           //We update the number of frequent patterns, adding the number (k+1)-frequent patterns found
-            numberOfFrequentPatterns += frequentSet.size();
-            /*And we prepare the next iteration, updating the indexation map and
-             * the frequent level capable of generating the new candidates
-             */
-
-            indexationMap = supportCounter.getIndexationMap();
-            patterns.addSequences(new ArrayList<Pattern>(frequentSet), k);
-            /*Finally, we remove the previous level if we are not interested in
-             * keeping the frequent patterns in memory
-             */
-            int level = k - 1;  
-            if (!keepPatterns) {
-                if (!frequentSet.isEmpty()) {
-                    patterns.delete(level);
-                }
-                /*Or even if we are interested in, but we want to keep them in
-                 * a file 
-                 */
-            }else if (writer != null) {
-                if (!frequentSet.isEmpty()) {
-                    for (Pattern seq : patterns.getLevel(level)) {
-                        writer.write(seq.toStringToFile(outputSequenceIdentifiers));
-                        writer.newLine();
-                    }
-                    patterns.delete(level);
-                }
-            }
+        this.lastLevelCompleted = 1;
+        this.lastIndexationMapCompleted = new HashMap<Item, Set<Pattern>>(indexationMap);
+        this.lastFrequentSetCompleted = new LinkedHashSet<>(frequentSet);
+        
+        // Loop until everything has been extracted with the default algorithm
+        while (this.lastLevelCompleted < this.parameters.getMaxSize()) {
+        
+	        //We repeat the same loop. MAIN LOOP
+	        while (frequentSet != null && 
+	        		!frequentSet.isEmpty() &&
+	        		k < this.parameters.getMaxSize()) {
+	            //We start with the k+1 level
+	            k++;
+	            System.out.println("AlgoGSP: entering main loop at level "+k);
+	            if (verbose) {
+	                System.out.println("k=" + k);
+	                System.out.println("generating candidates...");
+	            }
+	            // Send a signal to the pattern manager indicating that we start the level
+	            // TODO move the call to another object than the pattern manager
+	            patternManager.signalNewLevel(k);
+	            
+	            //We get the candidate set
+	            candidateSet = candidateGenerator.generateCandidates(frequentSet, abstractionCreator, indexationMap, k, this.parameters.getMinSupAbsolute());
+	            frequentSet = null;
+	            //And we break the loop if the set of candidates is empty
+	            if (candidateSet == null) {
+	                break;
+	            }
+	            //Otherwise we continue counting the support of each candidate of the set
+	            if (verbose) {
+	                System.out.println(candidateSet.size() + "  Candidates have been created!");
+	                System.out.println("checking frequency...");
+	            }
+	            
+	            // check the memory usage for statistics
+	            MemoryLogger.getInstance().checkMemory();
+	            
+	            frequentSet = supportCounter.countSupport(candidateSet, k, this.parameters, /*minSupAbsolute,*/ patternManager/*, maxDuration, minGap, maxGap*/);
+	            if (verbose) {
+	                System.out.println(frequentSet.size() + " frequent patterns\n");
+	            }
+	            
+	            
+	            // check the memory usage for statistics
+	            MemoryLogger.getInstance().checkMemory();
+	
+	           //We update the number of frequent patterns, adding the number (k+1)-frequent patterns found
+	            numberOfFrequentPatterns += frequentSet.size();
+	            /*And we prepare the next iteration, updating the indexation map and
+	             * the frequent level capable of generating the new candidates
+	             */
+	
+	            indexationMap = supportCounter.getIndexationMap();
+	            patterns.addSequences(new ArrayList<Pattern>(frequentSet), k);
+	            /*Finally, we remove the previous level if we are not interested in
+	             * keeping the frequent patterns in memory
+	             */
+	            int level = k - 1;  
+	            if (!keepPatterns) {
+	                if (!frequentSet.isEmpty()) {
+	                    patterns.delete(level);
+	                }
+	                /*Or even if we are interested in, but we want to keep them in
+	                 * a file 
+	                 */
+	            }else if (writer != null) {
+	                if (!frequentSet.isEmpty()) {
+	                    for (Pattern seq : patterns.getLevel(level)) {
+	                        writer.write(seq.toStringToFile(outputSequenceIdentifiers));
+	                        writer.newLine();
+	                    }
+	                    patterns.delete(level);
+	                }
+	            }
+	            // if no steering has occurred during the support count, mark the level as completed
+	            if (!supportCounter.steeringHasOccurred()) {
+	            	this.lastLevelCompleted = k;
+	            	this.lastIndexationMapCompleted = new HashMap<Item, Set<Pattern>>(indexationMap);
+	            	this.lastFrequentSetCompleted = new LinkedHashSet<>(frequentSet);
+	            	patternManager.signalLevelExtracted(k);
+	            	System.out.println("AlgoGSP : go to level "+(k+1)+", no steering");
+	            } else {
+	            	// if a steering is still occurring
+	            	// ... do nothing ? 
+	            	System.out.println("AlgoGSP : go to level "+(k+1)+", steering at level "+k);
+	            }
+	            
+	        }
+	        // Go back to the next completed level
+	        k = this.lastLevelCompleted;
+	        indexationMap = new HashMap<Item, Set<Pattern>>(this.lastIndexationMapCompleted);
+	        frequentSet = new LinkedHashSet<>(this.lastFrequentSetCompleted);
+	        // stop the occurring steering
+	        this.parameters.stopSteering();
+	        // reset the fact that steering occured for the support counter
+	        supportCounter.resetSteeringHasOccured();
+	        System.out.println("AlgoGSP: steering ended, going back to level "+(k+1));
         }
         /*When the loop is over, if we were interested in keeping the output in
          * a file, we store the last level found.
@@ -357,7 +403,7 @@ public class AlgoGSP {
      * @return the minsup value
      */
     public double getMinSupAbsolut() {
-        return minSupAbsolute;
+        return this.parameters.getMinSupAbsolute();
     }
 
     /**

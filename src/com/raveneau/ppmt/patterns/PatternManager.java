@@ -214,6 +214,15 @@ public class PatternManager {
 		return allPatterns.get(new Integer(patternId));
 	}
 
+	public Pattern getPattern(List<String> items) {
+		return getPattern(getPatternId(items));
+	}
+	
+	public Integer getPatternId(List<String> items) {
+		String itemsString = items.toString();
+		return patternItemsToId.get(itemsString);
+	}
+	
 	/**
 	 * Send to the client a message indicating that the algorithm is starting
 	 * @param start The time (in ms) at which teh algorithm started
@@ -255,5 +264,9 @@ public class PatternManager {
 	
 	public void signalLevelExtracted(int k) {
 		this.levelExtractionState.put(new Integer(k), ExtractionState.COMPLETE);
+	}
+	
+	public ExtractionState getPatternExtractionState(Integer patternId) {
+		return this.patternExtractionState.get(patternId);
 	}
 }

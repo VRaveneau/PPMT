@@ -618,9 +618,10 @@ public class SessionHandler {
 		sendToSession(session, dataMessage.build());
 	}
 
-	public void requestSteeringOnPattern(String patternId, Session session) {
+	public void requestSteeringOnPattern(int patternId, Session session) {
 		for(SteeringListener listener : getSteeringListeners(session)) {
-			listener.steeringRequestedOnPattern(Integer.parseInt(patternId));
+			listener.steeringRequestedOnPattern(new Integer(patternId));
+			System.out.println("SessionHandler: transmitting steering request on pattern id "+patternId);
 		}
 	}
 

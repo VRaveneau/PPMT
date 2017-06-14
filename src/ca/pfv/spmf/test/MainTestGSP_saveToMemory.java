@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.raveneau.ppmt.algorithms.GspParameters;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.patterns.PatternManager;
@@ -75,7 +76,9 @@ public class MainTestGSP_saveToMemory {
 		}
         //System.out.println(sequenceDatabase.toString());
         System.out.println("Creating the algorithm");
-        AlgoGSP algorithm = new AlgoGSP(support, maxSize, mingap, maxgap, windowSize, maxDuration, abstractionCreator);
+        // parameters just put here to avoid some error, this may not work without setting the parameters
+        GspParameters algoParameters = new GspParameters();
+        AlgoGSP algorithm = new AlgoGSP(algoParameters,/*support, maxSize, mingap, maxgap, windowSize, maxDuration,*/ abstractionCreator);
         
         int nbWindows = sequenceDatabase.getSequences().size();
         //String[] dataFile = inputPath.split("");
@@ -136,7 +139,9 @@ public class MainTestGSP_saveToMemory {
         
         //System.out.println(sequenceDatabase.toString());
         System.out.println("Creating the algorithm");
-        AlgoGSP algorithm = new AlgoGSP(support, maxSize, mingap, maxgap, windowSize, maxDuration, abstractionCreator);
+        // parameters just put here to avoid some error, this may not work without setting the parameters
+        GspParameters algoParameters = new GspParameters();
+        AlgoGSP algorithm = new AlgoGSP(algoParameters,/*support, maxSize, mingap, maxgap, windowSize, maxDuration,*/ abstractionCreator);
         
         int nbWindows = sequenceDatabase.getSequences().size();
         String filename = "GSP_minSup-"+support+"("+nbWindows*support+")";
@@ -198,7 +203,9 @@ public class MainTestGSP_saveToMemory {
         
         //System.out.println(sequenceDatabase.toString());
         System.out.println("Creating the algorithm");
-        AlgoGSP algorithm = new AlgoGSP(support, maxSize, mingap, maxgap, windowSize, maxDuration, abstractionCreator);
+        // parameters just put here to avoid some error, this may not work without setting the parameters
+        GspParameters algoParameters = new GspParameters();
+        AlgoGSP algorithm = new AlgoGSP(algoParameters,/*support, maxSize, mingap, maxgap, windowSize, maxDuration,*/ abstractionCreator);
         
         String filename = "Episodes_minSup-"+support+"_maxSize-"+maxSize+"_gap-"+mingap+"to"+maxgap+".txt";
         //String output = "C:/Users/vincent/workspaceNeon/ProgressivePatternMiningTool/Data/Agavue/"+filename;

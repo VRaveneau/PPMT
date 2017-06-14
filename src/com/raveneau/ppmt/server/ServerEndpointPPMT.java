@@ -24,7 +24,9 @@ public class ServerEndpointPPMT {
 
 	@OnOpen
 	public void handleOpen(Session session) {
-		System.out.println("Client connected");
+		System.out.println("====================================================================");
+		System.out.println("		Client"+session.getId()+" connected					");
+		System.out.println("====================================================================");
 		sessionHandler.addSession(session);
 	}
 	
@@ -113,7 +115,8 @@ public class ServerEndpointPPMT {
 	  		}
 	  	}
 		if ("steerOnPattern".equals(jsonMessage.getString("action"))) {
-	  		sessionHandler.requestSteeringOnPattern(jsonMessage.getString("patternId"),session);
+			System.out.println("ServerEndpoint : receive steering request on pattern id "+jsonMessage.getInt("patternId"));
+	  		sessionHandler.requestSteeringOnPattern(jsonMessage.getInt("patternId"),session);
 	  	}
 		if ("steerOnUser".equals(jsonMessage.getString("action"))) {
 	  		sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
@@ -122,7 +125,9 @@ public class ServerEndpointPPMT {
 	
 	@OnClose
 	public void handleClose(Session session) {
-		System.out.println("Client disconnected.");
+		System.out.println("====================================================================");
+		System.out.println("		Client"+session.getId()+" disconnected					");
+		System.out.println("====================================================================");
 		sessionHandler.removeSession(session);
 	}
 	
