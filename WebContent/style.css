@@ -212,6 +212,14 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	text-align: center;
 }
 
+#datasetSelection {
+	
+}
+
+#tool {
+	
+}
+
 #top {
 	width: 54%;
 	/*max-*/height: 3%;
@@ -306,6 +314,15 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 .no-margin-bottom {
 	margin-bottom: 0px;
 }
+
+/********************************/
+/* 	Dataset selection panel 	*/
+/********************************/
+
+#datasetList {
+	
+}
+
 /********************************/
 /* 			Control tabs 		*/
 /********************************/

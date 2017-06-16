@@ -28,6 +28,7 @@ public class ServerEndpointPPMT {
 		System.out.println("		Client"+session.getId()+" connected					");
 		System.out.println("====================================================================");
 		sessionHandler.addSession(session);
+		sessionHandler.provideDatasetList(session);
 	}
 	
 	@OnMessage
@@ -48,6 +49,10 @@ public class ServerEndpointPPMT {
 				sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, "Agavue", session);
 			}
 		}
+		if ("load".equals(jsonMessage.getString("action"))) {
+			if ("dataset".equals(jsonMessage.getString("object")))
+				sessionHandler.loadDataset(session, jsonMessage.getString("dataset"));
+	  	}
 		if ("startMining".equals(jsonMessage.getString("action"))) {   // Now unused
 	  		sessionHandler.startMining(session);
 	  	}
@@ -90,6 +95,10 @@ public class ServerEndpointPPMT {
 	  		if ("patternOccs".equals(jsonMessage.getString("object"))) {
 	  			System.out.println("user requests the occurrences of pattern "+jsonMessage.getInt("patternId")+" in dataset "+jsonMessage.getString("dataset"));
 	  			sessionHandler.providePatternOccurrences(Integer.toString(jsonMessage.getInt("patternId")), jsonMessage.getString("dataset"),session);
+	  		} else
+  			if ("datasetList".equals(jsonMessage.getString("object"))) {
+	  			System.out.println("user requests the list of datasets");
+	  			sessionHandler.provideDatasetList(session);
 	  		} else
 	  		if ("data".equals(jsonMessage.getString("object"))) {
 	  			if ("bin".equals(jsonMessage.getString("shape"))) {

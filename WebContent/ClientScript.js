@@ -66,11 +66,27 @@ var numberOfPattern = 0;
 function processOpen(message) {
 	console.log("Server connected." + "\n");
 	
+	//requestDatasetList();   automatically sent by the server upon connection
+}
+
+function selectDataset(datasetName) {
 	// For test purpose
 	/*var action = {
 			action: "testFileReading"
 	};
 	webSocket.send(JSON.stringify(action));*/
+	
+	requestDatasetLoad(datasetName);
+	
+	requestDatasetInfo(datasetName);	// TODO request the information on the dataset to the server
+	requestEventTypes(datasetName);	// TODO provide info about the event types
+	requestUserList(datasetName);
+	console.log("requesting the dataset "+datasetName);
+	enableCentralOverlay("The dataset is loading...");
+	requestDataset(datasetName);	// TODO request the data to the server
+	requestYearBins(datasetName);
+	
+	/* For Agavue when it was hardcoded
 	
 	requestDatasetInfo("Agavue");	// TODO request the information on the dataset to the server
 	requestEventTypes("Agavue");	// TODO provide info about the event types
@@ -79,8 +95,26 @@ function processOpen(message) {
 	enableCentralOverlay("The dataset is loading...");
 	requestDataset("Agavue");	// TODO request the data to the server
 	requestYearBins("Agavue");
-	//requestPatterns("Agavue");
-	//timelineOverview();	// TODO Check if still necessary after the new timeline, if so comment it out
+	*/
+	
+}
+
+function requestDatasetLoad(datasetName) {
+	var action = {
+			action: "load",
+			object: "dataset",
+			dataset: datasetName
+	};
+	webSocket.send(JSON.stringify(action));
+}
+
+function requestDatasetList() {
+	console.log("Requesting dataset list");
+	var action = {
+			action: "request",
+			object: "datasetList"
+	};
+	webSocket.send(JSON.stringify(action));
 }
 
 function requestPatterns(datasetName) {
@@ -224,6 +258,40 @@ function processMessage(message/*Compressed*/) {
 			handleLoadingSignal();
 		if (msg.type === "loaded")
 			handleLoadedSignal();
+		if (msg.type === "steeringStart")
+			handleSteeringStartSignal(msg.steeringType, msg.value);
+		if (msg.type === "steeringStop")
+			handleSteeringStopSignal();
+	}
+	if (msg.action === "datasetList") {
+		receiveDatasetList(msg);
+	}
+}
+
+function handleSteeringStartSignal(type, value) {
+	var displaySpan = d3.select("#focus")
+		.text(type+" starting with: "+value);
+}
+
+function handleSteeringStopSignal() {
+	var displaySpan = d3.select("#focus")
+	.text("");
+}
+
+function receiveDatasetList(message) {
+	
+	console.log("Receiving dataset list of size "+message.size);
+	
+	var dsList = d3.select("#datasetList");
+	var datasetNb = parseInt(message.size);
+	
+	for (datasetNb; datasetNb > 0;) {
+		datasetNb--;
+		let dsName = message[datasetNb.toString()];
+		var item = dsList.append("li").text(dsName);
+		item.on("click",function() {
+			startTool(dsName);
+		});
 	}
 }
 
@@ -374,8 +442,19 @@ function processError(message) {
  * Initializing the system at the start
  */
 function init() {
-	//setReadyToStart();				Commented out while updating the app
+	d3.select("#tool")
+		.style("display","none");
 	
+	//webSocket = new WebSocket("ws://localhost:8080/ppmt/wsppmt");
+	webSocket = new WebSocket("ws://ppmt.univ-nantes.fr/ppmt/wsppmt");
+
+	webSocket.onopen = processOpen;
+	webSocket.onmessage = processMessage;
+	webSocket.onclose = processClose;
+	webSocket.onerror = processError;
+}
+
+function setupTool() {
 	console.log("Init");
 	
 	document.getElementById("defaultControlTab").click();	// Set the "trace" tab active by default
@@ -387,21 +466,16 @@ function init() {
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
-	
-	/*function getRootUri() {
-		var h = document.location.hostname == "" ? "localhost" : document.location.hostname;
-		var p = document.location.port == "" ? "8080" : document.location.port;
-		console.log("ws://" + h + ":" +p);
-		return "ws://" + h + ":" +p;
-	}*/
-	
-	//webSocket = new WebSocket("ws://localhost:8080/ppmt/wsppmt");
-	webSocket = new WebSocket("ws://ppmt.univ-nantes.fr/ppmt/wsppmt");
+}
 
-	webSocket.onopen = processOpen;
-	webSocket.onmessage = processMessage;
-	webSocket.onclose = processClose;
-	webSocket.onerror = processError;
+function startTool(datasetName) {
+	d3.select("#datasetSelection")
+		.style("display","none");
+	d3.select("#tool")
+		.style("display","initial");
+	
+	setupTool();
+	selectDataset(datasetName);
 }
 
 /**
@@ -3620,8 +3694,13 @@ var Timeline = function(elemId, options) {
 	}
 	
 	// Parameters about size and margin of the timeline's parts
+	/* Initial config
 	self.marginFocus = {"top": 20,"right": 20,"bottom": 300,"left": 40}; // bottom 110
 	self.marginContext = {"top": 330,"right": 20,"bottom": 230,"left": 40};// bottom 30
+	self.marginPatterns = {"top": 400,"right": 20,"bottom": 30,"left": 40};
+	*/
+	self.marginFocus = {"top": 20,"right": 20,"bottom": 300,"left": 40};
+	self.marginContext = {"top": 330,"right": 20,"bottom": 230,"left": 40};
 	self.marginPatterns = {"top": 400,"right": 20,"bottom": 30,"left": 40};
 	self.width = +self.parentNode.clientWidth
 			- Math.max(self.marginFocus.left, self.marginContext.left)

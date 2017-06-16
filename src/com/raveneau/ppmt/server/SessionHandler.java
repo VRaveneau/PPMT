@@ -30,6 +30,7 @@ import javax.websocket.Session;
 import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.algorithms.AlgorithmHandler;
 import com.raveneau.ppmt.algorithms.GspThread;
+import com.raveneau.ppmt.algorithms.SteeringTypes;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.events.SteeringListener;
@@ -55,20 +56,14 @@ public class SessionHandler {
 		// Localhost path
 		//datasetManager.addDataset("Agavue", "C:/Users/vincent/workspaceNeon/ProgressivePatternMiningTool/Data/Agavue/agavue_full_clean.csv", false);
 		// Server path
-		datasetManager.addDataset("Agavue", "/home/raveneau/data/Agavue/agavue_full_clean.csv", false);	
+		//datasetManager.addDataset("Agavue", "/home/raveneau/data/Agavue/Agavue.csv", false);	
 	}
 
 	public void addSession(Session session) {
 		System.out.println("Adding session to the session handler : "+this.hashCode());
-		JsonProvider provider = JsonProvider.provider();
-    	JsonObject startLoading = provider.createObjectBuilder()
-    			.add("action", "startLoading")
-    			.build();	// Add informations on the dataset (size ...)
-    	sendToSession(session, startLoading);
     	
-		datasetManager.loadDataset("Agavue");
-		
 		sessions.add(session);
+		
 		algorithmHandlers.put(session, new AlgorithmHandler(this, datasetManager, session));
 		listeners.put(session, new EventListenerList());
 		
@@ -80,6 +75,21 @@ public class SessionHandler {
 		}
 		/*JsonObject datasetInfos = createDatasetInfosMessage();
 		sendToSession(session, datasetInfos);*/
+	}
+	
+	/**
+	 * Load the dataset requested by a session
+	 * @param session
+	 * @param datasetName
+	 */
+	public void loadDataset(Session session, String datasetName) {
+		JsonProvider provider = JsonProvider.provider();
+    	JsonObject startLoading = provider.createObjectBuilder()
+    			.add("action", "startLoading")
+    			.build();	// Add informations on the dataset (size ...)
+    	sendToSession(session, startLoading);
+    	
+		datasetManager.loadDataset(datasetName);
 	}
 	
 	public void removeSession(Session session) {
@@ -617,6 +627,26 @@ public class SessionHandler {
 		}
 		sendToSession(session, dataMessage.build());
 	}
+	
+	public void provideDatasetList(Session session) {
+		JsonObjectBuilder dataMessage = null;
+		JsonProvider provider = JsonProvider.provider();
+		
+		System.out.println("requesting dataset list");
+		
+		// list of dataset names
+		List<String> list = datasetManager.getDatasetList();
+		
+		dataMessage = provider.createObjectBuilder()
+				.add("action", "datasetList")
+				.add("size", list.size());
+		int count = 0;
+		for (String t : list) {
+			dataMessage.add(Integer.toString(count), t);
+			count++;
+		}
+		sendToSession(session, dataMessage.build());
+	}
 
 	public void requestSteeringOnPattern(int patternId, Session session) {
 		for(SteeringListener listener : getSteeringListeners(session)) {
@@ -770,6 +800,24 @@ public class SessionHandler {
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "signal")
 				.add("type", "loaded");
+		sendToSession(session, dataMessage.build());
+	}
+
+	public void signalSteeringStarted(String type, String value, Session session) {
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "signal")
+				.add("type", "steeringStart")
+				.add("steeringType",type)
+				.add("value", value);
+		sendToSession(session, dataMessage.build());
+	}
+
+	public void signalSteeringStop(Session session) {
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "signal")
+				.add("type", "steeringStop");
 		sendToSession(session, dataMessage.build());
 	}
 }

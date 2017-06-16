@@ -75,7 +75,7 @@ public class Dataset {
 	public Dataset(String name, String inputPath, boolean startLoading) {
 		super();
 		this.name = name;
-		this.inputPath = inputPath;
+		this.inputPath = inputPath+"/"+name+".csv";
 		if (startLoading) {
 			loadData();
 		}
@@ -146,6 +146,7 @@ public class Dataset {
 			Date previousEvent = null;
 			String line;
 			int lineCount = 0;
+			int eventTypeCode = 0;
 			// for each line (event)
 			while ((line = reader.readLine()) != null) {
 				// split the sequence according to ";" into tokens
@@ -166,6 +167,9 @@ public class Dataset {
 				if (!events.contains(properties[0])) {
 					events.add(properties[0]);
 					eventOccs.put(properties[0], new Integer(1));
+					eventsReadable.put(String.valueOf(eventTypeCode), properties[0]);
+					eventsCoded.put(properties[0], String.valueOf(eventTypeCode));
+					eventTypeCode++;
 				} else {
 					eventOccs.put(properties[0], new Integer(eventOccs.get(properties[0]).intValue()+1));
 				}
@@ -273,8 +277,10 @@ public class Dataset {
 		Date loadEnd = new Date();
 		long loadTime = loadEnd.getTime() - loadStart.getTime();
 		
+		
+		// not used anymore
 		// Server version
-		loadTrueEventNames("/home/raveneau/data/Agavue/mapping.map");
+		//loadTrueEventNames("/home/raveneau/data/Agavue/mapping.map");
 		//compressEvents();
 		// Localhost version
 		//loadTrueEventNames("C:/Users/vincent/workspaceNeon/ProgressivePatternMiningTool/Data/Agavue/mapping.map");

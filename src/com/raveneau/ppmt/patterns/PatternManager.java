@@ -18,6 +18,7 @@ import java.util.Set;
 
 import javax.websocket.Session;
 
+import com.raveneau.ppmt.algorithms.SteeringTypes;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.server.SessionHandler;
 
@@ -268,5 +269,25 @@ public class PatternManager {
 	
 	public ExtractionState getPatternExtractionState(Integer patternId) {
 		return this.patternExtractionState.get(patternId);
+	}
+	
+	public void sendSteeringNotificationToClient(SteeringTypes type, String value) {
+		switch (type) {
+		case PATTERN:
+			sessionHandler.signalSteeringStarted("pattern", value, session);
+			break;
+		case TIME:
+			sessionHandler.signalSteeringStarted("time", value, session);
+			break;
+		case USER:
+			sessionHandler.signalSteeringStarted("user", value, session);
+			break;
+		default:
+			break;
+		}
+	}
+
+	public void sendSteeringEndNotificationToClient() {
+		sessionHandler.signalSteeringStop(session);
 	}
 }

@@ -301,6 +301,7 @@ public class AlgoGSP {
 	        frequentSet = new LinkedHashSet<>(this.lastFrequentSetCompleted);
 	        // stop the occurring steering
 	        this.parameters.stopSteering();
+	        patternManager.sendSteeringEndNotificationToClient();
 	        // reset the fact that steering occured for the support counter
 	        supportCounter.resetSteeringHasOccured();
 	        System.out.println("AlgoGSP: steering ended, going back to level "+(k+1));

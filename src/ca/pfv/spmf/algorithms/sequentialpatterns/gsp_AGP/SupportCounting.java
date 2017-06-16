@@ -85,6 +85,7 @@ class SupportCounting {
     public Set<Pattern> countSupport(List<Pattern> candidateSet, int k, GspParameters parameters,/*double minSupportAbsolute,*/ PatternManager patternManager/*, long maxDuration, int minGap, int maxGap*/) {
         indexationMap.clear();
         Set<Pattern> result = new LinkedHashSet<Pattern>();
+        
         //For each candidate
         for (Pattern candidate : candidateSet) {
         	List<String> candidateItems = new ArrayList<>();
@@ -103,6 +104,26 @@ class SupportCounting {
         		System.out.println("SupportCounting: acknowledging steering request");
         		parameters.startRequestedSteering();
         		this.steeringHasOccurred = true;
+        		
+        		String steeringValue = "";
+        		switch (parameters.getSteeringTypeOccurring()) {
+				case PATTERN:
+					for (String event : patternManager.getPattern(parameters.getSteeringPatternIdOccurring()).getItems())
+						steeringValue+=event+" "; // TODO get the event name instead of the id
+					steeringValue = steeringValue.trim();
+					break;
+				case TIME:
+					steeringValue = "time";
+					break;
+				case USER:
+					steeringValue = "user";
+					break;
+				default:
+					break;
+				}
+        		
+        		patternManager.sendSteeringNotificationToClient(parameters.getSteeringTypeOccurring(), steeringValue);
+        		
         	}
         	/*		STEERING on pattern, check if the pattern matches		*/
         	if (parameters.steeringIsOccurring() &&

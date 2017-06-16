@@ -1,5 +1,6 @@
 package com.raveneau.ppmt.datasets;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -10,10 +11,13 @@ import java.util.Map;
 import javax.websocket.Session;
 
 public class DatasetManager {
-
-	private static DatasetManager instance = new DatasetManager();	// Singleton
+	
+	// Singleton
+	private static DatasetManager instance = new DatasetManager();
 	private List<Dataset> datasets = null;
 	private List<String> datasetNames = null;
+	private String datasetFolderPath = "/home/raveneau/data/";
+	private File datasetFolder = null;
 
 	private DatasetManager() {
 		this.datasets = new ArrayList<>();
@@ -52,13 +56,13 @@ public class DatasetManager {
 	}
 	
 	public void loadDataset(String name) {
-		System.out.println("Loading dataset "+name+" if known");
+		System.out.println("Loading dataset '"+name.trim()+"' if known");
 		for (Dataset d : datasets) {
-			if (d.getName() == name && !(d.isLoaded() || d.isLoading())) {
-				System.out.println("datasetManager requesting to load "+name+" : "+this.hashCode());
+			if (d.getName().trim().equals(name.trim()) && !d.isLoaded() && !d.isLoading()) {
+				System.out.println("datasetManager requesting to load '"+d.getName().trim()+"' : "+this.hashCode());
 				d.loadData();
 			} else {
-				System.out.println("datasetManager not loading "+name+" (isLoaded="+d.isLoaded()+" isLoading="+d.isLoading()+" : "+this.hashCode());
+				System.out.println("datasetManager not loading '"+d.getName().trim()+"' (isLoaded="+d.isLoaded()+" isLoading="+d.isLoading()+" : "+this.hashCode());
 			}
 		}
 	}
@@ -113,6 +117,33 @@ public class DatasetManager {
 	
 	public String getDatasetName(String datasetName) {
 		return getDataset(datasetName).getName();
+	}
+	
+	public List<String> getDatasetList() {
+		updateDatasetList();
+		return datasetNames;
+	}
+	
+	public void updateDatasetList() {
+		if(datasetFolder == null)
+			datasetFolder = new File(datasetFolderPath);
+		updateDatasetList(datasetFolder);
+	}
+	
+	private void updateDatasetList(File folder) {
+		System.out.println("searchign for datasets in "+folder.getAbsolutePath());
+		for (File fileEntry : folder.listFiles()) {
+	        if (fileEntry.isDirectory()) {
+	        	updateDatasetList(fileEntry);
+	        } else
+	        if (fileEntry.isFile() && fileEntry.getName().endsWith(".csv")) {
+	        	System.out.println(fileEntry.getName()+" is a valid dataset");
+	        	String name = fileEntry.getName();
+	        	name = name.substring(0, name.length()-4);
+	        	
+	        	this.addDataset(name, fileEntry.getParent(), false);
+	        }
+	    }
 	}
 	
 	public List<String> getTrace(String user, String dataset) {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en">	
 	<head>
         <title>Progressive Pattern Mining Tool</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -19,7 +19,13 @@
 				<div><span class="caps">P</span>rogressive <span class="caps">P</span>attern <span class="caps">M</span>ining <span class="caps">T</span>ool</div>
 			
 			</div>
-			
+			<div id="datasetSelection">
+				<h3>Select the dataset you want to use :</h3>
+				<ul id='datasetList'>
+				
+				</ul>
+			</div>
+			<div id="tool">
 				<div id="right">
 				
 					<div class="text-centered">The Patterns</div>
@@ -87,172 +93,172 @@
 					</div>
 					
 				</div>
-			
-			<div id="top">
-				<!-- Activity indicator, disabled for now
-				<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
-					<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
-				</svg> -->
-				<p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p>
-				<p class="leftAligned no-margin-top no-margin-bottom" id="userHighlight">No user</p>
-				<p class="leftAligned lastItem no-margin-top no-margin-bottom" id="userHighlight">No event type</p>
-				<p class="rightAligned"></p>
-			</div>
-			
-			<div id="left">
-				
-				<div class="text-centered">The data</div>
-				
-				<ul class="controlTabs">
-					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Trace')" id="defaultControlTab">Trace</a></li>
-					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Event types</a></li>
-					<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
-					<!-- <li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Filters')">Filters</a></li>   -->
-				</ul>
-				
-				<div id="Trace" class="controlTabContent">
-					<!-- Info on trace -->
-					<p>This dataset:</p>
-					<div id="datasetInfo">
-						
-					</div>
-					<hr>
-					<p>You can:</p>
-					<button type="button" class='trace-action-button'>Create event</button>
-					<button type="button" class='trace-action-button'>Delete event</button>
-					<button type="button" class='trace-action-button'>Truncate trace</button>
-					<button type="button" class='trace-action-button'>Delete user</button>
-					<hr>
-					<p>You did:</p>
-					<!-- history -->
-					<div id="history">
-						
-					</div>
+				<div id="top">
+					<!-- Activity indicator, disabled for now
+					<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
+						<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
+					</svg> -->
+					<p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p>
+					<p class="leftAligned no-margin-top no-margin-bottom" id="userHighlight">No user</p>
+					<p class="leftAligned lastItem no-margin-top no-margin-bottom" id="userHighlight">No event type</p>
+					<p class="rightAligned"></p>
 				</div>
 				
-				<div id="Events" class="controlTabContent">
-					<form>
-						<div class="searchBarArea">
-							<input type="submit" class="searchButton" value="Search">
-							<div><input type="text" class="searchField"></div>
-						</div>
-					</form>
-				
-					<table id="eventTable" class="sortable">
-						<thead>
-							<tr>
-								<th>Event type</th>
-								<th id="eventsOccurrencesColumn" class="sorttable_numeric">Nb events</th>
-								<th class="sorttable_numeric">Symbol</th>
-							</tr>
-						</thead>
-						<tbody id="eventTableBody">
-						</tbody>
-					</table>
-					<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
-				</div>
-				
-				<div id="Users" class="controlTabContent">
-					<form>
-						<div class="searchBarArea">
-							<input type="submit" class="searchButton" value="Search">
-							<div><input type="text" class="searchField"></div>
-						</div>
-					</form>
+				<div id="left">
 					
-					<div id="userTableArea">
-						<table id="userTable" class="sortable">
+					<div class="text-centered">The data</div>
+					
+					<ul class="controlTabs">
+						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Trace')" id="defaultControlTab">Trace</a></li>
+						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Event types</a></li>
+						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
+						<!-- <li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Filters')">Filters</a></li>   -->
+					</ul>
+					
+					<div id="Trace" class="controlTabContent">
+						<!-- Info on trace -->
+						<p>This dataset:</p>
+						<div id="datasetInfo">
+							
+						</div>
+						<hr>
+						<p>You can:</p>
+						<button type="button" class='trace-action-button'>Create event</button>
+						<button type="button" class='trace-action-button'>Delete event</button>
+						<button type="button" class='trace-action-button'>Truncate trace</button>
+						<button type="button" class='trace-action-button'>Delete user</button>
+						<hr>
+						<p>You did:</p>
+						<!-- history -->
+						<div id="history">
+							
+						</div>
+					</div>
+					
+					<div id="Events" class="controlTabContent">
+						<form>
+							<div class="searchBarArea">
+								<input type="submit" class="searchButton" value="Search">
+								<div><input type="text" class="searchField"></div>
+							</div>
+						</form>
+					
+						<table id="eventTable" class="sortable">
 							<thead>
 								<tr>
-									<th class="userColumn sorttable_numeric">User</th>
-									<th id="eventsPerUserColumn" class="sorttable_numeric">Nb events</th>
-									<th class="sorttable_numeric">Duration</th>
-									<th class="sorttable_numeric">Start</th>
-									<th class="sorttable_numeric">End</th>
+									<th>Event type</th>
+									<th id="eventsOccurrencesColumn" class="sorttable_numeric">Nb events</th>
+									<th class="sorttable_numeric">Symbol</th>
 								</tr>
 							</thead>
-							<tbody id="userTableBody">
+							<tbody id="eventTableBody">
 							</tbody>
 						</table>
+						<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
 					</div>
+					
+					<div id="Users" class="controlTabContent">
+						<form>
+							<div class="searchBarArea">
+								<input type="submit" class="searchButton" value="Search">
+								<div><input type="text" class="searchField"></div>
+							</div>
+						</form>
+						
+						<div id="userTableArea">
+							<table id="userTable" class="sortable">
+								<thead>
+									<tr>
+										<th class="userColumn sorttable_numeric">User</th>
+										<th id="eventsPerUserColumn" class="sorttable_numeric">Nb events</th>
+										<th class="sorttable_numeric">Duration</th>
+										<th class="sorttable_numeric">Start</th>
+										<th class="sorttable_numeric">End</th>
+									</tr>
+								</thead>
+								<tbody id="userTableBody">
+								</tbody>
+							</table>
+						</div>
+					</div>
+					
+					<!-- <div id="Filters" class="controlTabContent">
+						<p>Users:</p>
+					</div>   -->
+					
 				</div>
 				
-				<!-- <div id="Filters" class="controlTabContent">
-					<p>Users:</p>
-				</div>   -->
-				
-			</div>
+				<!--  <div id="display">  -->
+					<div id="center">
+						<div id="timeline-view">
+							<div id="timeline">
+							
+							</div>
+							<!-- <div id="timelineOverview">
+							
+							</div> -->
+							<div id="centerOverlay">
+							
+							</div>
+						</div>
+					
+					</div>
+					
+					<div id="bottom">
+						<p class="leftAligned">Runtime: <span id="runtime">00:00</span></p>
+						<p class="leftAligned"><span id="currentAlgorithmWork">Algorithm not running</span></p>
+						<p class="leftAligned lastItem">Data used: <span id="dataUsed"></span></p>
+						<p class="rightAligned">Focusing on: <span id="focus"></span></p>
+					</div>
+				<!-- </div> -->
 			
-			<!--  <div id="display">  -->
-				<div id="center">
-					<div id="timeline-view">
-						<div id="timeline">
-						
-						</div>
-						<!-- <div id="timelineOverview">
-						
-						</div> -->
-						<div id="centerOverlay">
-						
-						</div>
+	<!-- 		
+			
+				<div id="header">
+					<h2>Progressive Pattern Mining Tool</h2>
+					<div class="button" id="startMining"> <a href="#" OnClick="startMining()">Start mining</a> </div>
+					<div class="button" id="stopMining"> <a href="#" OnClick="stopMining()">Stop mining</a> </div>
+					<div class="button" id="goToTimelineStart"> <a href="#" OnClick="goToTimelineStart()">Go to first event</a> </div>
+					<div class="button" id="timelineOverview"> <a href="#" OnClick="timelineOverview()">View all events</a> </div>
+					<div class="button" id="requestData"> <a href="#" OnClick="requestData()">Obtain Dataset</a> </div>
+					<div class="button" id="drawLiftMatrix"> <a href="#" OnClick="drawLift()">Draw lift matrix</a> </div>
+					<div class="button" id="steeringOnWriteSampleData"> <a href="#" OnClick="requestSteering('create')">Steer on create</a> </div>
+				</div>
+				<div id="timeline-view">
+					<h4>Timeline view:</h4>
+					<div id="timeline">
+					
 					</div>
-				
 				</div>
-				
-				<div id="bottom">
-					<p class="leftAligned">Runtime: <span id="runtime">00:00</span></p>
-					<p class="leftAligned"><span id="currentAlgorithmWork">Algorithm not running</span></p>
-					<p class="leftAligned lastItem">Data used: <span id="dataUsed"></span></p>
-					<p class="rightAligned">Focusing on: <span id="focus"></span></p>
+				<div id="pattern-view">
+					<h4>Discovered patterns:</h4>
+					<div id="pattern-list">
+						<ul id="patterns">
+						</ul>
+					</div>
 				</div>
-			<!-- </div> -->
-		
-<!-- 		
-		
-			<div id="header">
-				<h2>Progressive Pattern Mining Tool</h2>
-				<div class="button" id="startMining"> <a href="#" OnClick="startMining()">Start mining</a> </div>
-				<div class="button" id="stopMining"> <a href="#" OnClick="stopMining()">Stop mining</a> </div>
-				<div class="button" id="goToTimelineStart"> <a href="#" OnClick="goToTimelineStart()">Go to first event</a> </div>
-				<div class="button" id="timelineOverview"> <a href="#" OnClick="timelineOverview()">View all events</a> </div>
-				<div class="button" id="requestData"> <a href="#" OnClick="requestData()">Obtain Dataset</a> </div>
-				<div class="button" id="drawLiftMatrix"> <a href="#" OnClick="drawLift()">Draw lift matrix</a> </div>
-				<div class="button" id="steeringOnWriteSampleData"> <a href="#" OnClick="requestSteering('create')">Steer on create</a> </div>
-			</div>
-			<div id="timeline-view">
-				<h4>Timeline view:</h4>
-				<div id="timeline">
-				
+				<div id="chart-view">
+					<h4>Lift matrix:</h4>
+					<div id="chart-lift">
+					
+					</div>
 				</div>
-			</div>
-			<div id="pattern-view">
-				<h4>Discovered patterns:</h4>
-				<div id="pattern-list">
-					<ul id="patterns">
+				<div id="dataset-info">
+					<h4>Current dataset:</h4>
+					<h4>Dataset information:</h4>
+					<p> Number of users : <span id="nbUsers">??</span><p>
+					<p> Current user : <span id="currentUser"></span><p>
+					<p> Number of different events : <span id="nbDiffEvents">??</span></p>
+					<p> Number of discovered patterns : </p>
+					<ul id="listNbPatternsStartingBy">
+						<li> Total : <span id="nbTotal">0</span></li>
 					</ul>
 				</div>
-			</div>
-			<div id="chart-view">
-				<h4>Lift matrix:</h4>
-				<div id="chart-lift">
 				
-				</div>
+	 -->			
+				
+				
 			</div>
-			<div id="dataset-info">
-				<h4>Current dataset:</h4>
-				<h4>Dataset information:</h4>
-				<p> Number of users : <span id="nbUsers">??</span><p>
-				<p> Current user : <span id="currentUser"></span><p>
-				<p> Number of different events : <span id="nbDiffEvents">??</span></p>
-				<p> Number of discovered patterns : </p>
-				<ul id="listNbPatternsStartingBy">
-					<li> Total : <span id="nbTotal">0</span></li>
-				</ul>
-			</div>
-			
- -->			
-			
-			
 		</div>
 		<script src="D3/d3.js" type="text/javascript"></script>
 		<script src="d3-symbol-extra.js" type="text/javascript"></script>
