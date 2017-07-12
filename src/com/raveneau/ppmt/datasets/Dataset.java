@@ -200,9 +200,14 @@ public class Dataset {
 					int i = timeSortedEvents.size()-1;
 					while(getEventDate(i).after(eventDate)) {
 						i--;
+						if (i == -1)
+							break;
 					}
 					timeSortedEvents.add(i+1, newString);
-					System.out.println("Event inserted between "+getEventDate(i)+" and "+getEventDate(i+2));
+					if (i == -1)
+						System.out.println("Event inserted at position 0, before "+getEventDate(1));
+					else
+						System.out.println("Event inserted between "+getEventDate(i)+" and "+getEventDate(i+2));
 					// Insert the event in the relevant user trace, keeping it sorted
 					if (userIsNew) {
 						userSequences.get(newUserName).add(newString);
@@ -286,6 +291,7 @@ public class Dataset {
 		//loadTrueEventNames("C:/Users/vincent/workspaceNeon/ProgressivePatternMiningTool/Data/Agavue/mapping.map");
 		
 		System.out.println("dataset loaded in "+loadTime+"ms.");
+		System.out.println(nbEvents+" events loaded among "+userSequences.size()+" users");
 		this.loaded = true;
 		this.loading = false;
 		
@@ -882,13 +888,23 @@ public class Dataset {
 		int userCount = 0;
 		
 		List<List<String>> result = new ArrayList<>();
+		
+		System.out.println("UserSequences is of size "+userSequences.size());
+		System.out.println("UserSequences.keySet() is of size "+userSequences.keySet().size());
+		
 		for (String user : userSequences.keySet()) {	// For each user in the dataset
 			List<String> currentUserSequence = new ArrayList<>();
 			Calendar eventCal = null;
 			
-			if (userCount%10000 == 0)
-				System.out.println(userCount+" user done");
+			int userDisplayStep = userSequences.size() / 10;
+			
+			if (userCount%userDisplayStep == 0) {
+				System.out.println(userCount+"/"+userSequences.size()+" users done");
+				System.out.println("Mineable dataset is of size "+result.size());
+			}
 			userCount++;
+
+			System.out.println("Doing user "+userCount);
 			
 			for (String event : userSequences.get(user)) {	// For each event of the user
 				Date eventDate = getDateInEvent(event);
@@ -910,7 +926,7 @@ public class Dataset {
 		long loadTime = loadEnd.getTime() - loadStart.getTime();
 		System.out.println("Mineable dataset created in "+loadTime+"ms.");
 		
-		System.out.println("Returning "+result.size()+" windows (overlapping).");
+		System.out.println("Returning "+result.size()+" windows.");
 		return result;
 	}
 	
@@ -1034,5 +1050,9 @@ public class Dataset {
 	
 	public void addPatternManagerToSession(Session session, SessionHandler sessionHandler) {
 		patternManagers.put(session, new PatternManager(userRenaming, eventsCoded, eventsReadable, session, sessionHandler, this));
+	}
+	
+	public void modifyTraceByGroupingEvents(List<Integer> typeIdsToJoin) {
+		
 	}
 }

@@ -210,6 +210,8 @@ public class AlgoGSP {
         this.lastIndexationMapCompleted = new HashMap<Item, Set<Pattern>>(indexationMap);
         this.lastFrequentSetCompleted = new LinkedHashSet<>(frequentSet);
         
+        boolean levelEndedWithNoCandidate = false;
+        
         // Loop until everything has been extracted with the default algorithm
         while (this.lastLevelCompleted < this.parameters.getMaxSize()) {
         
@@ -229,10 +231,14 @@ public class AlgoGSP {
 	            patternManager.signalNewLevel(k);
 	            
 	            //We get the candidate set
-	            candidateSet = candidateGenerator.generateCandidates(frequentSet, abstractionCreator, indexationMap, k, this.parameters.getMinSupAbsolute());
+	            if (this.parameters.steeringIsOccurring())
+	            	candidateSet = candidateGenerator.generateCandidatesCombinatory(frequentSet, frequentItems, abstractionCreator, indexationMap, k, this.parameters.getMinSupAbsolute());
+	            else
+	            	candidateSet = candidateGenerator.generateCandidates(frequentSet, abstractionCreator, indexationMap, k, this.parameters.getMinSupAbsolute());
 	            frequentSet = null;
 	            //And we break the loop if the set of candidates is empty
 	            if (candidateSet == null) {
+	            	levelEndedWithNoCandidate = true;
 	                break;
 	            }
 	            //Otherwise we continue counting the support of each candidate of the set
@@ -295,16 +301,35 @@ public class AlgoGSP {
 	            }
 	            
 	        }
-	        // Go back to the next completed level
-	        k = this.lastLevelCompleted;
-	        indexationMap = new HashMap<Item, Set<Pattern>>(this.lastIndexationMapCompleted);
-	        frequentSet = new LinkedHashSet<>(this.lastFrequentSetCompleted);
-	        // stop the occurring steering
-	        this.parameters.stopSteering();
-	        patternManager.sendSteeringEndNotificationToClient();
-	        // reset the fact that steering occured for the support counter
-	        supportCounter.resetSteeringHasOccured();
-	        System.out.println("AlgoGSP: steering ended, going back to level "+(k+1));
+	        if (!levelEndedWithNoCandidate) { // TODO check this test and its consequences
+	        	if (frequentSet == null || frequentSet.isEmpty()) {
+	        		patternManager.signalLevelExtracted(k);
+	        		break;
+	        	}
+	        	
+		        // Go back to the next completed level
+		        k = this.lastLevelCompleted;
+		        indexationMap = new HashMap<Item, Set<Pattern>>(this.lastIndexationMapCompleted);
+		        frequentSet = new LinkedHashSet<>(this.lastFrequentSetCompleted);
+		        // stop the occurring steering
+		        this.parameters.stopSteering();
+		        patternManager.sendSteeringEndNotificationToClient();
+		        // reset the fact that steering occured for the support counter
+		        supportCounter.resetSteeringHasOccured();
+		        System.out.println("AlgoGSP: steering ended, going back to level "+(k+1));
+	        } else {
+	        	if (this.parameters.steeringIsOccurring()) {
+	        		// stop the occurring steering
+			        this.parameters.stopSteering();
+			        patternManager.sendSteeringEndNotificationToClient();
+			        // reset the fact that steering occured for the support counter
+			        supportCounter.resetSteeringHasOccured();
+			        System.out.println("AlgoGSP: steering ended, going back to level "+(k+1));
+	        	} else {
+	        		patternManager.signalLevelExtracted(k);
+	        		break;
+	        	}
+	        }
         }
         /*When the loop is over, if we were interested in keeping the output in
          * a file, we store the last level found.

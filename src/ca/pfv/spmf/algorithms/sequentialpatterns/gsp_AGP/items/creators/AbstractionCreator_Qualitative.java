@@ -315,6 +315,53 @@ public class AbstractionCreator_Qualitative implements AbstractionCreator {
         return pos;
     }
 
+    public Pattern generateCandidatesCombinatory(AbstractionCreator creator, Pattern pattern1, Pattern pattern2, double minSupport) {
+        // Flag to know if the central part of the pattern is different
+        /*boolean different = false;
+        List<ItemAbstractionPair> elements1 = pattern1.getElements();
+        List<ItemAbstractionPair> elements2 = pattern2.getElements();
+        for (int i = 0; i < (elements1.size() - 1) && !different; i++) {
+            ItemAbstractionPair pair1 = elements1.get(i + 1);
+            ItemAbstractionPair pair2 = elements2.get(i);
+            if (i == 0) {
+                if (!pair1.getItem().equals(pair2.getItem())) {
+                    different = true;
+                }
+            } else {
+                if (!pair1.equals(pair2)) {
+                    different = true;
+                }
+            }
+        }
+        if (different) {//If we cannot compose any candidate we return null
+            return null;
+        } else {*/
+        /*
+         * Relevant version for episodes
+         */
+	    	Pattern newPattern = pattern1.clonePattern();
+	        newPattern.add(pattern2.getLastElement());
+	        return newPattern;
+        /*
+         * Relevant version for sequential patterns
+         */
+        /*otherwise, we first check if the junction of their appearing 
+         * sets still has more appearances than the minimum relative support is
+         */
+           /* BitSet intersection = (BitSet) pattern1.getAppearingIn().clone();
+            intersection.and(pattern2.getAppearingIn());
+            //If we have more appearences than the minSupport is
+            if (intersection.cardinality() >= minSupport) {
+                //the candidate can be frequent, so we keep it
+                Pattern newPattern = pattern1.clonePattern();
+                newPattern.add(pattern2.getLastElement());
+                return newPattern;
+            } else {//Otherwise, it never could be frequent and we can remove it
+                return null;
+            }*/
+        //}
+    }
+    
     /**
      * Method that generates a candidate from two given patterns. if all the
      * elements of pattern1, except the first one, are the same as all the

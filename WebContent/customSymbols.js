@@ -10,11 +10,10 @@ extendedSymbolTypes.push(d3.symbolTriangleLeft);
 extendedSymbolTypes.push(d3.symbolTriangleRight);
 extendedSymbolTypes.push(d3.symbolDiamondAlt);
 extendedSymbolTypes.push(d3.symbolDiamondSquare);
-extendedSymbolTypes.push(d3.symbolPentagon);
 extendedSymbolTypes.push(d3.symbolHexagon);
 extendedSymbolTypes.push(d3.symbolHexagonAlt);
-extendedSymbolTypes.push(d3.symbolOctagon);
-extendedSymbolTypes.push(d3.symbolOctagonAlt);
+//extendedSymbolTypes.push(d3.symbolOctagon);
+//extendedSymbolTypes.push(d3.symbolOctagonAlt);
 extendedSymbolTypes.push(d3.symbolCrossAlt);
 
 /*

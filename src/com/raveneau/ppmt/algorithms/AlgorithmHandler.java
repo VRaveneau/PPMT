@@ -59,6 +59,9 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 			this.algorithmParameters.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 			
 			this.dataset = datasetManager.getDataset(datasetName);
+			
+			System.out.println("In AlgoHandler.startMining, "+datasetName+"'userSequences size is "+this.dataset.getNbSequences());
+			
 			this.dataset.addPatternManagerToSession(session, sessionHandler); // deletes all the previously known patterns
 			algorithm = new GspThread(this.dataset, session, algorithmParameters);
 			// Useless if the parameters are passed in the constructor //algorithm.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);

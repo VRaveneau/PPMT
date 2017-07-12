@@ -46,7 +46,8 @@ public class ServerEndpointPPMT {
 				int minGap = Integer.parseInt(jsonMessage.getString("minGap"));
 				int maxGap = Integer.parseInt(jsonMessage.getString("maxGap"));
 				int maxDuration = Integer.parseInt(jsonMessage.getString("maxDuration"));
-				sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, "Agavue", session);
+				String datasetName = jsonMessage.getString("datasetName");
+				sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName, session);
 			}
 		}
 		if ("load".equals(jsonMessage.getString("action"))) {

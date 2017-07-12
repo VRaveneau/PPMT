@@ -103,4 +103,12 @@ public class Pattern {
 	public long[] getTimestampsFromSeqId(Integer sId) {
 		return seqIdToTimestamps.get(sId);
 	}
+	
+	public void buildOccurrencesBinForUser(String userId) {
+		List<long[]> ts = new ArrayList<>();
+		for (Integer seqId : sequenceId) {
+			if (seqIdToUser.get(seqId).equals(userId))
+				ts.add(seqIdToTimestamps.get(seqId));
+		}
+	}
 }

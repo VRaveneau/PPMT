@@ -11,6 +11,8 @@ var timelineOverview = null;
 var timelineOverviewXAxis = null;
 var timelineIds = 0;
 
+var currentDatasetName = "";
+
 var patternsLoaded = false;
 var patternsReceived = false;
 
@@ -76,6 +78,8 @@ function selectDataset(datasetName) {
 	};
 	webSocket.send(JSON.stringify(action));*/
 	
+	currentDatasetName = datasetName;
+	
 	requestDatasetLoad(datasetName);
 	
 	requestDatasetInfo(datasetName);	// TODO request the information on the dataset to the server
@@ -84,7 +88,21 @@ function selectDataset(datasetName) {
 	console.log("requesting the dataset "+datasetName);
 	enableCentralOverlay("The dataset is loading...");
 	requestDataset(datasetName);	// TODO request the data to the server
-	requestYearBins(datasetName);
+	
+	switch(currentDatasetName) {
+		case "Agavue":
+		case "MiniAgavue":
+			requestYearBins(datasetName);
+			break;
+		case "recsysSamplecategory":
+			requestHalfDayBins(datasetName);
+			break;
+		case "coconotesPPMT":
+			requestHalfMonthBins(datasetName);
+			break;
+		default:
+			
+	}
 	
 	/* For Agavue when it was hardcoded
 	
@@ -180,6 +198,16 @@ function requestHalfDayBins(datasetName) {
 	};
 	webSocket.send(JSON.stringify(action));
 }
+/*
+function requestUsersPatternOccurrences(userList) {
+	var action = {
+			action: "request",
+			object: "occurrences",
+			shape: "bin",
+			scale: "halfDay",
+			dataset: datasetName
+	}
+}*/
 
 /**
  * Handling the reception of a message from the server
@@ -1226,7 +1254,20 @@ function receiveUserList(message) {
 	var userTH = document.getElementById("eventsPerUserColumn");
 	sorttable.innerSortFunction.apply(userTH, []);
 	
+	sortUsersAccordingToTable();
+	
 	// Calling the display of the trace
+	timeline.updateUserList();
+}
+
+function sortUsersAccordingToTable() {
+	let newUserList = [];
+	d3.select("#userTableBody")
+		.selectAll("tr")
+		.each(function(d, i) {
+			newUserList.push(this.id);
+		});
+	userList = newUserList;
 }
 
 function setHighlights(username) {
@@ -1342,9 +1383,9 @@ function receiveEventTypes(message) {
  * @returns the first parameter for generating an HSL color (second and third are respectively supposed to be 100% and 50%)
  */
 function selectColor(colorNum, colors){
-	var presetList = [0,38,191,241,297];
+	var presetList = [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
 	if (colors <= presetList.length) {
-		console.log("Selecting number "+colorNum+" out of 5 preset colors");
+		console.log("Selecting number "+colorNum+" out of 6 preset colors");
 		return presetList[colorNum-1];
 	} else {
 		console.log("Selecting number "+colorNum+" out of "+colors+" generated colors");
@@ -1360,6 +1401,10 @@ function selectColor(colorNum, colors){
  */
 function getAgavueColors() {
 	return [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
+}
+
+function getEventColor(eventType) {
+	return colorList[eventType];
 }
 
 function getEventColorForAgavue(eventType) {
@@ -2315,6 +2360,7 @@ function runAlgoToFile() {
 	webSocket.send(JSON.stringify(action));
 }
 
+// Not at all using the right version of requestAlgorithmStart
 function runAlgorithm() {
 	// Clears the previously obtained patterns
 	var patternList = d3.select("#List");
@@ -2339,9 +2385,9 @@ function runAlgorithm() {
 	return false; // To stay on the same page
 }
 
-function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap, maxDuration) {
+function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName) {
 	console.log("Requesting algorithm start:");
-	console.log("   minSup: "+minSupport+", windowSize: "+windowSize+", maxSize: "+maxSize+", minGap: "+minGap+", maxGap: "+maxGap+", maxDuration: "+maxDuration);
+	console.log("   minSup: "+minSupport+", windowSize: "+windowSize+", maxSize: "+maxSize+", minGap: "+minGap+", maxGap: "+maxGap+", maxDuration: "+maxDuration+", datasetName: "+datasetName);
 	
 	var action = {
 			action: "run",
@@ -2351,7 +2397,8 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap, 
 			maxSize: maxSize,
 			minGap: minGap,
 			maxGap: maxGap,
-			maxDuration: maxDuration
+			maxDuration: maxDuration,
+			datasetName: datasetName
 	};
 	webSocket.send(JSON.stringify(action));
 	// Start the timer independently from the server
@@ -2364,14 +2411,37 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap, 
  * @returns
  */
 function startInitialMining() {
+	// TODO Stop using hard coded value depending on the dataset
+
 	var defaultMinSupport = "500";
 	var defaultWindowSize = "60";
-	var defaultMaxSize = "5";
+	var defaultMaxSize = "10";
 	var defaultMinGap = "0";
 	var defaultMaxGap = "2";
 	var defaultMaxDuration = "30000";
+	var datasetName = currentDatasetName;
 	
-	requestAlgorithmStart(defaultMinSupport, defaultWindowSize, defaultMaxSize, defaultMinGap, defaultMaxGap, defaultMaxDuration);
+	switch(currentDatasetName) {
+		case "recsysSamplecategory":
+			defaultMinSupport = "10";
+			defaultWindowSize = "60";
+			defaultMaxSize = "20";
+			defaultMinGap = "0";
+			defaultMaxGap = "2";
+			defaultMaxDuration = "30000";
+			break;
+		case "coconotesPPMT":
+			defaultMinSupport = "200";
+			defaultWindowSize = "60";
+			defaultMaxSize = "20";
+			defaultMinGap = "0";
+			defaultMaxGap = "2";
+			defaultMaxDuration = "30000";
+			break;
+		default:
+	}
+	console.log("defaultMinSupport :"+defaultMinSupport);
+	requestAlgorithmStart(defaultMinSupport, defaultWindowSize, defaultMaxSize, defaultMinGap, defaultMaxGap, defaultMaxDuration, datasetName);
 }
 
 var algorithmTimer;
@@ -2868,12 +2938,15 @@ var Timeline = function(elemId, options) {
 		var t = d3.event.transform;
 		self.xFocus.domain(t.rescaleX(self.xContext).domain());
 		self.xPatterns.domain(t.rescaleX(self.xContext).domain());
+		self.xUsers.domain(t.rescaleX(self.xContext).domain());
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
 		self.focus.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.patterns.select(".axis--x")
 			.call(self.xAxisPatterns);
+		self.users.select(".axis--x")
+			.call(self.xAxisUsers);
 		/*self.focus.selectAll(".dot")
 			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"});*/
 		//self.drawCurrentBins();
@@ -2978,7 +3051,9 @@ var Timeline = function(elemId, options) {
 		    var eventsInfo = bins[iBin][6].split(";");
 		    for (var t=0 ; t < eventsInfo.length ; t++) {
 		    	var details = eventsInfo[t].split(":");
-		    	var eColor = getEventColorForAgavue(details[0]);
+		    	// TODO fix the agavue situation
+		    	var eColor = getEventColor(details[0]);
+		    	//var eColor = getEventColorForAgavue(details[0]);
 		    	if (!colorsProportion[eColor]) {
 		    		colorsProportion[eColor] = parseInt(details[1]);
 		    		eventTypesAssociatedToColor[eColor] = [];
@@ -3243,12 +3318,15 @@ var Timeline = function(elemId, options) {
 		var s = d3.event.selection || self.xContext.range();
 		self.xFocus.domain(s.map(self.xContext.invert, self.xContext));
 		self.xPatterns.domain(s.map(self.xContext.invert, self.xContext));
+		self.xUsers.domain(s.map(self.xContext.invert, self.xContext));
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
 		self.focus.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.patterns.select(".axis--x")
 			.call(self.xAxisPatterns);
+		self.users.select(".axis--x")
+			.call(self.xAxisUsers);
 		/*self.focus.selectAll(".dot")
 			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"});*/
 		//self.drawCurrentBins();
@@ -3349,23 +3427,23 @@ var Timeline = function(elemId, options) {
 					console.log("Going from events to distributions");
 				}
 				if (displaySeconds < 60*60*24*7*3 )	{// less than 3 weeks
-					requestHalfDayBins("Agavue");
+					requestHalfDayBins(currentDatasetName);
 					self.distributionScale = "halfDay";
 					d3.select("#zoomInfoHalfDay").attr("class","zoomInfoSpan currentZoom");
 				} else if (displaySeconds < 60*60*24*31*3 )	{// less than 3 months
-					requestDayBins("Agavue");
+					requestDayBins(currentDatasetName);
 					self.distributionScale = "day";
 					d3.select("#zoomInfoDay").attr("class","zoomInfoSpan currentZoom");
 				} else if (displaySeconds < 60*60*24*365 ) {// less than 1 year
-					requestHalfMonthBins("Agavue");
+					requestHalfMonthBins(currentDatasetName);
 					self.distributionScale = "halfMonth";
 					d3.select("#zoomInfoHalfMonth").attr("class","zoomInfoSpan currentZoom");
 				} else if (displaySeconds < 60*60*24*365*3 ) {// less than 3 years
-					requestMonthBins("Agavue");
+					requestMonthBins(currentDatasetName);
 					self.distributionScale = "month";
 					d3.select("#zoomInfoMonth").attr("class","zoomInfoSpan currentZoom");
 				} else {// more than 3 years
-					requestYearBins("Agavue");
+					requestYearBins(currentDatasetName);
 					self.distributionScale = "year";
 					d3.select("#zoomInfoYear").attr("class","zoomInfoSpan currentZoom");
 				}
@@ -3388,6 +3466,7 @@ var Timeline = function(elemId, options) {
 		default:
 			console.log("Trying to display data in an unknown way. displayMode = "+self.displayMode);
 		}
+		//self.drawUsers();
 		//self.drawPatternBins(self.patternBins);
 		//stopRunningTaskIndicator();
 	};
@@ -3620,7 +3699,78 @@ var Timeline = function(elemId, options) {
 		}
 	}
 	
-	self.displayToolTip = function(data) {
+	self.displayToolTipGeneral = function(data) {
+		/* Structure : 
+		 * [year,
+	     * start,
+	     * end,
+	     * nbEventsInBin,
+	     * user1;user2;...,
+	     * type1;type2;...,
+	     * type1:nbOcc;type2:nbOcc;...
+	     * nbEventsInSubBin,
+	     * hslColorValue1]
+	   	 */
+		var message = "";
+		
+		switch(self.displayMode) {
+		case "distributions":
+			switch(self.distributionScale) {
+			case "year":
+				//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
+			case "month":
+			case "halfMonth":
+			case "day":
+			case "halfDay":
+				var nbUsers = data[4].split(";").length;
+				var nbOccs = data[6].split(';');
+				//console.log("pre-sort: "+nbOccs);
+				nbOccs.sort(function(a,b) {
+					var aVal = parseInt(a.split(":")[1]);
+					var bVal = parseInt(b.split(":")[1]);
+					return bVal - aVal;	// sort in descending order
+				});
+				//console.log("post-sort: "+nbOccs);
+				message = "From "+data[1]+" to "+data[2]+"<br>";
+				message += data[3]+" events across "+nbUsers+" users<br>";
+				message += data[7]+" in this subpart:";
+				for (var i = 0; i < nbOccs.length; i++) {
+					var occ = nbOccs[i].split(":");
+					var percentage = parseInt(occ[1])/parseInt(data[3]);
+					
+					//Create an svg node outside of the DOM to get its inner HTML
+					var divOutsideOfDom = document.createElementNS("http://www.w3.org/1999/xhtml","div");
+					divOutsideOfDom.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
+					
+					var div = d3.select(divOutsideOfDom);
+					var svg = div.append("svg")
+						.attr("width", 16)
+						.attr("height", 16);
+					svg.append("path")
+						.attr("d",d3.symbol().type(itemShapes[occ[0]]).size(60))
+						.attr("transform","translate(8,8)")
+						.attr("stroke", "hsl("+parseInt(data[8])+",100%,50%)"/*d3.rgb(parseInt(data[8][0]),parseInt(data[8][1]),parseInt(data[8][2]))/*"hsl("+colorList[occ[0]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+						.attr("fill","none");
+					//console.log("Html :");
+					//console.log(svg.html());
+					message += "<br>"+div.html()+"&nbsp;"+occ[0]+" : "+occ[1]+" ("+(percentage*100).toPrecision(3)+"%)";
+					div.remove();
+				}
+			}
+			break;
+		case "events":
+				splitData = data.split(";");
+				message = "Type: " + splitData[0] + "<br>";
+				message += "Time: " + splitData[1] + "<br>";
+				message += "User: " + splitData[3] + "<br>";
+				message += "Properties:";
+				for(var i = 4; i < splitData.length; i++)
+					message += "<br>&nbsp;&nbsp;&nbsp;&nbsp;"+splitData[i];
+		}
+		tooltip.show(message, 400);
+	}
+	
+	self.displayToolTipForAgavue = function(data) {
 		/* Structure : 
 		 * [year,
 	     * start,
@@ -3693,24 +3843,46 @@ var Timeline = function(elemId, options) {
 		tooltip.show(message, 400);
 	}
 	
+	self.displayToolTip = function(data) {
+		switch(currentDatasetName) {
+		case "Agavue":
+		case "miniAgavue":
+			self.displayToolTipForAgavue(data);
+			break;
+		default:
+			self.displayToolTipGeneral(data);
+		}
+	}
+	
 	// Parameters about size and margin of the timeline's parts
 	/* Initial config
 	self.marginFocus = {"top": 20,"right": 20,"bottom": 300,"left": 40}; // bottom 110
 	self.marginContext = {"top": 330,"right": 20,"bottom": 230,"left": 40};// bottom 30
 	self.marginPatterns = {"top": 400,"right": 20,"bottom": 30,"left": 40};
 	*/
-	self.marginFocus = {"top": 20,"right": 20,"bottom": 300,"left": 40};
-	self.marginContext = {"top": 330,"right": 20,"bottom": 230,"left": 40};
-	self.marginPatterns = {"top": 400,"right": 20,"bottom": 30,"left": 40};
+	self.marginFocus = {"top": 20,"right": 20,"bottom": 580,"left": 40,"size": 250};
+	self.marginContext = {"top": 290,"right": 20,"bottom": 510,"left": 40,"size": 50};
+	self.marginPatterns = {"top": 360,"right": 20,"bottom": 290,"left": 40,"size": 200};
+	self.marginUsers =  {"top": 580,"right": 20,"bottom": 20,"left": 40,"size": 250};
 	self.width = +self.parentNode.clientWidth
 			- Math.max(self.marginFocus.left, self.marginContext.left)
 			- Math.max(self.marginFocus.right, self.marginContext.right);
-	self.heightFocus = +self.parentNode.clientHeight
-			- self.marginFocus.top - self.marginFocus.bottom -5;
-	self.heightContext = +self.parentNode.clientHeight
-			- self.marginContext.top - self.marginContext.bottom -5;
-	self.heightPatterns = +self.parentNode.clientHeight
-			- self.marginPatterns.top - self.marginPatterns.bottom -5;
+	self.heightFocus = self.marginFocus.size;/*+self.parentNode.clientHeight
+			- self.marginFocus.top - self.marginFocus.bottom -5;*/
+	self.heightContext = self.marginContext.size;/*+self.parentNode.clientHeight
+			- self.marginContext.top - self.marginContext.bottom -5;*/
+	self.heightPatterns = self.marginPatterns.size;/*+self.parentNode.clientHeight
+			- self.marginPatterns.top - self.marginPatterns.bottom -5;*/
+	self.heightUsers = self.marginUsers.size;
+	
+	self.height = self.heightFocus
+		+ self.heightContext
+		+ self.heightPatterns
+		+ self.heightUsers
+		+ 5*20;
+	
+	// adjust the size of the whole timeline
+	d3.select(self.parentNode).style("height",self.height.toString()+"px");
 	
 	// The timeline's parts
 	self.canvas = d3.select(self.parentNode).append("canvas")
@@ -3754,11 +3926,20 @@ var Timeline = function(elemId, options) {
 		.style("left",self.marginPatterns.left.toString()+"px");	
 	self.hiddenCanvasPatternsContext = self.hiddenCanvasPatterns.node().getContext("2d");
 	
+	self.canvasUsers = d3.select(self.parentNode).append("canvas")
+		.attr("width",self.width)
+		.attr("height",self.heightUsers)
+		.style("position","absolute")
+		.style("top",(self.marginUsers.top + 15).toString()+"px")
+		.style("left",self.marginUsers.left.toString()+"px");	
+	self.canvasUsersContext = self.canvasUsers.node().getContext("2d");
+	
 	self.colorToData = {}; // Binding between the hidden canvas and the drawn one
 	
 	self.svg = d3.select(self.parentNode).append("svg")
 		.attr("width",self.parentNode.clientWidth)
-		.attr("height",self.parentNode.clientHeight-15)
+		.attr("height",self.height)
+		/*.attr("height",self.parentNode.clientHeight-15)*/
 		.style("position","absolute")
 		.style("top","15")
 		.style("left","0");
@@ -3771,14 +3952,20 @@ var Timeline = function(elemId, options) {
 	self.yContext = d3.scaleLinear().range([self.heightContext,0]);
 	self.xPatterns = d3.scaleTime().range([0, self.width]);
 	self.yPatterns = d3.scaleLinear().range([self.heightPatterns,0]);
+	self.xUsers = d3.scaleTime().range([0, self.width]);
+	self.yUsers = d3.scaleOrdinal().range([self.heightUsers,0]);
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
 	self.yAxisFocus = d3.axisLeft(self.yFocus).tickSizeInner(-self.width);
 	self.xAxisPatterns = d3.axisBottom(self.xPatterns);
+	self.xAxisUsers = d3.axisBottom(self.xUsers);
+	self.yAxisUsers = d3.axisLeft(self.yUsers).tickSizeInner(-self.width);
 	// The brush component of the context part
 	self.brush = d3.brushX()
 		.extent([[0, 0], [self.width, self.heightContext]])
 		.on("brush end", self.brushed);
+	// The brush component of the users part
+	
 	// The zoomable rectangle on the focus part
 	self.zoom = d3.zoom()
 		.scaleExtent([1, Infinity])
@@ -3799,6 +3986,10 @@ var Timeline = function(elemId, options) {
 	self.patterns = self.svg.append("g")
 	    .attr("class", "patterns")
 	    .attr("transform", "translate("+self.marginPatterns.left+","+self.marginPatterns.top+")");
+	// Creating the users part for the timeline
+	self.users = self.svg.append("g")
+	    .attr("class", "users")
+	    .attr("transform", "translate("+self.marginUsers.left+","+self.marginUsers.top+")");
 	// Creating the xAxis and yAxis for the focus part of the timeline
 	self.focus.append("g")
 		.attr("class","axis axis--x")
@@ -3818,6 +4009,17 @@ var Timeline = function(elemId, options) {
 		.attr("class","axis axis--x")
 		.attr("transform", "translate(0," + self.heightPatterns + ")")
 		.call(self.xAxisPatterns);
+	// Creating the xAxis for the users part of the timeline
+	self.users.append("g")
+		.attr("class","axis axis--x")
+		.attr("transform", "translate(0," + self.heightUsers + ")")
+		.call(self.xAxisUsers);
+	// Creating the yAxis for the user part of the timeline
+	self.users.append("g")
+		.attr("class", "axis axis--y")
+		.call(self.yAxisUsers)
+		.attr("transform", "translate(0," + 22 + ")")
+		.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Adding the brush to the context part
 	self.context.append("g")
 		.attr("class", "brush")
@@ -3894,15 +4096,50 @@ var Timeline = function(elemId, options) {
 		self.xPatterns = d3.scaleTime()
 		.domain([startTime,endTime])
 			.range([0,self.width]);
+		self.xUsers = d3.scaleTime()
+		.domain([startTime,endTime])
+			.range([0,self.width]);
+		self.yUsers = d3.scaleOrdinal()
+		.domain(userList)
+			.range([0, self.heightUsers]);
 			
 		self.xAxisFocus = d3.axisBottom(self.xFocus);
 		self.xAxisContext = d3.axisBottom(self.xContext);
 		self.xAxisPatterns = d3.axisBottom(self.xPatterns);
+		self.xAxisUsers = d3.axisBottom(self.xUsers);
+		self.yAxisUsers = d3.axisLeft(self.yUsers);
 
 		self.focus.select(".axis--x").call(self.xAxisFocus);
 		self.context.select(".axis--x").call(self.xAxisContext);
 		self.patterns.select(".axis--x").call(self.xAxisPatterns);
+		self.users.select(".axis--x").call(self.xAxisUsers);
+		self.users.select(".axis--y").call(self.yAxisUsers);
 	};
+	
+	self.updateUserList = function() {
+		var nbUserShown = 10.0;
+		var step = self.heightUsers / (nbUserShown+1.0);
+		var i = 0;
+		var range = [];
+		for (i; i<= nbUserShown; i++)
+			range.push(0+i*step);
+		
+		
+		self.yUsers = d3.scaleOrdinal()
+		.domain(userList.slice(0,nbUserShown))
+			.range(range);
+		
+		self.yAxisUsers = d3.axisLeft(self.yUsers)
+	        .tickValues(userList.slice(0,nbUserShown))
+	        .tickFormat(function(d, i) {
+	        	return d;
+	        });
+		self.users.select(".axis--y").call(self.yAxisUsers);
+		
+		console.log("User List updated on the timeline");
+		
+		requestUsersPatternOccurrences(userList.slice(0,nbUserShown));
+	}
 	
 	self.addDataset = function(data) {
 		
@@ -4204,6 +4441,101 @@ var Timeline = function(elemId, options) {
 		});*/
 		console.log("data drawn");
 	};
+	
+	self.drawUsersTest = function() {
+		console.log("drawing users");
+		
+		var displayStep = (self.yFocus.domain()[1] - self.yFocus.domain()[0] - 2) / datasetInfo["numberOfDifferentEvents"];
+
+		self.canvasUsersContext.fillStyle = "#fff";
+		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
+		self.canvasUsersContext.fill();
+		var drawCount = 0;
+		
+		/*self.hiddenCanvasContext.fillStyle = "#fff";
+		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
+		
+		self.colorToData = {};
+		let nextColor = 1;
+		*/
+		// get the last accessor point before the time-span start
+		var firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
+		console.log("Retreived first index is "+firstIndex);
+		// find the real first index
+		var startFound = false;
+		var startingIndex = firstIndex;
+		while (!startFound) {
+			var info = timeOrderedEvents[firstIndex+1][0].split(";");
+			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
+			if (time < self.xFocus.domain()[0])
+				firstIndex++;
+			else
+				startFound = true;
+		}
+		console.log("drawing from event "+firstIndex);
+		var endReached = false;
+		while (!endReached) {
+			var info = timeOrderedEvents[firstIndex][0].split(";");
+			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
+			if (time > self.xFocus.domain()[1])
+				endReached = true;
+			else {
+				drawCount++;
+				
+				// Attributing a color to data link
+			    var color = [];
+			    // via http://stackoverflow.com/a/15804183
+			    if(nextColor < 16777215){
+			    	color.push(nextColor & 0xff); // R
+			    	color.push((nextColor & 0xff00) >> 8); // G 
+			    	color.push((nextColor & 0xff0000) >> 16); // B
+
+			    	nextColor += 1;
+			    }
+			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
+				
+				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
+				var y = self.yFocus(eventDisplayHeight[info[0]]*displayStep);
+				
+				var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
+										.size(50)
+										//.attr("transform","translate("+x+","+y+")")
+										.context(self.canvasContext);
+/*.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
+.attr("stroke", function(d) {return d3.hsl(d.color,100,50)})*/
+				var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
+										.size(50)
+										//.attr("transform","translate("+x+","+y+")")
+										.context(self.hiddenCanvasContext);
+				
+				//self.canvasContext.rect(x-2.5,y-2.5,5,5);
+				self.canvasContext.beginPath();
+				self.canvasContext.translate(x,y);
+				self.canvasContext.strokeStyle = "hsl("+colorList[info[0]]+",100%,50%)";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+				symbolGenerator();
+				self.canvasContext.stroke();
+				self.canvasContext.translate(-x,-y);
+			    self.canvasContext.closePath();
+			    
+			    self.hiddenCanvasContext.beginPath();
+				self.hiddenCanvasContext.translate(x,y);
+				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+				hiddenSymbolGenerator();
+				self.hiddenCanvasContext.fill();
+				self.hiddenCanvasContext.translate(-x,-y);
+			    self.hiddenCanvasContext.closePath();
+			    
+			    firstIndex++;
+			}
+		}
+		console.log("to event "+firstIndex);
+		
+		var nbEventsChecked = firstIndex-startingIndex;
+		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
+	
+		
+		console.log("users drawn");
+	}
 	
 	self.drawEvents = function() {
 		switch(self.eventDisplayStyle) {

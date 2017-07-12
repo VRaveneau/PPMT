@@ -49,14 +49,14 @@ body {
 	float: left;
 	position: relative;
 /*     background-color: #999999; */
+	overflow: auto;
 }
 
 #timeline {
-	height: 600px;
 	width: 100%;
 	position: absolute;
 	top: 0;
-	/*overflow-y: auto;*/
+	/*overflow: auto;*/
 }
 
 .displayControlForm {

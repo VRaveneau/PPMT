@@ -54,6 +54,8 @@ public interface AbstractionCreator {
 
     public int[] findPositionOfItemInSequence(Sequence secuencia, Item itemPar, Abstraction_Generic absPar, int indexItemset,int indexitem, int indexItemsetAnterior,int indexitemAnterior);
 
+    public Pattern generateCandidatesCombinatory(AbstractionCreator creador, Pattern patron1, Pattern patron2,double minSupport);
+    
     public Pattern generateCandidates(AbstractionCreator creador, Pattern patron1, Pattern patron2,double minSupport);
 
     public void isCandidateInSequence(CandidateInSequenceFinder buscador, Pattern candidato, Sequence secuencia, int k, int i, List<int[]> posicion, long maxDuration, int minGap, int maxGap);

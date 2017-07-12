@@ -135,7 +135,7 @@ public class SequenceDatabase {
      */
     public void loadDataset(Dataset dataset, int minSupportAbsolute, int windowSize) {
     	// List of events in the form : type(coded as integer);start(in milliseconds);user
-    	System.out.println("Requesting the mineable dataset");
+    	System.out.println("Requesting the mineable dataset with windowSize = "+windowSize);
     	List<List<String>> windows = dataset.getDatasetForMining(windowSize);
     	System.out.println("Mineable dataset received");
     	// Add all the sequences

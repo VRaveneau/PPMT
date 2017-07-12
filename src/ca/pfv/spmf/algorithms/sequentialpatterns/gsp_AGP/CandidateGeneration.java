@@ -36,6 +36,48 @@ import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.patterns.Pattern;
  */
  class CandidateGeneration {
 
+	 public List<Pattern> generateCandidatesCombinatory(Set<Pattern> frequentSet, List<Pattern> frequentItems, AbstractionCreator abstractionCreator, Map<Item, Set<Pattern>> indexationMap, int k, double minSupportAbsolute) {
+	        //Definition of the set of candidates
+	        List<Pattern> candidateSet = new ArrayList<Pattern>();
+	        //copy of (k-1)-frequent sequence set
+	        List<Pattern> frequentList = new ArrayList<Pattern>(frequentSet);
+	        //Definition of the set of candidates already pruned
+	        List<Pattern> prunedCandidates = null;
+	        if (k > 2) { //If we are not in the base case, i.e. we are generating a level k>2
+	            Item previousItem = null;
+	            Set<Pattern> matching = null;
+	            //For each frequent (k-1)-sequence
+	            for (Pattern frequentPattern1 : frequentList) {
+	            	
+	            	for (Pattern frequentItem : frequentItems) {
+	            		Pattern candidate = abstractionCreator.generateCandidatesCombinatory(abstractionCreator, frequentPattern1, frequentItem, minSupportAbsolute);
+	            		if (candidate != null)
+	            			candidateSet.add(candidate);
+	            	}
+	            }
+	            //Once the loop is over, if the candidate set is not empty
+	            if (!candidateSet.isEmpty()) {
+	                //We prune those candidates that have some infrequent subpatterns
+	                prunedCandidates = prunedSubset(candidateSet, frequentSet, abstractionCreator);
+	            } else {
+	                return null;
+	            }
+	        } else if (k == 2) { //base case, i.e. k=2
+	            prunedCandidates = new ArrayList<Pattern>();
+	            for (int i = 0; i < frequentList.size(); i++) {
+	                for (int j = i; j < frequentList.size(); j++) {
+	                    //We create candidates with all the possible combinations of frequent 1-sequences
+	                    prunedCandidates.addAll(abstractionCreator.generateSize2Candidates(abstractionCreator, frequentList.get(i), frequentList.get(j)));
+	                }
+	            }
+	        }
+
+	        if (prunedCandidates.isEmpty()) {
+	            return null;
+	        }
+	        return prunedCandidates;
+	    }
+	 
     /**
      * Main method that creates, from frequent (k-1)-sequence set (aka L(k-1))
      * the new set of (k)-sequences candidates. Before returning the 
