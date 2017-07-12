@@ -1,5 +1,10 @@
 console.log("start");
 
+// live version
+//var __websocketAdress__ = "ppmt.univ-nantes.fr/ppmt/wsppmt";
+// local version
+var __websocketAdress__ = "localhost:8080/ppmt/wsppmt";
+
 window.addEventListener ? 
 		window.addEventListener("load",init,false) : 
 		window.attachEvent && window.attachEvent("onload",init);
@@ -474,7 +479,7 @@ function init() {
 		.style("display","none");
 	
 	//webSocket = new WebSocket("ws://localhost:8080/ppmt/wsppmt");
-	webSocket = new WebSocket("ws://ppmt.univ-nantes.fr/ppmt/wsppmt");
+	webSocket = new WebSocket("ws://"+__websocketAdress__);
 
 	webSocket.onopen = processOpen;
 	webSocket.onmessage = processMessage;

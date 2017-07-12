@@ -16,7 +16,10 @@ public class DatasetManager {
 	private static DatasetManager instance = new DatasetManager();
 	private List<Dataset> datasets = null;
 	private List<String> datasetNames = null;
-	private String datasetFolderPath = "/home/raveneau/data/";
+	// Local version
+	private String datasetFolderPath = "/Users/vincent/Documents/datasets/";
+	// Live version
+	//private String datasetFolderPath = "/home/raveneau/data/";
 	private File datasetFolder = null;
 
 	private DatasetManager() {

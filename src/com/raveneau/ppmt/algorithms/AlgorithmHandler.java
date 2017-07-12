@@ -28,7 +28,6 @@ import com.raveneau.ppmt.patterns.Pattern;
 import com.raveneau.ppmt.server.SessionHandler;
 
 import ca.pfv.spmf.algorithms.sequentialpatterns.spam.AlgoSPAM;
-import javafx.util.Pair;
 
 public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 
