@@ -65,8 +65,12 @@ body {
 }
 
 #centerOverlay {
-	height: 600px;
-	line-height: 600px;
+	height: 100%;
+	/*line-height: 100%;*/
+	display: flex;
+	align-items: center;
+	align-content: center;
+	justify-content: center;
 	width: 100%;
 	position: absolute;
 	top: 0;
