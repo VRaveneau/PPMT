@@ -505,7 +505,7 @@ function startTool(datasetName) {
 	d3.select("#datasetSelection")
 		.style("display","none");
 	d3.select("#tool")
-		.style("display","initial");
+		.style("display","flex");
 	
 	setupTool();
 	selectDataset(datasetName);

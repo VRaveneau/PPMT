@@ -26,84 +26,7 @@
 				</ul>
 			</div>
 			<div id="tool">
-				<div id="right">
-				
-					<div class="text-centered">The Patterns</div>
-					
-					<form>
-						<div class="searchBarArea">
-							<input type="submit" class="searchButton" value="Search">
-							<div><input type="text" class="searchField"></div>
-						</div>
-					</form>
-				
-					<ul class="patternTabs">
-						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'List')" id="defaultPatternTab">Full list</a></li>
-						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Metrics')">Metrics</a></li>
-						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Algorithm')">Mining</a></li>
-					</ul>
-					
-					<div id="List" class="patternTabContent">
-						<!-- <p>List of patterns</p> -->
-					</div>
-					
-					<div id="Metrics" class="patternTabContent">
-						<p>More information about the patterns!</p>
-					</div>
-				
-					<div id="Algorithm" class="patternTabContent">
-					<form id="algorithmForm" onSubmit="return runAlgorithm()">
-						<p >	Minimal support&nbsp;
-							<input type="number" class="numberInput" id="inputMinSup" form="algorithmForm" min="0" max="1" step="0.01" required>
-							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMinSup>none</span>)</span>
-						</p>
-						<p> Window size&nbsp;
-							<input type="number" class="numberInput" id="inputWindowSize" form="algorithmForm" min="1" max="31536000" required>
-							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentWindowSize>none</span>)</span>
-						</p>
-						<p> Maximum size&nbsp;
-							<input type="number" class="numberInput" id="inputMaxSize" form="algorithmForm" min="1" max="10000" required>
-							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxSize>none</span>)</span>
-						</p>
-						<p> Maximum gap&nbsp;
-							<input type="number" class="numberInput" id="inputMaxGap" form="algorithmForm" min="0" max="10000" required>
-							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxGap>none</span>)</span>
-						</p>
-						
-							<input type="submit" value="Run">
-						</form>
-						<p><a href="javascript:void(0)" onclick="runAlgoToFile()">Run algo and save to file</a></p>
-						<!-- rerun button -->
-						<br>
-						<hr>
-						<div id="sliderSupport">
-							<p>Support:</p>
-						</div>
-						<div id="sliderGap">
-							<p>Gap:</p>
-						</div>
-						<div id="sliderWindow">
-							<p>Window:</p>
-							<svg class="slider"></svg>
-						</div>
-						<div id="sliderSize">
-							<p>Size:</p>
-							<svg class="slider"></svg>
-						</div>
-					</div>
-					
-				</div>
-				<div id="top">
-					<!-- Activity indicator, disabled for now
-					<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
-						<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
-					</svg> -->
-					<p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p>
-					<p class="leftAligned no-margin-top no-margin-bottom" id="userHighlight">No user</p>
-					<p class="leftAligned lastItem no-margin-top no-margin-bottom" id="userHighlight">No event type</p>
-					<p class="rightAligned"></p>
-				</div>
-				
+			
 				<div id="left">
 					
 					<div class="text-centered">The data</div>
@@ -188,6 +111,19 @@
 					
 				</div>
 				
+				<div id="middle">
+				
+					<div id="top">
+						<!-- Activity indicator, disabled for now
+						<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
+							<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
+						</svg> -->
+						<p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p>
+						<p class="leftAligned no-margin-top no-margin-bottom" id="userHighlight">No user</p>
+						<p class="leftAligned lastItem no-margin-top no-margin-bottom" id="userHighlight">No event type</p>
+						<p class="rightAligned"></p>
+					</div>
+				
 				<!--  <div id="display">  -->
 					<div id="center">
 						<div id="timeline-view">
@@ -210,6 +146,76 @@
 						<p class="leftAligned lastItem">Data used: <span id="dataUsed"></span></p>
 						<p class="rightAligned">Focusing on: <span id="focus"></span></p>
 					</div>
+				
+				</div>
+					
+				<div id="right">
+				
+					<div class="text-centered">The Patterns</div>
+					
+					<form>
+						<div class="searchBarArea">
+							<input type="submit" class="searchButton" value="Search">
+							<div><input type="text" class="searchField"></div>
+						</div>
+					</form>
+				
+					<ul class="patternTabs">
+						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'List')" id="defaultPatternTab">Full list</a></li>
+						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Metrics')">Metrics</a></li>
+						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Algorithm')">Mining</a></li>
+					</ul>
+					
+					<div id="List" class="patternTabContent">
+						<!-- <p>List of patterns</p> -->
+					</div>
+					
+					<div id="Metrics" class="patternTabContent">
+						<p>More information about the patterns!</p>
+					</div>
+				
+					<div id="Algorithm" class="patternTabContent">
+					<form id="algorithmForm" onSubmit="return runAlgorithm()">
+						<p >	Minimal support&nbsp;
+							<input type="number" class="numberInput" id="inputMinSup" form="algorithmForm" min="0" max="1" step="0.01" required>
+							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMinSup>none</span>)</span>
+						</p>
+						<p> Window size&nbsp;
+							<input type="number" class="numberInput" id="inputWindowSize" form="algorithmForm" min="1" max="31536000" required>
+							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentWindowSize>none</span>)</span>
+						</p>
+						<p> Maximum size&nbsp;
+							<input type="number" class="numberInput" id="inputMaxSize" form="algorithmForm" min="1" max="10000" required>
+							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxSize>none</span>)</span>
+						</p>
+						<p> Maximum gap&nbsp;
+							<input type="number" class="numberInput" id="inputMaxGap" form="algorithmForm" min="0" max="10000" required>
+							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxGap>none</span>)</span>
+						</p>
+						
+							<input type="submit" value="Run">
+						</form>
+						<p><a href="javascript:void(0)" onclick="runAlgoToFile()">Run algo and save to file</a></p>
+						<!-- rerun button -->
+						<br>
+						<hr>
+						<div id="sliderSupport">
+							<p>Support:</p>
+						</div>
+						<div id="sliderGap">
+							<p>Gap:</p>
+						</div>
+						<div id="sliderWindow">
+							<p>Window:</p>
+							<svg class="slider"></svg>
+						</div>
+						<div id="sliderSize">
+							<p>Size:</p>
+							<svg class="slider"></svg>
+						</div>
+					</div>
+					
+				</div>
 				<!-- </div> -->
 			
 	<!-- 		
