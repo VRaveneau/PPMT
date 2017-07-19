@@ -89,14 +89,14 @@
 						</form>
 						
 						<div id="userTableArea">
-							<table id="userTable" class="sortable">
+							<table id="userTable">
 								<thead>
 									<tr>
-										<th class="userColumn sorttable_numeric">User</th>
-										<th id="eventsPerUserColumn" class="sorttable_numeric">Nb events</th>
-										<th class="sorttable_numeric">Duration</th>
-										<th class="sorttable_numeric">Start</th>
-										<th class="sorttable_numeric">End</th>
+										<th onclick="clickOnUserNameHeader()">User</th>
+										<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()">Nb events</th>
+										<th onclick="clickOnUserDurationHeader()">Duration</th>
+										<th onclick="clickOnUserStartHeader()">Start</th>
+										<th onclick="clickOnUserEndHeader()">End</th>
 									</tr>
 								</thead>
 								<tbody id="userTableBody">
@@ -128,7 +128,12 @@
 					<div id="center">
 						<div id="timeline-view">
 							<div id="timeline">
-							
+								<div id="tl_overview"></div>
+								<div id="tl_focusControl"></div>
+								<div id="tl_focus"></div>
+								<div id="tl_users"></div>
+								<div id="tl_selectedUsers"></div>
+								<div id="tl_patterns"></div>
 							</div>
 							<!-- <div id="timelineOverview">
 							
@@ -168,6 +173,17 @@
 					
 					<div id="List" class="patternTabContent">
 						<!-- <p>List of patterns</p> -->
+						<table id="patternTable">
+							<thead>
+								<tr>
+									<th onclick="clickOnPatternNameHeader()">Name</th>
+									<th onclick="clickOnPatternSizeHeader()">Size</th>
+									<th onclick="clickOnPatternSupportHeader()">Support</th>
+								</tr>
+							</thead>
+							<tbody id="patternTableBody">
+							</tbody>
+						</table>
 					</div>
 					
 					<div id="Metrics" class="patternTabContent">

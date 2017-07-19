@@ -766,7 +766,7 @@ function addPattern(pattern) {
 	}
 }
 
-function addPatternToListOld(pattern) {
+function addPatternToListOldOld(pattern) {
 	// getting the pattern's items
 	//console.log(pattern.items);
 	
@@ -1152,7 +1152,298 @@ function addToHistory(action) {
 /*				Data handling functions				*/
 /****************************************************/
 
+var userInformations = [];
+
 function receiveUserList(message) {
+	console.log("Receiving a list of users")
+	var nbUsers = parseInt(message.size);
+	console.log("Adding "+message.size+" users");
+	for (var i = 0; i < Math.min(nbUsers,10000); i++) {	// Line for a reduced test set
+	//for (var i = 0; i < nbUsers; i++) {				  // Normal line
+		let userInfo = message[i.toString()].split(";");
+		let infoToSave = [userInfo[0], userInfo[1]]; // name and nbEvents
+		userList.push(userInfo[0]);
+		// Date format : yyyy-MM-dd HH:mm:ss
+		var startDate = userInfo[2].split(" ");
+		var part1 = startDate[0].split("-");
+		var part2 = startDate[1].split(":");
+		var d1 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		var startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
+		var startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		var endDate = userInfo[3].split(" ");
+		part1 = endDate[0].split("-");
+		part2 = endDate[1].split(":");
+		var d2 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		var endCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
+		var endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		// Calculates the duration of the trace
+		var minutes = 1000 * 60;
+		var hours = minutes * 60;
+		var days = hours * 24;
+		var years = days * 365;
+		var endTime = d2.getTime();
+		var startTime = d1.getTime();
+		var timeDiff = endTime-startTime;
+		
+		infoToSave.push(timeDiff, userInfo[2], userInfo[3]); // trace duration, start, end
+		
+		userInformations.push(infoToSave);	// Add this user to the list of already known ones
+	}
+	// sorting by event per user, in descending order
+	sortUsersByNbEvents(true);
+	
+	// Creating the table
+	createUserListDisplay();
+}
+
+function createUserListDisplay() {
+	// removing the old users
+	var userRowsRoot = document.getElementById("userTableBody");
+	while (userRowsRoot.firstChild) {
+		userRowsRoot.removeChild(userRowsRoot.firstChild);
+	}
+	
+	// Adding the new ones
+	for (var u= 0; u < userInformations.length; u++) {
+		let thisUser = userInformations[u];
+		let userRow = d3.select("#userTableBody").append("tr");
+		
+		userRow.append("td").text(thisUser[0]); // name
+		userRow.append("td").text(thisUser[1]); // nbEvents
+		
+		// Display the duration of the trace
+		var minutes = 1000 * 60;
+		var hours = minutes * 60;
+		var days = hours * 24;
+		var years = days * 365;
+		var timeDiff = parseInt(thisUser[2]);
+		
+		var result = "";
+		var tdText = "";
+		var tmpValue = 0;
+		if (Math.floor(timeDiff / years) > 0) {
+			tmpValue = Math.floor(timeDiff / years);
+			result += tmpValue+"y ";
+			timeDiff = timeDiff - tmpValue*years;
+			tdText = "> "+result;
+		}
+		if (result == "") {
+			if (Math.floor(timeDiff / days) > 0) {
+				tmpValue = Math.floor(timeDiff / days);
+				result += tmpValue+"d ";
+				timeDiff = timeDiff - tmpValue*days;
+				tdText = result;
+			} else {
+				tdText = "< 1d";
+			}
+		}
+		userRow.append("td").text(tdText); // traceDuration
+
+		// Date format : yyyy-MM-dd HH:mm:ss
+		var startDate = thisUser[3].split(" ");
+		var part1 = startDate[0].split("-");
+		var part2 = startDate[1].split(":");
+		var d1 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		var startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		var endDate = thisUser[4].split(" ");
+		part1 = endDate[0].split("-");
+		part2 = endDate[1].split(":");
+		var d2 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		var endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		
+		userRow.append("td").text(startDateFormated);  // start
+		userRow.append("td").text(endDateFormated); // end
+		
+
+		let thisUserName = thisUser[0];
+
+		userRow.attr("id",thisUserName);
+		
+		userRow.on("click", function(){
+			if (d3.event.shiftKey) { // Shift + click, steering
+				requestSteeringOnUser(userInfo[0]);
+				d3.event.stopPropagation();
+			} else { // normal click, highlight
+				//console.log(userName);
+				highlightUserRow(thisUserName);
+				setHighlights();
+				d3.event.stopPropagation();
+			}
+		});
+	}
+	
+	// Calling the display of the trace
+	timeline.drawUsersTraces();
+}
+
+var lastUserSort = "";
+
+function sortUsersByNbEvents(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var nbA = parseInt(a[1]);
+		var nbB = parseInt(b[1]);
+		
+		return nbA-nbB;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "nbEventsDown";
+	} else {
+		lastUserSort = "nbEventsUp";
+	}
+}
+
+function sortUsersByName(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var nameA = a[0];
+		var nameB = b[0];
+		
+		if (nameA < nameB)
+			return -1;
+		else if (nameA > nameB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "nameDown";
+	} else {
+		lastUserSort = "nameUp";
+	}
+}
+
+function sortUsersByTraceDuration(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var durationA = parseInt(a[2]);
+		var durationB = parseInt(b[2]);
+		
+		return durationA-durationB;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "durationDown";
+	} else {
+		lastUserSort = "durationUp";
+	}
+}
+
+function sortUsersByStartDate(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var startA = a[3];
+		var startB = b[3];
+		
+		if (startA < startB)
+			return -1;
+		else if (startA > startB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "startDown";
+	} else {
+		lastUserSort = "startUp";
+	}
+}
+
+function sortUsersByEndDate(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var endA = a[4];
+		var endB = b[4];
+		
+		if (endA < endB)
+			return -1;
+		else if (endA > endB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "endDown";
+	} else {
+		lastUserSort = "endUp";
+	}
+}
+
+function clickOnUserNameHeader() {
+	if (lastUserSort == "nameDown") {
+		sortUsersByName();
+	} else {
+		sortUsersByName(true);
+	}
+	
+	createUserListDisplay();
+}
+
+function clickOnUserNbEventsHeader() {
+	if (lastUserSort == "nbEventsDown") {
+		sortUsersByNbEvents();
+	} else {
+		sortUsersByNbEvents(true);
+	}
+	
+	createUserListDisplay();
+}
+
+function clickOnUserDurationHeader() {
+	if (lastUserSort == "durationDown") {
+		sortUsersByTraceDuration();
+	} else {
+		sortUsersByTraceDuration(true);
+	}
+	
+	createUserListDisplay();
+}
+
+function clickOnUserStartHeader() {
+	if (lastUserSort == "startDown") {
+		sortUsersByStartDate();
+	} else {
+		sortUsersByStartDate(true);
+	}
+	
+	createUserListDisplay();
+}
+
+function clickOnUserEndHeader() {
+	if (lastUserSort == "endDown") {
+		sortUsersByEndDate();
+	} else {
+		sortUsersByEndDate(true);
+	}
+	
+	createUserListDisplay();
+}
+
+function receiveUserListOld(message) {
 	console.log("Receiving a list of users")
 	var nbUsers = parseInt(message.size);
 	console.log("Adding "+message.size+" users");
@@ -1246,7 +1537,7 @@ function receiveUserList(message) {
 				d3.event.stopPropagation();
 			} else { // normal click, highlight
 				//console.log(userName);
-				setHighlights("User"+(iClick+1).toString());
+				//setHighlights("User"+(iClick+1).toString());
 				highlightUserRow("User"+(iClick+1).toString())
 				//requestUserTrace(userName, "Agavue");
 				d3.event.stopPropagation();
@@ -1275,27 +1566,63 @@ function sortUsersAccordingToTable() {
 	userList = newUserList;
 }
 
-function setHighlights(username) {
+function setHighlights() {
+	let txt = "";
+	
+	if (highlightedUsers.length == 0) {
+		txt = "No user";
+	} else {
+		if (highlightedUsers.length == 1) {
+			txt = highlightedUsers[0];
+		} else {
+			txt = ", ".join(highlightedUsers);
+		}
+	}
+
+	d3.select("#userHighlight").text(txt);
+}
+
+function setHighlightsOld(username) {
 	d3.select("#userHighlight").text(username);
 }
 
 function highlightUserRow(rowId) {
 	// Highlights the user
 	var row = d3.select("#userTableBody").select("#"+rowId);
-	if (row.attr("class") === null)
+	
+	
+	if (row.attr("class") === null) {
 		row.attr("class", "selectedUserRow");
-	else
-		row.attr("class", row.attr("class")+" selectedUserRow");
-	// De-highlights the previously highlighted users
-	for (var i = 0; i < highlightedUsers.length; i++) {
-		row = d3.select("#userTableBody").select("#"+highlightedUsers[i]);
-		if (row.attr("class") !== null)
-			row.attr("class", row.attr("class").replace("selectedUserRow",""));
+		// De-highlights the previously highlighted users
+		for (var i = 0; i < highlightedUsers.length; i++) {
+			row = d3.select("#userTableBody").select("#"+highlightedUsers[i]);
+			if (row.attr("class") !== null)
+				row.attr("class", row.attr("class").replace("selectedUserRow",""));
+		}
+		// Empty the list of highlighted users
+		highlightedUsers = [];
+		// Adds the newly highlighted user to the list
+		highlightedUsers.push(rowId);
+	} else {
+		if (row.attr("class").indexOf("selectedUserRow") == -1) {// the row isn't already selected
+			row.attr("class", row.attr("class")+" selectedUserRow");
+			// De-highlights the previously highlighted users
+			for (var i = 0; i < highlightedUsers.length; i++) {
+				row = d3.select("#userTableBody").select("#"+highlightedUsers[i]);
+				if (row.attr("class") !== null)
+					row.attr("class", row.attr("class").replace("selectedUserRow",""));
+			}
+			// Empty the list of highlighted users
+			highlightedUsers = [];
+			// Adds the newly highlighted user to the list
+			highlightedUsers.push(rowId);
+		} else {
+			row.attr("class", row.attr("class").replace("selectedUserRow", ""));
+			// Empty the list of highlighted users
+			highlightedUsers = [];
+		}
+	
 	}
-	// Empty the list of highlighted users
-	highlightedUsers = [];
-	// Adds the newly highlighted user to the list
-	highlightedUsers.push(rowId);
 }
 
 var colorList = {};
@@ -1944,7 +2271,189 @@ function receiveAllPatterns(message) {
 	// update the metrics tab
 }
 
+function sortPatternsByName(decreasing=false) {
+	patternIdList.sort(function(a, b) {
+		var nameA = patternsInformation[a][0];
+		var nameB = patternsInformation[b][0];
+		
+		if (nameA < nameB)
+			return -1;
+		else if (nameA > nameB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		patternIdList.reverse();
+		lastPatternSort = "nameDown";
+	} else {
+		lastPatternSort = "nameUp";
+	}
+}
+
+function sortPatternsBySize(decreasing=false) {
+	patternIdList.sort(function(a, b) {
+		var sizeA = patternsInformation[a][1];
+		var sizeB = patternsInformation[b][1];
+		
+		return sizeA - sizeB;
+	});
+	
+	if (decreasing == true) {
+		patternIdList.reverse();
+		lastPatternSort = "sizeDown";
+	} else {
+		lastPatternSort = "sizeUp";
+	}
+}
+
+function sortPatternsBySupport(decreasing=false) {
+	patternIdList.sort(function(a, b) {
+		var supportA = patternsInformation[a][2];
+		var supportB = patternsInformation[b][2];
+		
+		return supportA - supportB;
+	});
+	
+	if (decreasing == true) {
+		patternIdList.reverse();
+		lastPatternSort = "supportDown";
+	} else {
+		lastPatternSort = "supportUp";
+	}
+}
+
+var lastPatternSort = "";
+
+function clickOnPatternNameHeader() {
+	if (lastPatternSort == "nameDown") {
+		sortPatternsByName();
+	} else {
+		sortPatternsByName(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+function clickOnPatternSizeHeader() {
+	if (lastPatternSort == "sizeDown") {
+		sortPatternsBySize();
+	} else {
+		sortPatternsBySize(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+function clickOnPatternSupportHeader() {
+	if (lastPatternSort == "supportDown") {
+		sortPatternsBySupport();
+	} else {
+		sortPatternsBySupport(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+var patternsInformation = {};
+var patternIdList = [];
+
 function addPatternToList(message) {
+	
+	var pSize = parseInt(message.size);
+	var pSupport = parseInt(message.support);
+	var pId = message.id;
+	var pString = "";
+	
+	//console.log("receiving Pattern "+pString);
+	
+	for (var i = 0; i < pSize; i++) {
+		pString += message[i];
+		if (i <= (pSize-1))
+			pString += " ";
+	}
+
+	let pItems = [];
+	
+	for (var k = 0; k < pSize; k++) {
+		pItems.push(message[k]);
+	}
+
+	patternsInformation[pId] = [pString, pSize, pSupport, pItems];
+	patternIdList.push(pId);
+	
+	numberOfPattern++;
+	
+	// Update the number of patterns in the tab name
+	d3.select(".patternTabs")	// first tab in the right panel
+		.select("li").select("a")
+		.text("Full list ("+numberOfPattern+")");
+	// update the metrics tab
+	
+	createPatternListDisplay();
+}
+
+function createPatternListDisplay() {
+	// removing the old patterns
+	var patternRowsRoot = document.getElementById("patternTableBody");
+	while (patternRowsRoot.firstChild) {
+		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
+	}
+
+	var patternList = d3.select("#patternTableBody");
+	
+	// display the new ones
+	for (var i=0; i < patternIdList.length; i++) {
+		
+		let pSize = patternsInformation[patternIdList[i]][1]
+		let pSupport = patternsInformation[patternIdList[i]][2]
+		let pId = patternIdList[i];
+		let pString = patternsInformation[patternIdList[i]][0];
+		let pItems = patternsInformation[patternIdList[i]][3];
+		
+		var thisRow = patternList.append("tr")
+			.style("font-weight","normal")
+			.on("click", function() {
+				if (d3.event.shiftKey) { // Shift + click, steering
+					requestSteeringOnPattern(pId);
+					d3.event.stopPropagation();
+				} else { // Normal click, displays the occurrences
+					if (timeline.hasPatternOccurrences(pId) == false)
+						requestPatternOccurrences(pId, currentDatasetName);
+					else
+						timeline.displayPatternOccurrences(pId);
+					if (thisRow.style("font-weight") == "normal")
+						thisRow.style("font-weight","bold");
+					else
+						thisRow.style("font-weight","normal");
+					d3.event.stopPropagation();
+					console.log("click on "+pId);
+				}
+			});
+		var thisNameCell = thisRow.append("td");
+		var pSvg = thisNameCell.append("svg")
+			.attr("width", 20*pSize)
+			.attr("height", 20);
+		thisNameCell.append("span")
+			.text(pString)
+			.attr("patternId",pId);
+		thisRow.append("td")
+			.text(pSize);
+		thisRow.append("td")
+			.text(pSupport);
+		
+		for (var k = 0; k < pSize; k++) {
+			pSvg.append("path")
+				.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
+				.attr("transform","translate("+(10+20*k)+",10)")
+				.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+				.attr("fill","none");
+		}
+	}
+}
+
+function addPatternToListOld(message) {
 	var patternList = d3.select("#List");
 	var pSize = parseInt(message.size);
 	var pSupport = parseInt(message.support);
@@ -1972,7 +2481,7 @@ function addPatternToList(message) {
 				d3.event.stopPropagation();
 			} else { // Normal click, displays the occurrences
 				if (timeline.hasPatternOccurrences(message.id) == false)
-					requestPatternOccurrences(message.id, "Agavue");
+					requestPatternOccurrences(message.id, currentDatasetName);
 				else
 					timeline.displayPatternOccurrences(message.id);
 				if (txtSpan.style("font-weight") == "normal")
@@ -2898,8 +3407,16 @@ var GapSlider = function(elemId) {
 
 var Timeline = function(elemId, options) {
 	var self = this;
+	
 	self.userData = 0;
+	
 	self.parentNode = document.getElementById(elemId);
+	self.nodeFocusControl = document.getElementById('tl_focusControl');
+	self.nodeOverview = document.getElementById('tl_overview');
+	self.nodeFocus = document.getElementById('tl_focus');
+	self.nodePatterns = document.getElementById('tl_patterns');
+	self.nodeUsers = document.getElementById('tl_users');
+	self.nodeSelectedUsers = document.getElementById('tl_selectedUsers');
 
 	self.bins = [];
 	self.patternBins = [];
@@ -2960,6 +3477,70 @@ var Timeline = function(elemId, options) {
 			.call(self.brush.move, self.xFocus.range().map(t.invertX, t));
 	};
 	
+	self.updateUserList = function() {
+		var nbUserShown = 10.0;
+		var shownUsersNames = userInformations.slice(0, nbUserShown).map(function(x) {
+			return x[0];
+		});
+		var step = self.marginUsers.size / (nbUserShown+1.0);
+		var i = 0;
+		var range = [];
+		for (i; i<= nbUserShown+1; i++)
+			range.push(0+i*step);
+		
+		
+		self.yUsers = d3.scaleOrdinal()
+		.domain([" "].concat(shownUsersNames))
+			.range(range);
+		
+		self.yAxisUsers = d3.axisLeft(self.yUsers)
+	        .tickValues([" "].concat(shownUsersNames))
+	        .tickFormat(function(d, i) {
+	        	return d;
+	        });
+		self.users.select(".axis--y").call(self.yAxisUsers);
+		
+		console.log("User List updated on the timeline");
+		
+		//requestUsersPatternOccurrences(userInformations.slice(0,nbUserShown));
+	}
+	
+	self.drawUsersTraces = function() {
+		console.log("Starting to draw users traces");
+		
+		self.updateUserList();
+		
+		// get the 10 first users in the list
+		console.log("UI size : "+userInformations.length);
+		var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
+			return x[0];
+		});
+		console.log("UI size after : "+userInformations.length);
+		
+		self.canvasUsersContext.fillStyle = "#fff";
+		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
+		self.canvasUsersContext.fill();
+		
+		for (var i=0; i < shownUsers.length; i++) {
+			let userName = shownUsers[i];
+			//console.log("drawing user "+userName);
+			for (var j = 0; j < userTraces[userName].length; j++) {
+				var event = userTraces[userName][j];
+				var eventData = event[0].split(";");
+				
+				var x = self.xUsers(new Date(eventData[1].replace(" ","T")+"Z"));
+				var y = self.yUsers(userName);
+				self.canvasUsersContext.beginPath();
+				self.canvasUsersContext.fillStyle = "blue";
+				self.canvasUsersContext.arc(x,y,3,0,2*Math.PI, false)
+				self.canvasUsersContext.fill();
+				self.canvasUsersContext.closePath();
+			}
+		}
+		
+		//console.log("User traces drawn");
+	}
+	
 	self.drawPatternOccurrences = function() {
 		
 		console.log("Starting to draw patterns");
@@ -2972,7 +3553,30 @@ var Timeline = function(elemId, options) {
 		  }
 		}
 		
-		self.yPatterns.domain([0.0, idsToDraw.length+2.0]);
+		//self.yPatterns.domain([0.0, idsToDraw.length+2.0]);
+		var listOfPatternsToDraw = [" "];
+		for (var pId in idsToDraw) {
+			listOfPatternsToDraw.push(pId);
+		}
+		listOfPatternsToDraw.push(" ");
+		console.log("patterns to draw: "+listOfPatternsToDraw);
+		var totalRange = self.marginPatterns.size;
+		var steps = totalRange / listOfPatternsToDraw.length;
+		
+		var yRange = [];
+		var lastStep = 0;
+		while (lastStep <= totalRange) {
+			yRange.push(lastStep);
+			lastStep += steps;
+		}
+		
+		self.yPatterns.domain([' '].concat(idsToDraw).concat([' '])/*listOfPatternsToDraw*/);
+		//self.yPatterns.range(yRange);
+
+		/*self.patterns.select(".axis--y")
+			.call(self.yAxisPatterns);
+		self.yAxisPatterns = d3.axisLeft(self.yPatterns);*/
+			//.tickSizeInner(-self.width);
 		/*self.focus.select(".axis--y")
 	      .call(self.yAxisPatterns)
 			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");*/
@@ -2984,28 +3588,30 @@ var Timeline = function(elemId, options) {
 		
 		for (var i = 0; i < idsToDraw.length; i++) {// Draw each pattern
 			for (var j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
-				console.log("Ids to draw: "+idsToDraw)
-				var occ = self.patternOccs[idsToDraw[i]][j].split(";");
-				var x1 = self.xPatterns(new Date(parseInt(occ[1])));
-				var x2 = self.xPatterns(new Date(parseInt(occ[2])));
-				var y = self.yPatterns(i+1);
-				self.canvasPatternsContext.beginPath();
-				if (x1 == x2) {
-					self.canvasPatternsContext.fillStyle = "blue";
-					self.canvasPatternsContext.arc(x1,y,3,0,2*Math.PI, false)
-					self.canvasPatternsContext.fill();
-					self.canvasPatternsContext.closePath();
-				} else {
-					self.canvasPatternsContext.lineWidth = 3;
-					self.canvasPatternsContext.moveTo(x1,y);
-					self.canvasPatternsContext.lineTo(x2,y);
-					self.canvasPatternsContext.lineCap = "round";
-					self.canvasPatternsContext.stroke();
-				    self.canvasPatternsContext.closePath();
+				console.log("Ids to draw: "+idsToDraw);
+				if (self.patternOccs[idsToDraw[i]][j]) {
+					var occ = self.patternOccs[idsToDraw[i]][j].split(";");
+					var x1 = self.xPatterns(new Date(parseInt(occ[1])));
+					var x2 = self.xPatterns(new Date(parseInt(occ[2])));
+					var y = self.yPatterns(i+1);
+					self.canvasPatternsContext.beginPath();
+					if (x1 == x2) {
+						self.canvasPatternsContext.fillStyle = "blue";
+						self.canvasPatternsContext.arc(x1,y,3,0,2*Math.PI, false)
+						self.canvasPatternsContext.fill();
+						self.canvasPatternsContext.closePath();
+					} else {
+						self.canvasPatternsContext.lineWidth = 3;
+						self.canvasPatternsContext.moveTo(x1,y);
+						self.canvasPatternsContext.lineTo(x2,y);
+						self.canvasPatternsContext.lineCap = "round";
+						self.canvasPatternsContext.stroke();
+					    self.canvasPatternsContext.closePath();
+					}
 				}
 			}
 		}
-		console.log(idsToDraw.length+" occurrences drawn")
+		console.log(idsToDraw.length+" patterns drawn")
 	}
 	
 	self.setBins = function(bins) {
@@ -3336,7 +3942,7 @@ var Timeline = function(elemId, options) {
 			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"});*/
 		//self.drawCurrentBins();
 		self.displayData();
-		self.svg.select(".zoom")
+		self.svgFocus.select(".zoom")
 			.call(self.zoom.transform, d3.zoomIdentity.scale(self.width / (s[1] - s[0]))
 			.translate(-s[0], 0));
 	};
@@ -3471,6 +4077,9 @@ var Timeline = function(elemId, options) {
 		default:
 			console.log("Trying to display data in an unknown way. displayMode = "+self.displayMode);
 		}
+		
+		self.drawUsersTraces();
+		
 		//self.drawUsers();
 		//self.drawPatternBins(self.patternBins);
 		//stopRunningTaskIndicator();
@@ -3511,7 +4120,8 @@ var Timeline = function(elemId, options) {
 	    self.zoomed();*/
 	}
 	
-	self.controls = d3.select(self.parentNode).append("div");
+	//self.controls = d3.select(self.parentNode).append("div");
+	self.controls = d3.select(self.nodeFocusControl);
 	
 	// Adding the zoom option (+ / -)
 	self.currentZoomScale = 1.0;
@@ -3865,20 +4475,26 @@ var Timeline = function(elemId, options) {
 	self.marginContext = {"top": 330,"right": 20,"bottom": 230,"left": 40};// bottom 30
 	self.marginPatterns = {"top": 400,"right": 20,"bottom": 30,"left": 40};
 	*/
-	self.marginFocus = {"top": 20,"right": 20,"bottom": 580,"left": 40,"size": 250};
+	/*self.marginFocus = {"top": 20,"right": 20,"bottom": 580,"left": 40,"size": 250};
 	self.marginContext = {"top": 290,"right": 20,"bottom": 510,"left": 40,"size": 50};
 	self.marginPatterns = {"top": 360,"right": 20,"bottom": 290,"left": 40,"size": 200};
-	self.marginUsers =  {"top": 580,"right": 20,"bottom": 20,"left": 40,"size": 250};
+	self.marginUsers =  {"top": 580,"right": 20,"bottom": 20,"left": 40,"size": 250};*/
+	self.marginFocus = {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 250};
+	self.marginContext = {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 50};
+	self.marginPatterns = {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 200};
+	self.marginUsers =  {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 250};
+	
 	self.width = +self.parentNode.clientWidth
 			- Math.max(self.marginFocus.left, self.marginContext.left)
 			- Math.max(self.marginFocus.right, self.marginContext.right);
-	self.heightFocus = self.marginFocus.size;/*+self.parentNode.clientHeight
-			- self.marginFocus.top - self.marginFocus.bottom -5;*/
-	self.heightContext = self.marginContext.size;/*+self.parentNode.clientHeight
-			- self.marginContext.top - self.marginContext.bottom -5;*/
-	self.heightPatterns = self.marginPatterns.size;/*+self.parentNode.clientHeight
-			- self.marginPatterns.top - self.marginPatterns.bottom -5;*/
-	self.heightUsers = self.marginUsers.size;
+	self.heightFocus = self.marginFocus.size//+self.parentNode.clientHeight
+			+ self.marginFocus.top + self.marginFocus.bottom;
+	self.heightContext = self.marginContext.size//+self.parentNode.clientHeight
+			+ self.marginContext.top + self.marginContext.bottom;
+	self.heightPatterns = self.marginPatterns.size//+self.parentNode.clientHeight
+			+ self.marginPatterns.top + self.marginPatterns.bottom;
+	self.heightUsers = self.marginUsers.size
+			+ self.marginUsers.top + self.marginUsers.bottom;
 	
 	self.height = self.heightFocus
 		+ self.heightContext
@@ -3890,115 +4506,153 @@ var Timeline = function(elemId, options) {
 	d3.select(self.parentNode).style("height",self.height.toString()+"px");
 	
 	// The timeline's parts
-	self.canvas = d3.select(self.parentNode).append("canvas")
+	self.canvas = d3.select(self.nodeFocus).append("canvas")
 		.attr("width",self.width)
-		.attr("height",self.heightFocus)
-		.style("position","absolute")
-		.style("top",(self.marginFocus.top + 15).toString()+"px")
-		.style("left",self.marginFocus.left.toString()+"px");	
+		.attr("height",self.marginFocus.size)
+		.style("position","relative")
+		.style("top",(self.marginFocus.top).toString()+"px")
+		.style("left",self.marginFocus.left.toString()+"px")
+		.style("height", self.marginFocus.size+"px");	
 	self.canvasContext = self.canvas.node().getContext("2d");
 
-	self.canvasOverview = d3.select(self.parentNode).append("canvas")
+	self.canvasOverview = d3.select(self.nodeOverview).append("canvas")
 		.attr("width",self.width)
-		.attr("height",self.heightContext)
-		.style("position","absolute")
-		.style("top",(self.marginContext.top + 15).toString()+"px")
-		.style("left",self.marginContext.left.toString()+"px");	
+		.attr("height",self.marginContext.size)
+		.style("position","relative")
+		.style("top",(self.marginContext.top).toString()+"px")
+		.style("left",self.marginContext.left.toString()+"px")
+		.style("height", self.marginContext.size+"px");	
 	self.canvasOverviewContext = self.canvasOverview.node().getContext("2d");
 
-	self.canvasPatterns = d3.select(self.parentNode).append("canvas")
+	self.canvasPatterns = d3.select(self.nodePatterns).append("canvas")
 		.attr("width",self.width)
-		.attr("height",self.heightPatterns)
-		.style("position","absolute")
-		.style("top",(self.marginPatterns.top + 15).toString()+"px")
-		.style("left",self.marginPatterns.left.toString()+"px");	
+		.attr("height",self.marginPatterns.size)
+		.style("position","relative")
+		.style("top",(self.marginPatterns.top).toString()+"px")
+		.style("left",self.marginPatterns.left.toString()+"px")
+		.style("height", self.marginPatterns.size+"px");		
 	self.canvasPatternsContext = self.canvasPatterns.node().getContext("2d");
 	
-	self.hiddenCanvas = d3.select(self.parentNode).append("canvas")
+	self.hiddenCanvas = d3.select(self.nodeFocus).append("canvas")
 		.attr("width",self.width)
-		.attr("height",self.heightFocus)
-		.style("position","absolute")
-		.style("top",(self.marginFocus.top + 15).toString()+"px")
-		.style("left",self.marginFocus.left.toString()+"px")
+		.attr("height",self.marginFocus.size)
+		.style("position","relative")
+		.style("top",self.marginFocus.top.toString()+"px")
+		.style("left", (self.marginFocus.left - self.width).toString()+"px")
 		.style("display","none");
 	self.hiddenCanvasContext = self.hiddenCanvas.node().getContext("2d");
 
-	self.hiddenCanvasPatterns = d3.select(self.parentNode).append("canvas")
+	self.hiddenCanvasPatterns = d3.select(self.nodePatterns).append("canvas")
 		.attr("width",self.width)
-		.attr("height",self.heightPatterns)
-		.style("position","absolute")
-		.style("top",(self.marginPatterns.top + 15).toString()+"px")
-		.style("left",self.marginPatterns.left.toString()+"px");	
+		.attr("height",self.marginPatterns.size)
+		.style("position","relative")
+		.style("top", self.marginPatterns.top.toString()+"px")
+		.style("left", (self.marginPatterns.left - self.width).toString()+"px")
+		.style("display","none");	
 	self.hiddenCanvasPatternsContext = self.hiddenCanvasPatterns.node().getContext("2d");
 	
-	self.canvasUsers = d3.select(self.parentNode).append("canvas")
+	self.canvasUsers = d3.select(self.nodeUsers).append("canvas")
 		.attr("width",self.width)
-		.attr("height",self.heightUsers)
-		.style("position","absolute")
-		.style("top",(self.marginUsers.top + 15).toString()+"px")
-		.style("left",self.marginUsers.left.toString()+"px");	
+		.attr("height",self.marginUsers.size)
+		.style("position","relative")
+		.style("top",(self.marginUsers.top).toString()+"px")
+		.style("left",self.marginUsers.left.toString()+"px")
+		.style("height", self.marginUsers.size+"px");	
 	self.canvasUsersContext = self.canvasUsers.node().getContext("2d");
 	
 	self.colorToData = {}; // Binding between the hidden canvas and the drawn one
 	
-	self.svg = d3.select(self.parentNode).append("svg")
+	self.svgFocus = d3.select(self.nodeFocus).append("svg")
+		.attr("width",self.parentNode.clientWidth)
+		.attr("height",self.heightFocus)
+		/*.attr("height",self.parentNode.clientHeight-15)*/
+		.style("position","absolute")
+		.style("top","0")
+		.style("left","0");	
+	
+	self.svgOverview = d3.select(self.nodeOverview).append("svg")
+		.attr("width",self.parentNode.clientWidth)
+		.attr("height",self.heightContext)
+		/*.attr("height",self.parentNode.clientHeight-15)*/
+		.style("position","absolute")
+		.style("top","0")
+		.style("left","0");
+	
+	self.svgPatterns = d3.select(self.nodePatterns).append("svg")
+		.attr("width",self.parentNode.clientWidth)
+		.attr("height",self.heightPatterns)
+		/*.attr("height",self.parentNode.clientHeight-15)*/
+		.style("position","absolute")
+		.style("top","0")
+		.style("left","0");
+	
+	self.svgUsers = d3.select(self.nodeUsers).append("svg")
+		.attr("width",self.parentNode.clientWidth)
+		.attr("height",self.heightUsers)
+		/*.attr("height",self.parentNode.clientHeight-15)*/
+		.style("position","absolute")
+		.style("top","0")
+		.style("left","0");
+	
+	/*self.svg = d3.select(self.parentNode).append("svg")
 		.attr("width",self.parentNode.clientWidth)
 		.attr("height",self.height)
 		/*.attr("height",self.parentNode.clientHeight-15)*/
-		.style("position","absolute")
+		/*.style("position","absolute")
 		.style("top","15")
-		.style("left","0");
+		.style("left","0");*/
 
 	// Parameters for the various axis
 	self.parseDate = d3.timeParse("%Y-%M-%d %H:%m:%s");
 	self.xFocus = d3.scaleTime().range([0, self.width]);
 	self.xContext = d3.scaleTime().range([0,self.width]);
-	self.yFocus = d3.scaleLinear().range([self.heightFocus,0]);
-	self.yContext = d3.scaleLinear().range([self.heightContext,0]);
+	self.yFocus = d3.scaleLinear().range([self.marginFocus.size,0]);
+	self.yContext = d3.scaleLinear().range([self.marginContext.size,0]);
 	self.xPatterns = d3.scaleTime().range([0, self.width]);
-	self.yPatterns = d3.scaleLinear().range([self.heightPatterns,0]);
+	self.yPatterns = d3.scalePoint().range([self.marginPatterns.size,0]);
 	self.xUsers = d3.scaleTime().range([0, self.width]);
-	self.yUsers = d3.scaleOrdinal().range([self.heightUsers,0]);
+	self.yUsers = d3.scaleOrdinal().range([self.marginUsers.size,0]);
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
 	self.yAxisFocus = d3.axisLeft(self.yFocus).tickSizeInner(-self.width);
 	self.xAxisPatterns = d3.axisBottom(self.xPatterns);
+	self.yAxisPatterns = d3.axisLeft(self.yPatterns).tickSizeInner(-self.width);
 	self.xAxisUsers = d3.axisBottom(self.xUsers);
 	self.yAxisUsers = d3.axisLeft(self.yUsers).tickSizeInner(-self.width);
 	// The brush component of the context part
 	self.brush = d3.brushX()
-		.extent([[0, 0], [self.width, self.heightContext]])
+		.extent([[0, 0], [self.width, self.marginContext.size]])
 		.on("brush end", self.brushed);
 	// The brush component of the users part
 	
 	// The zoomable rectangle on the focus part
 	self.zoom = d3.zoom()
 		.scaleExtent([1, Infinity])
-		.translateExtent([[0, 0], [self.width, self.heightFocus]])
-		.extent([[0, 0], [self.width, self.heightFocus]])
+		.translateExtent([[0, 0], [self.width, self.marginFocus.size]])
+		.extent([[0, 0], [self.width, self.marginFocus.size]])
 		.on("zoom", self.zoomed);
 	
 	// Adding the axis to the svg area
 	// focus part of the timeline
-	self.focus = self.svg.append("g")
+	self.focus = self.svgFocus.append("g")
 	    .attr("class", "focus")
 	    .attr("transform", "translate("+self.marginFocus.left+","+self.marginFocus.top+")");
 	// Creating the context part of the timeline
-	self.context = self.svg.append("g")
+	self.context = self.svgOverview.append("g")
 	    .attr("class", "context")
 	    .attr("transform", "translate("+self.marginContext.left+","+self.marginContext.top+")");
 	// Creating the pattern part for the timeline
-	self.patterns = self.svg.append("g")
+	self.patterns = self.svgPatterns.append("g")
 	    .attr("class", "patterns")
 	    .attr("transform", "translate("+self.marginPatterns.left+","+self.marginPatterns.top+")");
 	// Creating the users part for the timeline
-	self.users = self.svg.append("g")
+	self.users = self.svgUsers.append("g")
 	    .attr("class", "users")
 	    .attr("transform", "translate("+self.marginUsers.left+","+self.marginUsers.top+")");
 	// Creating the xAxis and yAxis for the focus part of the timeline
 	self.focus.append("g")
 		.attr("class","axis axis--x")
-		.attr("transform", "translate(0," + self.heightFocus + ")")
+		.attr("transform", "translate(0," + (self.marginFocus.size + self.marginFocus.top) + ")")
 		.call(self.xAxisFocus);
 	self.focus.append("g")
 		.attr("class", "axis axis--y")
@@ -4007,23 +4661,28 @@ var Timeline = function(elemId, options) {
 	// Creating the xAxis for the context part of the timeline
 	self.context.append("g")
 		.attr("class","axis axis--x")
-		.attr("transform", "translate(0," + self.heightContext + ")")
+		.attr("transform", "translate(0," + (self.marginContext.size + self.marginContext.top) + ")")
 		.call(self.xAxisContext);
 	// Creating the xAxis for the pattern part of the timeline
 	self.patterns.append("g")
 		.attr("class","axis axis--x")
-		.attr("transform", "translate(0," + self.heightPatterns + ")")
+		.attr("transform", "translate(0," + (self.marginPatterns.size + self.marginPatterns.top) + ")")
 		.call(self.xAxisPatterns);
+	// Creating the yAxis for the pattern part of the timeline
+	self.patterns.append("g")
+		.attr("class", "axis axis--y")
+		.call(self.yAxisPatterns)
+		.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Creating the xAxis for the users part of the timeline
 	self.users.append("g")
 		.attr("class","axis axis--x")
-		.attr("transform", "translate(0," + self.heightUsers + ")")
+		.attr("transform", "translate(0," + (self.marginUsers.size + self.marginUsers.top) + ")")
 		.call(self.xAxisUsers);
 	// Creating the yAxis for the user part of the timeline
 	self.users.append("g")
 		.attr("class", "axis axis--y")
 		.call(self.yAxisUsers)
-		.attr("transform", "translate(0," + 22 + ")")
+		//.attr("transform", "translate(0,0)")
 		.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Adding the brush to the context part
 	self.context.append("g")
@@ -4033,10 +4692,10 @@ var Timeline = function(elemId, options) {
 	
 	self.tooltipCreated = false;
 	// Creating the zoomable rectangle on the focus part of the timeline
-	self.zoomRect = self.svg.append("rect")
+	self.zoomRect = self.svgFocus.append("rect")
 		.attr("class", "zoom")
 		.attr("width", self.width)
-		.attr("height", self.heightFocus)
+		.attr("height", self.marginFocus.size)
 		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
 		.call(self.zoom)
 		.on("mousemove", function(){	// Handling picking
@@ -4121,7 +4780,7 @@ var Timeline = function(elemId, options) {
 		self.users.select(".axis--y").call(self.yAxisUsers);
 	};
 	
-	self.updateUserList = function() {
+	self.updateUserListOld = function() {
 		var nbUserShown = 10.0;
 		var step = self.heightUsers / (nbUserShown+1.0);
 		var i = 0;

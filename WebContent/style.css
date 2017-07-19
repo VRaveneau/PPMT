@@ -60,6 +60,18 @@ body {
 	/*overflow: auto;*/
 }
 
+#timeline > div {
+	display: flex;
+	flex-direction: row;
+	
+	position: relative;
+	margin-bottom: 20px;
+}
+
+#timeline > div :first-of-type {
+	margin-top: 10px;
+}
+
 .displayControlForm {
 	float: left;
 }
