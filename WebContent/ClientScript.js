@@ -2359,6 +2359,8 @@ function clickOnPatternSupportHeader() {
 var patternsInformation = {};
 var patternIdList = [];
 
+var patternMetrics = {"sizeDistribution":{}};
+
 function addPatternToList(message) {
 	
 	var pSize = parseInt(message.size);
@@ -2389,9 +2391,17 @@ function addPatternToList(message) {
 	d3.select(".patternTabs")	// first tab in the right panel
 		.select("li").select("a")
 		.text("Full list ("+numberOfPattern+")");
-	// update the metrics tab
 	
 	createPatternListDisplay();
+	
+	// Update the relevant metrics
+	if (patternMetrics["sizeDistribution"][pSize])
+		patternMetrics["sizeDistribution"][pSize] = patternMetrics["sizeDistribution"][pSize] + 1;
+	else
+		patternMetrics["sizeDistribution"][pSize] = 1;
+	
+	// Display the new metrics
+	createPatternMetricsDisplay();
 }
 
 var selectedPatternIds = [];
@@ -2558,6 +2568,24 @@ function requestPatternDistribution(patternRequested, datasetName) {
 			pattern: patternRequested
 	};
 	webSocket.send(JSON.stringify(action));
+}
+
+function createPatternMetricsDisplay() {
+	/************ Creating the display of the pattern'sizes distributions ****************/
+	// removing the old patterns
+	var sizeDistributionNode = document.getElementById("patternSizeDistribution");
+	while (sizeDistributionNode.firstChild) {
+		sizeDistributionNode.removeChild(sizeDistributionNode.firstChild);
+	}
+	
+	var patternSizeDistributionDiv = d3.select("#patternSizeDistribution");
+	
+	for (var e in patternMetrics["sizeDistribution"]) {
+	  if (patternMetrics["sizeDistribution"].hasOwnProperty(e)) {
+		  patternSizeDistributionDiv.append("p")
+			.text("Size "+e+": "+patternMetrics["sizeDistribution"][e]);
+	  }
+	}
 }
 
 function sortNumber(a,b) {

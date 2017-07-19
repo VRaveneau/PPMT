@@ -466,6 +466,16 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
 	max-height: 90%;
 }
 
+#Metrics {
+	overflow: auto;
+	max-height: 90%;
+}
+
+#Algorithm {
+	overflow: auto;
+	max-height: 90%;
+}
+
 /********************************/
 /* 			Users tabs 			*/
 /********************************/
