@@ -2394,13 +2394,29 @@ function addPatternToList(message) {
 	createPatternListDisplay();
 }
 
+var selectedPatternIds = [];
+
 function createPatternListDisplay() {
 	// removing the old patterns
 	var patternRowsRoot = document.getElementById("patternTableBody");
 	while (patternRowsRoot.firstChild) {
 		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
 	}
+	// removing the old patterns
+	patternRowsRoot = document.getElementById("selectedPatternTableBody");
+	while (patternRowsRoot.firstChild) {
+		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
+	}
 
+	// display the separator only if needed
+	if (selectedPatternIds.length > 0) {
+		d3.select("#patternListSeparator")
+			.style("visibility","initial");
+	} else {
+		d3.select("#patternListSeparator")
+		.style("visibility","hidden");
+	}
+	
 	var patternList = d3.select("#patternTableBody");
 	
 	// display the new ones
@@ -2412,8 +2428,17 @@ function createPatternListDisplay() {
 		let pString = patternsInformation[patternIdList[i]][0];
 		let pItems = patternsInformation[patternIdList[i]][3];
 		
-		var thisRow = patternList.append("tr")
-			.style("font-weight","normal")
+		let index = selectedPatternIds.indexOf(pId);
+		let fontWeight = "normal";
+		patternList = d3.select("#patternTableBody");
+		
+		if (index >= 0) {
+			fontWeight = "bold";
+			patternList = d3.select("#selectedPatternTableBody");
+		}
+		
+		let thisRow = patternList.append("tr")
+			.style("font-weight",fontWeight)
 			.on("click", function() {
 				if (d3.event.shiftKey) { // Shift + click, steering
 					requestSteeringOnPattern(pId);
@@ -2423,12 +2448,18 @@ function createPatternListDisplay() {
 						requestPatternOccurrences(pId, currentDatasetName);
 					else
 						timeline.displayPatternOccurrences(pId);
-					if (thisRow.style("font-weight") == "normal")
-						thisRow.style("font-weight","bold");
-					else
-						thisRow.style("font-weight","normal");
+					if (thisRow.style("font-weight") == "normal") {
+						selectedPatternIds.push(pId);
+						//thisRow.style("font-weight","bold");
+					} else {
+						var index = selectedPatternIds.indexOf(pId);
+						if (index >= 0)
+							selectedPatternIds.splice(index, 1);
+						//thisRow.style("font-weight","normal");
+					}
 					d3.event.stopPropagation();
 					console.log("click on "+pId);
+					createPatternListDisplay();
 				}
 			});
 		var thisNameCell = thisRow.append("td");
