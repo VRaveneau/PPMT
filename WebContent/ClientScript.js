@@ -3612,26 +3612,31 @@ var Timeline = function(elemId, options) {
 		  }
 		}
 		
-		//self.yPatterns.domain([0.0, idsToDraw.length+2.0]);
-		var listOfPatternsToDraw = [" "];
-		for (var pId in idsToDraw) {
-			listOfPatternsToDraw.push(pId);
-		}
-		listOfPatternsToDraw.push(" ");
-		console.log("patterns to draw: "+listOfPatternsToDraw);
-		var totalRange = self.marginPatterns.size;
-		var steps = totalRange / listOfPatternsToDraw.length;
+		/*var listOfPatternsToDraw = [" "].concat(idsToDraw);
 		
-		var yRange = [];
-		var lastStep = 0;
-		while (lastStep <= totalRange) {
-			yRange.push(lastStep);
-			lastStep += steps;
-		}
+		console.log("patterns to draw: "+listOfPatternsToDraw);*/
 		
-		self.yPatterns.domain([' '].concat(idsToDraw).concat([' '])/*listOfPatternsToDraw*/);
-		//self.yPatterns.range(yRange);
-
+		var step = self.marginPatterns.size / (idsToDraw.length+1.0);
+		var i = 0;
+		var range = [];
+		for (i; i<= idsToDraw.length+1; i++)
+			range.push(0+i*step);
+		
+		
+		self.yPatterns = d3.scaleOrdinal()
+			.domain([" "].concat(idsToDraw))
+			.range(range);
+	
+		self.yAxisPatterns = d3.axisLeft(self.yPatterns)
+	        .tickValues([" "].concat(idsToDraw))
+	        .tickFormat(function(d, i) {
+	        	if (patternsInformation[d] && patternsInformation[d].length >= 0)
+	        		return patternsInformation[d][0];
+	        	else
+	        		return d;
+	        });
+		self.patterns.select(".axis--y").call(self.yAxisPatterns);
+		
 		/*self.patterns.select(".axis--y")
 			.call(self.yAxisPatterns);
 		self.yAxisPatterns = d3.axisLeft(self.yPatterns);*/
@@ -3652,7 +3657,7 @@ var Timeline = function(elemId, options) {
 					var occ = self.patternOccs[idsToDraw[i]][j].split(";");
 					var x1 = self.xPatterns(new Date(parseInt(occ[1])));
 					var x2 = self.xPatterns(new Date(parseInt(occ[2])));
-					var y = self.yPatterns(i+1);
+					var y = self.yPatterns(idsToDraw[i]);
 					self.canvasPatternsContext.beginPath();
 					if (x1 == x2) {
 						self.canvasPatternsContext.fillStyle = "blue";
