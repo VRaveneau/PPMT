@@ -38,7 +38,8 @@ var patterns = {};
 var occurrences = {}
 var patternProbabilities = {};
 var itemColors = {};
-var shapes = extendedSymbolTypes;
+var shapes = extendedSymbolTypes[0];
+var shapeNames = extendedSymbolTypes[1];
 var itemShapes = {};	// TODO request a list of shapes from the server to populate this list
 var datasetInfo = {};
 var availableColors = [];
@@ -1648,10 +1649,10 @@ function receiveEventTypes(message) {
 	for (var i = 0; i< nbEvents; i++) {
 		var eventRow = d3.select("#eventTableBody").append("tr");
 		var eventInfo = message[i.toString()].split(";");
-		var eType = "";
-		var eCode = "";
+		let eType = "";
+		let eCode = "";
 		var eNbOccs = "";
-		var eColor;
+		let eColor;
 		for (var j=0; j < eventInfo.length;j++) {
 			var info = eventInfo[j].split(":");
 			if (info[0] === "code")
@@ -1679,16 +1680,73 @@ function receiveEventTypes(message) {
 		//var symbolRow = eventRow.append("td")
 			//		.attr("sorttable_customkey", (i%colors.length)*100+i%shapes.length);
 		var symbolRow = eventRow.append("td")
-			.attr("sorttable_customkey", (colors.indexOf(eColor))*100+shapes.indexOf(eCode));
+			.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
+			.classed("dropdown", true);
 		//console.log("code for "+eType+": "+(colors.indexOf(eColor))*100+shapes.indexOf(eCode) + '('+colors.indexOf(eColor)+'*100+'+shapes.indexOf(eCode));
-		var symbolRowSvg = symbolRow.append("svg")
+		let symbolRowSvg = symbolRow.append("svg")
 			.attr("width", 20)
-			.attr("height", 20);
+			.attr("height", 20)
+			.classed("dropbtn", true);
 		symbolRowSvg.append("path")
 			.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
 			.attr("transform","translate(10,10)")
 			.attr("stroke", "hsl("+colorList[eType]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
 			.attr("fill","none");
+		// Create the menu to customize the icon
+		var dropMenuDiv = symbolRow.append("div")
+			.classed("dropdown-content", true);
+		let symbolP = dropMenuDiv.append("p")
+			.text("Change symbol :");
+		let symbolSelect = symbolP.append("select")
+			.on("change", function() {
+				if (changeEventTypeSymbol(eType, symbolSelect.property('value'))) {
+					// Update the row id for the new color
+					symbolRow.attr("sorttable_customkey", (colorList[eType])*100+shapes.indexOf(itemShapes[eType]));
+					// draw the new symbol
+					symbolRowSvg.selectAll("*").remove();
+					symbolRowSvg.append("path")
+						.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
+						.attr("transform","translate(10,10)")
+						.attr("stroke", "hsl("+colorList[eType]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+						.attr("fill","none");
+					// refresh the changed displays
+					timeline.displayData();
+					createPatternListDisplay();
+				}
+			});
+		for (var ishape=0; ishape < shapes.length; ishape++) {
+			symbolSelect.append("option")
+				.property("value",ishape)
+				.text(shapeNames[ishape])
+				.property("selected", function() {
+					if (shapes[ishape] == itemShapes[eType])
+						return true;
+					return false;
+				});
+		}
+		let colorP = dropMenuDiv.append("p")
+			.text("Change color :");
+		let colorInput = colorP.append("input")
+			.style("width","60px");
+		let picker = new jscolor(colorInput.node());
+        	picker.fromHSV(Number(colorList[eType]), 100, 100);
+        	
+        colorP.on("click", function() {
+			if (changeEventTypeColor(eType, picker.hsv[0])) {
+				// Update the row id for the new color
+				symbolRow.attr("sorttable_customkey", (colorList[eType])*100+shapes.indexOf(itemShapes[eType]));
+				// draw the new symbol
+				symbolRowSvg.selectAll("*").remove();
+				symbolRowSvg.append("path")
+					.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
+					.attr("transform","translate(10,10)")
+					.attr("stroke", "hsl("+colorList[eType]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+					.attr("fill","none");
+				// refresh the changed displays
+				timeline.displayData();
+				createPatternListDisplay();
+			}
+		});
 	}
 	
 	/*for (var type in typeList) {
@@ -1701,6 +1759,19 @@ function receiveEventTypes(message) {
 	var userTH = document.getElementById("eventsOccurrencesColumn");
 	sorttable.innerSortFunction.apply(userTH, []);
 	
+}
+
+function changeEventTypeSymbol(eventType, newShapeIndex) {
+	itemShapes[eventType] = shapes[newShapeIndex];
+	return true;
+}
+
+function changeEventTypeColor(eventType, newColor) {
+	if (newColor != colorList[eventType]) {
+		colorList[eventType] = newColor;
+		return true;
+	}
+	return false;
 }
 
 /**
@@ -2386,6 +2457,12 @@ function addPatternToList(message) {
 	patternIdList.push(pId);
 	
 	numberOfPattern++;
+	// Update the number of pattern pages
+	let newPatternPageNumber = Math.ceil(numberOfPattern*1.0 / patternPageSize);
+	if (newPatternPageNumber != patternPageNumber || numberOfPattern == 1) {
+		patternPageNumber = newPatternPageNumber;
+		updatePatternPageNumberDisplay();
+	}
 	
 	// Update the number of patterns in the tab name
 	d3.select(".patternTabs")	// first tab in the right panel
@@ -2404,7 +2481,88 @@ function addPatternToList(message) {
 	createPatternMetricsDisplay();
 }
 
+function updatePatternPageNumberDisplay() {
+	let displayDiv = d3.select("#patternPageNumbers");
+	displayDiv.html("");
+	let firstShawnNumber = Math.max(1, currentPatternPage-4);
+	let lastShawnNumber = Math.min(patternPageNumber, currentPatternPage+4);
+	
+	if (firstShawnNumber > 1) {
+		displayDiv.append("span").text(" ...");
+	}
+	
+	for(let i=firstShawnNumber; i<=lastShawnNumber; i++) {
+		let currentSpan = displayDiv.append("button")
+			.classed("textButton", true)
+			.text(" "+i)
+			.on("click", function() {
+				displayPatternPage(i);
+			});
+		if (i == currentPatternPage) {
+			currentSpan.classed("currentPatternPageButton", true)
+				.property("disabled", true)
+				.on("click", null);
+		}
+	}
+	
+	if (lastShawnNumber < patternPageNumber) {
+		displayDiv.append("span").text(" ... ");
+	}
+	
+	updatePatternPageNavigationButtons();
+}
+
+function updatePatternPageNavigationButtons() {
+	d3.select("#previousPatternPage").property("disabled", false);
+	d3.select("#firstPatternPage").property("disabled", false);
+	d3.select("#nextPatternPage").property("disabled", false);
+	d3.select("#lastPatternPage").property("disabled", false);
+	
+	if (currentPatternPage == 1) {
+		d3.select("#previousPatternPage").property("disabled", true);
+		d3.select("#firstPatternPage").property("disabled", true);
+	}
+	if (currentPatternPage == patternPageNumber) {
+		d3.select("#nextPatternPage").property("disabled", true);
+		d3.select("#lastPatternPage").property("disabled", true);
+	}
+}
+
+function displayPatternPage(pageNumber) {
+	currentPatternPage = pageNumber;
+	updatePatternPageNumberDisplay();
+	createPatternListDisplay();
+}
+
+function displayFirstPatternPage() {
+	displayPatternPage(1);
+}
+
+function displayPreviousPatternPage() {
+	displayPatternPage(currentPatternPage - 1);
+}
+
+function displayNextPatternPage() {
+	displayPatternPage(currentPatternPage + 1);
+}
+
+function displayLastPatternPage() {
+	displayPatternPage(patternPageNumber);
+}
+
+function updatePatternPageSize() {
+	patternPageSize = Number(d3.select("#patternPageSizeInput")
+							.property("value"));
+	currentPatternPage = 1;
+	patternPageNumber = Math.ceil(numberOfPattern*1.0 / patternPageSize);
+	updatePatternPageNumberDisplay();
+	createPatternListDisplay();
+}
+
 var selectedPatternIds = [];
+var patternPageSize = 200;
+var patternPageNumber = 1;
+var currentPatternPage = 1;
 
 function createPatternListDisplay() {
 	// removing the old patterns
@@ -2445,6 +2603,11 @@ function createPatternListDisplay() {
 		if (index >= 0) {
 			fontWeight = "bold";
 			patternList = d3.select("#selectedPatternTableBody");
+		} else {
+			if ((i < (currentPatternPage - 1)*patternPageSize) // before the current page
+				|| (i >= (currentPatternPage)*patternPageSize)) { // after the current page
+				continue;
+			}
 		}
 		
 		let thisRow = patternList.append("tr")
@@ -2488,7 +2651,7 @@ function createPatternListDisplay() {
 			pSvg.append("path")
 				.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
 				.attr("transform","translate("+(10+20*k)+",10)")
-				.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+				.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)")//d3.hsl(parseFloat(eColor),100,50).rgb())
 				.attr("fill","none");
 		}
 	}
