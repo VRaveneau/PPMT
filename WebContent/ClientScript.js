@@ -1731,7 +1731,7 @@ function receiveEventTypes(message) {
 		let picker = new jscolor(colorInput.node());
         	picker.fromHSV(Number(colorList[eType]), 100, 100);
         	
-        colorP.on("click", function() {
+        colorInput.on("change", function() {
 			if (changeEventTypeColor(eType, picker.hsv[0])) {
 				// Update the row id for the new color
 				symbolRow.attr("sorttable_customkey", (colorList[eType])*100+shapes.indexOf(itemShapes[eType]));

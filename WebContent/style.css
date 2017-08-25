@@ -38,7 +38,7 @@ body {
     position: absolute;
     right: 0;
     background-color: #f9f9f9;
-    min-width: 200px;
+    min-width: 250px;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
     z-index: 1;
 }
@@ -51,6 +51,10 @@ body {
     display: block;
     cursor: pointer;
     margin-left: auto;
+}
+
+.dropdown-content p input {
+	float: right;
 }
 
 /* Change color of dropdown text on hover */
