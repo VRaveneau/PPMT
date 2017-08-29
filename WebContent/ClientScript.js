@@ -2635,13 +2635,26 @@ function createPatternListDisplay() {
 					createPatternListDisplay();
 				}
 			});
-		var thisNameCell = thisRow.append("td");
+		var thisNameCell = thisRow.append("td")
+			.classed("dropdown", true);
 		var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
 			.attr("height", 20);
 		thisNameCell.append("span")
 			.text(pString)
 			.attr("patternId",pId);
+
+		// Create the menu
+		var dropMenuDiv = thisNameCell.append("div")
+			.classed("dropdown-content", true)
+			.style("left","0");
+		let steeringP = dropMenuDiv.append("p")
+			.text("Steer on this pattern")
+			.on("click", function() {
+				requestSteeringOnPattern(pId);
+				d3.event.stopPropagation();
+			});
+		
 		thisRow.append("td")
 			.text(pSize);
 		thisRow.append("td")
@@ -3845,22 +3858,37 @@ var Timeline = function(elemId, options) {
 		self.bins = bins;
 	}
 	
+	self.displayColorsInBins = true;
+	self.displayFullHeightBins = false;
+	
 	self.drawBins = function(bins) {
-		// draw the year bins
+		
 		console.log("drawing bins");
-		//console.log(bins);
 		self.setBins(bins);
 		//[[year,start,end,value]...]
 		
 		// Adjust the focus part of the timeline to the new data
 		//self.xFocus.domain(d3.extent(csvData, function(d) { return d.time; }));
-		var maxBin = 0.0;//1999999.0;
+		var maxHeight = 0.0;//1999999.0;
+		
+		// Adjust the y axis to the max height
+		if (self.displayFullHeightBins == true) 
+			maxHeight = 100.0;
+		else {
+			for (var iBin=0; iBin < bins.length; iBin++) {
+				if (parseInt(bins[iBin][3]) > maxHeight)
+					maxHeight = parseFloat(bins[iBin][3]);
+			}
+		}
+		
+		var maxBin = 0;
 		for (var iBin=0; iBin < bins.length; iBin++) {
 			if (parseInt(bins[iBin][3]) > maxBin)
 				maxBin = parseFloat(bins[iBin][3]);
 		}
 		
-		self.yFocus.domain([0.0, maxBin+1.0]);
+		
+		self.yFocus.domain([0.0, maxHeight/*+1.0*/]);
 		self.focus.select(".axis--y")
 	      .call(self.yAxisFocus)
 			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
@@ -3880,46 +3908,116 @@ var Timeline = function(elemId, options) {
 			self.canvasContext.beginPath();
 		    var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][1]));
 		    var x2 = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][2]));
-		    /*
-		     * Deduce the decomposition in multiple bars from bins[iBin]
-		     * Structure : [year,start,end,nbEvents,user1;user2;...,???,type1:nbOcc;type2:nbOcc;...]
-		     */
-		    var colorsProportion = {}; // nbOccs for each color
-		    var eventTypesAssociatedToColor = {}; // nbOccs per event for each color
-		    var eventsInfo = bins[iBin][6].split(";");
-		    for (var t=0 ; t < eventsInfo.length ; t++) {
-		    	var details = eventsInfo[t].split(":");
-		    	// TODO fix the agavue situation
-		    	var eColor = getEventColor(details[0]);
-		    	//var eColor = getEventColorForAgavue(details[0]);
-		    	if (!colorsProportion[eColor]) {
-		    		colorsProportion[eColor] = parseInt(details[1]);
-		    		eventTypesAssociatedToColor[eColor] = [];
-		    	} else {
-		    		colorsProportion[eColor] += parseInt(details[1]);
-		    	}
-	    		eventTypesAssociatedToColor[eColor].push(eventsInfo[t]);
-		    }
-		    var evtNbr = parseInt(bins[iBin][3]);
-		    var colorsFound = Object.keys(colorsProportion);
-		    /*for (var t =0; t < colorsFound.length; t++) {
-		    	colorsProportion[colorsFound[t]] /= (evtNbr*0.1);
-		    }*/
-		    colorsFound.sort(function(a,b) {
-		    	return colorsProportion[a] - colorsProportion[b];
-		    });
 		    
-		    // draw each of the coloured sections of the bar
-		    var cumulatedHeight = 0;
-		    var y;
-		    var binHeight;
-		    for (var t = 0; t < colorsFound.length; t++) {
-			    //var y = self.yFocus(maxBin-parseInt(bins[iBin][3]));
-			    //var binHeight = self.yFocus(parseInt(bins[iBin][3]));
-			    var y = self.yFocus(maxBin-colorsProportion[colorsFound[t]]);
-			    var binHeight = self.yFocus(cumulatedHeight + colorsProportion[colorsFound[t]]);
+		    if (self.displayColorsInBins == true) {
+			    /*
+			     * Deduce the decomposition in multiple bars from bins[iBin]
+			     * Structure : [year,start,end,nbEvents,user1;user2;...,???,type1:nbOcc;type2:nbOcc;...]
+			     */
+			    var colorsProportion = {}; // nbOccs for each color
+			    var eventTypesAssociatedToColor = {}; // nbOccs per event for each color
+			    var eventsInfo = bins[iBin][6].split(";");
+			    for (var t=0 ; t < eventsInfo.length ; t++) {
+			    	var details = eventsInfo[t].split(":");
+			    	// TODO fix the agavue situation
+			    	var eColor = getEventColor(details[0]);
+			    	//var eColor = getEventColorForAgavue(details[0]);
+			    	if (!colorsProportion[eColor]) {
+			    		colorsProportion[eColor] = parseInt(details[1]);
+			    		eventTypesAssociatedToColor[eColor] = [];
+			    	} else {
+			    		colorsProportion[eColor] += parseInt(details[1]);
+			    	}
+		    		eventTypesAssociatedToColor[eColor].push(eventsInfo[t]);
+			    }
+			    var evtNbr = parseInt(bins[iBin][3]);
+			    var colorsFound = Object.keys(colorsProportion);
+			    /*for (var t =0; t < colorsFound.length; t++) {
+			    	colorsProportion[colorsFound[t]] /= (evtNbr*0.1);
+			    }*/
+			    colorsFound.sort(function(a,b) {
+			    	return colorsProportion[a] - colorsProportion[b];
+			    });
+			    
+			    // draw each of the coloured sections of the bar
+			    var cumulatedHeight = 0;
+			    var y;
+			    var binHeight;
+			    for (var t = 0; t < colorsFound.length; t++) {
+				    //var y = self.yFocus(maxHeight-parseInt(bins[iBin][3]));
+				    //var binHeight = self.yFocus(parseInt(bins[iBin][3]));
+				    var y = 0;
+				    var binHeight = 0;
+				    
+				    if (self.displayFullHeightBins == true) {
+				    	y = self.yFocus(maxHeight - (colorsProportion[colorsFound[t]] * maxHeight) / parseInt(bins[iBin][3]));
+				    	binHeight = self.yFocus(cumulatedHeight + (colorsProportion[colorsFound[t]] * maxHeight) / parseInt(bins[iBin][3]));
+				    } else {
+				    	y = self.yFocus(maxHeight-colorsProportion[colorsFound[t]]);
+					    binHeight = self.yFocus(cumulatedHeight + colorsProportion[colorsFound[t]]);
+				    }
+				    //self.canvasContext.fillStyle = "lightblue";//node.attr("fillStyle");
+				    self.canvasContext.fillStyle = "hsl("+colorsFound[t]+",100%,50%)";
+				    self.canvasContext.fillRect(x, binHeight, x2-x, y);
+				    self.canvasContext.lineWidth = 0.25;
+				    self.canvasContext.strokeStyle = "black";
+				    self.canvasContext.stroke();
+				    //  self.canvasContext.fillRect(x, binHeight, x2-x, y);
+				    self.canvasContext.closePath();
+				    
+				    // Attributing a color to data link for the hidden canvas
+				    var color = [];
+				    // via http://stackoverflow.com/a/15804183
+				    if(nextColor < 16777215){
+				    	color.push(nextColor & 0xff); // R
+				    	color.push((nextColor & 0xff00) >> 8); // G 
+				    	color.push((nextColor & 0xff0000) >> 16); // B
+	
+				    	nextColor += 1;
+				    } else {
+				    	console.log('Warning : too may colors needed for the main hidden canvas');
+				    }
+				    
+				    /* Create the info we want in the tooltip
+				    * Structure : [year,
+				    * start,
+				    * end,
+				    * nbEventsInBin,
+				    * user1;user2;...,
+				    * type1;type2;...,
+				    * type1:nbOcc;type2:nbOcc;...
+				    * nbEventsInSubBin,
+				    * hslColorValue1]
+				   	*/
+				    let subBinInfo = [];
+				    subBinInfo.push(bins[iBin][0]);
+				    subBinInfo.push(bins[iBin][1]);
+				    subBinInfo.push(bins[iBin][2]);
+				    subBinInfo.push(bins[iBin][3]);
+				    subBinInfo.push(bins[iBin][4]);
+				    subBinInfo.push(bins[iBin][5]);
+				    subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
+				    subBinInfo.push(colorsProportion[colorsFound[t]]);
+				    subBinInfo.push(colorsFound[t]);
+				    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;//bins[iBin];
+				    
+				    // Drawing on the hidden canvas for the tooltip
+					self.hiddenCanvasContext.beginPath();
+				    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
+				    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
+				    self.hiddenCanvasContext.closePath();
+				    
+				    if (self.displayFullHeightBins == true) {
+				    	cumulatedHeight += (colorsProportion[colorsFound[t]] * maxHeight) / parseInt(bins[iBin][3]);
+				    } else {
+				    	cumulatedHeight += colorsProportion[colorsFound[t]];
+				    }
+			    }
+		    } else {
+		    	y = self.yFocus(maxHeight-parseFloat(bins[iBin][3]));
+		    	binHeight = self.yFocus(parseFloat(bins[iBin][3]));
 			    //self.canvasContext.fillStyle = "lightblue";//node.attr("fillStyle");
-			    self.canvasContext.fillStyle = "hsl("+colorsFound[t]+",100%,50%)";
+			    self.canvasContext.fillStyle = "darkturquoise";//"hsl("+colorsFound[t]+",100%,50%)";
 			    self.canvasContext.fillRect(x, binHeight, x2-x, y);
 			    self.canvasContext.lineWidth = 0.25;
 			    self.canvasContext.strokeStyle = "black";
@@ -3958,9 +4056,9 @@ var Timeline = function(elemId, options) {
 			    subBinInfo.push(bins[iBin][3]);
 			    subBinInfo.push(bins[iBin][4]);
 			    subBinInfo.push(bins[iBin][5]);
-			    subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
-			    subBinInfo.push(colorsProportion[colorsFound[t]]);
-			    subBinInfo.push(colorsFound[t]);
+			    subBinInfo.push(bins[iBin][6]);// subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
+			    subBinInfo.push(bins[iBin][3]);// subBinInfo.push(colorsProportion[colorsFound[t]]);
+			    subBinInfo.push(35);//subBinInfo.push(colorsFound[t]);
 			    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;//bins[iBin];
 			    
 			    // Drawing on the hidden canvas for the tooltip
@@ -3968,9 +4066,7 @@ var Timeline = function(elemId, options) {
 			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
 			    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
 			    self.hiddenCanvasContext.closePath();
-			    
-			    cumulatedHeight += colorsProportion[colorsFound[t]];
-		    } 		    
+		    }
 		    /*
 		    // Attributing a color to data link
 		    var color = [];
@@ -3985,7 +4081,7 @@ var Timeline = function(elemId, options) {
 		    self.colorToData["rgb("+color.join(',')+")"] = bins[iBin];
 		    
 		    // Drawing on the hiddenCanvas
-		    y = self.yFocus(maxBin-parseInt(bins[iBin][3]));
+		    y = self.yFocus(maxHeight-parseInt(bins[iBin][3]));
 		    binHeight = self.yFocus(parseInt(bins[iBin][3]));
 		    
 			self.hiddenCanvasContext.beginPath();
@@ -4195,6 +4291,7 @@ var Timeline = function(elemId, options) {
     			.style("visibility","hidden");*/
 	    }
 	    self.switchScaleFormVisibility();
+	    self.switchBinsDisplayStyleFormVisibility();
 	    self.switchEventDisplayStyleFormVisibility();
 	    self.displayData();
 	};
@@ -4258,10 +4355,12 @@ var Timeline = function(elemId, options) {
 				d3.select("#zoomInfoEvent").attr("class","zoomInfoSpan currentZoom");
 				console.log("Going to event display mode");
 				self.switchEventDisplayStyleFormVisibility();
+				self.switchBinsDisplayStyleFormVisibility();
 			} else  {
 				if (self.displayMode == "events") {
 					self.displayMode = "distributions";
 					self.switchEventDisplayStyleFormVisibility();
+					self.switchBinsDisplayStyleFormVisibility();
 					console.log("Going from events to distributions");
 				}
 				if (displaySeconds < 60*60*24*7*3 )	{// less than 3 weeks
@@ -4490,6 +4589,54 @@ var Timeline = function(elemId, options) {
 		}
 	}
 	
+	self.binsDisplayStyleForm = self.controls.append("form")
+						.style("margin-left","15px")
+						.attr("class","displayControlForm")
+						.style("float","right");
+	self.binsDisplayStyleForm.append("label")
+		.text("Full height: ");
+	self.binsDisplayStyleForm.append("input")
+		.attr("id","displayBinFullHeightInput")
+		.attr("type","checkbox")
+		.attr("name","scale")
+		.property("checked",false)
+		.attr("value","Full height")
+		.on("change", function() {
+			self.displayFullHeightBins = this.checked;
+			if (this.checked == true)
+				d3.select("#displayBinColorInput").property("disabled","true");
+			else
+				d3.select("#displayBinColorInput").property("disabled","");
+			self.displayData();
+		});
+	self.binsDisplayStyleForm.append("label")
+		.text("Colors: ");
+	self.binsDisplayStyleForm.append("input")
+		.attr("id","displayBinColorInput")
+		.attr("type","checkbox")
+		.attr("name","scale")
+		.property("checked",true)
+		.attr("value","Colors")
+		.on("change", function() {
+			self.displayColorsInBins = this.checked;
+			if (this.checked == true)
+				d3.select("#displayBinFullHeightInput").property("disabled","");
+			else
+				d3.select("#displayBinFullHeightInput").property("disabled","true");
+			self.displayData();
+	});
+	
+	self.switchBinsDisplayStyleFormVisibility = function() {
+		var currentVisibility = self.binsDisplayStyleForm.style("display");
+		switch(currentVisibility) {
+			case "none":
+				self.binsDisplayStyleForm.style("display","flex");
+				break;
+			default:
+				self.binsDisplayStyleForm.style("display","none");
+		}
+	}
+	
 	self.eventDisplayStyle = "type";
 	
 	self.changeEventDisplayStyle = function() {
@@ -4505,7 +4652,7 @@ var Timeline = function(elemId, options) {
 	self.eventDisplayStyleForm = self.controls.append("form")
 						.style("margin-left","15px")
 						.attr("class","displayControlForm")
-						.style("visibility","hidden")
+						.style("display","none")
 						.style("float","right");
 	self.eventDisplayStyleForm.append("label")
 		.text("Order events by: ");
@@ -4531,13 +4678,13 @@ var Timeline = function(elemId, options) {
 	self.eventDisplayStyleForm.selectAll("input").on("change", self.changeEventDisplayStyle);
 	
 	self.switchEventDisplayStyleFormVisibility = function() {
-		var currentVisibility = self.eventDisplayStyleForm.style("visibility");
+		var currentVisibility = self.eventDisplayStyleForm.style("display");
 		switch(currentVisibility) {
-			case "hidden":
-				self.eventDisplayStyleForm.style("visibility","initial");
+			case "none":
+				self.eventDisplayStyleForm.style("display","flex");
 				break;
 			default:
-				self.eventDisplayStyleForm.style("visibility","hidden");
+				self.eventDisplayStyleForm.style("display","none");
 		}
 	}
 	

@@ -53,7 +53,7 @@ body {
     margin-left: auto;
 }
 
-.dropdown-content p input {
+.dropdown-content p * {
 	float: right;
 }
 
