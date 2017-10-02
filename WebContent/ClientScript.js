@@ -2644,8 +2644,8 @@ function addPatternToList(message) {
 					timeline.drawUsersPatterns();
 				}
 			});
-		var thisNameCell = thisRow.append("td")
-			.classed("dropdown", true);
+		var thisNameCell = thisRow.append("td");
+			//.classed("dropdown", true);
 		/*var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
 			.attr("height", 20);*/
@@ -2654,6 +2654,7 @@ function addPatternToList(message) {
 			.attr("patternId",pId);
 
 		// Create the menu
+		/*
 		var dropMenuDiv = thisNameCell.append("div")
 			.classed("dropdown-content", true)
 			.style("left","0");
@@ -2662,7 +2663,7 @@ function addPatternToList(message) {
 			.on("click", function() {
 				requestSteeringOnPattern(pId);
 				d3.event.stopPropagation();
-			});
+			});*/
 		
 		thisRow.append("td")
 			.text(pSize);
@@ -2699,8 +2700,8 @@ function addPatternToList(message) {
 					createPatternListDisplay();
 				}
 			});
-		let thisNameCell = thisRow.append("td")
-			.classed("dropdown", true);
+		let thisNameCell = thisRow.append("td");
+			//.classed("dropdown", true);
 		/*var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
 			.attr("height", 20);*/
@@ -2709,7 +2710,7 @@ function addPatternToList(message) {
 			.attr("patternId",pId);
 
 		// Create the menu
-		let dropMenuDiv = thisNameCell.append("div")
+		/*let dropMenuDiv = thisNameCell.append("div")
 			.classed("dropdown-content", true)
 			.style("left","0");
 		let steeringP = dropMenuDiv.append("p")
@@ -2717,7 +2718,7 @@ function addPatternToList(message) {
 			.on("click", function() {
 				requestSteeringOnPattern(pId);
 				d3.event.stopPropagation();
-			});
+			});*/
 		
 		thisRow.append("td")
 			.text(pSize);
@@ -2920,8 +2921,8 @@ function createPatternListDisplay() {
 					timeline.drawUsersPatterns();
 				}
 			});
-		var thisNameCell = thisRow.append("td")
-			.classed("dropdown", true);
+		var thisNameCell = thisRow.append("td");
+			//.classed("dropdown", true);
 		/*var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
 			.attr("height", 20);*/
@@ -2930,7 +2931,7 @@ function createPatternListDisplay() {
 			.attr("patternId",pId);
 
 		// Create the menu
-		var dropMenuDiv = thisNameCell.append("div")
+		/*var dropMenuDiv = thisNameCell.append("div")
 			.classed("dropdown-content", true)
 			.style("left","0");
 		let steeringP = dropMenuDiv.append("p")
@@ -2938,7 +2939,7 @@ function createPatternListDisplay() {
 			.on("click", function() {
 				requestSteeringOnPattern(pId);
 				d3.event.stopPropagation();
-			});
+			});*/
 		
 		thisRow.append("td")
 			.text(pSize);
