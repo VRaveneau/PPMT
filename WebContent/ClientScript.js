@@ -260,6 +260,8 @@ function processMessage(message/*Compressed*/) {
 			receiveEvents(msg);
 		if (msg.type === "patternOccs")
 			receivePatternOccurrences(msg);
+		if (msg.type === "patternDistribPerUser")
+			receivePatternDistributionPerUser(msg);
 	}
 	if (msg.action === "eventTypes") {	// Reception of data on the event types
 		receiveEventTypes(msg);
@@ -279,6 +281,7 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "info") {
 		if (msg.object === "newPattern") {
 			addPatternToList(msg);
+			requestUserDistributionForPattern(msg);
 		}
 	}
 	if (msg.action === "signal") {
@@ -310,6 +313,102 @@ function handleSteeringStartSignal(type, value) {
 function handleSteeringStopSignal() {
 	var displaySpan = d3.select("#focus")
 	.text("");
+}
+
+var userPatternDistrib = {};
+// Duration of a session in ms
+var sessionDuration = 3*60*60*1000;
+
+/**
+ * Updates the pattern counts in the users sessions
+ * @param message
+ * @returns
+ */
+function receivePatternDistributionPerUser(message) {
+	console.log("Receiving distrib message")
+	let users = message.users.split(";");
+	users.forEach(function(u) {
+		let thisUserSessions = userSessions[u];
+		let theseOccs = message[u].split(";");
+		
+		theseOccs.forEach(function(o) {
+			let idx = 0;
+			for (idx = 0; idx < thisUserSessions.length; idx++) {
+				if (thisUserSessions[idx].start <= Number(o) && thisUserSessions[idx].end >= Number(o)) {
+					if (thisUserSessions[idx].count.hasOwnProperty(message.patternId)) {
+						thisUserSessions[idx].count[message.patternId] += 1;
+					} else {
+						thisUserSessions[idx].count[message.patternId] = 1;
+					}
+					break;
+				}
+			}
+		});
+		
+	});
+	
+	timeline.drawUsersPatterns(); // TODO redraw only if visible changes (text displayed)
+}
+
+function receivePatternDistributionPerUserOld(message) {
+	console.log("Receiving distrib message")
+	let users = message.users.split(";");
+	users.forEach(function(u) {
+		let thisUser = userPatternDistrib[u];
+		let theseOccs = message[u].split(";");
+		
+		if (!(userPatternDistrib.hasOwnProperty(u))) { // The user doesn't have patterns yet
+		userPatternDistrib[u] = [];
+		}
+		
+		theseOccs.forEach(function(o) {
+			let theseSessions = userPatternDistrib[u];
+			let idx = 0;
+			for (idx = 0; idx < theseSessions.length; idx++) {
+				if (theseSessions[idx].start <= Number(o) && theseSessions[idx].start+sessionDuration > Number(o)) {
+					if (theseSessions[idx].count.hasOwnProperty(message.patternId)) {
+						theseSessions[idx].count[message.patternId] += 1;
+					} else {
+						theseSessions[idx].count[message.patternId] = 1;
+					}
+					break;
+				}
+			}
+			// Create a new session if needed
+			let cnt = {};
+			cnt[message.patternId] = 1;
+			userPatternDistrib[u].push({ start: Number(o), count: cnt});
+		});
+		
+	});
+	
+	timeline.drawUsersPatterns();
+}
+
+var sessionInactivityLimit = 30*60*1000; // 30 minutes
+var userSessions = {};
+/**
+ * Builds the user sessions based on the given inactivity duration to end a session
+ * A session has a start and an end (in milliseconds) and a pattern count
+ * @returns
+ */
+function buildUserSessions() {
+	for (var userIdx = 0; userIdx < userList.length; userIdx++) {
+		let u = userList[userIdx];
+		let lastEventDate = d3.timeParse('%Y-%m-%d %H:%M:%S')(userTraces[u][0][0].split(";")[1]).getTime();
+		userSessions[u] = [{start: Number(lastEventDate), end: Number(lastEventDate), count: {}}];
+		let idx = 1;
+		
+		for ( idx = 1; idx < userTraces[u].length; idx++) {
+			let thisEventDate = d3.timeParse('%Y-%m-%d %H:%M:%S')(userTraces[u][idx][0].split(";")[1]).getTime();
+			if (lastEventDate + sessionInactivityLimit > thisEventDate) { // keeping the current session
+				userSessions[u][userSessions[u].length - 1].end = Number(thisEventDate);
+			} else { // Create a new session
+				userSessions[u].push({start: Number(thisEventDate), end: Number(thisEventDate), count: {}});
+			}
+			lastEventDate = thisEventDate;
+		}
+	}
 }
 
 function receiveDatasetList(message) {
@@ -531,6 +630,16 @@ function disableCentralOverlay() {
 	console.log("Disable central overlay");
 	d3.select("#centerOverlay")
 		.style("visibility","hidden");
+}
+
+function requestUserDistributionForPattern(message) {
+	var action = {
+			action: "request",
+			object: "userDistributionForPattern",
+			pattern: message.id,
+			dataset: currentDatasetName
+	};
+	webSocket.send(JSON.stringify(action));
 }
 
 /**
@@ -1294,7 +1403,7 @@ function createUserListDisplay() {
 	}
 	
 	// Calling the display of the trace
-	timeline.drawUsersTraces();
+	//timeline.drawUsersTraces();  Keep commented until the function really draws the user traces
 }
 
 var lastUserSort = "";
@@ -2149,6 +2258,7 @@ function receiveEvents(eventsCompressed) {
 		console.log(firstEventReceived);
 		console.log("and");
 		console.log(lastEventReceived);
+		buildUserSessions();
 		computeMaxEventAtOneTime();
 		timeline.setEventsReady();
 		disableCentralOverlay();
@@ -2395,7 +2505,7 @@ function sortPatternsBySupport(decreasing=false) {
 	}
 }
 
-var lastPatternSort = "";
+var lastPatternSort = "sizeUp";
 
 function clickOnPatternNameHeader() {
 	if (lastPatternSort == "nameDown") {
@@ -2427,6 +2537,35 @@ function clickOnPatternSupportHeader() {
 	createPatternListDisplay();
 }
 
+function findNewPatternIndex(patternInfos) {
+	switch(lastPatternSort) {
+	case "nameDown":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][0] < patternInfos[0];
+		});
+	case "nameUp":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][0] > patternInfos[0];
+		});
+	case "sizeDown":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][1] < patternInfos[1];
+		});
+	case "sizeUp":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][1] > patternInfos[1];
+		});
+	case "supportDown":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][2] < patternInfos[2];
+		});
+	case "supportUp":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][2] > patternInfos[2];
+		});
+	}
+}
+
 var patternsInformation = {};
 var patternIdList = [];
 
@@ -2454,7 +2593,13 @@ function addPatternToList(message) {
 	}
 
 	patternsInformation[pId] = [pString, pSize, pSupport, pItems];
-	patternIdList.push(pId);
+	
+	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
+	
+	if (correctPositionInList == -1)
+		patternIdList.push(pId);
+	else
+		patternIdList.splice(correctPositionInList, 0, pId);
 	
 	numberOfPattern++;
 	// Update the number of pattern pages
@@ -2469,7 +2614,118 @@ function addPatternToList(message) {
 		.select("li").select("a")
 		.text("Full list ("+numberOfPattern+")");
 	
-	createPatternListDisplay();
+	//createPatternListDisplay();
+	if (correctPositionInList == -1) { // append at the end of the list
+		let patternList = d3.select("#patternTableBody");
+		let thisRow = patternList.append("tr")
+			.style("font-weight", "normal")
+			.attr("id","pattern"+pId)
+			.on("click", function() {
+				if (d3.event.shiftKey) { // Shift + click, steering
+					requestSteeringOnPattern(pId);
+					d3.event.stopPropagation();
+				} else { // Normal click, displays the occurrences
+					if (timeline.hasPatternOccurrences(pId) == false)
+						requestPatternOccurrences(pId, currentDatasetName);
+					else
+						timeline.displayPatternOccurrences(pId);
+					if (thisRow.style("font-weight") == "normal") {
+						selectedPatternIds.push(pId);
+						//thisRow.style("font-weight","bold");
+					} else {
+						var index = selectedPatternIds.indexOf(pId);
+						if (index >= 0)
+							selectedPatternIds.splice(index, 1);
+						//thisRow.style("font-weight","normal");
+					}
+					d3.event.stopPropagation();
+					console.log("click on "+pId);
+					createPatternListDisplay();
+					timeline.drawUsersPatterns();
+				}
+			});
+		var thisNameCell = thisRow.append("td")
+			.classed("dropdown", true);
+		/*var pSvg = thisNameCell.append("svg")
+			.attr("width", 20*pSize)
+			.attr("height", 20);*/
+		thisNameCell.append("span")
+			.text(pString)
+			.attr("patternId",pId);
+
+		// Create the menu
+		var dropMenuDiv = thisNameCell.append("div")
+			.classed("dropdown-content", true)
+			.style("left","0");
+		let steeringP = dropMenuDiv.append("p")
+			.text("Steer on this pattern")
+			.on("click", function() {
+				requestSteeringOnPattern(pId);
+				d3.event.stopPropagation();
+			});
+		
+		thisRow.append("td")
+			.text(pSize);
+		thisRow.append("td")
+			.text(pSupport);
+	} else { // append at the right position in the list
+		let firstUnselectedId = findFirstUnselectedId(correctPositionInList + 1);
+		let patternList = d3.select("#patternTableBody");
+		let firstUnselectedNode = d3.select("#"+patternIdList[firstUnselectedId]).node();
+		
+		let thisRow = d3.select(document.createElement("tr"))
+			.style("font-weight","normal")
+			.attr("id","pattern"+pId)
+			.on("click", function() {
+				if (d3.event.shiftKey) { // Shift + click, steering
+					requestSteeringOnPattern(pId);
+					d3.event.stopPropagation();
+				} else { // Normal click, displays the occurrences
+					if (timeline.hasPatternOccurrences(pId) == false)
+						requestPatternOccurrences(pId, currentDatasetName);
+					else
+						timeline.displayPatternOccurrences(pId);
+					if (thisRow.style("font-weight") == "normal") {
+						selectedPatternIds.push(pId);
+						//thisRow.style("font-weight","bold");
+					} else {
+						var index = selectedPatternIds.indexOf(pId);
+						if (index >= 0)
+							selectedPatternIds.splice(index, 1);
+						//thisRow.style("font-weight","normal");
+					}
+					d3.event.stopPropagation();
+					console.log("click on "+pId);
+					createPatternListDisplay();
+				}
+			});
+		let thisNameCell = thisRow.append("td")
+			.classed("dropdown", true);
+		/*var pSvg = thisNameCell.append("svg")
+			.attr("width", 20*pSize)
+			.attr("height", 20);*/
+		thisNameCell.append("span")
+			.text(pString)
+			.attr("patternId",pId);
+
+		// Create the menu
+		let dropMenuDiv = thisNameCell.append("div")
+			.classed("dropdown-content", true)
+			.style("left","0");
+		let steeringP = dropMenuDiv.append("p")
+			.text("Steer on this pattern")
+			.on("click", function() {
+				requestSteeringOnPattern(pId);
+				d3.event.stopPropagation();
+			});
+		
+		thisRow.append("td")
+			.text(pSize);
+		thisRow.append("td")
+			.text(pSupport);
+		
+		firstUnselectedNode.parentNode.insertBefore(thisRow, firstUnselectedNode);
+	}
 	
 	// Update the relevant metrics
 	if (patternMetrics["sizeDistribution"][pSize])
@@ -2559,8 +2815,35 @@ function updatePatternPageSize() {
 	createPatternListDisplay();
 }
 
+/*
+ * Finds the first id in the list of a pattern not selected by the user
+ * 	starting at a given index
+ * 
+ * Returns the new index in patternIdList
+ * or -1 if no index is suitable
+ * */
+function findFirstUnselectedId(startIdx) {
+	let newIdx = startIdx;
+	if (newIdx > patternIdList.length)
+		return -1;
+	while(selectedPatternIds.indexOf(patternIdList[newIdx]) != -1) {
+		newIdx++;
+		if (newIdx > patternIdList.length)
+			return -1;
+	}
+	return newIdx;
+}
+
+/*
+ * Add a pattern to the table containing the list of all patterns
+ */
+function addPatternListItemBeforeId(id, information, idx ) {
+	var patternList = d3.select("#patternTableBody");
+	
+}
+
 var selectedPatternIds = [];
-var patternPageSize = 200;
+var patternPageSize = 2000;
 var patternPageNumber = 1;
 var currentPatternPage = 1;
 
@@ -2612,6 +2895,7 @@ function createPatternListDisplay() {
 		
 		let thisRow = patternList.append("tr")
 			.style("font-weight",fontWeight)
+			.attr("id","pattern"+pId)
 			.on("click", function() {
 				if (d3.event.shiftKey) { // Shift + click, steering
 					requestSteeringOnPattern(pId);
@@ -2633,13 +2917,14 @@ function createPatternListDisplay() {
 					d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
+					timeline.drawUsersPatterns();
 				}
 			});
 		var thisNameCell = thisRow.append("td")
 			.classed("dropdown", true);
-		var pSvg = thisNameCell.append("svg")
+		/*var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
-			.attr("height", 20);
+			.attr("height", 20);*/
 		thisNameCell.append("span")
 			.text(pString)
 			.attr("patternId",pId);
@@ -2659,14 +2944,14 @@ function createPatternListDisplay() {
 			.text(pSize);
 		thisRow.append("td")
 			.text(pSupport);
-		
+		/*
 		for (var k = 0; k < pSize; k++) {
 			pSvg.append("path")
 				.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
 				.attr("transform","translate("+(10+20*k)+",10)")
 				.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)")//d3.hsl(parseFloat(eColor),100,50).rgb())
 				.attr("fill","none");
-		}
+		}*/
 	}
 }
 
@@ -3328,22 +3613,99 @@ var supportSlider = null;
  * Slider dedicated to the support
  */
 function setupAlgorithmSupportSlider() {
-	supportSlider = new SupportSlider("sliderSupport");
+	//supportSlider = new SupportSlider("sliderSupportArea");
+	supportSlider = document.getElementById("sliderSupport");
+	noUiSlider.create(supportSlider, {
+		range: {
+			'min': 0,
+			'max': 1000
+		},
+		orientation: 'horizontal',
+		start: [200],
+		pips: {
+			mode: 'positions',
+			values: [0, 25, 50, 75, 100],
+			stepped: true,
+			density: 3
+		},
+		tooltips: true,
+		step: 1,
+		format: {
+			to: function (value ) {
+				return value;
+			},
+			from: function ( value ) {
+				return value.replace('.-', '');
+			}
+		}
+	});
 }
+
+var windowSlider = null;
 
 /**
  * Slider dedicated to the window size
  * TODO replace with the maximum duration
  */
 function setupAlgorithmWindowSizeSlider() {
-	
+	windowSlider = document.getElementById("sliderWindow");
+	noUiSlider.create(windowSlider, {
+		range: {
+			'min': 0,
+			'max': 1000
+		},
+		orientation: 'horizontal',
+		start: [200],
+		pips: {
+			mode: 'positions',
+			values: [0, 25, 50, 75, 100],
+			stepped: true,
+			density: 3
+		},
+		tooltips: true,
+		step: 1,
+		format: {
+			to: function (value ) {
+				return value;
+			},
+			from: function ( value ) {
+				return value.replace('.-', '');
+			}
+		}
+	});
 }
+
+var sizeSlider = null;
 
 /**
  * Slider dedicated to the maximum size
  */
 function setupAlgorithmMaximumSizeSlider() {
-	
+	sizeSlider = document.getElementById("sliderSize");
+	noUiSlider.create(sizeSlider, {
+		range: {
+			'min': 0,
+			'max': 1000
+		},
+		orientation: 'horizontal',
+		start: [200],
+		pips: {
+			mode: 'positions',
+			values: [0, 25, 50, 75, 100],
+			stepped: true,
+			density: 3
+		},
+		tooltips: true,
+		step: 1,
+		format: {
+			to: function (value ) {
+				return value;
+			},
+			from: function ( value ) {
+				return value.replace('.-', '');
+			}
+		}
+	});
 }
 
 var gapSlider = null;
@@ -3352,7 +3714,32 @@ var gapSlider = null;
  * Slider dedicated to the gap
  */
 function setupAlgorithmGapSlider() {
-	gapSlider = new GapSlider("sliderGap");
+	//gapSlider = new GapSlider("sliderGap");
+	gapSlider = document.getElementById("sliderGap");
+	noUiSlider.create(gapSlider, {
+		range: {
+			'min': 0,
+			'max': 10
+		},
+		orientation: 'horizontal',
+		start: [0, 2],
+		connect: true,
+		pips: {
+			mode: 'steps',
+			stepped: true,
+			density: 3
+		},
+		tooltips: true,
+		step: 1,
+		format: {
+			to: function (value ) {
+				return value;
+			},
+			from: function ( value ) {
+				return value.replace('.-', '');
+			}
+		}
+	});
 }
 
 function updateAlgorithmGapSlider() {
@@ -3714,9 +4101,45 @@ var Timeline = function(elemId, options) {
 	
 	self.updateUserList = function() {
 		var nbUserShown = 10.0;
-		var shownUsersNames = userInformations.slice(0, nbUserShown).map(function(x) {
-			return x[0];
+		var shownUsersNames = Object.keys(userSessions).slice(0, nbUserShown).map(function(x) {
+			return x;
 		});
+		//var shownUsersNames = Object.keys(userSessions);
+		var nbUserShown = shownUsersNames.length;
+		
+		var step = self.marginUsers.size / (nbUserShown);
+		var i = 0;
+		var range = [];
+		for (i; i<= nbUserShown; i++)
+			range.push(0+i*step);
+		
+		
+		self.yUsers.domain([].concat(shownUsersNames));
+		
+		/*self.yUsers = d3.scaleBand()
+			.domain([].concat(shownUsersNames));
+			//.range(range);*/
+		
+		self.yAxisUsers = d3.axisLeft(self.yUsers)
+	        .tickValues([].concat(shownUsersNames));
+	        /*.tickFormat(function(d, i) {
+	        	return d;
+	        });*/
+		self.users.select(".axis--y").call(self.yAxisUsers);
+		
+		console.log("User List updated on the timeline");
+		
+		//requestUsersPatternOccurrences(userInformations.slice(0,nbUserShown));
+	}
+	
+	self.updateUserListOld = function() {
+		//var nbUserShown = 10.0;
+		/*var shownUsersNames = userInformations.slice(0, nbUserShown).map(function(x) {
+			return x[0];
+		});*/
+		var shownUsersNames = Object.keys(userPatternDistrib);
+		var nbUserShown = shownUsersNames.length;
+		
 		var step = self.marginUsers.size / (nbUserShown+1.0);
 		var i = 0;
 		var range = [];
@@ -3771,6 +4194,223 @@ var Timeline = function(elemId, options) {
 				self.canvasUsersContext.fill();
 				self.canvasUsersContext.closePath();
 			}
+		}
+		
+		//console.log("User traces drawn");
+	}
+	
+	self.colorToDataUserPatterns = {};
+	
+	self.drawUsersPatterns = function() {
+		console.log("Starting to draw users patterns");
+		
+		self.colorToDataUserPatterns = {};
+		let nextColor = 1;
+		
+		// get the 10 first users in the list
+		console.log("UI size : "+userInformations.length);
+		/*var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
+			return x[0];
+		});*/
+		
+		
+		console.log("UI size after : "+userInformations.length);
+		
+		self.canvasUsersContext.fillStyle = "#fff";
+		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
+		self.canvasUsersContext.fill();
+		
+		self.hiddenCanvasUsersContext.fillStyle = "#fff";
+		self.hiddenCanvasUsersContext.rect(0,0,self.hiddenCanvasUsers.attr("width"),self.hiddenCanvasUsers.attr("height"));
+		self.hiddenCanvasUsersContext.fill();
+		
+		let userNames = Object.keys(userSessions);
+
+		var nbUserShown = 10.0;
+		var shownUsers = Object.keys(userSessions).slice(0, nbUserShown).map(function(x) {
+			return x;
+		});
+
+		self.updateUserList();
+			
+		let hasSelected = (selectedPatternIds.length > 0);
+		
+		for (var i=0; i < userNames.length; i++) {
+			let userName = userNames[i];
+			
+			userSessions[userName].forEach(function(ses) {
+				let color = "steelblue";
+				if (hasSelected == true) {
+					color = "#c8daea";
+					Object.keys(ses.count).forEach(function(k) {
+						if (k in selectedPatternIds)
+							color = "red";
+					});
+				}
+				
+				/*var event = userTraces[userName][j];
+				var eventData = event[0].split(";");*/
+				
+				var x1 = self.xUsers(new Date(ses.start));
+				var x2 = self.xUsers(new Date(ses.end));
+				var y = self.yUsers(userName);
+				self.canvasUsersContext.beginPath();
+				
+
+				self.canvasUsersContext.lineWidth = self.yUsers.bandwidth();
+				self.canvasUsersContext.strokeStyle = color;
+				self.canvasUsersContext.moveTo(x1,y);
+				self.canvasUsersContext.lineTo(x2,y);
+				self.canvasUsersContext.lineCap = "butt";
+				self.canvasUsersContext.stroke();
+			    self.canvasUsersContext.closePath();
+			    
+			    // Attributing a color to data link for the hidden canvas
+			    var hiddenColor = [];
+			    // via http://stackoverflow.com/a/15804183
+			    if(nextColor < 16777215){
+			    	hiddenColor.push(nextColor & 0xff); // R
+			    	hiddenColor.push((nextColor & 0xff00) >> 8); // G 
+			    	hiddenColor.push((nextColor & 0xff0000) >> 16); // B
+
+			    	nextColor += 1;
+			    } else {
+			    	console.log('Warning : too may colors needed for the user patterns hidden canvas');
+			    }
+			    
+			    /* Create the info we want in the tooltip
+			    * Structure : [year,
+			    * start,
+			    * end,
+			    * nbEventsInBin,
+			    * user1;user2;...,
+			    * type1;type2;...,
+			    * type1:nbOcc;type2:nbOcc;...
+			    * nbEventsInSubBin,
+			    * hslColorValue1]
+			   	*/
+			    let ttInfo = [];
+			    
+			    for (var id in Object.keys(ses.count)) {
+			    	ttInfo.push(patternsInformation[id][0]+": "+ses.count[id]);
+			    }
+			    self.colorToDataUserPatterns["rgb("+hiddenColor.join(',')+")"] = ttInfo;
+			    
+			    // Drawing on the hidden canvas for the tooltip
+			    /*self.hiddenCanvasUsersContext.lineWidth = 1.5;
+				self.hiddenCanvasUsersContext.strokeStyle = "rgb("+hiddenColor.join(',')+")";
+				self.hiddenCanvasUsersContext.moveTo(x1,y);
+				self.hiddenCanvasUsersContext.lineTo(x2,y);
+				self.hiddenCanvasUsersContext.lineCap = "round";
+				self.hiddenCanvasUsersContext.stroke();
+			    self.hiddenCanvasUsersContext.closePath();*/
+			});
+		}
+		
+		//console.log("User traces drawn");
+	}
+	
+	self.drawUsersPatternsOld = function() {
+		console.log("Starting to draw users patterns");
+		
+		self.colorToDataUserPatterns = {};
+		let nextColor = 1;
+		
+		// get the 10 first users in the list
+		console.log("UI size : "+userInformations.length);
+		/*var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
+			return x[0];
+		});*/
+		
+		
+		console.log("UI size after : "+userInformations.length);
+		
+		self.canvasUsersContext.fillStyle = "#fff";
+		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
+		self.canvasUsersContext.fill();
+		
+		self.hiddenCanvasUsersContext.fillStyle = "#fff";
+		self.hiddenCanvasUsersContext.rect(0,0,self.hiddenCanvasUsers.attr("width"),self.hiddenCanvasUsers.attr("height"));
+		self.hiddenCanvasUsersContext.fill();
+		
+		let userNames = Object.keys(userPatternDistrib);
+
+		var shownUsers = userNames;
+
+		self.updateUserList();
+			
+		let hasSelected = (selectedPatternIds.length > 0);
+		
+		for (var i=0; i < userNames.length; i++) {
+			let userName = userNames[i];
+			
+			userPatternDistrib[userName].forEach(function(ses) {
+				let color = "steelblue";
+				if (hasSelected == true) {
+					color = "#c8daea";
+					Object.keys(ses.count).forEach(function(k) {
+						if (k in selectedPatternIds)
+							color = "red";
+					});
+				}
+				
+				/*var event = userTraces[userName][j];
+				var eventData = event[0].split(";");*/
+				
+				var x1 = self.xUsers(new Date(ses.start));
+				var x2 = self.xUsers(new Date(ses.start + sessionDuration));
+				var y = self.yUsers(userName);
+				self.canvasUsersContext.beginPath();
+				
+
+				self.canvasUsersContext.lineWidth = 1.5;
+				self.canvasUsersContext.strokeStyle = color;
+				self.canvasUsersContext.moveTo(x1,y);
+				self.canvasUsersContext.lineTo(x2,y);
+				self.canvasUsersContext.lineCap = "round";
+				self.canvasUsersContext.stroke();
+			    self.canvasUsersContext.closePath();
+			    
+			    // Attributing a color to data link for the hidden canvas
+			    var hiddenColor = [];
+			    // via http://stackoverflow.com/a/15804183
+			    if(nextColor < 16777215){
+			    	hiddenColor.push(nextColor & 0xff); // R
+			    	hiddenColor.push((nextColor & 0xff00) >> 8); // G 
+			    	hiddenColor.push((nextColor & 0xff0000) >> 16); // B
+
+			    	nextColor += 1;
+			    } else {
+			    	console.log('Warning : too may colors needed for the user patterns hidden canvas');
+			    }
+			    
+			    /* Create the info we want in the tooltip
+			    * Structure : [year,
+			    * start,
+			    * end,
+			    * nbEventsInBin,
+			    * user1;user2;...,
+			    * type1;type2;...,
+			    * type1:nbOcc;type2:nbOcc;...
+			    * nbEventsInSubBin,
+			    * hslColorValue1]
+			   	*/
+			    let ttInfo = [];
+			    
+			    for (var id in Object.keys(ses.count)) {
+			    	ttInfo.push(patternsInformation[id][0]+": "+ses.count[id]);
+			    }
+			    self.colorToDataUserPatterns["rgb("+hiddenColor.join(',')+")"] = ttInfo;
+			    
+			    // Drawing on the hidden canvas for the tooltip
+			    /*self.hiddenCanvasUsersContext.lineWidth = 1.5;
+				self.hiddenCanvasUsersContext.strokeStyle = "rgb("+hiddenColor.join(',')+")";
+				self.hiddenCanvasUsersContext.moveTo(x1,y);
+				self.hiddenCanvasUsersContext.lineTo(x2,y);
+				self.hiddenCanvasUsersContext.lineCap = "round";
+				self.hiddenCanvasUsersContext.stroke();
+			    self.hiddenCanvasUsersContext.closePath();*/
+			});
 		}
 		
 		//console.log("User traces drawn");
@@ -4268,6 +4908,9 @@ var Timeline = function(elemId, options) {
 		self.svgFocus.select(".zoom")
 			.call(self.zoom.transform, d3.zoomIdentity.scale(self.width / (s[1] - s[0]))
 			.translate(-s[0], 0));
+		self.svgUsers.select(".zoom")
+			.call(self.zoom.transform, d3.zoomIdentity.scale(self.width / (s[1] - s[0]))
+			.translate(-s[0], 0));
 	};
 
 	self.typeHeight = {};
@@ -4404,7 +5047,7 @@ var Timeline = function(elemId, options) {
 			console.log("Trying to display data in an unknown way. displayMode = "+self.displayMode);
 		}
 		
-		self.drawUsersTraces();
+		self.drawUsersPatterns();
 		
 		//self.drawUsers();
 		//self.drawPatternBins(self.patternBins);
@@ -4413,6 +5056,7 @@ var Timeline = function(elemId, options) {
 	
 	self.zoomClick = function() {
 		self.zoomRect.call(self.zoom.transform, d3.zoomIdentity.scale(0.2));
+		self.zoomRectUsers.call(self.zoom.transform, d3.zoomIdentity.scale(0.2));
 		
 		//var t = d3.zoomTransforme(self.zoomRect.node());
 		//var x = t.x;
@@ -4464,6 +5108,7 @@ var Timeline = function(elemId, options) {
 			self.currentZoomScale += 0.05;
 			self.currentZoomScale = Math.max(0.05, self.currentZoomScale);
 			self.zoomRect.call(self.zoom.scaleBy, 1.1);
+			self.zoomRectUsers.call(self.zoom.scaleBy, 1.1);
 			console.log("Zoom: "+self.currentZoomScale);
 		});
 	self.zoomForm.append("input")
@@ -4476,6 +5121,7 @@ var Timeline = function(elemId, options) {
 			self.currentZoomScale -= 0.05;
 			self.currentZoomScale = Math.max(1.0, self.currentZoomScale);
 			self.zoomRect.call(self.zoom.scaleBy, 0.9);
+			self.zoomRectUsers.call(self.zoom.scaleBy, 0.9);
 			console.log("Zoom: "+self.currentZoomScale);
 		});
 	
@@ -4843,6 +5489,24 @@ var Timeline = function(elemId, options) {
 		}
 	}
 	
+	self.displayToolTipSessionPatterns = function(data) {
+		/* Structure : 
+		 * ["name: number"]
+	   	 */
+		var message = "";
+		
+		if (data.length == 0)
+			message = "No pattern in this session";
+		else {
+			for (let pIdx = 0; pIdx < data.length; pIdx++) {
+				message += data[pIdx];
+				if (pIdx + 1 < data.length)
+					message += "<br>"
+			}
+		}
+		tooltip.show(message, 400);
+	}
+	
 	// Parameters about size and margin of the timeline's parts
 	/* Initial config
 	self.marginFocus = {"top": 20,"right": 20,"bottom": 300,"left": 40}; // bottom 110
@@ -4934,6 +5598,15 @@ var Timeline = function(elemId, options) {
 		.style("height", self.marginUsers.size+"px");	
 	self.canvasUsersContext = self.canvasUsers.node().getContext("2d");
 	
+	self.hiddenCanvasUsers = d3.select(self.nodeUsers).append("canvas")
+		.attr("width",self.width)
+		.attr("height",self.marginUsers.size)
+		.style("position","relative")
+		.style("top",self.marginUsers.top.toString()+"px")
+		.style("left", (self.marginUsers.left - self.width).toString()+"px")
+		.style("display","none");
+	self.hiddenCanvasUsersContext = self.hiddenCanvasUsers.node().getContext("2d");
+	
 	self.colorToData = {}; // Binding between the hidden canvas and the drawn one
 	
 	self.svgFocus = d3.select(self.nodeFocus).append("svg")
@@ -4985,14 +5658,16 @@ var Timeline = function(elemId, options) {
 	self.xPatterns = d3.scaleTime().range([0, self.width]);
 	self.yPatterns = d3.scalePoint().range([self.marginPatterns.size,0]);
 	self.xUsers = d3.scaleTime().range([0, self.width]);
-	self.yUsers = d3.scaleOrdinal().range([self.marginUsers.size,0]);
+	self.yUsers = d3.scaleBand()
+			.range([self.marginUsers.size,0])
+			.padding(0.2);
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
 	self.yAxisFocus = d3.axisLeft(self.yFocus).tickSizeInner(-self.width);
 	self.xAxisPatterns = d3.axisBottom(self.xPatterns);
 	self.yAxisPatterns = d3.axisLeft(self.yPatterns).tickSizeInner(-self.width);
 	self.xAxisUsers = d3.axisBottom(self.xUsers);
-	self.yAxisUsers = d3.axisLeft(self.yUsers).tickSizeInner(-self.width);
+	self.yAxisUsers = d3.axisLeft(self.yUsers);//.tickSizeInner(-self.width);
 	// The brush component of the context part
 	self.brush = d3.brushX()
 		.extent([[0, 0], [self.width, self.marginContext.size]])
@@ -5096,6 +5771,64 @@ var Timeline = function(elemId, options) {
 			if (self.tooltipCreated == true)
 				tooltip.hide();
 		});
+	// Creating the zoomable rectangle on the user patterns part of the timeline
+	self.userTooltipCreated = false;
+	self.zoomRectUsers = self.svgUsers.append("rect")
+		.attr("class", "zoom")
+		.attr("width", self.width)
+		.attr("height", self.marginUsers.size)
+		.attr("transform", "translate(" + self.marginUsers.left + "," + self.marginUsers.top + ")")
+		.call(self.zoom)
+		.on("mousemove", function(){	// Handling picking
+			var coords = d3.mouse(this);
+			let mouseDate = self.xUsers.invert(coords[0]).getTime();
+			let userListDomain = self.yUsers.domain();
+			let userListRange = self.yUsers.range();
+			let mouseUser = userListDomain[d3.bisect(userListRange, coords[1]) -1];
+			
+			// get the correct user session
+			let theSession = null;
+			for (let sessIt=0; sessIt < userSessions[mouseUser].length; sessIt++) {
+				let sess = userSessions[mouseUser][sessIt];
+				if (sess.start > mouseDate)
+					break;
+				if (sess.end >= mouseDate) {
+					theSession = sess;
+					break;
+				}
+			}
+			// Display the tooltip if we have found a session
+			if (theSession !== null) {
+				let data = [];
+			    for (var id in Object.keys(theSession.count)) {
+			    	data.push(patternsInformation[id][0]+": "+theSession.count[id]);
+			    }
+				self.displayToolTipSessionPatterns(data);
+				self.userTooltipCreated = true;
+				console.log("Session: "+mouseUser+" / "+patternsInformation[id][0]);
+			} else {
+				if (self.userTooltipCreated == true)
+					tooltip.hide();
+			}
+			
+			 // Old version, with the pixel colors
+			/*var pixelColor = self.hiddenCanvasUsersContext.getImageData(coords[0], coords[1],1,1).data;
+			if (pixelColor[0] != 255 && pixelColor[1] != 255 && pixelColor[2] != 255) {
+				var colorString = "rgb("+pixelColor[0]+","+pixelColor[1]+","+pixelColor[2]+")";
+				var data = self.colorToDataUserPatterns[colorString];
+				if (typeof data !== 'undefined') {
+					self.displayToolTip(data);
+				}
+				self.userTooltipCreated = true;
+			} else {
+				if (self.userTooltipCreated == true)
+					tooltip.hide();
+			}*/
+		})
+		.on("mouseout", function(){
+			if (self.userTooltipCreated == true)
+				tooltip.hide();
+		});
 	
 	self.context.select(".brush").select(".selection")
 		.attr("fill","white")
@@ -5137,15 +5870,15 @@ var Timeline = function(elemId, options) {
 		self.xUsers = d3.scaleTime()
 		.domain([startTime,endTime])
 			.range([0,self.width]);
-		self.yUsers = d3.scaleOrdinal()
-		.domain(userList)
-			.range([0, self.heightUsers]);
+		/*self.yUsers = d3.scaleBand()
+			.domain(userList)
+			.range([self.marginUsers.size, 0]);*/
 			
 		self.xAxisFocus = d3.axisBottom(self.xFocus);
 		self.xAxisContext = d3.axisBottom(self.xContext);
 		self.xAxisPatterns = d3.axisBottom(self.xPatterns);
 		self.xAxisUsers = d3.axisBottom(self.xUsers);
-		self.yAxisUsers = d3.axisLeft(self.yUsers);
+		//self.yAxisUsers = d3.axisLeft(self.yUsers);
 
 		self.focus.select(".axis--x").call(self.xAxisFocus);
 		self.context.select(".axis--x").call(self.xAxisContext);

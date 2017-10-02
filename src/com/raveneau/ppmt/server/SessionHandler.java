@@ -820,4 +820,35 @@ public class SessionHandler {
 				.add("type", "steeringStop");
 		sendToSession(session, dataMessage.build());
 	}
+
+	public void providePatternDistributionPerUser(Integer patternId, String datasetName, Session session) {
+		JsonProvider provider = JsonProvider.provider();
+    	
+    	Pattern p = datasetManager.getDataset(datasetName).getPatternManager(session).getPattern(patternId);
+    	List<String> users = datasetManager.getDataset(datasetName).getUsers();
+    	
+    	JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "data")
+				.add("type", "patternDistribPerUser")
+				.add("patternId", patternId);
+    	
+    	String relevantUsers = "";
+    	int relevantUserCount = 0;
+    	
+    	for (String u: users) {
+    		List<long[]> occs = p.buildOccurrencesBinForUser(u);
+    		if (!occs.isEmpty()) {
+    			relevantUserCount++;
+    			relevantUsers += u+";";
+    			String theseOccs = "";
+    			for (long[] ts: occs) {
+    				theseOccs += String.valueOf(ts[0]+(ts[1]-ts[0])/2)+";";
+    			}
+    			dataMessage.add(u, theseOccs.substring(0, theseOccs.length()-1));
+    		}
+    	}
+
+		dataMessage.add("users", relevantUsers.substring(0, relevantUsers.length()-1));
+    	sendToSession(session, dataMessage.build());
+	}
 }

@@ -8,6 +8,7 @@
 <!--         <script src="http://api.simile-widgets.org/timeline/2.3.1/timeline-api.js?bundle=true" type="text/javascript"></script> -->
         <link rel="stylesheet" type="text/css" href="style.css">
         <link href="Vis/vis.css" rel="stylesheet" type="text/css" />
+        <link href="noUiSlider/nouislider.css" rel="stylesheet" type="text/css" />
     </head>
 
 <!-- 	<body onload="onLoad();" onresize="onResize();"> 			Uniquement si on utilise la timeline MIT-->
@@ -134,6 +135,7 @@
 								<div id="tl_focusControl"></div>
 								<div id="tl_focus"></div>
 								<div class="tl_separator"><span>User patterns</span></div>
+								<div id="tl_usersControl"></div>
 								<div id="tl_users"></div>
 								<div class="tl_separator"><span>Selected users</span></div>
 								<div id="tl_selectedUsers"></div>
@@ -224,7 +226,7 @@
 					</div>
 				
 					<div id="Algorithm" class="patternTabContent">
-					<form id="algorithmForm" onSubmit="return runAlgorithm()">
+					<!-- <form id="algorithmForm" onSubmit="return runAlgorithm()">
 						<p >	Minimal support&nbsp;
 							<input type="number" class="numberInput" id="inputMinSup" form="algorithmForm" min="0" max="1" step="0.01" required>
 							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMinSup>none</span>)</span>
@@ -246,21 +248,27 @@
 						</form>
 						<p><a href="javascript:void(0)" onclick="runAlgoToFile()">Run algo and save to file</a></p>
 						<!-- rerun button -->
-						<br>
-						<hr>
-						<div id="sliderSupport">
+						<!-- <br>
+						<hr> -->
+						<div id="sliderSupportArea">
 							<p>Support:</p>
+							<br>
+							<div id="sliderSupport"></div>
 						</div>
-						<div id="sliderGap">
+						<div id="sliderGapArea">
 							<p>Gap:</p>
+							<br>
+							<div id="sliderGap"></div>
 						</div>
-						<div id="sliderWindow">
+						<div id="sliderWindowArea">
 							<p>Window:</p>
-							<svg class="slider"></svg>
+							<br>
+							<div id="sliderWindow"></div>
 						</div>
-						<div id="sliderSize">
+						<div id="sliderSizeArea">
 							<p>Size:</p>
-							<svg class="slider"></svg>
+							<br>
+							<div id="sliderSize"></div>
 						</div>
 					</div>
 					
@@ -317,6 +325,7 @@
 		</div>
 	    <script src="jscolor/jscolor.js" type="text/javascript"></script> <!-- http://jscolor.com -->
 		<script src="D3/d3.js" type="text/javascript"></script>
+		<script src="noUiSlider/nouislider.js" type="text/javascript"></script>
 		<script src="d3-symbol-extra.js" type="text/javascript"></script>
 		<script src="customSymbols.js" type="text/javascript"></script>
 		<script src="lz-string.js" type="text/javascript"></script> <!-- -->

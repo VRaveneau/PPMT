@@ -122,7 +122,10 @@ public class ServerEndpointPPMT {
 	  			System.out.println("user requests the patterns of user "+jsonMessage.getString("user")+" in dataset "+jsonMessage.getString("dataset"));
 	  			sessionHandler.providePatterns(jsonMessage.getString("user"), jsonMessage.getString("dataset"),session);
 	  			}
-	  		}
+	  		} else
+		  		if ("userDistributionForPattern".equals(jsonMessage.getString("object"))) {
+		  			sessionHandler.providePatternDistributionPerUser(jsonMessage.getInt("pattern"), jsonMessage.getString("dataset"),session);
+		  		}
 	  	}
 		if ("steerOnPattern".equals(jsonMessage.getString("action"))) {
 			System.out.println("ServerEndpoint : receive steering request on pattern id "+jsonMessage.getInt("patternId"));

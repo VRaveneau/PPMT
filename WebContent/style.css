@@ -665,9 +665,18 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
 /*	Sliders			*/
 /********************/
 
+#sliderSupportArea, #sliderGapArea, #sliderWindowArea, #sliderSizeArea {
+	height: 100px;
+}
+
+#sliderSupport, #sliderGap, #sliderWindow, #sliderSize {
+	margin: 10px 20px;
+}
+
+/*
 #sliderGap {
 	width: 100%;
-	height: 50px;
+	height: 75px;
 }
 
 #sliderGap p {
@@ -708,7 +717,7 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
   stroke: #000;
   stroke-opacity: 0.5;
   stroke-width: 1.25px;
-}
+}*/
 
 /********************/
 /*	Tooltip			*/
