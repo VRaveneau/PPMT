@@ -1511,6 +1511,7 @@ function clickOnUserNameHeader() {
 	}
 	
 	createUserListDisplay();
+	timeline.drawUsersPatterns();
 }
 
 function clickOnUserNbEventsHeader() {
@@ -1521,6 +1522,7 @@ function clickOnUserNbEventsHeader() {
 	}
 	
 	createUserListDisplay();
+	timeline.drawUsersPatterns();
 }
 
 function clickOnUserDurationHeader() {
@@ -1531,6 +1533,7 @@ function clickOnUserDurationHeader() {
 	}
 	
 	createUserListDisplay();
+	timeline.drawUsersPatterns();
 }
 
 function clickOnUserStartHeader() {
@@ -1541,6 +1544,7 @@ function clickOnUserStartHeader() {
 	}
 	
 	createUserListDisplay();
+	timeline.drawUsersPatterns();
 }
 
 function clickOnUserEndHeader() {
@@ -1551,6 +1555,7 @@ function clickOnUserEndHeader() {
 	}
 	
 	createUserListDisplay();
+	timeline.drawUsersPatterns();
 }
 
 function receiveUserListOld(message) {
@@ -4102,11 +4107,16 @@ var Timeline = function(elemId, options) {
 	
 	self.updateUserList = function() {
 		var nbUserShown = 10.0;
-		var shownUsersNames = Object.keys(userSessions).slice(0, nbUserShown).map(function(x) {
-			return x;
+		
+		var shownUsersNames = userInformations.slice(0, nbUserShown).map(function(uI) {
+			return uI[0]; // Only get the userName
 		});
+		
+		/*var shownUsersNames = Object.keys(userSessions).slice(0, nbUserShown).map(function(x) {
+			return x;
+		});*/
 		//var shownUsersNames = Object.keys(userSessions);
-		var nbUserShown = shownUsersNames.length;
+		//var nbUserShown = shownUsersNames.length;
 		
 		var step = self.marginUsers.size / (nbUserShown);
 		var i = 0;
@@ -4228,9 +4238,14 @@ var Timeline = function(elemId, options) {
 		let userNames = Object.keys(userSessions);
 
 		var nbUserShown = 10.0;
+		
+		var shownUsers = userInformations.slice(0, nbUserShown).map(function(uI) {
+			return uI[0]; // Only get the userName
+		});
+		/*
 		var shownUsers = Object.keys(userSessions).slice(0, nbUserShown).map(function(x) {
 			return x;
-		});
+		});*/
 
 		self.updateUserList();
 			
@@ -5660,7 +5675,7 @@ var Timeline = function(elemId, options) {
 	self.yPatterns = d3.scalePoint().range([self.marginPatterns.size,0]);
 	self.xUsers = d3.scaleTime().range([0, self.width]);
 	self.yUsers = d3.scaleBand()
-			.range([self.marginUsers.size,0])
+			.range([0, self.marginUsers.size])
 			.padding(0.2);
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
@@ -5785,8 +5800,11 @@ var Timeline = function(elemId, options) {
 			let mouseDate = self.xUsers.invert(coords[0]).getTime();
 			let userListDomain = self.yUsers.domain();
 			let userListRange = self.yUsers.range();
-			let mouseUser = userListDomain[d3.bisect(userListRange, coords[1]) -1];
 			
+			let mouseUserIndex = Math.round((coords[1] / self.yUsers.step()));
+			
+			let mouseUser = userListDomain[mouseUserIndex];//userListDomain[d3.bisect(userListRange, coords[1]) -2];
+			console.log("Mouse x-y: "+coords[0]+"-"+coords[1]+" / "+mouseUser+" at "+self.xUsers.invert(coords[0]));
 			// get the correct user session
 			let theSession = null;
 			for (let sessIt=0; sessIt < userSessions[mouseUser].length; sessIt++) {
