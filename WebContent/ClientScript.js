@@ -5819,12 +5819,18 @@ var Timeline = function(elemId, options) {
 			// Display the tooltip if we have found a session
 			if (theSession !== null) {
 				let data = [];
-			    for (var id in Object.keys(theSession.count)) {
-			    	data.push(patternsInformation[id][0]+": "+theSession.count[id]);
-			    }
+				if (Object.keys(theSession.count).length > 0) {
+				    for (var id in Object.keys(theSession.count)) {
+				    	console.log(id);
+				    	let msg = patternsInformation[id][0]+": ";
+				    	msg += theSession.count[id];
+				    	console.log("-->"+msg);
+				    	data.push(msg);
+				    }
+				    console.log("Session: "+mouseUser+" / "+patternsInformation[id][0].toString());
+				}
 				self.displayToolTipSessionPatterns(data);
 				self.userTooltipCreated = true;
-				console.log("Session: "+mouseUser+" / "+patternsInformation[id][0]);
 			} else {
 				if (self.userTooltipCreated == true)
 					tooltip.hide();
