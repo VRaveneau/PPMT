@@ -750,3 +750,15 @@ margin-left:5px;
 /*background:url(images/tt_bottom.gif) top right no-repeat;*/
 overflow:hidden;
 }
+
+/********************/
+/*	Helper icon		*/
+/********************/
+
+.float-left {
+	
+}
+
+.iconHelper {
+	color: grey;
+}

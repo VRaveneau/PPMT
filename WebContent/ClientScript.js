@@ -594,11 +594,25 @@ function setupTool() {
 	document.getElementById("defaultPatternTab").click();	// Set the "list" pattern-tab active by default
 
 	createTimeline();	// TODO Initialize the timeline
+	setupHelpers();
 	
 	setupAlgorithmSliders();
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
+}
+
+var helperTooltipVisible = false;
+
+function setupHelpers() {
+	d3.select("#helpSupport")
+		.attr("title", "Minimim number of occurrences to be considered frequent");
+	/*d3.select("#helpGap")
+		.attr("title", "Number of events in the pattern that don't belong to it");*/
+	d3.select("#helpWindow")
+		.attr("title", "The minimal support for a pattern to be frequent");
+	d3.select("#helpSize")
+		.attr("title", "Maximum number of event in a pattern");
 }
 
 function startTool(datasetName) {
@@ -4546,8 +4560,8 @@ var Timeline = function(elemId, options) {
 		
 		self.yFocus.domain([0.0, maxHeight/*+1.0*/]);
 		self.focus.select(".axis--y")
-	      .call(self.yAxisFocus)
-			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
+	      .call(self.yAxisFocus);
+			//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 		
 
 		self.canvasContext.fillStyle = "#fff";
@@ -5679,7 +5693,7 @@ var Timeline = function(elemId, options) {
 			.padding(0.2);
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
-	self.yAxisFocus = d3.axisLeft(self.yFocus).tickSizeInner(-self.width);
+	self.yAxisFocus = d3.axisLeft(self.yFocus);//.tickSizeInner(-self.width);
 	self.xAxisPatterns = d3.axisBottom(self.xPatterns);
 	self.yAxisPatterns = d3.axisLeft(self.yPatterns).tickSizeInner(-self.width);
 	self.xAxisUsers = d3.axisBottom(self.xUsers);
@@ -5721,8 +5735,8 @@ var Timeline = function(elemId, options) {
 		.call(self.xAxisFocus);
 	self.focus.append("g")
 		.attr("class", "axis axis--y")
-		.call(self.yAxisFocus)
-		.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
+		.call(self.yAxisFocus);
+		//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Creating the xAxis for the context part of the timeline
 	self.context.append("g")
 		.attr("class","axis axis--x")
@@ -6033,8 +6047,8 @@ var Timeline = function(elemId, options) {
 	      .call(self.xAxisFocus);
 
 		self.focus.select(".axis--y")
-	      .call(self.yAxisFocus)
-			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
+	      .call(self.yAxisFocus);
+			//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 
 		/*self.context.append("path")			ALREADY COMMENTED OUT
 	      .datum(csvData)
@@ -6102,8 +6116,8 @@ var Timeline = function(elemId, options) {
 	      .call(this.xAxisFocus);
 
 		self.focus.select(".axis--y")
-	      .call(self.yAxisFocus)
-			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
+	      .call(self.yAxisFocus);
+			//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 
 		/*self.context.append("path")
 	      .datum(csvData)
