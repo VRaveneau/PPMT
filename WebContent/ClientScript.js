@@ -4268,13 +4268,15 @@ var Timeline = function(elemId, options) {
 		for (var i=0; i < userNames.length; i++) {
 			let userName = userNames[i];
 			
-			userSessions[userName].forEach(function(ses) {
+			userSessions[userName].forEach(function(ses, sesIdx) {
 				let color = "steelblue";
 				if (hasSelected == true) {
-					color = "#c8daea";
-					Object.keys(ses.count).forEach(function(k) {
-						if (k in selectedPatternIds)
+					color = "#c8daea"; // lighter blue
+					Object.keys(ses.count).forEach(function(id, idx) {
+						if (selectedPatternIds.includes(Number(id))) {
+							console.log(id+" selected");
 							color = "red";
+						}
 					});
 				}
 				
@@ -4296,9 +4298,9 @@ var Timeline = function(elemId, options) {
 			    self.canvasUsersContext.closePath();
 			    
 			    // Attributing a color to data link for the hidden canvas
-			    var hiddenColor = [];
+			    //var hiddenColor = [];
 			    // via http://stackoverflow.com/a/15804183
-			    if(nextColor < 16777215){
+			    /*if(nextColor < 16777215){
 			    	hiddenColor.push(nextColor & 0xff); // R
 			    	hiddenColor.push((nextColor & 0xff00) >> 8); // G 
 			    	hiddenColor.push((nextColor & 0xff0000) >> 16); // B
@@ -4306,7 +4308,7 @@ var Timeline = function(elemId, options) {
 			    	nextColor += 1;
 			    } else {
 			    	console.log('Warning : too may colors needed for the user patterns hidden canvas');
-			    }
+			    }*/
 			    
 			    /* Create the info we want in the tooltip
 			    * Structure : [year,
@@ -4319,13 +4321,14 @@ var Timeline = function(elemId, options) {
 			    * nbEventsInSubBin,
 			    * hslColorValue1]
 			   	*/
+			    /*
 			    let ttInfo = [];
 			    
 			    for (var id in Object.keys(ses.count)) {
 			    	ttInfo.push(patternsInformation[id][0]+": "+ses.count[id]);
 			    }
 			    self.colorToDataUserPatterns["rgb("+hiddenColor.join(',')+")"] = ttInfo;
-			    
+			    */
 			    // Drawing on the hidden canvas for the tooltip
 			    /*self.hiddenCanvasUsersContext.lineWidth = 1.5;
 				self.hiddenCanvasUsersContext.strokeStyle = "rgb("+hiddenColor.join(',')+")";
@@ -5834,14 +5837,11 @@ var Timeline = function(elemId, options) {
 			if (theSession !== null) {
 				let data = [];
 				if (Object.keys(theSession.count).length > 0) {
-				    for (var id in Object.keys(theSession.count)) {
-				    	console.log(id);
-				    	let msg = patternsInformation[id][0]+": ";
+					Object.keys(theSession.count).forEach(function(id, idx) {
+						let msg = patternsInformation[id][0]+": ";
 				    	msg += theSession.count[id];
-				    	console.log("-->"+msg);
 				    	data.push(msg);
-				    }
-				    console.log("Session: "+mouseUser+" / "+patternsInformation[id][0].toString());
+					})
 				}
 				self.displayToolTipSessionPatterns(data);
 				self.userTooltipCreated = true;
