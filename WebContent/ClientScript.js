@@ -425,6 +425,16 @@ function receiveDatasetList(message) {
 		item.on("click",function() {
 			startTool(dsName);
 		});
+		
+		switch(dsName) {
+		case "coconotesPPMT":
+			item.style("order","1");
+			break;
+		case "recsysSamplecategory":
+			item.style("order","2");
+			break;
+		default:
+		}
 	}
 }
 
@@ -589,9 +599,6 @@ function init() {
 
 function setupTool() {
 	console.log("Init");
-	
-	document.getElementById("defaultControlTab").click();	// Set the "trace" tab active by default
-	document.getElementById("defaultPatternTab").click();	// Set the "list" pattern-tab active by default
 
 	createTimeline();	// TODO Initialize the timeline
 	setupHelpers();

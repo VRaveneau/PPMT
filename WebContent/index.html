@@ -20,26 +20,28 @@
 				<div><span class="caps">P</span>rogressive <span class="caps">P</span>attern <span class="caps">M</span>ining <span class="caps">T</span>ool</div>
 			
 			</div>
-			<div id="datasetSelection">
-				<h3>Select the dataset you want to use :</h3>
+			<div id="datasetSelection" class="section">
+				<div class="text-centered">
+					<h2>Select the dataset you want to use</h2>
+				</div>
 				<ul id='datasetList'>
 				
 				</ul>
 			</div>
 			<div id="tool">
 			
-				<div id="left">
+				<div id="left" class="section">
 					
-					<div class="text-centered">The data</div>
+					<div class="title">The data</div>
 					
 					<ul class="controlTabs">
-						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Trace')" id="defaultControlTab">Trace</a></li>
+						<li><a href="javascript:void(0)" class="controlTabLink active" onclick="openControlTab(event, 'Trace')">Trace</a></li>
 						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Event types</a></li>
 						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
 						<!-- <li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Filters')">Filters</a></li>   -->
 					</ul>
 					
-					<div id="Trace" class="controlTabContent">
+					<div id="Trace" class="controlTabContent defaultControlTab">
 						<!-- Info on trace -->
 						<p>This dataset:</p>
 						<div id="datasetInfo">
@@ -114,7 +116,7 @@
 				
 				<div id="middle">
 				
-					<div id="top">
+					<div id="top" class="section">
 						<!-- Activity indicator, disabled for now
 						<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
 							<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
@@ -126,7 +128,7 @@
 					</div>
 				
 				<!--  <div id="display">  -->
-					<div id="center">
+					<div id="center" class="section">
 						<div id="timeline-view">
 							<div id="timeline">
 								<div class="tl_separator"><span>Overview</span></div>
@@ -156,8 +158,8 @@
 					
 				<div id="right">
 				
-					<div id="algorithmInfo">
-						<div class="text-centered">The Algorithm</div>
+					<div id="algorithmInfo" class="section">
+						<div class="title">The Algorithm</div>
 						
 						<p>Runtime: <span id="runtime">00:00</span></p>
 						<p><span id="currentAlgorithmWork">Algorithm not running</span></p>
@@ -165,113 +167,117 @@
 						<p>Focusing on: <span id="focus"></span></p>
 					</div>
 					
-					<div class="text-centered">The Patterns</div>
+					<div id="patternArea" class="section">
 					
-					<form>
-						<div class="searchBarArea">
-							<input type="submit" class="searchButton" value="Search">
-							<div><input type="text" class="searchField"></div>
+						<div class="title">The Patterns</div>
+						
+						<form>
+							<div class="searchBarArea">
+								<input type="submit" class="searchButton" value="Search">
+								<div><input type="text" class="searchField"></div>
+							</div>
+						</form>
+					
+						<ul class="patternTabs">
+							<li><a href="javascript:void(0)" class="patternTabLink active" onclick="openPatternTab(event, 'List')">Full list</a></li>
+							<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Metrics')">Metrics</a></li>
+							<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Algorithm')">Mining</a></li>
+						</ul>
+						
+						<div id="List" class="patternTabContent defaultPatternTab">
+							<!-- <div id="patternPagesIndicator">
+								<button id="firstPatternPage" class="textButton" onclick="displayFirstPatternPage();"> << </button>
+								&nbsp;
+								<button id="previousPatternPage" class="textButton" onclick="displayPreviousPatternPage();"> < </button>
+								&nbsp;
+								<div id="patternPageNumbers">
+								
+								</div>
+								&nbsp;
+								<button id="nextPatternPage" class="textButton" onclick="displayNextPatternPage();"> > </button>
+								&nbsp;
+								<button id="lastPatternPage" class="textButton" onclick="displayLastPatternPage();"> >> </button>
+							</div> -->
+							<table id="patternTable">
+								<thead>
+									<tr>
+										<th onclick="clickOnPatternNameHeader()">Name</th>
+										<th onclick="clickOnPatternSizeHeader()">Size</th>
+										<th onclick="clickOnPatternSupportHeader()">Support</th>
+									</tr>
+								</thead>
+								<tbody id="selectedPatternTableBody">
+								</tbody>
+								<tr id="patternListSeparator">
+									<td colspan="3"><hr></td>
+								</tr>
+								<tbody id="patternTableBody">
+								</tbody>
+							</table>
 						</div>
-					</form>
-				
-					<ul class="patternTabs">
-						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'List')" id="defaultPatternTab">Full list</a></li>
-						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Metrics')">Metrics</a></li>
-						<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Algorithm')">Mining</a></li>
-					</ul>
-					
-					<div id="List" class="patternTabContent">
-						<!-- <div id="patternPagesIndicator">
-							<button id="firstPatternPage" class="textButton" onclick="displayFirstPatternPage();"> << </button>
-							&nbsp;
-							<button id="previousPatternPage" class="textButton" onclick="displayPreviousPatternPage();"> < </button>
-							&nbsp;
-							<div id="patternPageNumbers">
+						
+						<div id="Metrics" class="patternTabContent">
+							<!-- <div>
+								Display &nbsp;
+								<input id="patternPageSizeInput" type="number" min="1" onblur="updatePatternPageSize()" value="200">
+								&nbsp; patterns in the list.
+							</div>
+							<hr>  -->
+							<p>Pattern sizes' distribution:</p>
+							<div id="patternSizeDistribution">
 							
 							</div>
-							&nbsp;
-							<button id="nextPatternPage" class="textButton" onclick="displayNextPatternPage();"> > </button>
-							&nbsp;
-							<button id="lastPatternPage" class="textButton" onclick="displayLastPatternPage();"> >> </button>
-						</div> -->
-						<table id="patternTable">
-							<thead>
-								<tr>
-									<th onclick="clickOnPatternNameHeader()">Name</th>
-									<th onclick="clickOnPatternSizeHeader()">Size</th>
-									<th onclick="clickOnPatternSupportHeader()">Support</th>
-								</tr>
-							</thead>
-							<tbody id="selectedPatternTableBody">
-							</tbody>
-							<tr id="patternListSeparator">
-								<td colspan="3"><hr></td>
-							</tr>
-							<tbody id="patternTableBody">
-							</tbody>
-						</table>
-					</div>
+							<hr>
+							
+						</div>
 					
-					<div id="Metrics" class="patternTabContent">
-						<!-- <div>
-							Display &nbsp;
-							<input id="patternPageSizeInput" type="number" min="1" onblur="updatePatternPageSize()" value="200">
-							&nbsp; patterns in the list.
+						<div id="Algorithm" class="patternTabContent">
+						<!-- <form id="algorithmForm" onSubmit="return runAlgorithm()">
+							<p >	Minimal support&nbsp;
+								<input type="number" class="numberInput" id="inputMinSup" form="algorithmForm" min="0" max="1" step="0.01" required>
+								&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMinSup>none</span>)</span>
+							</p>
+							<p> Window size&nbsp;
+								<input type="number" class="numberInput" id="inputWindowSize" form="algorithmForm" min="1" max="31536000" required>
+								&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentWindowSize>none</span>)</span>
+							</p>
+							<p> Maximum size&nbsp;
+								<input type="number" class="numberInput" id="inputMaxSize" form="algorithmForm" min="1" max="10000" required>
+								&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxSize>none</span>)</span>
+							</p>
+							<p> Maximum gap&nbsp;
+								<input type="number" class="numberInput" id="inputMaxGap" form="algorithmForm" min="0" max="10000" required>
+								&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxGap>none</span>)</span>
+							</p>
+							
+								<input type="submit" value="Run">
+							</form>
+							<p><a href="javascript:void(0)" onclick="runAlgoToFile()">Run algo and save to file</a></p>
+							<!-- rerun button -->
+							<!-- <br>
+							<hr> -->
+							<div id="sliderSupportArea">
+								<p>Support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
+								<br>
+								<div id="sliderSupport"></div>
+							</div>
+							<div id="sliderGapArea">
+								<p>Gap:<span class="iconHelper" id="helpGap" title="Number of events in the pattern that don't belong to it">&nbsp;&nbsp;(?)</span></p>
+								<br>
+								<div id="sliderGap"></div>
+							</div>
+							<div id="sliderWindowArea">
+								<p>Window:<span class="iconHelper" id="helpWindow">&nbsp;&nbsp;(?)</span></p>
+								<br>
+								<div id="sliderWindow"></div>
+							</div>
+							<div id="sliderSizeArea">
+								<p>Size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
+								<br>
+								<div id="sliderSize"></div>
+							</div>
 						</div>
-						<hr>  -->
-						<p>Pattern sizes' distribution:</p>
-						<div id="patternSizeDistribution">
-						
-						</div>
-						<hr>
-						
-					</div>
-				
-					<div id="Algorithm" class="patternTabContent">
-					<!-- <form id="algorithmForm" onSubmit="return runAlgorithm()">
-						<p >	Minimal support&nbsp;
-							<input type="number" class="numberInput" id="inputMinSup" form="algorithmForm" min="0" max="1" step="0.01" required>
-							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMinSup>none</span>)</span>
-						</p>
-						<p> Window size&nbsp;
-							<input type="number" class="numberInput" id="inputWindowSize" form="algorithmForm" min="1" max="31536000" required>
-							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentWindowSize>none</span>)</span>
-						</p>
-						<p> Maximum size&nbsp;
-							<input type="number" class="numberInput" id="inputMaxSize" form="algorithmForm" min="1" max="10000" required>
-							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxSize>none</span>)</span>
-						</p>
-						<p> Maximum gap&nbsp;
-							<input type="number" class="numberInput" id="inputMaxGap" form="algorithmForm" min="0" max="10000" required>
-							&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxGap>none</span>)</span>
-						</p>
-						
-							<input type="submit" value="Run">
-						</form>
-						<p><a href="javascript:void(0)" onclick="runAlgoToFile()">Run algo and save to file</a></p>
-						<!-- rerun button -->
-						<!-- <br>
-						<hr> -->
-						<div id="sliderSupportArea">
-							<p>Support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
-							<br>
-							<div id="sliderSupport"></div>
-						</div>
-						<div id="sliderGapArea">
-							<p>Gap:<span class="iconHelper" id="helpGap" title="Number of events in the pattern that don't belong to it">&nbsp;&nbsp;(?)</span></p>
-							<br>
-							<div id="sliderGap"></div>
-						</div>
-						<div id="sliderWindowArea">
-							<p>Window:<span class="iconHelper" id="helpWindow">&nbsp;&nbsp;(?)</span></p>
-							<br>
-							<div id="sliderWindow"></div>
-						</div>
-						<div id="sliderSizeArea">
-							<p>Size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
-							<br>
-							<div id="sliderSize"></div>
-						</div>
+					
 					</div>
 					
 				</div>
