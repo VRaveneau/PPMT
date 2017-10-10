@@ -5573,7 +5573,7 @@ var Timeline = function(elemId, options) {
 		+ 5*20;
 	
 	// adjust the size of the whole timeline
-	d3.select(self.parentNode).style("height",self.height.toString()+"px");
+	//d3.select(self.parentNode).style("height",self.height.toString()+"px");
 	
 	// The timeline's parts
 	self.canvas = d3.select(self.nodeFocus).append("canvas")

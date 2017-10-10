@@ -16,6 +16,7 @@
 }
 
 .subsection {
+	flex: 1;
 	/*border: 3px solid red;
 	margin-top: 10px;
 	margin-bottom: 0px;*/
@@ -23,7 +24,7 @@
 }
 
 .subsection + .subsection {
-	margin-top: 20px;
+	margin-top: 30px;
 }
 
 #timeline .subsection {
@@ -42,6 +43,11 @@
 
 .subsection > .title {
 	text-align: center;
+}
+
+.subsection > .param {
+	position: relative;
+	margin-bottom: 10px;
 }
 
 .subsection > .body {
@@ -154,6 +160,7 @@ body {
 	/*text-align: center;*/
 	position: absolute;
 	top: 0;
+	flex: 1;
 	/*overflow: auto;*/
 }
 
