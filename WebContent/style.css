@@ -24,7 +24,7 @@
 }
 
 .subsection + .subsection {
-	margin-top: 30px;
+	margin-top: 40px;
 }
 
 #timeline .subsection {
@@ -43,6 +43,13 @@
 
 .subsection > .title {
 	text-align: center;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	margin-bottom: 10px;
+	background: #006992;
+	color: white;
+	width: 90%;
+	align-self: center;
 }
 
 .subsection > .param {
