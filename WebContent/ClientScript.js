@@ -4656,6 +4656,12 @@ var Timeline = function(elemId, options) {
 				    	console.log('Warning : too may colors needed for the main hidden canvas');
 				    }
 				    
+				    let eventTypesColors = [];
+				    let splitEventTypes = bins[iBin][5].split(";");
+				    for (let idx = 0 ; idx < splitEventTypes.length; idx++) {
+				    	eventTypesColors.push(splitEventTypes[idx]+":"+colorsFound[t]);
+				    }
+				    
 				    /* Create the info we want in the tooltip
 				    * Structure : [year,
 				    * start,
@@ -4665,7 +4671,7 @@ var Timeline = function(elemId, options) {
 				    * type1;type2;...,
 				    * type1:nbOcc;type2:nbOcc;...
 				    * nbEventsInSubBin,
-				    * hslColorValue1]
+				    * type1:hslColorValue1;type2:hslColorValue1;...]
 				   	*/
 				    let subBinInfo = [];
 				    subBinInfo.push(bins[iBin][0]);
@@ -4676,7 +4682,7 @@ var Timeline = function(elemId, options) {
 				    subBinInfo.push(bins[iBin][5]);
 				    subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
 				    subBinInfo.push(colorsProportion[colorsFound[t]]);
-				    subBinInfo.push(colorsFound[t]);
+				    subBinInfo.push(eventTypesColors.join(';'));//subBinInfo.push(colorsFound[t]);
 				    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;//bins[iBin];
 				    
 				    // Drawing on the hidden canvas for the tooltip
@@ -4716,6 +4722,13 @@ var Timeline = function(elemId, options) {
 			    	console.log('Warning : too may colors needed for the main hidden canvas');
 			    }
 			    
+			    let eventTypesColors = [];
+			    let splitEventTypes = bins[iBin][5].split(";");
+			    for (let idx = 0 ; idx < splitEventTypes.length; idx++) {
+			    	let thisEventColor = 
+			    	eventTypesColors.push(splitEventTypes[idx]+":"+getEventColor(splitEventTypes[idx]));
+			    }
+			    
 			    /* Create the info we want in the tooltip
 			    * Structure : [year,
 			    * start,
@@ -4725,7 +4738,7 @@ var Timeline = function(elemId, options) {
 			    * type1;type2;...,
 			    * type1:nbOcc;type2:nbOcc;...
 			    * nbEventsInSubBin,
-			    * hslColorValue1]
+			    * type1:hslColorValue1;type2:hslColorValue1;...]
 			   	*/
 			    let subBinInfo = [];
 			    subBinInfo.push(bins[iBin][0]);
@@ -4736,7 +4749,7 @@ var Timeline = function(elemId, options) {
 			    subBinInfo.push(bins[iBin][5]);
 			    subBinInfo.push(bins[iBin][6]);// subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
 			    subBinInfo.push(bins[iBin][3]);// subBinInfo.push(colorsProportion[colorsFound[t]]);
-			    subBinInfo.push(35);//subBinInfo.push(colorsFound[t]);
+			    subBinInfo.push(eventTypesColors.join(';'));//subBinInfo.push(colorsFound[t]);
 			    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;//bins[iBin];
 			    
 			    // Drawing on the hidden canvas for the tooltip
@@ -5382,7 +5395,7 @@ var Timeline = function(elemId, options) {
 	     * type1;type2;...,
 	     * type1:nbOcc;type2:nbOcc;...
 	     * nbEventsInSubBin,
-	     * hslColorValue1]
+		 * type1:hslColorValue1;type2:hslColorValue1;...]
 	   	 */
 		var message = "";
 		
@@ -5411,6 +5424,15 @@ var Timeline = function(elemId, options) {
 					var occ = nbOccs[i].split(":");
 					var percentage = parseInt(occ[1])/parseInt(data[3]);
 					
+					let hslValues = data[8].split(";");
+					let hslValue = 0;
+					for (let idx = 0; idx < hslValues.length; idx++) {
+						if (hslValues[idx].split(":")[0] == occ[0]) {
+							hslValue = parseInt(hslValues[idx].split(":")[1]);
+							break;
+						}
+					}
+					
 					//Create an svg node outside of the DOM to get its inner HTML
 					var divOutsideOfDom = document.createElementNS("http://www.w3.org/1999/xhtml","div");
 					divOutsideOfDom.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
@@ -5422,7 +5444,7 @@ var Timeline = function(elemId, options) {
 					svg.append("path")
 						.attr("d",d3.symbol().type(itemShapes[occ[0]]).size(60))
 						.attr("transform","translate(8,8)")
-						.attr("stroke", "hsl("+parseInt(data[8])+",100%,50%)"/*d3.rgb(parseInt(data[8][0]),parseInt(data[8][1]),parseInt(data[8][2]))/*"hsl("+colorList[occ[0]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+						.attr("stroke", "hsl("+hslValue+",100%,50%)"/*d3.rgb(parseInt(data[8][0]),parseInt(data[8][1]),parseInt(data[8][2]))/*"hsl("+colorList[occ[0]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
 						.attr("fill","none");
 					//console.log("Html :");
 					//console.log(svg.html());
