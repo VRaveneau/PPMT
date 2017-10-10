@@ -598,8 +598,6 @@ function init() {
 }
 
 function setupTool() {
-	console.log("Init");
-
 	createTimeline();	// TODO Initialize the timeline
 	setupHelpers();
 	
@@ -4538,7 +4536,7 @@ var Timeline = function(elemId, options) {
 		self.bins = bins;
 	}
 	
-	self.displayColorsInBins = true;
+	self.displayColorsInBins = false;
 	self.displayFullHeightBins = false;
 	
 	self.drawBins = function(bins) {
@@ -5301,7 +5299,7 @@ var Timeline = function(elemId, options) {
 		.attr("id","displayBinColorInput")
 		.attr("type","checkbox")
 		.attr("name","scale")
-		.property("checked",true)
+		.property("checked",false)
 		.attr("value","Colors")
 		.on("change", function() {
 			self.displayColorsInBins = this.checked;
@@ -5548,15 +5546,6 @@ var Timeline = function(elemId, options) {
 	}
 	
 	// Parameters about size and margin of the timeline's parts
-	/* Initial config
-	self.marginFocus = {"top": 20,"right": 20,"bottom": 300,"left": 40}; // bottom 110
-	self.marginContext = {"top": 330,"right": 20,"bottom": 230,"left": 40};// bottom 30
-	self.marginPatterns = {"top": 400,"right": 20,"bottom": 30,"left": 40};
-	*/
-	/*self.marginFocus = {"top": 20,"right": 20,"bottom": 580,"left": 40,"size": 250};
-	self.marginContext = {"top": 290,"right": 20,"bottom": 510,"left": 40,"size": 50};
-	self.marginPatterns = {"top": 360,"right": 20,"bottom": 290,"left": 40,"size": 200};
-	self.marginUsers =  {"top": 580,"right": 20,"bottom": 20,"left": 40,"size": 250};*/
 	self.marginFocus = {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 250};
 	self.marginContext = {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 50};
 	self.marginPatterns = {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 200};
@@ -5565,6 +5554,9 @@ var Timeline = function(elemId, options) {
 	self.width = +self.parentNode.clientWidth
 			- Math.max(self.marginFocus.left, self.marginContext.left)
 			- Math.max(self.marginFocus.right, self.marginContext.right);
+	self.widthContext = +self.parentNode.clientWidth
+			- self.marginContext.left
+			- self.marginContext.right;
 	self.heightFocus = self.marginFocus.size//+self.parentNode.clientHeight
 			+ self.marginFocus.top + self.marginFocus.bottom;
 	self.heightContext = self.marginContext.size//+self.parentNode.clientHeight
@@ -5594,7 +5586,7 @@ var Timeline = function(elemId, options) {
 	self.canvasContext = self.canvas.node().getContext("2d");
 
 	self.canvasOverview = d3.select(self.nodeOverview).append("canvas")
-		.attr("width",self.width)
+		.attr("width",self.widthContext)
 		.attr("height",self.marginContext.size)
 		.style("position","relative")
 		.style("top",(self.marginContext.top).toString()+"px")
@@ -5692,7 +5684,7 @@ var Timeline = function(elemId, options) {
 	// Parameters for the various axis
 	self.parseDate = d3.timeParse("%Y-%M-%d %H:%m:%s");
 	self.xFocus = d3.scaleTime().range([0, self.width]);
-	self.xContext = d3.scaleTime().range([0,self.width]);
+	self.xContext = d3.scaleTime().range([0,self.widthContext]);
 	self.yFocus = d3.scaleLinear().range([self.marginFocus.size,0]);
 	self.yContext = d3.scaleLinear().range([self.marginContext.size,0]);
 	self.xPatterns = d3.scaleTime().range([0, self.width]);
@@ -5710,7 +5702,7 @@ var Timeline = function(elemId, options) {
 	self.yAxisUsers = d3.axisLeft(self.yUsers);//.tickSizeInner(-self.width);
 	// The brush component of the context part
 	self.brush = d3.brushX()
-		.extent([[0, 0], [self.width, self.marginContext.size]])
+		.extent([[0, 0], [self.widthContext, self.marginContext.size]])
 		.on("brush end", self.brushed);
 	// The brush component of the users part
 	
@@ -5909,7 +5901,7 @@ var Timeline = function(elemId, options) {
 			.range([0,self.width]);
 		self.xContext = d3.scaleTime()
 		.domain([startTime,endTime])
-			.range([0,self.width]);
+			.range([0,self.widthContext]);
 		self.xPatterns = d3.scaleTime()
 		.domain([startTime,endTime])
 			.range([0,self.width]);
