@@ -4701,7 +4701,7 @@ var Timeline = function(elemId, options) {
 		    	y = self.yFocus(maxHeight-parseFloat(bins[iBin][3]));
 		    	binHeight = self.yFocus(parseFloat(bins[iBin][3]));
 			    //self.canvasContext.fillStyle = "lightblue";//node.attr("fillStyle");
-			    self.canvasContext.fillStyle = "darkturquoise";//"hsl("+colorsFound[t]+",100%,50%)";
+			    self.canvasContext.fillStyle = "#73adc3";//"hsl("+colorsFound[t]+",100%,50%)";
 			    self.canvasContext.fillRect(x, binHeight, x2-x, y);
 			    self.canvasContext.lineWidth = 0.25;
 			    self.canvasContext.strokeStyle = "black";
@@ -4819,8 +4819,8 @@ var Timeline = function(elemId, options) {
 		
 		self.canvasOverviewContext.beginPath();
 		area(data);
-		self.canvasOverviewContext.fillStyle = "darkturquoise";
-		self.canvasOverviewContext.strokeStyle = "darkturquoise";
+		self.canvasOverviewContext.fillStyle = "#73adc3";
+		self.canvasOverviewContext.strokeStyle = "#73adc3";
 		self.canvasOverviewContext.fill();
 	};
 	
@@ -5297,6 +5297,7 @@ var Timeline = function(elemId, options) {
 		.attr("type","checkbox")
 		.attr("name","scale")
 		.property("checked",false)
+		.property("disabled",true)
 		.attr("value","Full height")
 		.on("change", function() {
 			self.displayFullHeightBins = this.checked;
