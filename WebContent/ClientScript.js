@@ -1701,23 +1701,56 @@ function sortUsersAccordingToTable() {
 }
 
 function setHighlights() {
-	let txt = "";
+	let txtUsers = "";
+	let txtEvents = "";
 	
 	if (highlightedUsers.length == 0) {
-		txt = "No user";
+		txtUsers = "No user";
 	} else {
 		if (highlightedUsers.length == 1) {
-			txt = highlightedUsers[0];
+			txtUsers = highlightedUsers[0];
 		} else {
-			txt = highlightedUsers.join(", ");
+			txtUsers = highlightedUsers.join(", ");
+		}
+	}
+	
+	if (highlightedEventTypes.length == 0) {
+		txtEvents = "No event type";
+	} else {
+		if (highlightedEventTypes.length == 1) {
+			txtEvents = highlightedEventTypes[0];
+		} else {
+			txtEvents = highlightedEventTypes.join(", ");
 		}
 	}
 
-	d3.select("#userHighlight").text(txt);
+	d3.select("#userHighlight").text(txtUsers);
+	d3.select("#eventTypeHighlight").text(txtEvents);
 }
 
-function setHighlightsOld(username) {
-	d3.select("#userHighlight").text(username);
+var highlightedEventTypes = [];
+
+function highlightEventTypeRow(eType) {
+	// Highlights the row
+	var row = d3.select("#eventTableBody").select("#"+eType);
+	
+	if (row.attr("class") === null) {
+		row.attr("class", "selectedEventTypeRow");
+		// Adds the newly highlighted event type to the list
+		highlightedEventTypes.push(eType);
+	} else {
+		if (row.attr("class").indexOf("selectedEventTypeRow") == -1) {// the row isn't already selected
+			row.attr("class", row.attr("class")+" selectedEventTypeRow");
+			// Adds the newly highlighted user to the list
+			highlightedEventTypes.push(eType);
+		} else {
+			row.attr("class", row.attr("class").replace("selectedEventTypeRow", ""));
+			// Remove this event type from the list of highlighted event types
+			let eventIdx = highlightedEventTypes.indexOf(eType);
+			highlightedEventTypes.splice(eventIdx, 1);
+		}
+	
+	}
 }
 
 function highlightUserRow(rowId) {
@@ -1728,28 +1761,12 @@ function highlightUserRow(rowId) {
 	if (row.attr("class") === null) {
 		console.log("adding from null "+rowId);
 		row.attr("class", "selectedUserRow");
-		// De-highlights the previously highlighted users
-		/*for (var i = 0; i < highlightedUsers.length; i++) {
-			row = d3.select("#userTableBody").select("#"+highlightedUsers[i]);
-			if (row.attr("class") !== null)
-				row.attr("class", row.attr("class").replace("selectedUserRow",""));
-		}
-		// Empty the list of highlighted users
-		highlightedUsers = [];*/
 		// Adds the newly highlighted user to the list
 		highlightedUsers.push(rowId);
 	} else {
 		if (row.attr("class").indexOf("selectedUserRow") == -1) {// the row isn't already selected
 			console.log("adding "+rowId);
 			row.attr("class", row.attr("class")+" selectedUserRow");
-			// De-highlights the previously highlighted users
-			/*for (var i = 0; i < highlightedUsers.length; i++) {
-				row = d3.select("#userTableBody").select("#"+highlightedUsers[i]);
-				if (row.attr("class") !== null)
-					row.attr("class", row.attr("class").replace("selectedUserRow",""));
-			}
-			// Empty the list of highlighted users
-			highlightedUsers = [];*/
 			// Adds the newly highlighted user to the list
 			highlightedUsers.push(rowId);
 		} else {
@@ -1798,6 +1815,14 @@ function receiveEventTypes(message) {
 			else if (info[0] === "nbOccs")
 				eNbOccs = info[1];
 		}
+		
+		eventRow.attr("id",eType)
+				.on("click", function() {
+					highlightEventTypeRow(eType);
+					setHighlights();
+					d3.event.stopPropagation();
+				});
+		
 		if (message.dataset == "Agavue") {
 			colors = getAgavueColors();
 			eColor = getEventColorForAgavue(eType);

@@ -709,6 +709,19 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
 }
 
 /********************************/
+/* 		Event types tabs 		*/
+/********************************/
+
+#eventTableBody tr.selectedEventTypeRow {
+  /*background: #5C9FB9;*/
+  font-weight: bold;
+}
+
+#eventTableBody tr:not(.selectedEventTypeRow) {
+	font-weight: normal;
+}
+
+/********************************/
 /* 			Users tabs 			*/
 /********************************/
 
