@@ -4290,7 +4290,7 @@ var Timeline = function(elemId, options) {
 				
 				var x1 = self.xUsers(new Date(ses.start));
 				var x2 = self.xUsers(new Date(ses.end));
-				var y = self.yUsers(userName);
+				var y = self.yUsers(userName) + self.yUsers.bandwidth()/2;
 				self.canvasUsersContext.beginPath();
 				
 
@@ -5715,7 +5715,7 @@ var Timeline = function(elemId, options) {
 	self.xUsers = d3.scaleTime().range([0, self.width]);
 	self.yUsers = d3.scaleBand()
 			.range([0, self.marginUsers.size])
-			.padding(0.2);
+			.paddingInner(0.2);
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
 	self.yAxisFocus = d3.axisLeft(self.yFocus);//.tickSizeInner(-self.width);
@@ -5836,6 +5836,8 @@ var Timeline = function(elemId, options) {
 		.call(self.zoom)
 		.on("mousemove", function(){	// Handling picking
 			var coords = d3.mouse(this);
+			// offset the y mouse position according to the sessions offset
+			coords[1] = coords[1] - self.yUsers.bandwidth()/2;
 			let mouseDate = self.xUsers.invert(coords[0]).getTime();
 			let userListDomain = self.yUsers.domain();
 			let userListRange = self.yUsers.range();
