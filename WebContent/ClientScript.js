@@ -1709,7 +1709,7 @@ function setHighlights() {
 		if (highlightedUsers.length == 1) {
 			txt = highlightedUsers[0];
 		} else {
-			txt = ", ".join(highlightedUsers);
+			txt = highlightedUsers.join(", ");
 		}
 	}
 
@@ -1726,34 +1726,37 @@ function highlightUserRow(rowId) {
 	
 	
 	if (row.attr("class") === null) {
+		console.log("adding from null "+rowId);
 		row.attr("class", "selectedUserRow");
 		// De-highlights the previously highlighted users
-		for (var i = 0; i < highlightedUsers.length; i++) {
+		/*for (var i = 0; i < highlightedUsers.length; i++) {
 			row = d3.select("#userTableBody").select("#"+highlightedUsers[i]);
 			if (row.attr("class") !== null)
 				row.attr("class", row.attr("class").replace("selectedUserRow",""));
 		}
 		// Empty the list of highlighted users
-		highlightedUsers = [];
+		highlightedUsers = [];*/
 		// Adds the newly highlighted user to the list
 		highlightedUsers.push(rowId);
 	} else {
 		if (row.attr("class").indexOf("selectedUserRow") == -1) {// the row isn't already selected
+			console.log("adding "+rowId);
 			row.attr("class", row.attr("class")+" selectedUserRow");
 			// De-highlights the previously highlighted users
-			for (var i = 0; i < highlightedUsers.length; i++) {
+			/*for (var i = 0; i < highlightedUsers.length; i++) {
 				row = d3.select("#userTableBody").select("#"+highlightedUsers[i]);
 				if (row.attr("class") !== null)
 					row.attr("class", row.attr("class").replace("selectedUserRow",""));
 			}
 			// Empty the list of highlighted users
-			highlightedUsers = [];
+			highlightedUsers = [];*/
 			// Adds the newly highlighted user to the list
 			highlightedUsers.push(rowId);
 		} else {
 			row.attr("class", row.attr("class").replace("selectedUserRow", ""));
-			// Empty the list of highlighted users
-			highlightedUsers = [];
+			// Remove this user from the list of highlighted users
+			let userIdx = highlightedUsers.indexOf(rowId);
+			highlightedUsers.splice(userIdx, 1);
 		}
 	
 	}
