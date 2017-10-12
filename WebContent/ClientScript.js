@@ -4165,37 +4165,6 @@ var Timeline = function(elemId, options) {
 		//requestUsersPatternOccurrences(userInformations.slice(0,nbUserShown));
 	}
 	
-	self.updateUserListOld = function() {
-		//var nbUserShown = 10.0;
-		/*var shownUsersNames = userInformations.slice(0, nbUserShown).map(function(x) {
-			return x[0];
-		});*/
-		var shownUsersNames = Object.keys(userPatternDistrib);
-		var nbUserShown = shownUsersNames.length;
-		
-		var step = self.marginUsers.size / (nbUserShown+1.0);
-		var i = 0;
-		var range = [];
-		for (i; i<= nbUserShown+1; i++)
-			range.push(0+i*step);
-		
-		
-		self.yUsers = d3.scaleOrdinal()
-		.domain([" "].concat(shownUsersNames))
-			.range(range);
-		
-		self.yAxisUsers = d3.axisLeft(self.yUsers)
-	        .tickValues([" "].concat(shownUsersNames))
-	        .tickFormat(function(d, i) {
-	        	return d;
-	        });
-		self.users.select(".axis--y").call(self.yAxisUsers);
-		
-		console.log("User List updated on the timeline");
-		
-		//requestUsersPatternOccurrences(userInformations.slice(0,nbUserShown));
-	}
-	
 	self.drawUsersTraces = function() {
 		console.log("Starting to draw users traces");
 		
@@ -4337,112 +4306,6 @@ var Timeline = function(elemId, options) {
 			    }
 			    self.colorToDataUserPatterns["rgb("+hiddenColor.join(',')+")"] = ttInfo;
 			    */
-			    // Drawing on the hidden canvas for the tooltip
-			    /*self.hiddenCanvasUsersContext.lineWidth = 1.5;
-				self.hiddenCanvasUsersContext.strokeStyle = "rgb("+hiddenColor.join(',')+")";
-				self.hiddenCanvasUsersContext.moveTo(x1,y);
-				self.hiddenCanvasUsersContext.lineTo(x2,y);
-				self.hiddenCanvasUsersContext.lineCap = "round";
-				self.hiddenCanvasUsersContext.stroke();
-			    self.hiddenCanvasUsersContext.closePath();*/
-			});
-		}
-		
-		//console.log("User traces drawn");
-	}
-	
-	self.drawUsersPatternsOld = function() {
-		console.log("Starting to draw users patterns");
-		
-		self.colorToDataUserPatterns = {};
-		let nextColor = 1;
-		
-		// get the 10 first users in the list
-		console.log("UI size : "+userInformations.length);
-		/*var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
-			return x[0];
-		});*/
-		
-		
-		console.log("UI size after : "+userInformations.length);
-		
-		self.canvasUsersContext.fillStyle = "#fff";
-		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
-		self.canvasUsersContext.fill();
-		
-		self.hiddenCanvasUsersContext.fillStyle = "#fff";
-		self.hiddenCanvasUsersContext.rect(0,0,self.hiddenCanvasUsers.attr("width"),self.hiddenCanvasUsers.attr("height"));
-		self.hiddenCanvasUsersContext.fill();
-		
-		let userNames = Object.keys(userPatternDistrib);
-
-		var shownUsers = userNames;
-
-		self.updateUserList();
-			
-		let hasSelected = (selectedPatternIds.length > 0);
-		
-		for (var i=0; i < userNames.length; i++) {
-			let userName = userNames[i];
-			
-			userPatternDistrib[userName].forEach(function(ses) {
-				let color = "steelblue";
-				if (hasSelected == true) {
-					color = "#c8daea";
-					Object.keys(ses.count).forEach(function(k) {
-						if (k in selectedPatternIds)
-							color = "red";
-					});
-				}
-				
-				/*var event = userTraces[userName][j];
-				var eventData = event[0].split(";");*/
-				
-				var x1 = self.xUsers(new Date(ses.start));
-				var x2 = self.xUsers(new Date(ses.start + sessionDuration));
-				var y = self.yUsers(userName);
-				self.canvasUsersContext.beginPath();
-				
-
-				self.canvasUsersContext.lineWidth = 1.5;
-				self.canvasUsersContext.strokeStyle = color;
-				self.canvasUsersContext.moveTo(x1,y);
-				self.canvasUsersContext.lineTo(x2,y);
-				self.canvasUsersContext.lineCap = "round";
-				self.canvasUsersContext.stroke();
-			    self.canvasUsersContext.closePath();
-			    
-			    // Attributing a color to data link for the hidden canvas
-			    var hiddenColor = [];
-			    // via http://stackoverflow.com/a/15804183
-			    if(nextColor < 16777215){
-			    	hiddenColor.push(nextColor & 0xff); // R
-			    	hiddenColor.push((nextColor & 0xff00) >> 8); // G 
-			    	hiddenColor.push((nextColor & 0xff0000) >> 16); // B
-
-			    	nextColor += 1;
-			    } else {
-			    	console.log('Warning : too may colors needed for the user patterns hidden canvas');
-			    }
-			    
-			    /* Create the info we want in the tooltip
-			    * Structure : [year,
-			    * start,
-			    * end,
-			    * nbEventsInBin,
-			    * user1;user2;...,
-			    * type1;type2;...,
-			    * type1:nbOcc;type2:nbOcc;...
-			    * nbEventsInSubBin,
-			    * hslColorValue1]
-			   	*/
-			    let ttInfo = [];
-			    
-			    for (var id in Object.keys(ses.count)) {
-			    	ttInfo.push(patternsInformation[id][0]+": "+ses.count[id]);
-			    }
-			    self.colorToDataUserPatterns["rgb("+hiddenColor.join(',')+")"] = ttInfo;
-			    
 			    // Drawing on the hidden canvas for the tooltip
 			    /*self.hiddenCanvasUsersContext.lineWidth = 1.5;
 				self.hiddenCanvasUsersContext.strokeStyle = "rgb("+hiddenColor.join(',')+")";
@@ -5144,7 +5007,6 @@ var Timeline = function(elemId, options) {
 	    self.zoomed();*/
 	}
 	
-	//self.controls = d3.select(self.parentNode).append("div");
 	self.controls = d3.select(self.nodeFocusControl);
 	
 	// Adding the zoom option (+ / -)
@@ -5370,12 +5232,6 @@ var Timeline = function(elemId, options) {
 		.attr("type","radio")
 		.attr("name","scale")
 		.attr("value","time");
-	/*self.eventDisplayStyleForm.append("label")		// TODO Uncomment when correctly implemented
-		.text("User")
-		.append("input")
-		.attr("type","radio")
-		.attr("name","scale")
-		.attr("value","user");*/
 	self.eventDisplayStyleForm.selectAll("input").on("change", self.changeEventDisplayStyle);
 	
 	self.switchEventDisplayStyleFormVisibility = function() {
@@ -5698,14 +5554,6 @@ var Timeline = function(elemId, options) {
 		.style("position","absolute")
 		.style("top","0")
 		.style("left","0");
-	
-	/*self.svg = d3.select(self.parentNode).append("svg")
-		.attr("width",self.parentNode.clientWidth)
-		.attr("height",self.height)
-		/*.attr("height",self.parentNode.clientHeight-15)*/
-		/*.style("position","absolute")
-		.style("top","15")
-		.style("left","0");*/
 
 	// Parameters for the various axis
 	self.parseDate = d3.timeParse("%Y-%M-%d %H:%m:%s");
@@ -5953,7 +5801,7 @@ var Timeline = function(elemId, options) {
 		self.patterns.select(".axis--x").call(self.xAxisPatterns);
 		self.users.select(".axis--x").call(self.xAxisUsers);
 		self.users.select(".axis--y").call(self.yAxisUsers);
-	};
+	}
 	
 	self.updateUserListOld = function() {
 		var nbUserShown = 10.0;
