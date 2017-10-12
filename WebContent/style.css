@@ -748,7 +748,7 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
 }
 
 .zoom {
-  cursor: move;
+  cursor: crosshair;
   fill: none;
   pointer-events: all;
 }
