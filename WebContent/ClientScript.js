@@ -325,7 +325,7 @@ var sessionDuration = 3*60*60*1000;
  * @returns
  */
 function receivePatternDistributionPerUser(message) {
-	console.log("Receiving distrib message")
+	//console.log("Receiving distrib message")
 	let users = message.users.split(";");
 	users.forEach(function(u) {
 		let thisUserSessions = userSessions[u];
@@ -4232,19 +4232,19 @@ var Timeline = function(elemId, options) {
 	self.colorToDataUserPatterns = {};
 	
 	self.drawUsersPatterns = function() {
-		console.log("Starting to draw users patterns");
+		//console.log("Starting to draw users patterns");
 		
 		self.colorToDataUserPatterns = {};
 		let nextColor = 1;
 		
 		// get the 10 first users in the list
-		console.log("UI size : "+userInformations.length);
+		//console.log("UI size : "+userInformations.length);
 		/*var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
 			return x[0];
 		});*/
 		
 		
-		console.log("UI size after : "+userInformations.length);
+		//console.log("UI size after : "+userInformations.length);
 		
 		self.canvasUsersContext.fillStyle = "#fff";
 		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
@@ -5902,6 +5902,8 @@ var Timeline = function(elemId, options) {
 	/****************************/
 	
 	self.updateContextBounds = function(start, end) {
+		console.log("Updating context bounds");
+		
 		// Extract information from the date, for the Agavue date format
 		// 	This format is "Sun Mar 31 01:32:10 CET 2013"
 		var startDate = start.split(" ");
