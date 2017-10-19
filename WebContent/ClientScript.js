@@ -2661,10 +2661,8 @@ function addPatternToList(message) {
 		updatePatternPageNumberDisplay();
 	}
 	
-	// Update the number of patterns in the tab name
-	d3.select(".patternTabs")	// first tab in the right panel
-		.select("li").select("a")
-		.text("Full list ("+numberOfPattern+")");
+	// Update the number of patterns display
+	d3.select("#patternNumberSpan").text(numberOfPattern);
 	
 	//createPatternListDisplay();
 	if (correctPositionInList == -1) { // append at the end of the list
@@ -2694,6 +2692,9 @@ function addPatternToList(message) {
 					console.log("click on "+pId);
 					createPatternListDisplay();
 					timeline.drawUsersPatterns();
+					
+					// Update the number of selected patterns display
+					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 				}
 			});
 		var thisNameCell = thisRow.append("td");
@@ -2750,6 +2751,9 @@ function addPatternToList(message) {
 					d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
+
+					// Update the number of selected patterns display
+					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 				}
 			});
 		let thisNameCell = thisRow.append("td");
@@ -2971,6 +2975,9 @@ function createPatternListDisplay() {
 					console.log("click on "+pId);
 					createPatternListDisplay();
 					timeline.drawUsersPatterns();
+					
+					// Update the number of selected patterns display
+					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 				}
 			});
 		var thisNameCell = thisRow.append("td");

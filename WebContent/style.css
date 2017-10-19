@@ -47,6 +47,15 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	color: white;*/
 }
 
+.section > .subtitle {
+	padding: 0px 5px;
+	text-align: center;
+	font-style: italic;
+	font-weight: lighter;
+	margin-bottom: 5px;
+	padding-top: -5px;
+}
+
 .section > .body {
 	padding: 0px 5px;
 }
