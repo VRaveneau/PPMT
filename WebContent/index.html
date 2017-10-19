@@ -32,7 +32,7 @@
 			
 				<div id="left" class="section">
 					
-					<div class="title">The data</div>
+					<div class="title">Data</div>
 					
 					<ul class="controlTabs">
 						<li><a href="javascript:void(0)" class="controlTabLink active" onclick="openControlTab(event, 'Trace')">Trace</a></li>
@@ -64,7 +64,7 @@
 					<div id="Events" class="controlTabContent">
 						<form>
 							<div class="searchBarArea">
-								<input type="submit" class="searchButton" value="Search">
+								<input type="button" class="searchButton" value="Search">
 								<div><input type="text" class="searchField"></div>
 							</div>
 						</form>
@@ -86,7 +86,7 @@
 					<div id="Users" class="controlTabContent">
 						<form>
 							<div class="searchBarArea">
-								<input type="submit" class="searchButton" value="Search">
+								<input type="button" class="searchButton" value="Search">
 								<div><input type="text" class="searchField"></div>
 							</div>
 						</form>
@@ -117,14 +117,16 @@
 				<div id="middle">
 				
 					<div id="top" class="section">
-						<!-- Activity indicator, disabled for now
-						<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
-							<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
-						</svg> -->
-						<p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p>
-						<p class="leftAligned no-margin-top no-margin-bottom" id="userHighlight">No user</p>
-						<p class="leftAligned lastItem no-margin-top no-margin-bottom" id="eventTypeHighlight">No event type</p>
-						<p class="rightAligned"></p>
+						<div class="body">
+							<!-- Activity indicator, disabled for now
+							<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
+								<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
+							</svg> -->
+							<p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p>
+							<p class="leftAligned no-margin-top no-margin-bottom" id="userHighlight">No user</p>
+							<p class="leftAligned lastItem no-margin-top no-margin-bottom" id="eventTypeHighlight">No event type</p>
+							<p class="rightAligned"></p>
+						</div>
 					</div>
 				
 				<!--  <div id="display">  -->
@@ -145,17 +147,17 @@
 									<div id="tl_focus" class="body"></div>
 								</div>
 								<div class="subsection">
-									<div class="title">User patterns</div>
+									<div class="title">Selected patterns</div>
+									<div id="tl_patterns" class="body"></div>
+								</div>
+								<div class="subsection">
+									<div class="title">Per user</div>
 									<div id="tl_users" class="body"></div>
 								</div>
 								<!-- <div class="subsection">
 									<div class="title">Selected users</div>
 									<div id="tl_selectedUsers" class="body"></div>
 								</div> -->
-								<div class="subsection">
-									<div class="title">Selected patterns</div>
-									<div id="tl_patterns" class="body"></div>
-								</div>
 								<!-- <div class="tl_separator"><span>Trace exploration</span></div>
 								<div id="tl_focusControl"></div>
 								<div id="tl_focus"></div>
@@ -182,21 +184,22 @@
 				<div id="right">
 				
 					<div id="algorithmInfo" class="section">
-						<div class="title">The Algorithm</div>
-						
-						<p>Runtime: <span id="runtime">00:00</span></p>
-						<p><span id="currentAlgorithmWork">Algorithm not running</span></p>
-						<p>Data used: <span id="dataUsed"></span></p>
-						<p>Focusing on: <span id="focus"></span></p>
+						<div class="title">Algorithm</div>
+						<div class="body">
+							<p>Runtime: <span id="runtime">00:00</span></p>
+							<p><span id="currentAlgorithmWork">Algorithm not running</span></p>
+							<p>Data used: <span id="dataUsed"></span></p>
+							<p>Focusing on: <span id="focus"></span></p>
+						</div>
 					</div>
 					
 					<div id="patternArea" class="section">
 					
-						<div class="title">The Patterns</div>
+						<div class="title">Patterns</div>
 						
 						<form>
 							<div class="searchBarArea">
-								<input type="submit" class="searchButton" value="Search">
+								<input type="button" class="searchButton" value="Search">
 								<div><input type="text" class="searchField"></div>
 							</div>
 						</form>

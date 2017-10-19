@@ -5181,38 +5181,51 @@ var Timeline = function(elemId, options) {
 						.attr("class","displayControlForm")
 						.style("float","right");
 	self.binsDisplayStyleForm.append("label")
-		.text("Full height: ");
-	self.binsDisplayStyleForm.append("input")
-		.attr("id","displayBinFullHeightInput")
-		.attr("type","checkbox")
-		.attr("name","scale")
-		.property("checked",false)
-		.property("disabled",true)
-		.attr("value","Full height")
-		.on("change", function() {
-			self.displayFullHeightBins = this.checked;
-			if (this.checked == true)
-				d3.select("#displayBinColorInput").property("disabled","true");
-			else
-				d3.select("#displayBinColorInput").property("disabled","");
-			self.displayData();
-		});
-	self.binsDisplayStyleForm.append("label")
-		.text("Colors: ");
+		.text("Colors: ")
+		.style("order","3");
 	self.binsDisplayStyleForm.append("input")
 		.attr("id","displayBinColorInput")
 		.attr("type","checkbox")
 		.attr("name","scale")
 		.property("checked",false)
+		.style("order","4")
 		.attr("value","Colors")
 		.on("change", function() {
 			self.displayColorsInBins = this.checked;
-			if (this.checked == true)
-				d3.select("#displayBinFullHeightInput").property("disabled","");
-			else
-				d3.select("#displayBinFullHeightInput").property("disabled","true");
+			if (this.checked == true) {
+				d3.select("#displayBinFullHeightInput").style("visibility","visible");
+				d3.select(d3.select("#displayBinFullHeightInput").node().previousSibling).style("visibility","visible");
+			} else {
+				self.displayFullHeightBins = false;
+				d3.select("#displayBinFullHeightInput").property("checked",false)
+					.style("visibility","hidden");
+				d3.select(d3.select("#displayBinFullHeightInput").node().previousSibling).style("visibility","hidden");
+			}
 			self.displayData();
 	});
+	self.binsDisplayStyleForm.append("label")
+		.text("Full height: ")
+		.style("order","1")
+		.style("visibility","hidden");
+	self.binsDisplayStyleForm.append("input")
+		.attr("id","displayBinFullHeightInput")
+		.attr("type","checkbox")
+		.attr("name","scale")
+		.property("checked",false)
+		.style("visibility","hidden")
+		.style("order","2")
+		.attr("value","Full height")
+		.on("change", function() {
+			self.displayFullHeightBins = this.checked;
+			if (this.checked == true) {
+				/*d3.select("#displayBinColorInput").style("visibility","hidden");
+				d3.select(d3.select("#displayBinColorInput").node().previousSibling).style("visibility","hidden");
+			*/} else {
+				d3.select("#displayBinColorInput").style("visibility","visible");
+				d3.select(d3.select("#displayBinColorInput").node().previousSibling).style("visibility","visible");
+			}
+			self.displayData();
+		});
 	
 	self.switchBinsDisplayStyleFormVisibility = function() {
 		var currentVisibility = self.binsDisplayStyleForm.style("display");
@@ -5704,6 +5717,7 @@ var Timeline = function(elemId, options) {
 		});
 	// Creating the zoomable rectangle on the user patterns part of the timeline
 	self.userTooltipCreated = false;
+	self.hoveredSession = null;
 	self.zoomRectUsers = self.svgUsers.append("rect")
 		.attr("class", "zoom")
 		.attr("width", self.width)
@@ -5725,11 +5739,13 @@ var Timeline = function(elemId, options) {
 			// get the correct user session
 			let theSession = null;
 			for (let sessIt=0; sessIt < userSessions[mouseUser].length; sessIt++) {
+				self.hoveredSession = null;
 				let sess = userSessions[mouseUser][sessIt];
 				if (sess.start > mouseDate)
 					break;
 				if (sess.end >= mouseDate) {
 					theSession = sess;
+					self.hoveredSession = sess;
 					break;
 				}
 			}
@@ -5767,6 +5783,10 @@ var Timeline = function(elemId, options) {
 		.on("mouseout", function(){
 			if (self.userTooltipCreated == true)
 				tooltip.hide();
+		})
+		.on("click", function() {
+			if (self.hoveredSession != null)
+				self.focusOnSession(self.hoveredSession.start, self.hoveredSession.end);
 		});
 	
 	self.context.select(".brush").select(".selection")
@@ -5778,6 +5798,11 @@ var Timeline = function(elemId, options) {
 	/****************************/
 	/*			Methods			*/
 	/****************************/
+	
+	/*self.focusOnSession = function(start, end) {
+		self.context.select(".brush")
+			.call(self.brush.move, [self.xFocus(start), self.xFocus(end)]);
+	}*/
 	
 	self.updateContextBounds = function(start, end) {
 		console.log("Updating context bounds");

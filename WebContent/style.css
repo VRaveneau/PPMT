@@ -8,11 +8,15 @@
 #70C1B3
 */
 
+/* complementary palette :
+http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
+*/
+
 
 .section {
 	margin: 5px;
 	background-color: white;
-	border: 1px solid #006992;
+	/*border: 1px solid #006992;*/
 }
 
 .subsection {
@@ -43,6 +47,10 @@
 	color: white;*/
 }
 
+.section > .body {
+	padding: 0px 5px;
+}
+
 .subsection > .title {
 	font-size: 120%;
 	font-weight: bold;
@@ -59,6 +67,7 @@
 .subsection > .param {
 	position: relative;
 	margin-bottom: 10px;
+	padding: 0px 5px;
 }
 
 .subsection > .body {
