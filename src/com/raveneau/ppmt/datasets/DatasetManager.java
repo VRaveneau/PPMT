@@ -46,6 +46,8 @@ public class DatasetManager {
 	public void addDataset(String name, String path, boolean startLoading) {
 		if (datasetNames.contains(name)) {
 			System.out.println("Dataset "+name+" already known, not adding it again.");
+			System.out.println("Reloading parameters for dataset "+name+".");
+			getDataset(name).loadParameters();
 		} else {
 			System.out.println("Adding dataset "+name+" located at: "+path);
 			if (startLoading)

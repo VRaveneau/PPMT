@@ -3,6 +3,7 @@ package com.raveneau.ppmt.datasets;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.DateFormat;
@@ -16,8 +17,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.json.Json;
+import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonReader;
+import javax.json.JsonValue;
 import javax.json.spi.JsonProvider;
 import javax.websocket.Session;
 
@@ -39,10 +44,13 @@ public class Dataset {
 	private Date firstEvent = null;
 	private Date lastEvent = null;
 	private String inputPath = null;
+	private String inputPathParameters = null;
 	private boolean loading = false;
 	private boolean loaded = false;
 	private int eventCompressionSize = 10000;
 	private List<String> compressedEvents = new ArrayList<>();
+	
+	private JsonObject parameters = null;
 	
 	private Map<Session,PatternManager> patternManagers = new HashMap<>();
 	
@@ -76,6 +84,10 @@ public class Dataset {
 		super();
 		this.name = name;
 		this.inputPath = inputPath+"/"+name+".csv";
+		this.inputPathParameters = inputPath+"/"+name+".json";
+		
+		loadParameters();
+		
 		if (startLoading) {
 			loadData();
 		}
@@ -127,6 +139,26 @@ public class Dataset {
 		Date compressEnd = new Date();
 		long compressTime = compressEnd.getTime() - compressStart.getTime();
 		System.out.println("dataset loaded in "+compressTime+"ms.");
+	}
+	
+	/**
+	 * Load the parameters in the file targeted by inputPathParameters
+	 */
+	public void loadParameters() {
+		try {
+			JsonReader jsonReader = Json.createReader(new FileInputStream(new File(inputPathParameters)));
+			parameters = jsonReader.readObject();
+			jsonReader.close();
+			System.out.println("Parameters for dataset "+name+":");
+			System.out.println(parameters);
+		} catch (FileNotFoundException e) {
+			//e.printStackTrace();
+			System.out.println("No parameter file for dataset "+name+":");
+			parameters = Json.createObjectBuilder().build();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 	}
 	
 	/**
@@ -432,6 +464,32 @@ public class Dataset {
 			Map<String,String> infos = new HashMap<>();
 			infos.put("code", i);
 			infos.put("nbOccs", eventOccs.get(eventsReadable.get(i)).toString());
+			// Add the informations from the parameters if present
+			//	The event type description
+			if (parameters.containsKey("eventDescription")) {
+				JsonObject desc = parameters.getJsonObject("eventDescription");
+				if (desc.containsKey(eventsReadable.get(i))) {
+					infos.put("description", desc.getJsonString(eventsReadable.get(i)).getString());
+				}
+			}
+			//	The event type category
+			if (parameters.containsKey("eventCategory")) {
+				JsonObject categories = parameters.getJsonObject("eventCategory");
+				for (String category: categories.keySet()) {
+					JsonArray eTypes = categories.getJsonArray(category);
+					boolean found = false;
+					for (int idx = 0; idx < eTypes.size(); idx++) {
+						String type = eTypes.getString(idx);
+						if (type.equals(eventsReadable.get(i))) {
+							infos.put("category", category);
+							found = true;
+							break;
+						}
+					}
+					if (found == true)
+						break;
+				}
+			}
 			res.put(eventsReadable.get(i), infos);
 		}
 		

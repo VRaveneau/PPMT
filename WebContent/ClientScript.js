@@ -1802,6 +1802,7 @@ function receiveEventTypes(message) {
 	for (var i = 0; i< nbEvents; i++) {
 		var eventRow = d3.select("#eventTableBody").append("tr");
 		var eventInfo = message[i.toString()].split(";");
+		console.log(eventInfo);
 		let eType = "";
 		let eCode = "";
 		var eNbOccs = "";
