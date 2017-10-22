@@ -4322,7 +4322,7 @@ var Timeline = function(elemId, options) {
 			let userName = userNames[i];
 			
 			userSessions[userName].forEach(function(ses, sesIdx) {
-				let color = "steelblue";
+				let color = "#04B7FB";
 				if (hasSelected == true) {
 					color = "#c8daea"; // lighter blue
 					Object.keys(ses.count).forEach(function(id, idx) {
@@ -4642,8 +4642,7 @@ var Timeline = function(elemId, options) {
 		    } else {
 		    	y = self.yFocus(maxHeight-parseFloat(bins[iBin][3]));
 		    	binHeight = self.yFocus(parseFloat(bins[iBin][3]));
-			    //self.canvasContext.fillStyle = "lightblue";//node.attr("fillStyle");
-			    self.canvasContext.fillStyle = "#73adc3";//"hsl("+colorsFound[t]+",100%,50%)";
+			    self.canvasContext.fillStyle = "#04B7FB";
 			    self.canvasContext.fillRect(x, binHeight, x2-x, y);
 			    self.canvasContext.lineWidth = 0.25;
 			    self.canvasContext.strokeStyle = "black";
@@ -4761,8 +4760,8 @@ var Timeline = function(elemId, options) {
 		
 		self.canvasOverviewContext.beginPath();
 		area(data);
-		self.canvasOverviewContext.fillStyle = "#73adc3";
-		self.canvasOverviewContext.strokeStyle = "#73adc3";
+		self.canvasOverviewContext.fillStyle = "#04B7FB";
+		self.canvasOverviewContext.strokeStyle = "#04B7FB";
 		self.canvasOverviewContext.fill();
 	};
 	
