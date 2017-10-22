@@ -199,70 +199,20 @@
 				
 					<div id="algorithmInfo" class="section">
 						<div class="title">Algorithm</div>
-						<div class="body">
+						<ul class="algorithmTabs">
+							<li><a href="javascript:void(0)" class="algorithmTabLink active" onclick="openAlgorithmTab(event, 'Execution')">Execution</a></li>
+							<li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Metrics')">Metrics</a></li>
+							<li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Algorithm')">Mining</a></li>
+						</ul>
+					
+						<div id="Execution" class="algorithmTabContent defaultAlgorithmTab">
 							<p>Runtime: <span id="runtime">00:00</span></p>
 							<p><span id="currentAlgorithmWork">Algorithm not running</span></p>
 							<p>Data used: <span id="dataUsed"></span></p>
 							<p>Focusing on: <span id="focus"></span></p>
 						</div>
-					</div>
-					
-					<div id="patternArea" class="section">
-					
-						<div class="title">Patterns</div>
-						<div class="subtitle"><span id="patternNumberSpan">0</span> discovered, <span id="highlightedPatternNumberSpan">0</span> highlighted, <span id="selectedPatternNumberSpan">0</span> selected</div>
-						<form>
-							<div class="searchBarArea">
-								<input type="button" class="searchButton" value="Search">
-								<div><input type="text" class="searchField"></div>
-							</div>
-						</form>
-					
-						<ul class="patternTabs">
-							<li><a href="javascript:void(0)" class="patternTabLink active" onclick="openPatternTab(event, 'List')">Full list</a></li>
-							<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Metrics')">Metrics</a></li>
-							<li><a href="javascript:void(0)" class="patternTabLink" onclick="openPatternTab(event, 'Algorithm')">Mining</a></li>
-						</ul>
 						
-						<div id="List" class="patternTabContent defaultPatternTab">
-							<!-- <div id="patternPagesIndicator">
-								<button id="firstPatternPage" class="textButton" onclick="displayFirstPatternPage();"> << </button>
-								&nbsp;
-								<button id="previousPatternPage" class="textButton" onclick="displayPreviousPatternPage();"> < </button>
-								&nbsp;
-								<div id="patternPageNumbers">
-								
-								</div>
-								&nbsp;
-								<button id="nextPatternPage" class="textButton" onclick="displayNextPatternPage();"> > </button>
-								&nbsp;
-								<button id="lastPatternPage" class="textButton" onclick="displayLastPatternPage();"> >> </button>
-							</div> -->
-							<table id="patternTable">
-								<thead>
-									<tr>
-										<th onclick="clickOnPatternNameHeader()">Name</th>
-										<th onclick="clickOnPatternSizeHeader()">Size</th>
-										<th onclick="clickOnPatternSupportHeader()">Support</th>
-									</tr>
-								</thead>
-								<tbody id="selectedPatternTableBody">
-								</tbody>
-								<tr id="patternListSeparator">
-									<td colspan="3"><hr></td>
-								</tr>
-								<tbody id="patternTableBody">
-								</tbody>
-							</table>
-						</div>
-						
-						<div id="Metrics" class="patternTabContent">
-							<!-- <div>
-								Display &nbsp;
-								<input id="patternPageSizeInput" type="number" min="1" onblur="updatePatternPageSize()" value="200">
-								&nbsp; patterns in the list.
-							</div>
-							<hr>  -->
+						<div id="Metrics" class="algorithmTabContent">
 							<p>Pattern sizes' distribution:</p>
 							<div id="patternSizeDistribution">
 							
@@ -271,31 +221,7 @@
 							
 						</div>
 					
-						<div id="Algorithm" class="patternTabContent">
-						<!-- <form id="algorithmForm" onSubmit="return runAlgorithm()">
-							<p >	Minimal support&nbsp;
-								<input type="number" class="numberInput" id="inputMinSup" form="algorithmForm" min="0" max="1" step="0.01" required>
-								&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMinSup>none</span>)</span>
-							</p>
-							<p> Window size&nbsp;
-								<input type="number" class="numberInput" id="inputWindowSize" form="algorithmForm" min="1" max="31536000" required>
-								&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentWindowSize>none</span>)</span>
-							</p>
-							<p> Maximum size&nbsp;
-								<input type="number" class="numberInput" id="inputMaxSize" form="algorithmForm" min="1" max="10000" required>
-								&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxSize>none</span>)</span>
-							</p>
-							<p> Maximum gap&nbsp;
-								<input type="number" class="numberInput" id="inputMaxGap" form="algorithmForm" min="0" max="10000" required>
-								&nbsp;<span class="grey-text">(currently&nbsp;<span id=currentMaxGap>none</span>)</span>
-							</p>
-							
-								<input type="submit" value="Run">
-							</form>
-							<p><a href="javascript:void(0)" onclick="runAlgoToFile()">Run algo and save to file</a></p>
-							<!-- rerun button -->
-							<!-- <br>
-							<hr> -->
+						<div id="Algorithm" class="algorithmTabContent">
 							<div id="sliderSupportArea">
 								<p>Support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
 								<br>
@@ -317,11 +243,42 @@
 								<div id="sliderSize"></div>
 							</div>
 						</div>
-					
 					</div>
 					
-				</div>
-				<!-- </div> -->
+					<div id="patternArea" class="section">
+					
+						<div class="title">Patterns</div>
+						<div class="subtitle"><span id="patternNumberSpan">0</span> discovered, <span id="highlightedPatternNumberSpan">0</span> highlighted, <span id="selectedPatternNumberSpan">0</span> selected</div>
+						<div id="patternListArea" class="body">
+							<form>
+								<div class="searchBarArea">
+									<input type="button" class="searchButton" value="Search">
+									<div><input type="text" class="searchField"></div>
+								</div>
+							</form>
+							 
+							<div id="List">
+								<table id="patternTable">
+									<thead>
+										<tr>
+											<th onclick="clickOnPatternNameHeader()">Name</th>
+											<th onclick="clickOnPatternSizeHeader()">Size</th>
+											<th onclick="clickOnPatternSupportHeader()">Support</th>
+										</tr>
+									</thead>
+									<tbody id="selectedPatternTableBody">
+									</tbody>
+									<tr id="patternListSeparator">
+										<td colspan="3"><hr></td>
+									</tr>
+									<tbody id="patternTableBody">
+									</tbody>
+								</table>
+						
+							</div>
+						</div>
+					
+					</div>
 			
 	<!-- 		
 			

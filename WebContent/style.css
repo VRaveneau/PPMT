@@ -12,6 +12,12 @@
 http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 */
 
+#patternListArea {
+	display: flex;
+	flex-direction: column;
+	
+	flex: 1;
+}
 
 .section {
 	margin: 5px;
@@ -623,7 +629,7 @@ table {
 }
 
 /********************************/
-/* 			Pattern tabs 		*/
+/* 			Algorithm tabs 		*/
 /********************************/
 
 #patternPagesIndicator {
@@ -668,7 +674,7 @@ table {
 }
 
 /* Style the right-tabs */
-ul.patternTabs {
+ul.algorithmTabs {
     list-style-type: none;
     margin: 0;
     padding: 0;
@@ -678,10 +684,10 @@ ul.patternTabs {
 }
 
 /* Float the list items side by side */
-ul.patternTabs li {float: left;}
+ul.algorithmTabs li {float: left;}
 
 /* Style the links inside the list items */
-ul.patternTabs li a {
+ul.algorithmTabs li a {
     display: inline-block;
     color: white;
     text-align: center;
@@ -691,13 +697,13 @@ ul.patternTabs li a {
 }
 
 /* Change background color of links on hover */
-ul.patternTabs li a:hover {background-color: #2e84a5;}
+ul.algorithmTabs li a:hover {background-color: #2e84a5;}
 
 /* Create an active/current tablink class */
-ul.patternTabs li a:focus, .active {background-color: #006992;}
+ul.algorithmTabs li a:focus, .active {background-color: #006992;}
 
 /* Style the tab content */
-.patternTabContent {
+.algorithmTabContent {
     display: none;
     padding: 6px 12px;
     border: 1px solid #ccc;
@@ -707,13 +713,14 @@ ul.patternTabs li a:focus, .active {background-color: #006992;}
     flex: 1;
 }
 
-.defaultPatternTab {
+.defaultAlgorithmTab {
 	display: block;
 }
 
 #List {
 	overflow: auto;
-	max-height: 90%;
+	flex: 1;
+	/*max-height: 90%;*/
 }
 
 #Metrics {

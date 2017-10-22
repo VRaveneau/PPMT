@@ -3397,20 +3397,20 @@ function openControlTab(evt, tabName) {
 }
 
 /**
- * Manage the right-side (patterns) tabs
+ * Manage the right-side (algorithm) tabs
  */
-function openPatternTab(evt, tabName) {
+function openAlgorithmTab(evt, tabName) {
 	// Declare all variables
 	var i, tabcontent, tablinks;
 	
-	// Get all elements with class="patternTabContent" and hide them
-	tabcontent = document.getElementsByClassName("patternTabContent");
+	// Get all elements with class="algorithmTabContent" and hide them
+	tabcontent = document.getElementsByClassName("algorithmTabContent");
 	for (i = 0; i < tabcontent.length; i++) {
 		tabcontent[i].style.display = "none";
 	}
 	
-	// Get all elements with class="patternTabLink" and remove the class "active"
-	tablinks = document.getElementsByClassName("patternTabLink");
+	// Get all elements with class="algorithmTabLink" and remove the class "active"
+	tablinks = document.getElementsByClassName("algorithmTabLink");
 	for (i = 0; i < tablinks.length; i++) {
 		tablinks[i].className = tablinks[i].className.replace(" active", "");
 	}
