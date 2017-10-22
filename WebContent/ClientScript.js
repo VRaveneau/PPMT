@@ -1834,7 +1834,7 @@ function receiveEventTypes(message) {
 				// Setup the category if it is a new one
 				if (eventTypeCategories.includes(eCategory) == false) {
 					eventTypeCategories.push(eCategory);
-					eventTypeCategoryColors[eCategory] = d3.color(getNextCategoryColor());
+					eventTypeCategoryColors[eCategory] = d3.rgb(getNextCategoryColor());
 					
 					var categoryRow = d3.select("#categoryTableBody").append("tr");
 					categoryRow.append("td").text(eCategory);
@@ -1872,7 +1872,7 @@ function receiveEventTypes(message) {
 			eColor = colors[i%colors.length];
 			colorList[eType] = eColor;//colors[i%colors.length];
 			*/
-			eColor = d3.hsl(eventTypeCategoryColors[eCategory]).h;
+			eColor = eventTypeCategoryColors[eCategory];
 			colorList[eType] = eColor;
 			itemShapes[eType] = eCode;//shapes[i%shapes.length];
 		}
@@ -1895,7 +1895,7 @@ function receiveEventTypes(message) {
 		symbolRowSvg.append("path")
 			.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
 			.attr("transform","translate(10,10)")
-			.attr("stroke", "hsl("+colorList[eType]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+			.attr("stroke", colorList[eType].toString())
 			.attr("fill","none");
 		// Create the menu to customize the icon
 		var dropMenuDiv = symbolRow.append("div")
@@ -1906,13 +1906,13 @@ function receiveEventTypes(message) {
 			.on("change", function() {
 				if (changeEventTypeSymbol(eType, symbolSelect.property('value'))) {
 					// Update the row id for the new color
-					symbolRow.attr("sorttable_customkey", (colorList[eType])*100+shapes.indexOf(itemShapes[eType]));
+					symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType]).h)*100+shapes.indexOf(itemShapes[eType]));
 					// draw the new symbol
 					symbolRowSvg.selectAll("*").remove();
 					symbolRowSvg.append("path")
 						.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
 						.attr("transform","translate(10,10)")
-						.attr("stroke", "hsl("+colorList[eType]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+						.attr("stroke", colorList[eType].toString())
 						.attr("fill","none");
 					// refresh the changed displays
 					timeline.displayData();
@@ -1934,18 +1934,18 @@ function receiveEventTypes(message) {
 		let colorInput = colorP.append("input")
 			.style("width","60px");
 		let picker = new jscolor(colorInput.node());
-        	picker.fromHSV(Number(colorList[eType]), 100, 100);
+        	picker.fromRGB(Number(colorList[eType].r), Number(colorList[eType].g), Number(colorList[eType].b));
         	
         colorInput.on("change", function() {
 			if (changeEventTypeColor(eType, picker.hsv[0])) {
 				// Update the row id for the new color
-				symbolRow.attr("sorttable_customkey", (colorList[eType])*100+shapes.indexOf(itemShapes[eType]));
+				symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType]).h)*100+shapes.indexOf(itemShapes[eType]));
 				// draw the new symbol
 				symbolRowSvg.selectAll("*").remove();
 				symbolRowSvg.append("path")
 					.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
 					.attr("transform","translate(10,10)")
-					.attr("stroke", "hsl("+colorList[eType]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+					.attr("stroke",colorList[eType].toString())
 					.attr("fill","none");
 				// refresh the changed displays
 				timeline.displayData();
@@ -2531,7 +2531,7 @@ function receiveAllPatterns(message) {
 				pSvg.append("path")
 					.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
 					.attr("transform","translate("+(10+20*k)+",10)")
-					.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+					.attr("stroke", colorList[pItems[k]].toString())
 					.attr("fill","none");
 			}
 			/*patternList.append("div")
@@ -3102,7 +3102,7 @@ function addPatternToListOld(message) {
 		pSvg.append("path")
 			.attr("d",d3.symbol().type(itemShapes[message[k]]).size(function(d) {return 100;}))
 			.attr("transform","translate("+(10+20*k)+",10)")
-			.attr("stroke", "hsl("+colorList[message[k]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+			.attr("stroke", colorList[message[k]].toString())
 			.attr("fill","none");
 	}
 	
@@ -4577,7 +4577,7 @@ var Timeline = function(elemId, options) {
 					    binHeight = self.yFocus(cumulatedHeight + colorsProportion[colorsFound[t]]);
 				    }
 				    //self.canvasContext.fillStyle = "lightblue";//node.attr("fillStyle");
-				    self.canvasContext.fillStyle = "hsl("+colorsFound[t]+",100%,50%)";
+				    self.canvasContext.fillStyle = colorsFound[t].toString();
 				    self.canvasContext.fillRect(x, binHeight, x2-x, y);
 				    self.canvasContext.lineWidth = 0.25;
 				    self.canvasContext.strokeStyle = "black";
@@ -5393,7 +5393,7 @@ var Timeline = function(elemId, options) {
 					svg.append("path")
 						.attr("d",d3.symbol().type(itemShapes[occ[0]]).size(60))
 						.attr("transform","translate(8,8)")
-						.attr("stroke", "hsl("+hslValue+",100%,50%)"/*d3.rgb(parseInt(data[8][0]),parseInt(data[8][1]),parseInt(data[8][2]))/*"hsl("+colorList[occ[0]]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
+						.attr("stroke", colorList[occ[0]].toString())
 						.attr("fill","none");
 					//console.log("Html :");
 					//console.log(svg.html());
@@ -6299,7 +6299,7 @@ var Timeline = function(elemId, options) {
 				//self.canvasContext.rect(x-2.5,y-2.5,5,5);
 				self.canvasContext.beginPath();
 				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = "hsl("+colorList[info[0]]+",100%,50%)";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+				self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
 				symbolGenerator();
 				self.canvasContext.stroke();
 				self.canvasContext.translate(-x,-y);
@@ -6419,7 +6419,7 @@ var Timeline = function(elemId, options) {
 				//self.canvasContext.rect(x-2.5,y-2.5,5,5);
 				self.canvasContext.beginPath();
 				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = "hsl("+colorList[info[0]]+",100%,50%)";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+				self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
 				symbolGenerator();
 				self.canvasContext.stroke();
 				self.canvasContext.translate(-x,-y);
@@ -6622,7 +6622,7 @@ var Timeline = function(elemId, options) {
 				
 				self.canvasContext.beginPath();
 				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = "hsl("+colorList[info[0]]+",100%,50%)";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+				self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
 				symbolGenerator();
 				self.canvasContext.stroke();
 				self.canvasContext.translate(-x,-y);
@@ -6714,7 +6714,7 @@ var Timeline = function(elemId, options) {
 				
 				self.canvasContext.beginPath();
 				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+				self.canvasContext.strokeStyle = colorList[info[0]].toString();
 				symbolGenerator();
 				self.canvasContext.stroke();
 				self.canvasContext.translate(-x,-y);
