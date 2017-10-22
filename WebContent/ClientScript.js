@@ -44,6 +44,9 @@ var itemShapes = {};	// TODO request a list of shapes from the server to populat
 var datasetInfo = {};
 var availableColors = [];
 
+var eventTypeCategories = [];
+var eventTypeCategoryColors = {};
+
 var highlightedUsers = [];
 
 var history = [];
@@ -1779,6 +1782,11 @@ function highlightUserRow(rowId) {
 	}
 }
 
+function getNextCategoryColor() {
+	let colorPalet = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#a65628", "#f781bf", "#ffff33", "#999999"];
+	return colorPalet[eventTypeCategories.length -1];
+}
+
 var colorList = {};
 var eventDisplayHeight = {};
 
@@ -1806,15 +1814,44 @@ function receiveEventTypes(message) {
 		let eType = "";
 		let eCode = "";
 		var eNbOccs = "";
+		let eCategory = "";
+		let eDescription = "";
 		let eColor;
 		for (var j=0; j < eventInfo.length;j++) {
 			var info = eventInfo[j].split(":");
-			if (info[0] === "code")
+			switch(info[0]) {
+			case "code":
 				eCode = shapes[i%shapes.length];
-			else if (info[0] === "type")
+				break;
+			case "type":
 				eType = info[1];
-			else if (info[0] === "nbOccs")
+				break;
+			case "nbOccs":
 				eNbOccs = info[1];
+				break;
+			case "category":
+				eCategory = info[1];
+				// Setup the category if it is a new one
+				if (eventTypeCategories.includes(eCategory) == false) {
+					eventTypeCategories.push(eCategory);
+					eventTypeCategoryColors[eCategory] = d3.color(getNextCategoryColor());
+					
+					var categoryRow = d3.select("#categoryTableBody").append("tr");
+					categoryRow.append("td").text(eCategory);
+					categoryRow.append("td").append("svg")
+							.attr("width",40)
+							.attr("height", 20)
+							.append("rect")
+							.attr("width", 40)
+							.attr("height", 20)
+							.attr("fill",eventTypeCategoryColors[eCategory].toString());
+				}
+				break;
+			case "description":
+				eDescription = info[1];
+				break;
+			default:
+			}
 		}
 		
 		eventRow.attr("id",eType)
@@ -1831,14 +1868,20 @@ function receiveEventTypes(message) {
 			colorList[eType] = eColor;
 			itemShapes[eType] = eCode;
 		} else {
+			/* Old color system
 			eColor = colors[i%colors.length];
 			colorList[eType] = eColor;//colors[i%colors.length];
+			*/
+			eColor = d3.hsl(eventTypeCategoryColors[eCategory]).h;
+			colorList[eType] = eColor;
 			itemShapes[eType] = eCode;//shapes[i%shapes.length];
 		}
 		eventDisplayHeight[eType] = i+1;
 		//var eColor = colors[i%colors.length];
 		eventRow.append("td").text(eType);
 		eventRow.append("td").text(eNbOccs);
+		eventRow.append("td").text(eCategory);
+		eventRow.append("td").text(eDescription);
 		//var symbolRow = eventRow.append("td")
 			//		.attr("sorttable_customkey", (i%colors.length)*100+i%shapes.length);
 		var symbolRow = eventRow.append("td")

@@ -38,7 +38,7 @@
 						<li><a href="javascript:void(0)" class="controlTabLink active" onclick="openControlTab(event, 'Trace')">Trace</a></li>
 						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Event types</a></li>
 						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
-						<!-- <li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Filters')">Filters</a></li>   -->
+						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Categories')">Categories</a></li>
 					</ul>
 					
 					<div id="Trace" class="controlTabContent defaultControlTab">
@@ -74,6 +74,8 @@
 								<tr>
 									<th>Event type</th>
 									<th id="eventsOccurrencesColumn" class="sorttable_numeric">Nb events</th>
+									<th class="sorttable_numeric">Category</th>
+									<th class="sorttable_numeric">Description</th>
 									<th class="sorttable_numeric">Symbol</th>
 								</tr>
 							</thead>
@@ -108,9 +110,21 @@
 						</div>
 					</div>
 					
-					<!-- <div id="Filters" class="controlTabContent">
-						<p>Users:</p>
-					</div>   -->
+					<div id="Categories" class="controlTabContent">
+						<div id="categoryTableArea">
+							<table id="categoryTable">
+								<thead>
+									<tr>
+										<th onclick="clickOnCategoryNameHeader()">Category</th>
+										<!-- <th id="eventsPerCategoryColumn" onclick="clickOnCategoryNbEventsHeader()">Nb events</th> -->
+										<th>Color</th>
+									</tr>
+								</thead>
+								<tbody id="categoryTableBody">
+								</tbody>
+							</table>
+						</div>
+					</div>
 					
 				</div>
 				
