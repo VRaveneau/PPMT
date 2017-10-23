@@ -3712,9 +3712,10 @@ function handleLoadedSignal() {
 
 var patternSizesSvg = d3.select(d3.selectAll("#Execution > div").nodes()[1]).append("svg")
 		.attr("width", "100%")
-		.attr("height", "100%");
+		.attr("height", "100%")
+		.attr("id","patternSizesSvg");
 //var patternSizesSvg = d3.select("#patternSizesSvg");
-var patternSizesMargin = {top: 20, right: 10, bottom: 20, left: 20};
+var patternSizesMargin = {top: 20, right: 0, bottom: 20, left: 30};
 var patternSizesWidth = patternSizesSvg.node().getBoundingClientRect().width - patternSizesMargin.left - patternSizesMargin.right;
 var patternSizesHeight = patternSizesSvg.node().getBoundingClientRect().height - patternSizesMargin.top - patternSizesMargin.bottom;
 
