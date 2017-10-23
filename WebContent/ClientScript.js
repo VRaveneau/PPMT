@@ -284,6 +284,7 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "info") {
 		if (msg.object === "newPattern") {
 			addPatternToList(msg);
+			drawPatternSizesChart();
 			requestUserDistributionForPattern(msg);
 		}
 	}
@@ -605,6 +606,7 @@ function setupTool() {
 	setupHelpers();
 	
 	setupAlgorithmSliders();
+	setupPatternSizesChart();
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
@@ -2835,7 +2837,7 @@ function addPatternToList(message) {
 		patternMetrics["sizeDistribution"][pSize] = 1;
 	
 	// Display the new metrics
-	createPatternMetricsDisplay();
+	//createPatternMetricsDisplay();  Removed since the barchart displays the same information
 }
 
 function updatePatternPageNumberDisplay() {
@@ -3416,7 +3418,7 @@ function openAlgorithmTab(evt, tabName) {
 	}
 	
 	// Show the current tab, and add an "active" class to the link that opened the tab
-	document.getElementById(tabName).style.display = "block";
+	document.getElementById(tabName).style.display = "flex";
 	evt.currentTarget.className += " active";
 }
 
@@ -3645,7 +3647,7 @@ function stopAlgorithmRuntime(time) {
 	}
 	
 	d3.select("#currentAlgorithmWork")
-		.text("Algorithm ended");
+		.text("(ended)");
 }
 
 /**
@@ -3655,7 +3657,7 @@ function stopAlgorithmRuntime(time) {
  */
 function handleNewLevelSignal(level) {
 	d3.select("#currentAlgorithmWork")
-		.text("Currently working on: Size "+level);
+		.text("(working on size "+level+")");
 }
 
 var loadingAlgorithmDataAnimation;
@@ -3685,7 +3687,7 @@ function handleLoadingSignal() {
 			dots = "";
 		}
 		d3.select("#currentAlgorithmWork")
-			.text("Algorithm loading data"+dots);
+			.text("(loading data"+dots+")");
 		}, 1000);
 }
 
@@ -3697,8 +3699,120 @@ function handleLoadedSignal() {
 	clearInterval(loadingAlgorithmDataAnimation);
 	loadingAlgorithmDataAnimationState = 1;
 	d3.select("#currentAlgorithmWork")
-		.text("Data loaded");
+		.text("(Data loaded)");
 	console.log("Dataset loaded on server");
+}
+
+var patternSizesSvg = d3.select(d3.selectAll("#Execution > div").nodes()[1]).append("svg")
+		.attr("width", "100%")
+		.attr("height", "100%");
+//var patternSizesSvg = d3.select("#patternSizesSvg");
+var patternSizesMargin = {top: 20, right: 10, bottom: 20, left: 20};
+var patternSizesWidth = patternSizesSvg.node().getBoundingClientRect().width - patternSizesMargin.left - patternSizesMargin.right;
+var patternSizesHeight = patternSizesSvg.node().getBoundingClientRect().height - patternSizesMargin.top - patternSizesMargin.bottom;
+
+var patternSizesX = d3.scaleBand().rangeRound([0, patternSizesWidth]).padding(0.1);
+var patternSizesY = d3.scaleLinear().rangeRound([patternSizesHeight, 0]);
+var patternSizesXAxis = d3.axisBottom(patternSizesX);
+var patternSizesYAxis = d3.axisLeft(patternSizesY).ticks(5);
+	
+var patternSizesG = patternSizesSvg.append("g")
+		.attr("transform", "translate(" + patternSizesMargin.left + "," + patternSizesMargin.top + ")");
+/**
+ * Displays the barchart representing the pattern sizes
+ */
+function setupPatternSizesChart() {
+	let data = Object.keys(patternMetrics.sizeDistribution);
+	
+	patternSizesX.domain(data.map(function(d) { return d; }));
+	patternSizesY.domain([0, d3.max(data, function(d) { return patternMetrics.sizeDistribution[d]; })]);
+
+	patternSizesG.append("g")
+		.attr("class", "axis axis--x")
+		.attr("transform", "translate(0," + patternSizesHeight + ")")
+		.call(patternSizesXAxis);
+	
+	patternSizesG.append("g")
+		.attr("class", "axis axis--y")
+		.call(patternSizesYAxis)
+		.append("text")
+			.attr("transform", "rotate(-90)")
+			.attr("y", 6)
+			.attr("dy", "0.71em")
+			.attr("text-anchor", "end")
+			.text("Frequency");
+	
+	patternSizesG.selectAll(".bar")
+		.data(data)
+		.enter().append("rect")
+			.attr("class", "bar")
+			.attr("x", function(d) { return patternSizesX(d); })
+			.attr("y", function(d) { return patternSizesY(patternMetrics.sizeDistribution[d]); })
+			.attr("width", patternSizesX.bandwidth())
+			.attr("height", function(d) { return patternSizesHeight - patternSizesY(patternMetrics.sizeDistribution[d]); });
+}
+
+function drawPatternSizesChart() {
+	let data = Object.keys(patternMetrics.sizeDistribution);
+	
+	// measure the domain (for x, unique letters) (for y [0,maxFrequency])
+	// now the scales are finished and usable
+	patternSizesX.domain(data.map(function(d) { return d; }));
+	patternSizesY.domain([0, d3.max(data, function(d) { return patternMetrics.sizeDistribution[d]; })]);
+	
+	// another g element, this time to move the origin to the bottom of the svg element
+	// someSelection.call(thing) is roughly equivalent to thing(someSelection[i])
+	//   for everything in the selection\
+	// the end result is g populated with text and lines!
+	patternSizesG.select('.axis--x.axis').transition().duration(0).call(patternSizesXAxis);
+	
+	// same for yAxis but with more transform and a title
+	patternSizesG.select(".axis--y.axis").transition().duration(0).call(patternSizesYAxis)
+	
+	// THIS IS THE ACTUAL WORK!
+	let bars = patternSizesG.selectAll("rect.bar").data(data, function(d) { return d; }); // (data) is an array/iterable thing, second argument is an ID generator function
+	let texts = patternSizesG.selectAll("text.bar").data(data, function(d) { return d; });
+
+	bars.exit()
+		.transition()
+		.duration(0)
+		.attr("y", patternSizesY(0))
+		.attr("height", patternSizesHeight - patternSizesY(0))
+		.style('fill-opacity', 1e-6)
+		.remove();
+	
+	texts.exit()
+		.transition()
+		.duration(0)
+		.attr("y", patternSizesY(0))
+		.attr("height", patternSizesHeight - patternSizesY(0))
+		.style('fill-opacity', 1e-6)
+		.remove();
+	
+	// data that needs DOM = enter() (a set/selection, not an event!)
+	bars.enter().append("rect")
+		.attr("class", "bar")
+		.attr("y", patternSizesY(0))
+		.attr("height", patternSizesHeight - patternSizesY(0));
+	
+	texts.enter().append("text")
+		.attr("class", "bar")
+		.attr("text-anchor", "middle")
+		.attr("x", function(d) { return patternSizesX(d) + patternSizesX.bandwidth()/2; })
+		.attr("y", function(d) { return patternSizesY(patternMetrics.sizeDistribution[d]) - 5; })
+		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
+		
+	// the "UPDATE" set:
+	bars.transition().duration(0)
+		.attr("x", function(d) { return patternSizesX(d); }) // (d) is one item from the data array, x is the scale object from above
+		.attr("width", patternSizesX.bandwidth()) // constant, so no callback function(d) here
+		.attr("y", function(d) { return patternSizesY(patternMetrics.sizeDistribution[d]); })
+		.attr("height", function(d) { return patternSizesHeight - patternSizesY(patternMetrics.sizeDistribution[d]); }); // flip the height, because y's domain is bottom up, but SVG renders top down
+	
+	texts.transition().duration(0)
+		.attr("x", function(d) {return patternSizesX(d) + patternSizesX.bandwidth()/2; })
+		.attr("y", function(d) { return patternSizesY(patternMetrics.sizeDistribution[d]) - 5; })
+		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
 }
 
 /**
@@ -6341,7 +6455,7 @@ var Timeline = function(elemId, options) {
 	}
 		
 	self.drawEventsByType = function() {
-		console.log("drawing events");
+		console.log("drawing events by type");
 		
 		/*var maxBin = 0.0;//1999999.0;
 		for (var iBin=0; iBin < bins.length; iBin++) {

@@ -201,26 +201,29 @@
 						<div class="title">Algorithm</div>
 						<ul class="algorithmTabs">
 							<li><a href="javascript:void(0)" class="algorithmTabLink active" onclick="openAlgorithmTab(event, 'Execution')">Execution</a></li>
-							<li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Metrics')">Metrics</a></li>
+							<!-- <li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Metrics')">Metrics</a></li> -->
 							<li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Algorithm')">Mining</a></li>
 						</ul>
 					
 						<div id="Execution" class="algorithmTabContent defaultAlgorithmTab">
-							<p>Runtime: <span id="runtime">00:00</span></p>
-							<p><span id="currentAlgorithmWork">Algorithm not running</span></p>
-							<p>Data used: <span id="dataUsed"></span></p>
-							<p>Focusing on: <span id="focus"></span></p>
+							<div>
+								<p>Runtime: <span id="runtime">00:00</span> <span id="currentAlgorithmWork">(Algorithm not running)</span></p>
+								<p></p>
+								<p>Data used: <span id="dataUsed"></span></p>
+								<p>Focusing on: <span id="focus"></span></p>
+							</div>
+							<div>
+								
+							</div>
 						</div>
-						
+						<!-- 
 						<div id="Metrics" class="algorithmTabContent">
 							<p>Pattern sizes' distribution:</p>
 							<div id="patternSizeDistribution">
 							
 							</div>
-							<hr>
-							
 						</div>
-					
+						 -->
 						<div id="Algorithm" class="algorithmTabContent">
 							<div id="sliderSupportArea">
 								<p>Support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>

@@ -726,11 +726,58 @@ ul.algorithmTabs li a:focus, .active {background-color: #006992;}
 #Metrics {
 	overflow: auto;
 	max-height: 90%;
+	flex-direction: column;
 }
 
 #Algorithm {
 	overflow: auto;
 	max-height: 90%;
+	flex-direction: column;
+}
+
+#Execution {
+	display: flex;
+	flex-direction: row;
+}
+
+#Execution > div {
+	flex: 1 1 0;
+}
+
+#currentAlgorithmWork {
+	font-style: italic;
+	color: grey;
+}
+
+/********************************/
+/*		pattern sizes graph		*/
+/********************************/
+
+.bar {
+  fill: #04B7FB;
+}
+
+text.bar {
+	fill: black;
+}
+
+.bar:hover {
+  fill: red;
+}
+
+.axis {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.axis--x.axis path {
+  display: none;
 }
 
 /********************************/
