@@ -22,11 +22,13 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 .section {
 	margin: 5px;
 	background-color: white;
+	border-radius: 5px;
 	/*border: 1px solid #006992;*/
 }
 
 .subsection {
 	flex: 1;
+	border-radius: 5px;
 	/*border: 3px solid red;
 	margin-top: 10px;
 	margin-bottom: 0px;*/
