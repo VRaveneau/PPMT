@@ -749,6 +749,10 @@ ul.algorithmTabs li a:focus, .active {background-color: #006992;}
 	color: grey;
 }
 
+.algoParameterRecap {
+	margin: 0px;
+}
+
 /********************************/
 /*		pattern sizes graph		*/
 /********************************/

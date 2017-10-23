@@ -3544,6 +3544,13 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap, 
 	// Start the timer independently from the server
 	//stopAlgorithmRuntime();
 	//startAlgorithmRuntime();
+	
+	// Update the display of the current parameters in the Execution tab
+	d3.select("#currentSupport").text(minSupport);
+	d3.select("#currentGap").text(minGap+" to "+maxGap);
+	d3.select("#currentWindow").text(windowSize);
+	d3.select("#currentSize").text(maxSize);
+	
 }
 
 /**
