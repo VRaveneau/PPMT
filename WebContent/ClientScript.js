@@ -6544,7 +6544,10 @@ var Timeline = function(elemId, options) {
 				symbolGenerator();
 				self.canvasContext.stroke();
 				self.canvasContext.translate(-x,-y);
-			    self.canvasContext.closePath();
+			    self.canvasContext.closePath();/*
+			    self.canvasContext.font = "20px Helvetica";
+			    self.canvasContext.fillStyle = colorList[info[0]].toString();
+				self.canvasContext.fillText("□", x, y);*/
 			    
 			    self.hiddenCanvasContext.beginPath();
 				self.hiddenCanvasContext.translate(x,y);

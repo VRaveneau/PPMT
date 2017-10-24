@@ -810,30 +810,30 @@ ul.algorithmTabs li :not(.active):hover {
 /*		pattern sizes graph		*/
 /********************************/
 
-.bar {
+#patternSizesSvg .bar {
   fill: #04B7FB;
 }
 
-text.bar {
+#patternSizesSvg text.bar {
 	fill: black;
 }
 
-.bar:hover {
+#patternSizesSvg .bar:hover {
   fill: red;
 }
 
-.axis {
+#patternSizesSvg .axis {
   font: 10px sans-serif;
 }
 
-.axis path,
-.axis line {
+#patternSizesSvg .axis path,
+#patternSizesSvg .axis line {
   fill: none;
   stroke: #000;
   shape-rendering: crispEdges;
 }
 
-.axis--x.axis path {
+#patternSizesSvg .axis--x.axis path {
   display: none;
 }
 
