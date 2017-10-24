@@ -5430,6 +5430,7 @@ var Timeline = function(elemId, options) {
 		    		.paddingInner(0.1);
 				break;
 			case "time":
+				self.yFocus = d3.scaleLinear().range([self.marginFocus.size,0]);
 				break;
 			default:
 			}
@@ -6503,23 +6504,11 @@ var Timeline = function(elemId, options) {
 	self.drawEventsByType = function() {
 		console.log("drawing events by type");
 		
-		/*var maxBin = 0.0;//1999999.0;
-		for (var iBin=0; iBin < bins.length; iBin++) {
-			if (parseInt(bins[iBin][3]) > maxBin)
-				maxBin = parseFloat(bins[iBin][3]);
-		}*/
-		
-		/*self.yFocus.domain([0.0, datasetInfo["numberOfDifferentEvents"]+2]);
-		self.focus.select(".axis--y")
-	      	.call(self.yAxisFocus);*/
-		
 		self.yFocus.domain(eventTypes);
 		self.yAxisFocus = d3.axisLeft(self.yFocus)
 			.tickValues(eventTypes);
 		d3.select("#focusLeftAxis").call(self.yAxisFocus);
 		
-		//var displayStep = (self.yFocus.domain()[1] - self.yFocus.domain()[0] - 2) / datasetInfo["numberOfDifferentEvents"];
-
 		self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.canvasContext.fill();
@@ -6605,97 +6594,9 @@ var Timeline = function(elemId, options) {
 			}
 		}
 		console.log("to event "+firstIndex);
-		/*for (var i=firstIndex; i <= lastIndex; i++) {
-			var info = timeOrderedEvents[i][0].split(";");
-			
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			drawCount++;
-			var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-			var y = self.yFocus(yPoint);
-			self.canvasContext.beginPath();
-			self.canvasContext.rect(x,y,10,10);
-			self.canvasContext.fillStyle = d3.hsl(parseInt(colorList[info[0]]),100,50);//"green";
-			self.canvasContext.fill();
-		    self.canvasContext.closePath();
-		}*/
 		
-		/*for (var i=0; i<userList.length; i++) {
-			for (var j=0;j<userTraces[userList[i]].length;j++) {
-				var info = userTraces[userList[i]][j][0].split(";");
-				
-				var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-				if (time <= self.xFocus.domain()[1] && time >= self.xFocus.domain()[0]) {
-					drawCount++;
-					var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-					var y = self.yFocus(yPoint);
-					self.canvasContext.beginPath();
-					self.canvasContext.rect(x,y,10,10);
-					self.canvasContext.fillStyle = d3.hsl(parseInt(colorList[info[0]]),100,50);//"green";
-					self.canvasContext.fill();
-				    self.canvasContext.closePath();
-				}
-			}
-		}*/
 		var nbEventsChecked = firstIndex-startingIndex;
 		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
-		/*
-		for (var iBin=0; iBin < bins.length; iBin++) {
-			self.canvasContext.beginPath();
-		    var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][1]));
-		    var x2 = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][2]));
-		    var y = self.yFocus(maxBin-parseInt(bins[iBin][3]));
-		    var binHeight = self.yFocus(parseInt(bins[iBin][3]));
-		    self.canvasContext.rect(x, binHeight, x2-x, y);
-		    self.canvasContext.fillStyle = "lightblue";//node.attr("fillStyle");
-		    self.canvasContext.fill();
-		    self.canvasContext.lineWidth = 0.25;
-		    self.canvasContext.strokeStyle = "black";
-		    self.canvasContext.stroke();
-		  //  self.canvasContext.fillRect(x, binHeight, x2-x, y);
-		    self.canvasContext.closePath();
-		    
-		    // Drawing the text
-		    /*self.canvasContext.fillStyle = "black";
-		    self.canvasContext.textAlign = "center";
-		    self.canvasContext.textBaseline = "middle";
-		    self.canvasContext.fillText(
-		    		bins[iBin][3],				// text
-		    		x+(x2-x)/2,						// x
-		    		binHeight+y/2);*/		// y
-		//}
-		
-		/*self.canvasOverviewContext.fillStyle = "#fff";
-		self.canvasOverviewContext.rect(0,0,self.canvasOverview.attr("width"),self.canvasOverview.attr("height"));
-		self.canvasOverviewContext.fill();
-
-		self.yContext.domain([0.0, maxBin+1.0]);
-		
-		var area = d3.area()
-		    .x(function(d) { return d[0]; })
-		    .y0(self.heightContext)
-		    .y1(function(d) { return d[1]; })
-		    .context(self.canvasOverviewContext);
-		
-		var data = [];
-		
-		for (var iBin=0; iBin < bins.length; iBin++) {			
-			var thisData = [];
-			
-			thisData.push(self.xContext(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][1])));
-			thisData.push(self.yContext(parseInt(bins[iBin][3])));
-			data.push(thisData);
-			
-			thisData = [];
-			thisData.push(self.xContext(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][2])));
-			thisData.push(self.yContext(parseInt(bins[iBin][3])));
-			data.push(thisData);
-		}
-		
-		self.canvasOverviewContext.beginPath();
-		area(data);
-		self.canvasOverviewContext.fillStyle = "lightblue";
-		self.canvasOverviewContext.strokeStyle = "lightblue";
-		self.canvasOverviewContext.fill();*/
 		
 		console.log("events drawn");
 	}
