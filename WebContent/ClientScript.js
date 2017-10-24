@@ -1790,6 +1790,7 @@ function getNextCategoryColor() {
 }
 
 var colorList = {};
+var eventTypes = [];
 var eventDisplayHeight = {};
 
 function receiveEventTypes(message) {
@@ -1827,6 +1828,8 @@ function receiveEventTypes(message) {
 				break;
 			case "type":
 				eType = info[1];
+				if (!eventTypes.includes(eType))
+					eventTypes.push(eType);
 				break;
 			case "nbOccs":
 				eNbOccs = info[1];
@@ -5143,7 +5146,7 @@ var Timeline = function(elemId, options) {
 				}
 			}
 		}
-		
+		self.setupFocusLeftAxis();
 		
 		switch(self.displayMode) {
 		case "distributions":
@@ -5410,15 +5413,49 @@ var Timeline = function(elemId, options) {
 		}
 	}
 	
+	/**
+	 * Displays the expected left axis for the focus view
+	 * 	according to the displayMode and eventDisplayStyle parameters
+	 */
+	self.setupFocusLeftAxis = function() {
+		switch(self.displayMode) {
+		case "distributions":
+			self.yFocus = d3.scaleLinear().range([self.marginFocus.size,0]);
+			break;
+		case "events":
+			switch(self.eventDisplayStyle) {
+			case "type":
+				self.yFocus = d3.scaleBand()
+		    		.range([0, self.marginFocus.size])
+		    		.paddingInner(0.1);
+				break;
+			case "time":
+				break;
+			default:
+			}
+			break;
+		default:
+		}
+		self.yAxisFocus = d3.axisLeft(self.yFocus);
+		d3.select("#focusLeftAxis")
+			.call(self.yAxisFocus);
+	}
+	
 	self.eventDisplayStyle = "type";
 	
 	self.changeEventDisplayStyle = function() {
-	    if (this.value === "type")
+	    if (this.value === "type") {
 	    	self.eventDisplayStyle = "type";
-    	else if (this.value === "time")
+	    	// change the left axis
+	    	self.yFocus = d3.scaleBand()
+	    		.range([0, self.marginFocus.size])
+	    		.paddingInner(0.1);
+	    } else if (this.value === "time") {
     		self.eventDisplayStyle = "time";
-    	else
+    		
+	    } else {
     		self.eventDisplayStyle = "user";
+	    }
 	    self.displayData();
 	};
 	
@@ -5821,6 +5858,7 @@ var Timeline = function(elemId, options) {
 		.call(self.xAxisFocus);
 	self.focus.append("g")
 		.attr("class", "axis axis--y")
+		.attr("id", "focusLeftAxis")
 		.call(self.yAxisFocus);
 		//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Creating the xAxis for the context part of the timeline
@@ -6474,7 +6512,13 @@ var Timeline = function(elemId, options) {
 		/*self.yFocus.domain([0.0, datasetInfo["numberOfDifferentEvents"]+2]);
 		self.focus.select(".axis--y")
 	      	.call(self.yAxisFocus);*/
-		var displayStep = (self.yFocus.domain()[1] - self.yFocus.domain()[0] - 2) / datasetInfo["numberOfDifferentEvents"];
+		
+		self.yFocus.domain(eventTypes);
+		self.yAxisFocus = d3.axisLeft(self.yFocus)
+			.tickValues(eventTypes);
+		d3.select("#focusLeftAxis").call(self.yAxisFocus);
+		
+		//var displayStep = (self.yFocus.domain()[1] - self.yFocus.domain()[0] - 2) / datasetInfo["numberOfDifferentEvents"];
 
 		self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
@@ -6524,16 +6568,16 @@ var Timeline = function(elemId, options) {
 			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
 				
 				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-				var y = self.yFocus(eventDisplayHeight[info[0]]*displayStep);
+				var y = self.yFocus(info[0]) + self.yFocus.bandwidth()/2;
 				
 				var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(50)
+										.size(self.yFocus.bandwidth())
 										//.attr("transform","translate("+x+","+y+")")
 										.context(self.canvasContext);
 /*.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
 .attr("stroke", function(d) {return d3.hsl(d.color,100,50)})*/
 				var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(50)
+										.size(self.yFocus.bandwidth())
 										//.attr("transform","translate("+x+","+y+")")
 										.context(self.hiddenCanvasContext);
 				
