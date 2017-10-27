@@ -4660,40 +4660,68 @@ var Timeline = function(elemId, options) {
 	        });
 		self.focus.select("#focusRightAxis").call(self.yAxisPatterns);
 		
-		/*self.patterns.select(".axis--y")
-			.call(self.yAxisPatterns);
-		self.yAxisPatterns = d3.axisLeft(self.yPatterns);*/
-			//.tickSizeInner(-self.width);
-		/*self.focus.select(".axis--y")
-	      .call(self.yAxisPatterns)
-			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");*/
-		
-		
-		for (var i = 0; i < idsToDraw.length; i++) {// Draw each pattern
-			for (var j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
-				console.log("Ids to draw: "+idsToDraw);
-				if (self.patternOccs[idsToDraw[i]][j]) {
-					var occ = self.patternOccs[idsToDraw[i]][j].split(";");
-					var x1 = self.xFocus(new Date(parseInt(occ[1])));
-					var x2 = self.xFocus(new Date(parseInt(occ[2])));
-					var y = self.yPatterns(idsToDraw[i]);
-					self.canvasContext.beginPath();
-					if (x1 == x2) {
-						self.canvasContext.fillStyle = "blue";
-						self.canvasContext.arc(x1,y,3,0,2*Math.PI, false)
-						self.canvasContext.fill();
-						self.canvasContext.closePath();
-					} else {
-						self.canvasContext.lineWidth = 3;
-						self.canvasContext.moveTo(x1,y);
-						self.canvasContext.lineTo(x2,y);
-						self.canvasContext.lineCap = "round";
-						self.canvasContext.stroke();
-					    self.canvasContext.closePath();
+		switch(self.displayMode) {
+		case "distributions": // Displays all occurrences of a pattern on a line
+			for (var i = 0; i < idsToDraw.length; i++) {// Draw each pattern
+				for (var j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
+					console.log("Ids to draw: "+idsToDraw);
+					if (self.patternOccs[idsToDraw[i]][j]) {
+						var occ = self.patternOccs[idsToDraw[i]][j].split(";");
+						var x1 = self.xFocus(new Date(parseInt(occ[1])));
+						var x2 = self.xFocus(new Date(parseInt(occ[2])));
+						var y = self.yPatterns(idsToDraw[i]);
+						self.canvasContext.beginPath();
+						if (x1 == x2) {
+							self.canvasContext.fillStyle = "blue";
+							//self.canvasContext.arc(x1,y,3,0,2*Math.PI, false);
+							//self.canvasContext.arc(x1,y1,3,0,2*Math.PI, false);
+							self.canvasContext.fill();
+							self.canvasContext.closePath();
+						} else {
+							self.canvasContext.lineWidth = 3;
+							self.canvasContext.moveTo(x1,y);
+							self.canvasContext.lineTo(x2,y);
+							self.canvasContext.lineCap = "round";
+							self.canvasContext.stroke();
+						    self.canvasContext.closePath();
+						}
 					}
 				}
 			}
+			break;
+		case "events": // Displays occurrences by connecting their events
+			for (var i = 0; i < idsToDraw.length; i++) {// Draw each pattern
+				let patternItems = patternsInformation[idsToDraw[i]][3];
+				for (var j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
+					console.log("Ids to draw: "+idsToDraw);
+					if (self.patternOccs[idsToDraw[i]][j]) {
+						var occ = self.patternOccs[idsToDraw[i]][j].split(";");
+						var x1 = self.xFocus(new Date(parseInt(occ[1])));
+						var x2 = self.xFocus(new Date(parseInt(occ[2])));
+						var y1 = self.yFocus(patternItems[0]);
+						var y2 = self.yFocus(patternItems[patternItems.length - 1]);
+						self.canvasContext.beginPath();
+						if (x1 == x2) {
+							self.canvasContext.fillStyle = "blue";
+							//self.canvasContext.arc(x1,y,3,0,2*Math.PI, false);
+							//self.canvasContext.arc(x1,y1,3,0,2*Math.PI, false);
+							self.canvasContext.fill();
+							self.canvasContext.closePath();
+						} else {
+							self.canvasContext.lineWidth = 5;
+							self.canvasContext.moveTo(x1,y1);
+							self.canvasContext.lineTo(x2,y2);
+							self.canvasContext.lineCap = "round";
+							self.canvasContext.stroke();
+						    self.canvasContext.closePath();
+						}
+					}
+				}
+			}
+			break;
+		default:
 		}
+		
 		console.log(idsToDraw.length+" patterns drawn")
 	}
 	
