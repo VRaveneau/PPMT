@@ -4696,6 +4696,30 @@ var Timeline = function(elemId, options) {
 					console.log("Ids to draw: "+idsToDraw);
 					if (self.patternOccs[idsToDraw[i]][j]) {
 						var occ = self.patternOccs[idsToDraw[i]][j].split(";");
+						self.canvasContext.beginPath();
+						self.canvasContext.lineWidth = 5;
+						self.canvasContext.lineCap = "round";
+						let x1 = self.xFocus(new Date(parseInt(occ[1])));
+						let y1 = self.yFocus(patternItems[0]);
+						self.canvasContext.moveTo(x1,y1);
+						for (let evtIdx=2; evtIdx < occ.length; evtIdx++) { // for each event inside the occurrence
+							let x2 = self.xFocus(new Date(parseInt(occ[evtIdx])));
+							let y2 = self.yFocus(patternItems[patternItems[evtIdx-1]]);
+							self.canvasContext.lineTo(x2,y2);
+							x1 = x2;
+							y1 = y2;
+							/*if (x1 == x2) {
+								self.canvasContext.fillStyle = "blue";
+								//self.canvasContext.arc(x1,y,3,0,2*Math.PI, false);
+								//self.canvasContext.arc(x1,y1,3,0,2*Math.PI, false);
+								self.canvasContext.fill();
+								self.canvasContext.closePath();
+							} else {
+							} */
+						}
+						self.canvasContext.stroke();
+						self.canvasContext.closePath();
+						
 						var x1 = self.xFocus(new Date(parseInt(occ[1])));
 						var x2 = self.xFocus(new Date(parseInt(occ[2])));
 						var y1 = self.yFocus(patternItems[0]);

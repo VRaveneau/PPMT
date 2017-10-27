@@ -160,9 +160,12 @@ public class CandidateInSequenceFinder {
                     // We set the flag to true
                     present = true;
                     // We add the occurrence
-                    long[] timestamps = new long[2];
-                    timestamps[0] = sequence.get(foundPositions.get(0)[0]).getTimestamp(); // Timestamp of the first event
-                    timestamps[1] = sequence.get(pos[0]).getTimestamp(); // Timestamp of the last event
+                    long[] timestamps = new long[foundPositions.size()];
+                    for (int idx = 0; idx < foundPositions.size(); idx++) {
+                    	timestamps[idx] = sequence.get(foundPositions.get(idx)[0]).getTimestamp();
+                    }
+                    //timestamps[0] = sequence.get(foundPositions.get(0)[0]).getTimestamp(); // Timestamp of the first event
+                    //timestamps[1] = sequence.get(pos[0]).getTimestamp(); // Timestamp of the last event
                     occurrences.add(timestamps);
                     // We reset the found positions
                     foundPositions = new ArrayList<>();

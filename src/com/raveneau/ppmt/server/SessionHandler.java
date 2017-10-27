@@ -749,9 +749,12 @@ public class SessionHandler {
 				.add("count", p.getSupport());
     	int patternCount = 0;
     	for (Integer sId : p.getSequenceId()) {
-    		String occ = p.getUserFromSeqId(sId)+";";
+    		String occ = p.getUserFromSeqId(sId);
     		long[] ts = p.getTimestampsFromSeqId(sId);
-    		occ += ts[0]+";"+ts[1];
+    		
+    		for (int idx =0; idx < ts.length; idx++) {
+    			occ += ";"+ts[idx];
+    		}
     		
 			dataMessage.add(Integer.toString(patternCount), occ);
 			patternCount++;
