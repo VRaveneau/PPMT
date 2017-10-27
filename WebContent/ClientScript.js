@@ -38,8 +38,44 @@ var patterns = {};
 var occurrences = {}
 var patternProbabilities = {};
 var itemColors = {};
-var shapes = extendedSymbolTypes[0];
-var shapeNames = extendedSymbolTypes[1];
+var shapesDraw = extendedSymbolTypes[0];
+var shapesWrite = [
+	"□",
+	"△",
+	"▷",
+	"▽",
+	"◁",
+	"◇",
+	"○",
+	"☆",
+	"▱",
+	"♡",
+	"♤",
+	"♧",
+	"⇦",
+	"⇧",
+	"⇨",
+	"⇩"];
+var shapes = shapesDraw;
+var shapeNamesDraw = extendedSymbolTypes[1];
+var shapeNamesWrite = [
+	"square",
+	"triangleUp",
+	"triangelRight",
+	"triangleDown",
+	"triangelLeft",
+	"losange",
+	"circle",
+	"star",
+	"rectangle",
+	"heart",
+	"spade",
+	"clover",
+	"arrowLeft",
+	"arrowUp",
+	"arrowRight",
+	"arrowDown"];
+var shapeNames = shapeNamesDraw;
 var itemShapes = {};	// TODO request a list of shapes from the server to populate this list
 var datasetInfo = {};
 var availableColors = [];
@@ -4523,7 +4559,85 @@ var Timeline = function(elemId, options) {
 	
 	self.drawPatternOccurrences = function() {
 		
-		console.log("Starting to draw patterns");
+		console.log("Starting to draw pattern occurrences");
+		var idsToDraw = [];
+		
+		for (var key in self.displayPatternOccs) {
+		  if (self.displayPatternOccs.hasOwnProperty(key)) {
+		    if (self.displayPatternOccs[key] == true)
+		    	idsToDraw.push(key);
+		  }
+		}
+		
+		/*var listOfPatternsToDraw = [" "].concat(idsToDraw);
+		
+		console.log("patterns to draw: "+listOfPatternsToDraw);*/
+		
+		var step = self.marginFocus.size / (idsToDraw.length+1.0);
+		var i = 0;
+		var range = [];
+		for (i; i<= idsToDraw.length+1; i++)
+			range.push(0+i*step);
+		
+		
+		self.yPatterns = d3.scaleOrdinal()
+			.domain([" "].concat(idsToDraw))
+			.range(range);
+	
+		self.yAxisPatterns = d3.axisRight(self.yPatterns)
+	        .tickValues([" "].concat(idsToDraw))
+	        .tickFormat(function(d, i) {
+	        	if (patternsInformation[d] && patternsInformation[d].length >= 0)
+	        		return patternsInformation[d][0];
+	        	else
+	        		return d;
+	        });
+		self.focus.select("#focusRightAxis").call(self.yAxisPatterns);
+		
+		/*self.patterns.select(".axis--y")
+			.call(self.yAxisPatterns);
+		self.yAxisPatterns = d3.axisLeft(self.yPatterns);*/
+			//.tickSizeInner(-self.width);
+		/*self.focus.select(".axis--y")
+	      .call(self.yAxisPatterns)
+			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");*/
+		
+
+		self.canvasPatternsContext.fillStyle = "#fff";
+		self.canvasPatternsContext.rect(0,0,self.canvasPatterns.attr("width"),self.canvasPatterns.attr("height"));
+		self.canvasPatternsContext.fill();
+		
+		for (var i = 0; i < idsToDraw.length; i++) {// Draw each pattern
+			for (var j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
+				console.log("Ids to draw: "+idsToDraw);
+				if (self.patternOccs[idsToDraw[i]][j]) {
+					var occ = self.patternOccs[idsToDraw[i]][j].split(";");
+					var x1 = self.xFocus(new Date(parseInt(occ[1])));
+					var x2 = self.xFocus(new Date(parseInt(occ[2])));
+					var y = self.yPatterns(idsToDraw[i]);
+					self.canvasContext.beginPath();
+					if (x1 == x2) {
+						self.canvasContext.fillStyle = "blue";
+						self.canvasContext.arc(x1,y,3,0,2*Math.PI, false)
+						self.canvasContext.fill();
+						self.canvasContext.closePath();
+					} else {
+						self.canvasContext.lineWidth = 3;
+						self.canvasContext.moveTo(x1,y);
+						self.canvasContext.lineTo(x2,y);
+						self.canvasContext.lineCap = "round";
+						self.canvasContext.stroke();
+					    self.canvasContext.closePath();
+					}
+				}
+			}
+		}
+		console.log(idsToDraw.length+" patterns drawn")
+	}
+
+	self.drawPatternOccurrencesOld = function() {
+		
+		console.log("Starting to draw pattern occurrences");
 		var idsToDraw = [];
 		
 		for (var key in self.displayPatternOccs) {
@@ -5810,7 +5924,7 @@ var Timeline = function(elemId, options) {
 	self.yFocus = d3.scaleLinear().range([self.marginFocus.size,0]);
 	self.yContext = d3.scaleLinear().range([self.marginContext.size,0]);
 	self.xPatterns = d3.scaleTime().range([0, self.width]);
-	self.yPatterns = d3.scalePoint().range([self.marginPatterns.size,0]);
+	self.yPatterns = d3.scalePoint().range([self.marginFocus.size,0]);
 	self.xUsers = d3.scaleTime().range([0, self.width]);
 	self.yUsers = d3.scaleBand()
 			.range([0, self.marginUsers.size])
@@ -5819,7 +5933,7 @@ var Timeline = function(elemId, options) {
 	self.xAxisContext = d3.axisBottom(self.xContext);
 	self.yAxisFocus = d3.axisLeft(self.yFocus);//.tickSizeInner(-self.width);
 	self.xAxisPatterns = d3.axisBottom(self.xPatterns);
-	self.yAxisPatterns = d3.axisLeft(self.yPatterns).tickSizeInner(-self.width);
+	self.yAxisPatterns = d3.axisRight(self.yPatterns).tickSizeInner(-self.width);
 	self.xAxisUsers = d3.axisBottom(self.xUsers);
 	self.yAxisUsers = d3.axisLeft(self.yUsers);//.tickSizeInner(-self.width);
 	// The brush component of the context part
@@ -5873,8 +5987,10 @@ var Timeline = function(elemId, options) {
 		.attr("transform", "translate(0," + (self.marginPatterns.size + self.marginPatterns.top) + ")")
 		.call(self.xAxisPatterns);
 	// Creating the yAxis for the pattern part of the timeline
-	self.patterns.append("g")
+	self.focus.append("g")
 		.attr("class", "axis axis--y")
+		.attr("id", "focusRightAxis")
+	    .attr("transform", "translate("+self.width+",0)")
 		.call(self.yAxisPatterns)
 		.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Creating the xAxis for the users part of the timeline
