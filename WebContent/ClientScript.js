@@ -5675,10 +5675,9 @@ var Timeline = function(elemId, options) {
 	}
 	
 	// Parameters about size and margin of the timeline's parts
-	self.marginFocus = {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 250};
-	self.marginContext = {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 50};
-	self.marginPatterns = {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 200};
-	self.marginUsers =  {"top": 0,"right": 20,"bottom": 20,"left": 40,"size": 250};
+	self.marginFocus = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 250};
+	self.marginContext = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 50};
+	self.marginUsers =  {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 250};
 	
 	self.width = +self.parentNode.clientWidth
 			- Math.max(self.marginFocus.left, self.marginContext.left)
@@ -5690,14 +5689,11 @@ var Timeline = function(elemId, options) {
 			+ self.marginFocus.top + self.marginFocus.bottom;
 	self.heightContext = self.marginContext.size//+self.parentNode.clientHeight
 			+ self.marginContext.top + self.marginContext.bottom;
-	self.heightPatterns = self.marginPatterns.size//+self.parentNode.clientHeight
-			+ self.marginPatterns.top + self.marginPatterns.bottom;
 	self.heightUsers = self.marginUsers.size
 			+ self.marginUsers.top + self.marginUsers.bottom;
 	
 	self.height = self.heightFocus
 		+ self.heightContext
-		+ self.heightPatterns
 		+ self.heightUsers
 		+ 5*20;
 	
