@@ -39,7 +39,7 @@ var occurrences = {}
 var patternProbabilities = {};
 var itemColors = {};
 var shapesDraw = extendedSymbolTypes[0];
-var shapesWrite = [
+var shapesWriteWhite = [
 	"□",
 	"△",
 	"▷",
@@ -56,7 +56,25 @@ var shapesWrite = [
 	"⇧",
 	"⇨",
 	"⇩"];
-var shapes = shapesDraw;
+var shapesWriteBlack = [
+	"■",
+	"▲",
+	"▶",
+	"▼",
+	"◀",
+	"♦",
+	"●",
+	"★",
+	"▰",
+	"♥",
+	"♠",
+	"♣",
+	"←",
+	"↑",
+	"→",
+	"↓"
+];
+var shapes = shapesWriteBlack;
 var shapeNamesDraw = extendedSymbolTypes[1];
 var shapeNamesWrite = [
 	"square",
@@ -64,7 +82,7 @@ var shapeNamesWrite = [
 	"triangelRight",
 	"triangleDown",
 	"triangelLeft",
-	"losange",
+	"diamond",
 	"circle",
 	"star",
 	"rectangle",
@@ -75,7 +93,7 @@ var shapeNamesWrite = [
 	"arrowUp",
 	"arrowRight",
 	"arrowDown"];
-var shapeNames = shapeNamesDraw;
+var shapeNames = shapeNamesWrite;
 var itemShapes = {};	// TODO request a list of shapes from the server to populate this list
 var datasetInfo = {};
 var availableColors = [];
@@ -1923,12 +1941,11 @@ function receiveEventTypes(message) {
 		eventRow.append("td").text(eNbOccs);
 		eventRow.append("td").text(eCategory);
 		eventRow.append("td").text(eDescription);
-		//var symbolRow = eventRow.append("td")
-			//		.attr("sorttable_customkey", (i%colors.length)*100+i%shapes.length);
+		
+		/* Old symbol cell, using svg
 		var symbolRow = eventRow.append("td")
 			.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
 			.classed("dropdown", true);
-		//console.log("code for "+eType+": "+(colors.indexOf(eColor))*100+shapes.indexOf(eCode) + '('+colors.indexOf(eColor)+'*100+'+shapes.indexOf(eCode));
 		let symbolRowSvg = symbolRow.append("svg")
 			.attr("width", 20)
 			.attr("height", 20)
@@ -1937,7 +1954,17 @@ function receiveEventTypes(message) {
 			.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
 			.attr("transform","translate(10,10)")
 			.attr("stroke", colorList[eType].toString())
-			.attr("fill","none");
+			.attr("fill","none");*/
+		/* New symbol cell, using utf-8 symbols */
+		var symbolRow = eventRow.append("td")
+			.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
+			.classed("dropdown", true);
+		let symbolRowSvg = symbolRow.append("span")
+			.style("color",colorList[eType].toString())
+			.classed("dropbtn",true)
+			.text(itemShapes[eType]);
+			
+		
 		// Create the menu to customize the icon
 		var dropMenuDiv = symbolRow.append("div")
 			.classed("dropdown-content", true);
@@ -1949,12 +1976,16 @@ function receiveEventTypes(message) {
 					// Update the row id for the new color
 					symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType]).h)*100+shapes.indexOf(itemShapes[eType]));
 					// draw the new symbol
+					/* Old symbol, svg
 					symbolRowSvg.selectAll("*").remove();
 					symbolRowSvg.append("path")
 						.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
 						.attr("transform","translate(10,10)")
 						.attr("stroke", colorList[eType].toString())
-						.attr("fill","none");
+						.attr("fill","none"); */
+					/* New symbol, utf-8 char */
+					symbolRowSvg.style("color",colorList[eType].toString())
+						.text(itemShapes[eType]);
 					// refresh the changed displays
 					timeline.displayData();
 					createPatternListDisplay();
@@ -1982,12 +2013,15 @@ function receiveEventTypes(message) {
 				// Update the row id for the new color
 				symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType]).h)*100+shapes.indexOf(itemShapes[eType]));
 				// draw the new symbol
+				/* Old symbol, svg
 				symbolRowSvg.selectAll("*").remove();
 				symbolRowSvg.append("path")
 					.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
 					.attr("transform","translate(10,10)")
 					.attr("stroke",colorList[eType].toString())
-					.attr("fill","none");
+					.attr("fill","none");*/
+				/* New symbol, UTF-8 */
+				symbolRowSvg.style("color",colorList[eType].toString())
 				// refresh the changed displays
 				timeline.displayData();
 				createPatternListDisplay();
@@ -2783,6 +2817,15 @@ function addPatternToList(message) {
 				}
 			});
 		var thisNameCell = thisRow.append("td");
+		
+		for (var k=0; k < pSize; k++) {
+			thisNameCell.append("span")
+				.style("color",colorList[pItems[k]].toString())
+				.text(itemShapes[pItems[k]]);
+		}
+		thisNameCell.append("span")
+			.text(pString)
+			.attr("patternId",pId);
 			//.classed("dropdown", true);
 		/*var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
@@ -2842,6 +2885,14 @@ function addPatternToList(message) {
 				}
 			});
 		let thisNameCell = thisRow.append("td");
+		for (var k=0; k < pSize; k++) {
+			thisNameCell.append("span")
+				.style("color",colorList[pItems[k]].toString())
+				.text(itemShapes[pItems[k]]);
+		}
+		thisNameCell.append("span")
+			.text(pString)
+			.attr("patternId",pId);
 			//.classed("dropdown", true);
 		/*var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
@@ -3070,6 +3121,11 @@ function createPatternListDisplay() {
 		/*var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
 			.attr("height", 20);*/
+		for (var k=0; k < pSize; k++) {
+			thisNameCell.append("span")
+				.style("color",colorList[pItems[k]].toString())
+				.text(itemShapes[pItems[k]]);
+		}
 		thisNameCell.append("span")
 			.text(pString)
 			.attr("patternId",pId);
@@ -5655,11 +5711,14 @@ var Timeline = function(elemId, options) {
 						}
 					}
 					
+					
+					
 					//Create an svg node outside of the DOM to get its inner HTML
 					var divOutsideOfDom = document.createElementNS("http://www.w3.org/1999/xhtml","div");
 					divOutsideOfDom.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
 					
 					var div = d3.select(divOutsideOfDom);
+					/* Create an event type line with svg for the event symbols
 					var svg = div.append("svg")
 						.attr("width", 16)
 						.attr("height", 16);
@@ -5667,11 +5726,13 @@ var Timeline = function(elemId, options) {
 						.attr("d",d3.symbol().type(itemShapes[occ[0]]).size(60))
 						.attr("transform","translate(8,8)")
 						.attr("stroke", colorList[occ[0]].toString())
-						.attr("fill","none");
-					//console.log("Html :");
-					//console.log(svg.html());
+						.attr("fill","none");*/
+					/* create an event type line with utf-8 for the event symbols */
+					div.append("span")
+						.style("color",colorList[occ[0]].toString())
+						.text(itemShapes[occ[0]]);
 					message += "<br>"+div.html()+"&nbsp;"+occ[0]+" : "+occ[1]+" ("+(percentage*100).toPrecision(3)+"%)";
-					div.remove();
+					div.remove(); 
 				}
 			}
 			break;
@@ -6675,15 +6736,12 @@ var Timeline = function(elemId, options) {
 				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
 				var y = self.yFocus(info[0]) + self.yFocus.bandwidth()/2;
 				
+				/* Draw the symbol when using svg for the event types
 				var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
 										.size(self.yFocus.bandwidth())
-										//.attr("transform","translate("+x+","+y+")")
 										.context(self.canvasContext);
-/*.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
-.attr("stroke", function(d) {return d3.hsl(d.color,100,50)})*/
 				var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
 										.size(self.yFocus.bandwidth())
-										//.attr("transform","translate("+x+","+y+")")
 										.context(self.hiddenCanvasContext);
 				
 				//self.canvasContext.rect(x-2.5,y-2.5,5,5);
@@ -6693,10 +6751,7 @@ var Timeline = function(elemId, options) {
 				symbolGenerator();
 				self.canvasContext.stroke();
 				self.canvasContext.translate(-x,-y);
-			    self.canvasContext.closePath();/*
-			    self.canvasContext.font = "20px Helvetica";
-			    self.canvasContext.fillStyle = colorList[info[0]].toString();
-				self.canvasContext.fillText("□", x, y);*/
+			    self.canvasContext.closePath();
 			    
 			    self.hiddenCanvasContext.beginPath();
 				self.hiddenCanvasContext.translate(x,y);
@@ -6704,8 +6759,16 @@ var Timeline = function(elemId, options) {
 				hiddenSymbolGenerator();
 				self.hiddenCanvasContext.fill();
 				self.hiddenCanvasContext.translate(-x,-y);
-			    self.hiddenCanvasContext.closePath();
+			    self.hiddenCanvasContext.closePath();*/
+				
+			    self.canvasContext.font = self.yFocus.bandwidth()+"px Geneva";
+			    self.canvasContext.fillStyle = colorList[info[0]].toString();
+				self.canvasContext.fillText(itemShapes[info[0]], x, y);
 			    
+				self.hiddenCanvasContext.font = self.yFocus.bandwidth()+"px Geneva";
+			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
+				self.hiddenCanvasContext.fillText(itemShapes[info[0]], x, y);
+				
 			    firstIndex++;
 			}
 		}
@@ -6797,6 +6860,7 @@ var Timeline = function(elemId, options) {
 				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
 				var y = self.yFocus(currentHeight);
 				
+				/*
 				var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
 										.size(50)
 										.context(self.canvasContext);
@@ -6807,7 +6871,7 @@ var Timeline = function(elemId, options) {
 				
 				self.canvasContext.beginPath();
 				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+				self.canvasContext.strokeStyle = colorList[info[0]].toString();
 				symbolGenerator();
 				self.canvasContext.stroke();
 				self.canvasContext.translate(-x,-y);
@@ -6815,11 +6879,21 @@ var Timeline = function(elemId, options) {
 			    
 			    self.hiddenCanvasContext.beginPath();
 				self.hiddenCanvasContext.translate(x,y);
-				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
 				hiddenSymbolGenerator();
 				self.hiddenCanvasContext.fill();
 				self.hiddenCanvasContext.translate(-x,-y);
-			    self.hiddenCanvasContext.closePath();
+			    self.hiddenCanvasContext.closePath();*/
+			    
+
+				
+			    self.canvasContext.font = self.yFocus.bandwidth()+"px Geneva";
+			    self.canvasContext.fillStyle = colorList[info[0]].toString();
+				self.canvasContext.fillText(itemShapes[info[0]], x, y);
+			    
+				self.hiddenCanvasContext.font = self.yFocus.bandwidth()+"px Geneva";
+			    self.hiddenCanvasContext.fillStyle = colorList[info[0]].toString();
+				self.hiddenCanvasContext.fillText(itemShapes[info[0]], x, y);
 			    
 			    firstIndex++;
 			}
