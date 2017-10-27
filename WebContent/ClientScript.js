@@ -4376,7 +4376,6 @@ var Timeline = function(elemId, options) {
 	self.nodeFocusControl = document.getElementById('tl_focusControl');
 	self.nodeOverview = document.getElementById('tl_overview');
 	self.nodeFocus = document.getElementById('tl_focus');
-	self.nodePatterns = document.getElementById('tl_patterns');
 	self.nodeUsers = document.getElementById('tl_users');
 	self.nodeSelectedUsers = document.getElementById('tl_selectedUsers');
 
@@ -4427,8 +4426,6 @@ var Timeline = function(elemId, options) {
 			.attr("d", self.areaFocus);*/
 		self.focus.select(".axis--x")
 			.call(self.xAxisFocus);
-		self.patterns.select(".axis--x")
-			.call(self.xAxisPatterns);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
 		/*self.focus.selectAll(".dot")
@@ -4677,10 +4674,6 @@ var Timeline = function(elemId, options) {
 	      .call(self.yAxisPatterns)
 			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");*/
 		
-
-		self.canvasPatternsContext.fillStyle = "#fff";
-		self.canvasPatternsContext.rect(0,0,self.canvasPatterns.attr("width"),self.canvasPatterns.attr("height"));
-		self.canvasPatternsContext.fill();
 		
 		for (var i = 0; i < idsToDraw.length; i++) {// Draw each pattern
 			for (var j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
@@ -4703,84 +4696,6 @@ var Timeline = function(elemId, options) {
 						self.canvasContext.lineCap = "round";
 						self.canvasContext.stroke();
 					    self.canvasContext.closePath();
-					}
-				}
-			}
-		}
-		console.log(idsToDraw.length+" patterns drawn")
-	}
-
-	self.drawPatternOccurrencesOld = function() {
-		
-		console.log("Starting to draw pattern occurrences");
-		var idsToDraw = [];
-		
-		for (var key in self.displayPatternOccs) {
-		  if (self.displayPatternOccs.hasOwnProperty(key)) {
-		    if (self.displayPatternOccs[key] == true)
-		    	idsToDraw.push(key);
-		  }
-		}
-		
-		/*var listOfPatternsToDraw = [" "].concat(idsToDraw);
-		
-		console.log("patterns to draw: "+listOfPatternsToDraw);*/
-		
-		var step = self.marginPatterns.size / (idsToDraw.length+1.0);
-		var i = 0;
-		var range = [];
-		for (i; i<= idsToDraw.length+1; i++)
-			range.push(0+i*step);
-		
-		
-		self.yPatterns = d3.scaleOrdinal()
-			.domain([" "].concat(idsToDraw))
-			.range(range);
-	
-		self.yAxisPatterns = d3.axisLeft(self.yPatterns)
-	        .tickValues([" "].concat(idsToDraw))
-	        .tickFormat(function(d, i) {
-	        	if (patternsInformation[d] && patternsInformation[d].length >= 0)
-	        		return patternsInformation[d][0];
-	        	else
-	        		return d;
-	        });
-		self.patterns.select(".axis--y").call(self.yAxisPatterns);
-		
-		/*self.patterns.select(".axis--y")
-			.call(self.yAxisPatterns);
-		self.yAxisPatterns = d3.axisLeft(self.yPatterns);*/
-			//.tickSizeInner(-self.width);
-		/*self.focus.select(".axis--y")
-	      .call(self.yAxisPatterns)
-			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");*/
-		
-
-		self.canvasPatternsContext.fillStyle = "#fff";
-		self.canvasPatternsContext.rect(0,0,self.canvasPatterns.attr("width"),self.canvasPatterns.attr("height"));
-		self.canvasPatternsContext.fill();
-		
-		for (var i = 0; i < idsToDraw.length; i++) {// Draw each pattern
-			for (var j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
-				console.log("Ids to draw: "+idsToDraw);
-				if (self.patternOccs[idsToDraw[i]][j]) {
-					var occ = self.patternOccs[idsToDraw[i]][j].split(";");
-					var x1 = self.xPatterns(new Date(parseInt(occ[1])));
-					var x2 = self.xPatterns(new Date(parseInt(occ[2])));
-					var y = self.yPatterns(idsToDraw[i]);
-					self.canvasPatternsContext.beginPath();
-					if (x1 == x2) {
-						self.canvasPatternsContext.fillStyle = "blue";
-						self.canvasPatternsContext.arc(x1,y,3,0,2*Math.PI, false)
-						self.canvasPatternsContext.fill();
-						self.canvasPatternsContext.closePath();
-					} else {
-						self.canvasPatternsContext.lineWidth = 3;
-						self.canvasPatternsContext.moveTo(x1,y);
-						self.canvasPatternsContext.lineTo(x2,y);
-						self.canvasPatternsContext.lineCap = "round";
-						self.canvasPatternsContext.stroke();
-					    self.canvasPatternsContext.closePath();
 					}
 				}
 			}
@@ -5090,108 +5005,6 @@ var Timeline = function(elemId, options) {
 		self.drawPatternBins(self.bins);
 	};
 	
-	self.drawPatternBins = function(patternBinsReceived) {
-		// draw the year bins
-		console.log("drawing pattern bins");
-		//console.log(bins);
-		
-		//[[year,start,end,value]...]
-		
-		// Adjust the focus part of the timeline to the new data
-		//self.xFocus.domain(d3.extent(csvData, function(d) { return d.time; }));
-		var maxBin = 0.0;//1999999.0;
-		for (var iBin=0; iBin < self.bins.length; iBin++) {
-			if (parseInt(self.bins[iBin][3]) > maxBin)
-				maxBin = parseFloat(self.bins[iBin][3]);
-		}
-		
-
-		if (!self.binTransformed) {
-			self.patternBins = patternBinsReceived;
-
-			for (var iBin=0; iBin < self.patternBins.length; iBin++) {
-				if (parseFloat(self.patternBins[iBin][3]) > maxBin/2) {
-					var nv = parseInt(self.patternBins[iBin][3]) - parseInt(self.patternBins[iBin][3])/2;
-					self.patternBins[iBin][3] = nv.toString();
-				} else {
-					var nv = parseInt(self.patternBins[iBin][3]) + parseInt(self.patternBins[iBin][3])/2;
-					self.patternBins[iBin][3] = nv.toString();
-				}
-			}
-			self.binTransformed = true;
-		}
-		
-		var pBins = self.patternBins;
-		
-		self.yPatterns.domain([0.0, maxBin+1.0]);
-		/*self.focus.select(".axis--y")
-	      .call(self.yAxisPatterns)
-			.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");*/
-		
-
-		self.canvasPatternsContext.fillStyle = "#fff";
-		self.canvasPatternsContext.rect(0,0,self.canvasPatterns.attr("width"),self.canvasPatterns.attr("height"));
-		self.canvasPatternsContext.fill();
-		
-		for (var iBin=0; iBin < pBins.length; iBin++) {
-			self.canvasPatternsContext.beginPath();
-		    var x = self.xPatterns(d3.timeParse('%Y-%m-%d %H:%M:%S')(pBins[iBin][1]));
-		    var x2 = self.xPatterns(d3.timeParse('%Y-%m-%d %H:%M:%S')(pBins[iBin][2]));
-		    var y = self.yPatterns(maxBin-parseInt(pBins[iBin][3]));
-		    var binHeight = self.yPatterns(parseInt(pBins[iBin][3]));
-		    self.canvasPatternsContext.rect(x, binHeight, x2-x, y);
-		    self.canvasPatternsContext.fillStyle = "lightblue";//node.attr("fillStyle");
-		    self.canvasPatternsContext.fill();
-		    self.canvasPatternsContext.lineWidth = 0.25;
-		    self.canvasPatternsContext.strokeStyle = "black";
-		    self.canvasPatternsContext.stroke();
-		  //  self.canvasContext.fillRect(x, binHeight, x2-x, y);
-		    self.canvasPatternsContext.closePath();
-		    
-		    // Drawing the text
-		    /*self.canvasContext.fillStyle = "black";
-		    self.canvasContext.textAlign = "center";
-		    self.canvasContext.textBaseline = "middle";
-		    self.canvasContext.fillText(
-		    		bins[iBin][3],				// text
-		    		x+(x2-x)/2,						// x
-		    		binHeight+y/2);*/		// y
-		}
-		/*
-		self.canvasOverviewContext.fillStyle = "#fff";
-		self.canvasOverviewContext.rect(0,0,self.canvasOverview.attr("width"),self.canvasOverview.attr("height"));
-		self.canvasOverviewContext.fill();
-
-		self.yContext.domain([0.0, maxBin+1.0]);
-		
-		var area = d3.area()
-		    .x(function(d) { return d[0]; })
-		    .y0(self.heightContext)
-		    .y1(function(d) { return d[1]; })
-		    .context(self.canvasOverviewContext);
-		
-		var data = [];
-		
-		for (var iBin=0; iBin < bins.length; iBin++) {			
-			var thisData = [];
-			
-			thisData.push(self.xContext(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][1])));
-			thisData.push(self.yContext(parseInt(bins[iBin][3])));
-			data.push(thisData);
-			
-			thisData = [];
-			thisData.push(self.xContext(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][2])));
-			thisData.push(self.yContext(parseInt(bins[iBin][3])));
-			data.push(thisData);
-		}
-		
-		self.canvasOverviewContext.beginPath();
-		area(data);
-		self.canvasOverviewContext.fillStyle = "lightblue";
-		self.canvasOverviewContext.strokeStyle = "lightblue";
-		self.canvasOverviewContext.fill();*/
-	};
-	
 	self.brushed = function() {
 		console.log("brushing");
 		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return; // ignore brush-by-zoom
@@ -5203,8 +5016,6 @@ var Timeline = function(elemId, options) {
 			.attr("d", self.areaFocus);*/
 		self.focus.select(".axis--x")
 			.call(self.xAxisFocus);
-		self.patterns.select(".axis--x")
-			.call(self.xAxisPatterns);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
 		/*self.focus.selectAll(".dot")
@@ -5917,15 +5728,6 @@ var Timeline = function(elemId, options) {
 		.style("left",self.marginContext.left.toString()+"px")
 		.style("height", self.marginContext.size+"px");	
 	self.canvasOverviewContext = self.canvasOverview.node().getContext("2d");
-
-	self.canvasPatterns = d3.select(self.nodePatterns).append("canvas")
-		.attr("width",self.width)
-		.attr("height",self.marginPatterns.size)
-		.style("position","relative")
-		.style("top",(self.marginPatterns.top).toString()+"px")
-		.style("left",self.marginPatterns.left.toString()+"px")
-		.style("height", self.marginPatterns.size+"px");		
-	self.canvasPatternsContext = self.canvasPatterns.node().getContext("2d");
 	
 	self.hiddenCanvas = d3.select(self.nodeFocus).append("canvas")
 		.attr("width",self.width)
@@ -5936,12 +5738,12 @@ var Timeline = function(elemId, options) {
 		.style("display","none");
 	self.hiddenCanvasContext = self.hiddenCanvas.node().getContext("2d");
 
-	self.hiddenCanvasPatterns = d3.select(self.nodePatterns).append("canvas")
+	self.hiddenCanvasPatterns = d3.select(self.nodeFocus).append("canvas")
 		.attr("width",self.width)
-		.attr("height",self.marginPatterns.size)
+		.attr("height",self.marginFocus.size)
 		.style("position","relative")
-		.style("top", self.marginPatterns.top.toString()+"px")
-		.style("left", (self.marginPatterns.left - self.width).toString()+"px")
+		.style("top", self.marginFocus.top.toString()+"px")
+		.style("left", (self.marginFocus.left - self.width).toString()+"px")
 		.style("display","none");	
 	self.hiddenCanvasPatternsContext = self.hiddenCanvasPatterns.node().getContext("2d");
 	
@@ -5981,14 +5783,6 @@ var Timeline = function(elemId, options) {
 		.style("top","0")
 		.style("left","0");
 	
-	self.svgPatterns = d3.select(self.nodePatterns).append("svg")
-		.attr("width",self.parentNode.clientWidth)
-		.attr("height",self.heightPatterns)
-		/*.attr("height",self.parentNode.clientHeight-15)*/
-		.style("position","absolute")
-		.style("top","0")
-		.style("left","0");
-	
 	self.svgUsers = d3.select(self.nodeUsers).append("svg")
 		.attr("width",self.parentNode.clientWidth)
 		.attr("height",self.heightUsers)
@@ -6012,7 +5806,6 @@ var Timeline = function(elemId, options) {
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
 	self.yAxisFocus = d3.axisLeft(self.yFocus);//.tickSizeInner(-self.width);
-	self.xAxisPatterns = d3.axisBottom(self.xPatterns);
 	self.yAxisPatterns = d3.axisRight(self.yPatterns).tickSizeInner(-self.width);
 	self.xAxisUsers = d3.axisBottom(self.xUsers);
 	self.yAxisUsers = d3.axisLeft(self.yUsers);//.tickSizeInner(-self.width);
@@ -6038,10 +5831,6 @@ var Timeline = function(elemId, options) {
 	self.context = self.svgOverview.append("g")
 	    .attr("class", "context")
 	    .attr("transform", "translate("+self.marginContext.left+","+self.marginContext.top+")");
-	// Creating the pattern part for the timeline
-	self.patterns = self.svgPatterns.append("g")
-	    .attr("class", "patterns")
-	    .attr("transform", "translate("+self.marginPatterns.left+","+self.marginPatterns.top+")");
 	// Creating the users part for the timeline
 	self.users = self.svgUsers.append("g")
 	    .attr("class", "users")
@@ -6061,11 +5850,6 @@ var Timeline = function(elemId, options) {
 		.attr("class","axis axis--x")
 		.attr("transform", "translate(0," + (self.marginContext.size + self.marginContext.top) + ")")
 		.call(self.xAxisContext);
-	// Creating the xAxis for the pattern part of the timeline
-	self.patterns.append("g")
-		.attr("class","axis axis--x")
-		.attr("transform", "translate(0," + (self.marginPatterns.size + self.marginPatterns.top) + ")")
-		.call(self.xAxisPatterns);
 	// Creating the yAxis for the pattern part of the timeline
 	self.focus.append("g")
 		.attr("class", "axis axis--y")
@@ -6249,13 +6033,11 @@ var Timeline = function(elemId, options) {
 			
 		self.xAxisFocus = d3.axisBottom(self.xFocus);
 		self.xAxisContext = d3.axisBottom(self.xContext);
-		self.xAxisPatterns = d3.axisBottom(self.xPatterns);
 		self.xAxisUsers = d3.axisBottom(self.xUsers);
 		//self.yAxisUsers = d3.axisLeft(self.yUsers);
 
 		self.focus.select(".axis--x").call(self.xAxisFocus);
 		self.context.select(".axis--x").call(self.xAxisContext);
-		self.patterns.select(".axis--x").call(self.xAxisPatterns);
 		self.users.select(".axis--x").call(self.xAxisUsers);
 		self.users.select(".axis--y").call(self.yAxisUsers);
 	}
