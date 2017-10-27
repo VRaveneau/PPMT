@@ -2843,15 +2843,12 @@ function addPatternToList(message) {
 				.text(itemShapes[pItems[k]]);
 		}
 		thisNameCell.append("span")
-			.text(pString)
+			.text(" "+pString)
 			.attr("patternId",pId);
 			//.classed("dropdown", true);
 		/*var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
 			.attr("height", 20);*/
-		thisNameCell.append("span")
-			.text(pString)
-			.attr("patternId",pId);
 
 		// Create the menu
 		/*
@@ -2910,15 +2907,12 @@ function addPatternToList(message) {
 				.text(itemShapes[pItems[k]]);
 		}
 		thisNameCell.append("span")
-			.text(pString)
+			.text(" "+pString)
 			.attr("patternId",pId);
 			//.classed("dropdown", true);
 		/*var pSvg = thisNameCell.append("svg")
 			.attr("width", 20*pSize)
 			.attr("height", 20);*/
-		thisNameCell.append("span")
-			.text(pString)
-			.attr("patternId",pId);
 
 		// Create the menu
 		/*let dropMenuDiv = thisNameCell.append("div")
@@ -3146,7 +3140,7 @@ function createPatternListDisplay() {
 				.text(itemShapes[pItems[k]]);
 		}
 		thisNameCell.append("span")
-			.text(pString)
+			.text(" "+pString)
 			.attr("patternId",pId);
 
 		// Create the menu
