@@ -157,6 +157,10 @@ body {
     background-color: #dcdfdc;
 }
 
+.left-aligned {
+	float: left;
+}
+
 .button {
     display: inline;
     color: #fff;

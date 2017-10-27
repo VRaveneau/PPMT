@@ -1843,6 +1843,20 @@ function getNextCategoryColor() {
 	return colorPalet[eventTypeCategories.length -1];
 }
 
+var showEventTypeDescription = true;
+
+function switchShowEventTypeDescription() {
+	if (showEventTypeDescription == true) {
+		showEventTypeDescription = false;
+		d3.selectAll(".eventTypeDescription")
+			.style("display", "none");
+	} else {
+		showEventTypeDescription = true;
+		d3.selectAll(".eventTypeDescription")
+			.style("display", "initial");
+	}
+}
+
 var colorList = {};
 var eventTypes = [];
 var eventDisplayHeight = {};
@@ -1937,10 +1951,15 @@ function receiveEventTypes(message) {
 		}
 		eventDisplayHeight[eType] = i+1;
 		//var eColor = colors[i%colors.length];
-		eventRow.append("td").text(eType);
+		let firstCell = eventRow.append("td");
+		firstCell.text(eType);
+		firstCell.append("br");
+		firstCell.append("span")
+			.style("color","grey")
+			.classed("eventTypeDescription", true)
+			.text(eDescription);
 		eventRow.append("td").text(eNbOccs);
 		eventRow.append("td").text(eCategory);
-		eventRow.append("td").text(eDescription);
 		
 		/* Old symbol cell, using svg
 		var symbolRow = eventRow.append("td")

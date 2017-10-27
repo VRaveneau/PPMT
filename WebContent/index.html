@@ -68,6 +68,11 @@
 								<div><input type="text" class="searchField"></div>
 							</div>
 						</form>
+						
+						<div class="left-aligned">
+							Show descriptions:
+							<input type="checkbox" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
+						</div>
 					
 						<table id="eventTable" class="sortable">
 							<thead>
@@ -75,7 +80,6 @@
 									<th>Event type</th>
 									<th id="eventsOccurrencesColumn" class="sorttable_numeric">Nb events</th>
 									<th class="sorttable_numeric">Category</th>
-									<th class="sorttable_numeric">Description</th>
 									<th class="sorttable_numeric">Symbol</th>
 								</tr>
 							</thead>
