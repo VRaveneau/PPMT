@@ -226,6 +226,10 @@ body {
 	/*margin-top: 10px;*/
 }
 
+#tl_focus {
+	position: relative;
+}
+
 .tl_separator {
 	justify-content: center;
 	width: 100%;

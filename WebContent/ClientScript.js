@@ -4668,22 +4668,21 @@ var Timeline = function(elemId, options) {
 					if (self.patternOccs[idsToDraw[i]][j]) {
 						var occ = self.patternOccs[idsToDraw[i]][j].split(";");
 						var x1 = self.xFocus(new Date(parseInt(occ[1])));
-						var x2 = self.xFocus(new Date(parseInt(occ[2])));
+						var x2 = self.xFocus(new Date(parseInt(occ[occ.length-1]))); // Last timestamp in the occurrence
 						var y = self.yPatterns(idsToDraw[i]);
 						self.canvasContext.beginPath();
 						if (x1 == x2) {
 							self.canvasContext.fillStyle = "blue";
-							//self.canvasContext.arc(x1,y,3,0,2*Math.PI, false);
-							//self.canvasContext.arc(x1,y1,3,0,2*Math.PI, false);
+							self.canvasContext.arc(x1,y,3,0,2*Math.PI, false);
 							self.canvasContext.fill();
-							self.canvasContext.closePath();
+							//self.canvasContext.closePath();
 						} else {
 							self.canvasContext.lineWidth = 3;
 							self.canvasContext.moveTo(x1,y);
 							self.canvasContext.lineTo(x2,y);
 							self.canvasContext.lineCap = "round";
 							self.canvasContext.stroke();
-						    self.canvasContext.closePath();
+						    //self.canvasContext.closePath();
 						}
 					}
 				}
@@ -4696,16 +4695,16 @@ var Timeline = function(elemId, options) {
 					console.log("Ids to draw: "+idsToDraw);
 					if (self.patternOccs[idsToDraw[i]][j]) {
 						var occ = self.patternOccs[idsToDraw[i]][j].split(";");
-						self.canvasContext.beginPath();
-						self.canvasContext.lineWidth = 5;
-						self.canvasContext.lineCap = "round";
+						self.canvasPatternContext.beginPath();
+						self.canvasPatternContext.lineWidth = 5;
+						self.canvasPatternContext.lineCap = "round";
 						let x1 = self.xFocus(new Date(parseInt(occ[1])));
 						let y1 = self.yFocus(patternItems[0]);
-						self.canvasContext.moveTo(x1,y1);
+						self.canvasPatternContext.moveTo(x1,y1);
 						for (let evtIdx=2; evtIdx < occ.length; evtIdx++) { // for each event inside the occurrence
 							let x2 = self.xFocus(new Date(parseInt(occ[evtIdx])));
-							let y2 = self.yFocus(patternItems[patternItems[evtIdx-1]]);
-							self.canvasContext.lineTo(x2,y2);
+							let y2 = self.yFocus(patternItems[evtIdx-1]);
+							self.canvasPatternContext.lineTo(x2,y2);
 							x1 = x2;
 							y1 = y2;
 							/*if (x1 == x2) {
@@ -4717,10 +4716,10 @@ var Timeline = function(elemId, options) {
 							} else {
 							} */
 						}
-						self.canvasContext.stroke();
-						self.canvasContext.closePath();
+						self.canvasPatternContext.stroke();
+						//self.canvasContext.closePath();
 						
-						var x1 = self.xFocus(new Date(parseInt(occ[1])));
+						/*var x1 = self.xFocus(new Date(parseInt(occ[1])));
 						var x2 = self.xFocus(new Date(parseInt(occ[2])));
 						var y1 = self.yFocus(patternItems[0]);
 						var y2 = self.yFocus(patternItems[patternItems.length - 1]);
@@ -4738,7 +4737,7 @@ var Timeline = function(elemId, options) {
 							self.canvasContext.lineCap = "round";
 							self.canvasContext.stroke();
 						    self.canvasContext.closePath();
-						}
+						}*/
 					}
 				}
 			}
@@ -4788,14 +4787,14 @@ var Timeline = function(elemId, options) {
 	      .call(self.yAxisFocus);
 			//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 		
-
+		/* commented since it is already done in displayData()
 		self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.canvasContext.fill();
 		
 		self.hiddenCanvasContext.fillStyle = "#fff";
 		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
-		
+		*/
 		self.colorToData = {};
 		let nextColor = 1;
 		
@@ -5194,6 +5193,16 @@ var Timeline = function(elemId, options) {
 		}
 		self.setupFocusLeftAxis();
 		
+		// clear the focus canvas and hidden canvas
+		self.canvasContext.clearRect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
+		self.hiddenCanvasContext.clearRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
+		self.canvasPatternContext.clearRect(0,0,self.canvasPattern.attr("width"),self.canvasPattern.attr("height"));
+		/*self.canvasContext.fillStyle = "#fff";
+		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
+		self.canvasContext.fill();
+		self.hiddenCanvasContext.fillStyle = "#fff";
+		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));*/
+		
 		switch(self.displayMode) {
 		case "distributions":
 			//self.displayDistributions();
@@ -5203,6 +5212,7 @@ var Timeline = function(elemId, options) {
 		case "events":
 			//self.displayEvents();
 			console.log("----Draw Events");
+			//self.drawPatternOccurrences();
 			self.drawEvents();
 			self.drawPatternOccurrences();
 			break;
@@ -5753,6 +5763,15 @@ var Timeline = function(elemId, options) {
 	//d3.select(self.parentNode).style("height",self.height.toString()+"px");
 	
 	// The timeline's parts
+	self.canvasPattern = d3.select(self.nodeFocus).append("canvas")
+		.attr("width",self.width)
+		.attr("height",self.marginFocus.size)
+		.style("position","absolute")
+		.style("top",(self.marginFocus.top).toString()+"px")
+		.style("left",self.marginFocus.left.toString()+"px")
+		.style("height", self.marginFocus.size+"px");	
+	self.canvasPatternContext = self.canvasPattern.node().getContext("2d");
+	
 	self.canvas = d3.select(self.nodeFocus).append("canvas")
 		.attr("width",self.width)
 		.attr("height",self.marginFocus.size)
@@ -5774,7 +5793,7 @@ var Timeline = function(elemId, options) {
 	self.hiddenCanvas = d3.select(self.nodeFocus).append("canvas")
 		.attr("width",self.width)
 		.attr("height",self.marginFocus.size)
-		.style("position","relative")
+		.style("position","absolute")
 		.style("top",self.marginFocus.top.toString()+"px")
 		.style("left", (self.marginFocus.left - self.width).toString()+"px")
 		.style("display","none");
@@ -5783,7 +5802,7 @@ var Timeline = function(elemId, options) {
 	self.hiddenCanvasPatterns = d3.select(self.nodeFocus).append("canvas")
 		.attr("width",self.width)
 		.attr("height",self.marginFocus.size)
-		.style("position","relative")
+		.style("position","absolute")
 		.style("top", self.marginFocus.top.toString()+"px")
 		.style("left", (self.marginFocus.left - self.width).toString()+"px")
 		.style("display","none");	
@@ -5926,8 +5945,11 @@ var Timeline = function(elemId, options) {
 		.call(self.zoom)
 		.on("mousemove", function(){	// Handling picking
 			var coords = d3.mouse(this);
+			console.log("Moving over rect, pixelColor:");
 			var pixelColor = self.hiddenCanvasContext.getImageData(coords[0], coords[1],1,1).data;
-			if (pixelColor[0] != 255 && pixelColor[1] != 255 && pixelColor[2] != 255) {
+			console.log(pixelColor);
+			if (pixelColor[3] != 0) { // if the pixel is not transparent (i.e. not background)
+			//if (pixelColor[0] != 255 && pixelColor[1] != 255 && pixelColor[2] != 255) { old test when the background was white
 				var colorString = "rgb("+pixelColor[0]+","+pixelColor[1]+","+pixelColor[2]+")";
 				var data = self.colorToData[colorString];
 				/*console.log("coords: "+coords);
@@ -6529,14 +6551,15 @@ var Timeline = function(elemId, options) {
 			.tickValues(eventTypes);
 		d3.select("#focusLeftAxis").call(self.yAxisFocus);
 		
-		self.canvasContext.fillStyle = "#fff";
+		var drawCount = 0;
+		
+		/*self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.canvasContext.fill();
-		var drawCount = 0;
 		
 		self.hiddenCanvasContext.fillStyle = "#fff";
 		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
-		
+		*/
 		self.colorToData = {};
 		let nextColor = 1;
 		
@@ -6648,14 +6671,15 @@ var Timeline = function(elemId, options) {
 		self.focus.select(".axis--y")
 	      	.call(self.yAxisFocus);*/
 
-		self.canvasContext.fillStyle = "#fff";
+		var drawCount = 0;
+		
+		/*self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.canvasContext.fill();
-		var drawCount = 0;
 		
 		self.hiddenCanvasContext.fillStyle = "#fff";
 		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
-		
+*/		
 		self.colorToData = {};
 		let nextColor = 1;
 		
@@ -6756,14 +6780,15 @@ var Timeline = function(elemId, options) {
 		self.focus.select(".axis--y")
 	      	.call(self.yAxisFocus);
 
+		var drawCount = 0;
+/*
 		self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.canvasContext.fill();
-		var drawCount = 0;
 		
 		self.hiddenCanvasContext.fillStyle = "#fff";
 		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
-		
+		*/
 		self.colorToData = {};
 		let nextColor = 1;
 		
