@@ -6598,7 +6598,7 @@ var Timeline = function(elemId, options) {
 			    	nextColor += 1;
 			    }
 			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
-				
+			    
 				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
 				var y = self.yFocus(info[0]) + self.yFocus.bandwidth()/2;
 				
@@ -6627,13 +6627,17 @@ var Timeline = function(elemId, options) {
 				self.hiddenCanvasContext.translate(-x,-y);
 			    self.hiddenCanvasContext.closePath();*/
 				
+				let trueX = x - self.canvasContext.measureText(itemShapes[info[0]]).width/2;
+				
 			    self.canvasContext.font = self.yFocus.bandwidth()+"px Geneva";
 			    self.canvasContext.fillStyle = colorList[info[0]].toString();
-				self.canvasContext.fillText(itemShapes[info[0]], x, y);
+			    self.canvasContext.textBaseline="middle";
+				self.canvasContext.fillText(itemShapes[info[0]], trueX, y);
 			    
 				self.hiddenCanvasContext.font = self.yFocus.bandwidth()+"px Geneva";
 			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
-				self.hiddenCanvasContext.fillText(itemShapes[info[0]], x, y);
+			    self.hiddenCanvasContext.textBaseline="middle";
+				self.hiddenCanvasContext.fillText(itemShapes[info[0]], trueX, y);
 				
 			    firstIndex++;
 			}
