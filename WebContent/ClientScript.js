@@ -120,6 +120,14 @@ var numberOfPattern = 0;
 /*															*/
 /************************************************************/
 
+/**
+ * Activate or deactivate debug tools
+ */
+function debug() {
+	timeline.showTarget();
+	timeline.showPosition();
+}
+
 
 /************************************/
 /*				Kept				*/
@@ -5935,6 +5943,68 @@ var Timeline = function(elemId, options) {
 		.call(self.brush)
 		.call(self.brush.move, self.xFocus.range());
 	
+	self.showPosition = function() {
+		if (self.svgPointerH.style("display") == "none") {
+			self.svgPointerH.style("display", "block");
+			self.svgPointerV.style("display", "block");
+		} else {
+			self.svgPointerH.style("display", "none");
+			self.svgPointerV.style("display", "none");
+		}
+	}
+	
+	self.showTarget = function() {
+		if (self.svgPointerHB.style("display") == "none") {
+			self.svgPointerHB.style("display", "block");
+			self.svgPointerVB.style("display", "block");
+		} else {
+			self.svgPointerHB.style("display", "none");
+			self.svgPointerVB.style("display", "none");
+		}
+	}
+	
+	self.svgPointerH = self.svgFocus.append("line")
+		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
+		.attr("id","pointerH")
+		.attr("x1","0")
+		.attr("x2",self.width)
+		.attr("y1","0")
+		.attr("y2","0")
+		.style("stroke","rgb(255,0,0)")
+		.style("stroke-width","1")
+		.style("display","none");
+	self.svgPointerV = self.svgFocus.append("line")
+		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
+		.attr("id","pointerV")
+		.attr("x1","0")
+		.attr("x2","0")
+		.attr("y1",self.heightFocus-self.marginFocus.bottom)
+		.attr("y2","0")
+		.style("stroke","rgb(255,0,0)")
+		.style("stroke-width","1")
+		.style("display","none");
+	
+	self.svgPointerHB = self.svgFocus.append("line")
+		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
+		.attr("id","pointerH")
+		.attr("x1","0")
+		.attr("x2",self.width)
+		.attr("y1","0")
+		.attr("y2","0")
+		.style("stroke","rgb(0,0,255)")
+		.style("stroke-width","1")
+		.style("display","none");
+	self.svgPointerVB = self.svgFocus.append("line")
+		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
+		.attr("id","pointerV")
+		.attr("x1","0")
+		.attr("x2","0")
+		.attr("y1",self.heightFocus-self.marginFocus.bottom)
+		.attr("y2","0")
+		.style("stroke","rgb(0,0,255)")
+		.style("stroke-width","1")
+		.style("display","none");
+	
 	self.tooltipCreated = false;
 	// Creating the zoomable rectangle on the focus part of the timeline
 	self.zoomRect = self.svgFocus.append("rect")
@@ -5945,20 +6015,41 @@ var Timeline = function(elemId, options) {
 		.call(self.zoom)
 		.on("mousemove", function(){	// Handling picking
 			var coords = d3.mouse(this);
-			console.log("Moving over rect, pixelColor:");
+			
+			self.svgPointerH.attr("y1",coords[1]);
+			self.svgPointerH.attr("y2",coords[1]);
+			self.svgPointerV.attr("x1",coords[0]);
+			self.svgPointerV.attr("x2",coords[0]);
+			
 			var pixelColor = self.hiddenCanvasContext.getImageData(coords[0], coords[1],1,1).data;
-			console.log(pixelColor);
 			if (pixelColor[3] != 0) { // if the pixel is not transparent (i.e. not background)
 			//if (pixelColor[0] != 255 && pixelColor[1] != 255 && pixelColor[2] != 255) { old test when the background was white
 				var colorString = "rgb("+pixelColor[0]+","+pixelColor[1]+","+pixelColor[2]+")";
+				console.log("-----");
+				console.log(pixelColor);
+				console.log(colorString);
 				var data = self.colorToData[colorString];
-				/*console.log("coords: "+coords);
-				console.log("colorString: "+colorString);
+				console.log(data);
+				console.log("coords: "+coords);
+				/*console.log("colorString: "+colorString);
 				console.log(data);*/
 				if (typeof data !== 'undefined') {
 					self.displayToolTip(data);
 					/*var message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
 					tooltip.show(message,600);*/
+					
+					if (self.displayMode == "events") {
+						let dataTs = data.split(";")[1];
+						let dataType = data.split(";")[0];
+						let ts = d3.timeParse('%Y-%m-%d %H:%M:%S')(dataTs);
+						let dataX = self.xFocus(ts);
+						let dataY = self.yFocus(dataType) + self.yFocus.bandwidth()/2;
+						
+						self.svgPointerHB.attr("y1",dataY);
+						self.svgPointerHB.attr("y2",dataY);
+						self.svgPointerVB.attr("x1",dataX);
+						self.svgPointerVB.attr("x2",dataX);
+					}
 				}
 				self.tooltipCreated = true;
 			} else {
@@ -6552,6 +6643,12 @@ var Timeline = function(elemId, options) {
 		d3.select("#focusLeftAxis").call(self.yAxisFocus);
 		
 		var drawCount = 0;
+
+		self.canvasContext.save();
+		self.hiddenCanvasContext.save();
+
+		self.canvasContext.translate("0.5","0.5");
+		self.hiddenCanvasContext.translate("0.5","0.5");
 		
 		/*self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
@@ -6561,22 +6658,23 @@ var Timeline = function(elemId, options) {
 		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
 		*/
 		self.colorToData = {};
-		let nextColor = 1;
+		let nextColor = 100; // 100 instead of 1, to capture all the colors (around 1 the detection isn't working 100% of the time)
 		
 		// get the last accessor point before the time-span start
-		var firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
+		let firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
 		console.log("Retreived first index is "+firstIndex);
 		// find the real first index
 		var startFound = false;
-		var startingIndex = firstIndex;
+		var startingIndex = firstIndex; // to see how many events have been check vs how many have been drawn
 		while (!startFound) {
-			var info = timeOrderedEvents[firstIndex+1][0].split(";");
+			var info = timeOrderedEvents[firstIndex][0].split(";");
 			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
 			if (time < self.xFocus.domain()[0])
 				firstIndex++;
 			else
 				startFound = true;
 		}
+		var nbEventsChecked = firstIndex - startingIndex;
 		console.log("drawing from event "+firstIndex);
 		var endReached = false;
 		while (!endReached) {
@@ -6588,16 +6686,23 @@ var Timeline = function(elemId, options) {
 				drawCount++;
 				
 				// Attributing a color to data link
-			    var color = [];
+			    let color = [];
 			    // via http://stackoverflow.com/a/15804183
 			    if(nextColor < 16777215){
-			    	color.push(nextColor & 0xff); // R
-			    	color.push((nextColor & 0xff00) >> 8); // G 
-			    	color.push((nextColor & 0xff0000) >> 16); // B
+			    	let nextR = Math.max(0, Math.floor(Math.floor(nextColor / 255) / 255));
+			    	let nextG = Math.max(0, Math.floor(nextColor / 255) % 255);
+			    	let nextB = nextColor % 255;
+			    	color = [nextR, nextG, nextB];
+			    	
+			    	//color.push(nextColor & 0xff); // R
+			    	//color.push((nextColor & 0xff00) >> 8); // G 
+			    	//color.push((nextColor & 0xff0000) >> 16); // B
 
 			    	nextColor += 1;
 			    }
 			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
+			    console.log("event at index "+firstIndex+" gets color "+color.join(','));
+			    
 			    
 				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
 				var y = self.yFocus(info[0]) + self.yFocus.bandwidth()/2;
@@ -6643,8 +6748,9 @@ var Timeline = function(elemId, options) {
 			}
 		}
 		console.log("to event "+firstIndex);
-		
-		var nbEventsChecked = firstIndex-startingIndex;
+		self.canvasContext.restore();
+		self.hiddenCanvasContext.restore();
+		nbEventsChecked += drawCount;
 		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
 		console.log("events drawn");
