@@ -38,6 +38,16 @@ var patterns = {};
 var occurrences = {}
 var patternProbabilities = {};
 var itemColors = {};
+var colorPalet = [/*First color is brighter, to represent the unselected version */
+	["#e41a1c","#fbb4ae"], 
+	["#377eb8","#b3cde3"],
+	["#4daf4a","#ccebc5"],
+	["#984ea3","#decbe4"],
+	["#ff7f00","#fed9a6"],
+	["#a65628","#e5d8bd"],
+	["#f781bf","#fddaec"],
+	["#ffff33","#ffffcc"],
+	["#999999","#f2f2f2"]];
 var shapesDraw = extendedSymbolTypes[0];
 var shapesWriteWhite = [
 	"□",
@@ -94,6 +104,7 @@ var shapeNamesWrite = [
 	"arrowRight",
 	"arrowDown"];
 var shapeNames = shapeNamesWrite;
+var unselectedColorFading = 5;
 var itemShapes = {};	// TODO request a list of shapes from the server to populate this list
 var datasetInfo = {};
 var availableColors = [];
@@ -1483,6 +1494,7 @@ function createUserListDisplay() {
 				//console.log(userName);
 				highlightUserRow(thisUserName);
 				setHighlights();
+				timeline.displayData();
 				d3.event.stopPropagation();
 			}
 		});
@@ -1847,7 +1859,6 @@ function highlightUserRow(rowId) {
 }
 
 function getNextCategoryColor() {
-	let colorPalet = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#a65628", "#f781bf", "#ffff33", "#999999"];
 	return colorPalet[eventTypeCategories.length -1];
 }
 
@@ -1915,7 +1926,8 @@ function receiveEventTypes(message) {
 				// Setup the category if it is a new one
 				if (eventTypeCategories.includes(eCategory) == false) {
 					eventTypeCategories.push(eCategory);
-					eventTypeCategoryColors[eCategory] = d3.rgb(getNextCategoryColor());
+					let catColor = getNextCategoryColor();
+					eventTypeCategoryColors[eCategory] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
 					
 					var categoryRow = d3.select("#categoryTableBody").append("tr");
 					categoryRow.append("td").text(eCategory);
@@ -1925,7 +1937,7 @@ function receiveEventTypes(message) {
 							.append("rect")
 							.attr("width", 40)
 							.attr("height", 20)
-							.attr("fill",eventTypeCategoryColors[eCategory].toString());
+							.attr("fill",eventTypeCategoryColors[eCategory][0].toString());
 				}
 				break;
 			case "description":
@@ -1939,6 +1951,7 @@ function receiveEventTypes(message) {
 				.on("click", function() {
 					highlightEventTypeRow(eType);
 					setHighlights();
+					timeline.displayData();
 					d3.event.stopPropagation();
 				});
 		
@@ -1987,7 +2000,7 @@ function receiveEventTypes(message) {
 			.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
 			.classed("dropdown", true);
 		let symbolRowSvg = symbolRow.append("span")
-			.style("color",colorList[eType].toString())
+			.style("color",colorList[eType][0].toString())
 			.classed("dropbtn",true)
 			.text(itemShapes[eType]);
 			
@@ -2001,7 +2014,7 @@ function receiveEventTypes(message) {
 			.on("change", function() {
 				if (changeEventTypeSymbol(eType, symbolSelect.property('value'))) {
 					// Update the row id for the new color
-					symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType]).h)*100+shapes.indexOf(itemShapes[eType]));
+					symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType][0]).h)*100+shapes.indexOf(itemShapes[eType]));
 					// draw the new symbol
 					/* Old symbol, svg
 					symbolRowSvg.selectAll("*").remove();
@@ -2011,7 +2024,7 @@ function receiveEventTypes(message) {
 						.attr("stroke", colorList[eType].toString())
 						.attr("fill","none"); */
 					/* New symbol, utf-8 char */
-					symbolRowSvg.style("color",colorList[eType].toString())
+					symbolRowSvg.style("color",colorList[eType][0].toString())
 						.text(itemShapes[eType]);
 					// refresh the changed displays
 					timeline.displayData();
@@ -2033,12 +2046,12 @@ function receiveEventTypes(message) {
 		let colorInput = colorP.append("input")
 			.style("width","60px");
 		let picker = new jscolor(colorInput.node());
-        	picker.fromRGB(Number(colorList[eType].r), Number(colorList[eType].g), Number(colorList[eType].b));
+        	picker.fromRGB(Number(colorList[eType][0].r), Number(colorList[eType][0].g), Number(colorList[eType][0].b));
         	
         colorInput.on("change", function() {
 			if (changeEventTypeColor(eType, picker.hsv[0])) {
 				// Update the row id for the new color
-				symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType]).h)*100+shapes.indexOf(itemShapes[eType]));
+				symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType][0]).h)*100+shapes.indexOf(itemShapes[eType]));
 				// draw the new symbol
 				/* Old symbol, svg
 				symbolRowSvg.selectAll("*").remove();
@@ -2048,7 +2061,7 @@ function receiveEventTypes(message) {
 					.attr("stroke",colorList[eType].toString())
 					.attr("fill","none");*/
 				/* New symbol, UTF-8 */
-				symbolRowSvg.style("color",colorList[eType].toString())
+				symbolRowSvg.style("color",colorList[eType][0].toString())
 				// refresh the changed displays
 				timeline.displayData();
 				createPatternListDisplay();
@@ -2074,8 +2087,8 @@ function changeEventTypeSymbol(eventType, newShapeIndex) {
 }
 
 function changeEventTypeColor(eventType, newColor) {
-	if (newColor != colorList[eventType]) {
-		colorList[eventType] = newColor;
+	if (newColor != colorList[eventType][0]) {
+		colorList[eventType][0] = newColor;
 		return true;
 	}
 	return false;
@@ -2111,6 +2124,13 @@ function selectColor(colorNum, colors){
  */
 function getAgavueColors() {
 	return [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
+}
+
+function getCurrentEventColor(eventType) {
+	if (highlightedEventTypes.length > 0 && !highlightedEventTypes.includes(eventType))
+		return colorList[eventType][1];
+	else
+		return colorList[eventType][0];
 }
 
 function getEventColor(eventType) {
@@ -2536,7 +2556,7 @@ function displayUserTrace(trace) {
 	}
 	var dataColored = [];
 	for(var i=0; i < data.length; i++) {
-		dataColored.push({"data":data[i]+";"+colorList[data[i].split(";")[0]],"shape":+itemShapes[data[i].split(";")[0]]});
+		dataColored.push({"data":data[i]+";"+colorList[data[i].split(";")[0]][0],"shape":+itemShapes[data[i].split(";")[0]]});
 	}
 	
 	timeline.addData(dataColored);
@@ -2633,7 +2653,7 @@ function receiveAllPatterns(message) {
 				pSvg.append("path")
 					.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
 					.attr("transform","translate("+(10+20*k)+",10)")
-					.attr("stroke", colorList[pItems[k]].toString())
+					.attr("stroke", colorList[pItems[k]][0].toString())
 					.attr("fill","none");
 			}
 			/*patternList.append("div")
@@ -2847,7 +2867,7 @@ function addPatternToList(message) {
 		
 		for (var k=0; k < pSize; k++) {
 			thisNameCell.append("span")
-				.style("color",colorList[pItems[k]].toString())
+				.style("color",colorList[pItems[k]][0].toString())
 				.text(itemShapes[pItems[k]]);
 		}
 		thisNameCell.append("span")
@@ -2911,7 +2931,7 @@ function addPatternToList(message) {
 		let thisNameCell = thisRow.append("td");
 		for (var k=0; k < pSize; k++) {
 			thisNameCell.append("span")
-				.style("color",colorList[pItems[k]].toString())
+				.style("color",colorList[pItems[k]][0].toString())
 				.text(itemShapes[pItems[k]]);
 		}
 		thisNameCell.append("span")
@@ -3144,7 +3164,7 @@ function createPatternListDisplay() {
 			.attr("height", 20);*/
 		for (var k=0; k < pSize; k++) {
 			thisNameCell.append("span")
-				.style("color",colorList[pItems[k]].toString())
+				.style("color",colorList[pItems[k]][0].toString())
 				.text(itemShapes[pItems[k]]);
 		}
 		thisNameCell.append("span")
@@ -3220,7 +3240,7 @@ function addPatternToListOld(message) {
 		pSvg.append("path")
 			.attr("d",d3.symbol().type(itemShapes[message[k]]).size(function(d) {return 100;}))
 			.attr("transform","translate("+(10+20*k)+",10)")
-			.attr("stroke", colorList[message[k]].toString())
+			.attr("stroke", colorList[message[k]][0].toString())
 			.attr("fill","none");
 	}
 	
@@ -4822,7 +4842,7 @@ var Timeline = function(elemId, options) {
 			    for (var t=0 ; t < eventsInfo.length ; t++) {
 			    	var details = eventsInfo[t].split(":");
 			    	// TODO fix the agavue situation
-			    	var eColor = getEventColor(details[0]);
+			    	var eColor = getCurrentEventColor(details[0]).toString();
 			    	//var eColor = getEventColorForAgavue(details[0]);
 			    	if (!colorsProportion[eColor]) {
 			    		colorsProportion[eColor] = parseInt(details[1]);
@@ -5623,7 +5643,7 @@ var Timeline = function(elemId, options) {
 						.attr("fill","none");*/
 					/* create an event type line with utf-8 for the event symbols */
 					div.append("span")
-						.style("color",colorList[occ[0]].toString())
+						.style("color",colorList[occ[0]][0].toString())
 						.text(itemShapes[occ[0]]);
 					message += "<br>"+div.html()+"&nbsp;"+occ[0]+" : "+occ[1]+" ("+(percentage*100).toPrecision(3)+"%)";
 					div.remove(); 
@@ -6592,7 +6612,7 @@ var Timeline = function(elemId, options) {
 				//self.canvasContext.rect(x-2.5,y-2.5,5,5);
 				self.canvasContext.beginPath();
 				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+				self.canvasContext.strokeStyle = colorList[info[0]][0].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
 				symbolGenerator();
 				self.canvasContext.stroke();
 				self.canvasContext.translate(-x,-y);
@@ -6701,7 +6721,7 @@ var Timeline = function(elemId, options) {
 			    	nextColor += 1;
 			    }
 			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
-			    console.log("event at index "+firstIndex+" gets color "+color.join(','));
+			    //console.log("event at index "+firstIndex+" gets color "+color.join(','));
 			    
 			    
 				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
@@ -6733,9 +6753,10 @@ var Timeline = function(elemId, options) {
 			    self.hiddenCanvasContext.closePath();*/
 				
 				let trueX = x - self.canvasContext.measureText(itemShapes[info[0]]).width/2;
-				
+				let symbolColor = getCurrentEventColor(info[0]).toString();
+				//selectedColorFading
 			    self.canvasContext.font = self.yFocus.bandwidth()+"px Geneva";
-			    self.canvasContext.fillStyle = colorList[info[0]].toString();
+			    self.canvasContext.fillStyle = symbolColor;
 			    self.canvasContext.textBaseline="middle";
 				self.canvasContext.fillText(itemShapes[info[0]], trueX, y);
 			    
@@ -6865,11 +6886,11 @@ var Timeline = function(elemId, options) {
 
 				
 			    self.canvasContext.font = self.yFocus.bandwidth()+"px Geneva";
-			    self.canvasContext.fillStyle = colorList[info[0]].toString();
+			    self.canvasContext.fillStyle = colorList[info[0]][0].toString();
 				self.canvasContext.fillText(itemShapes[info[0]], x, y);
 			    
 				self.hiddenCanvasContext.font = self.yFocus.bandwidth()+"px Geneva";
-			    self.hiddenCanvasContext.fillStyle = colorList[info[0]].toString();
+			    self.hiddenCanvasContext.fillStyle = colorList[info[0]][0].toString();
 				self.hiddenCanvasContext.fillText(itemShapes[info[0]], x, y);
 			    
 			    firstIndex++;
@@ -6951,7 +6972,7 @@ var Timeline = function(elemId, options) {
 				
 				self.canvasContext.beginPath();
 				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = colorList[info[0]].toString();
+				self.canvasContext.strokeStyle = colorList[info[0]][0].toString();
 				symbolGenerator();
 				self.canvasContext.stroke();
 				self.canvasContext.translate(-x,-y);
