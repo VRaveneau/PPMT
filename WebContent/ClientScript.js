@@ -4446,7 +4446,8 @@ var Timeline = function(elemId, options) {
 		} else {
 			self.displayPatternOccs[id] = true;
 		}
-		self.drawPatternOccurrences();
+		//self.drawPatternOccurrences();  Prefered to displaying the old data, only when the patterns will always be drawn on their specific layer
+		timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 	}
 	
 	self.addPatternOccurrence = function(id, occ) {
