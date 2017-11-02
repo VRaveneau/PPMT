@@ -4761,11 +4761,11 @@ var Timeline = function(elemId, options) {
 						self.canvasPatternContext.lineWidth = 5;
 						self.canvasPatternContext.lineCap = "round";
 						let x1 = self.xFocus(new Date(parseInt(occ[1])));
-						let y1 = self.yFocus(patternItems[0]);
+						let y1 = self.yFocus(patternItems[0]) + self.yFocus.bandwidth()/2;
 						self.canvasPatternContext.moveTo(x1,y1);
 						for (let evtIdx=2; evtIdx < occ.length; evtIdx++) { // for each event inside the occurrence
 							let x2 = self.xFocus(new Date(parseInt(occ[evtIdx])));
-							let y2 = self.yFocus(patternItems[evtIdx-1]);
+							let y2 = self.yFocus(patternItems[evtIdx-1]) + self.yFocus.bandwidth()/2;
 							self.canvasPatternContext.lineTo(x2,y2);
 							x1 = x2;
 							y1 = y2;
