@@ -2857,6 +2857,7 @@ function addPatternToList(message) {
 					d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
+					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 					timeline.drawUsersPatterns();
 					
 					// Update the number of selected patterns display
@@ -2922,7 +2923,9 @@ function addPatternToList(message) {
 					}
 					d3.event.stopPropagation();
 					console.log("click on "+pId);
+					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 					createPatternListDisplay();
+					timeline.drawUsersPatterns();
 
 					// Update the number of selected patterns display
 					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
@@ -3151,6 +3154,7 @@ function createPatternListDisplay() {
 					d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
+					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 					timeline.drawUsersPatterns();
 					
 					// Update the number of selected patterns display
