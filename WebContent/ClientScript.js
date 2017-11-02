@@ -1973,7 +1973,11 @@ function receiveEventTypes(message) {
 		eventDisplayHeight[eType] = i+1;
 		//var eColor = colors[i%colors.length];
 		let firstCell = eventRow.append("td");
-		firstCell.text(eType);
+		firstCell.append("span")
+			.style("color",colorList[eType][0].toString())
+			.text(itemShapes[eType]+"  ");
+		firstCell.append("span")
+			.text(eType);
 		firstCell.append("br");
 		firstCell.append("span")
 			.style("color","grey")
@@ -1996,17 +2000,17 @@ function receiveEventTypes(message) {
 			.attr("stroke", colorList[eType].toString())
 			.attr("fill","none");*/
 		/* New symbol cell, using utf-8 symbols */
-		var symbolRow = eventRow.append("td")
+		/*var symbolRow = eventRow.append("td")
 			.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
 			.classed("dropdown", true);
 		let symbolRowSvg = symbolRow.append("span")
 			.style("color",colorList[eType][0].toString())
 			.classed("dropbtn",true)
-			.text(itemShapes[eType]);
+			.text(itemShapes[eType]);*/
 			
 		
 		// Create the menu to customize the icon
-		var dropMenuDiv = symbolRow.append("div")
+		/*var dropMenuDiv = symbolRow.append("div")
 			.classed("dropdown-content", true);
 		let symbolP = dropMenuDiv.append("p")
 			.text("Change symbol :");
@@ -2024,7 +2028,7 @@ function receiveEventTypes(message) {
 						.attr("stroke", colorList[eType].toString())
 						.attr("fill","none"); */
 					/* New symbol, utf-8 char */
-					symbolRowSvg.style("color",colorList[eType][0].toString())
+					/*symbolRowSvg.style("color",colorList[eType][0].toString())
 						.text(itemShapes[eType]);
 					// refresh the changed displays
 					timeline.displayData();
@@ -2061,12 +2065,12 @@ function receiveEventTypes(message) {
 					.attr("stroke",colorList[eType].toString())
 					.attr("fill","none");*/
 				/* New symbol, UTF-8 */
-				symbolRowSvg.style("color",colorList[eType][0].toString())
+				/*symbolRowSvg.style("color",colorList[eType][0].toString())
 				// refresh the changed displays
 				timeline.displayData();
 				createPatternListDisplay();
-			}
-		});
+			/*}
+		});*/
 	}
 	
 	/*for (var type in typeList) {
