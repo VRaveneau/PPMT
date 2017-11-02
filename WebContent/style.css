@@ -262,6 +262,11 @@ body {
 	opacity: 0.8;
 }
 
+#nbUserShownValue {
+	display: inline-block;
+	min-width: 30px;
+}
+
 #timeline form {
 	float: left;
 }

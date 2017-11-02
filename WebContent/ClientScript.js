@@ -16,6 +16,9 @@ var timelineOverview = null;
 var timelineOverviewXAxis = null;
 var timelineIds = 0;
 
+var defaultNbUserShown = 10;
+var nbUserShown = 10;
+
 var currentDatasetName = "";
 
 var patternsLoaded = false;
@@ -675,6 +678,20 @@ function init() {
 }
 
 function setupTool() {
+	// Setup the input for the number of users to display
+	d3.select("#nbUserShownInput")
+		.attr("min", "1")
+		.attr("value", defaultNbUserShown)
+		.on("input", function() {
+			nbUserShown = this.value;
+			d3.select("#nbUserShownValue")
+				.text(nbUserShown);
+			timeline.drawUsersPatterns();
+		});
+	
+	d3.select("#nbUserShownValue")
+		.text(nbUserShown);
+	
 	createTimeline();	// TODO Initialize the timeline
 	setupHelpers();
 	
@@ -842,7 +859,11 @@ function receiveDatasetInfo(message) {
 	
 	displayDatasetInfo();
 	addToHistory('Dataset loaded');
-	
+
+	// Update the max number of users to display their sessions
+	d3.select("#nbUserShownInput")
+		.attr("max", datasetInfo.numberOfSequences);
+		
 	timeline.updateContextBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
 	
 	/*updateTimelineBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
@@ -4467,7 +4488,6 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.updateUserList = function() {
-		var nbUserShown = 10.0;
 		
 		var shownUsersNames = userInformations.slice(0, nbUserShown).map(function(uI) {
 			return uI[0]; // Only get the userName
@@ -4566,8 +4586,6 @@ var Timeline = function(elemId, options) {
 		self.hiddenCanvasUsersContext.fill();
 		
 		let userNames = Object.keys(userSessions);
-
-		var nbUserShown = 10.0;
 		
 		var shownUsers = userInformations.slice(0, nbUserShown).map(function(uI) {
 			return uI[0]; // Only get the userName
