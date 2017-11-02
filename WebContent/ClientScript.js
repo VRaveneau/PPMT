@@ -4506,14 +4506,22 @@ var Timeline = function(elemId, options) {
 			range.push(0+i*step);
 		
 		
-		self.yUsers.domain([].concat(shownUsersNames));
+		self.yUsers.domain(shownUsersNames);
 		
 		/*self.yUsers = d3.scaleBand()
 			.domain([].concat(shownUsersNames));
 			//.range(range);*/
 		
+		let tickValues = 
+		
 		self.yAxisUsers = d3.axisLeft(self.yUsers)
-	        .tickValues([].concat(shownUsersNames));
+	        .tickValues(self.yUsers.domain().filter(function(d, i) {
+	        	// Ensures a readable size of tick label
+	        	if (self.yUsers.bandwidth() >= 9)
+	        		return true;
+	        	else
+	        		return false;
+	        }));
 	        /*.tickFormat(function(d, i) {
 	        	return d;
 	        });*/
