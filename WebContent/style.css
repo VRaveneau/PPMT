@@ -666,11 +666,31 @@ table {
 
 .searchBarArea div {
     overflow: hidden;
-    padding: 0 5px
 }
 
+.searchFieldArea {
+	position: relative;
+	padding: 1px;
+}
+
+
 .searchField {
+	position: absolute;
+	top: 0px;
+	left: 0px;
 	width: 100%;
+	z-index: 1;
+	background: transparent;
+}
+.suggestionField {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	z-index: 0;
+	background: transparent;
+	
+	width: 100%;
+	color: rgb(51, 51, 51);
 }
 
 /********************************/

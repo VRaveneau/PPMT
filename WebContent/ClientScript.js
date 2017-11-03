@@ -734,6 +734,8 @@ function init() {
 }
 
 function setupTool() {
+	setupAlgorithmSearchField();
+	
 	// Add event listeners to table headers so that they stay visible
 	//document.getElementById("userTableArea").addEventListener("scroll",keepTableHeaderInSight);
 	
@@ -759,6 +761,85 @@ function setupTool() {
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
+}
+
+let currentPatternSearchInput = "";
+let currentPatternSearchSuggestionIdx = -1;
+let relatedEventTypes = [];
+let currentKeyDown = "";
+
+function setupAlgorithmSearchField() {
+	let searchField = d3.select("#patternListArea").select("input.searchField");
+	let suggestionField = d3.select("#patternListArea").select("input.suggestionField");
+	searchField.on("input", function() {
+		let currentValue = searchField.property("value");
+		currentPatternSearchInput = currentValue;
+		
+		if(currentValue.length > 0) {
+			relatedEventTypes = eventTypes.filter(function(d, i) {
+				return d.startsWith(currentValue);
+			});
+			relatedEventTypes.sort();
+			
+			if (relatedEventTypes.length > 0) {
+				currentPatternSearchSuggestionIdx = 0;
+				suggestionField.property("value",relatedEventTypes[0]);
+			} else {
+				currentPatternSearchSuggestionIdx = -1;
+				suggestionField.property("value","");
+			}
+		} else {
+			currentPatternSearchInput = "";
+			currentPatternSearchSuggestionIdx = -1;
+			relatedEventTypes = [];
+			suggestionField.property("value","");
+		}
+	});
+	searchField.on("keydown", function() {
+		let keyName = d3.event.key;
+		// Don't trigger if the user keeps the key down
+		if (currentKeyDown == keyName)
+			return;
+		currentKeyDown = keyName;
+		switch(keyName) {
+		case "ArrowRight":
+			console.log("ArrowRight");
+			if (currentPatternSearchSuggestionIdx >= 0) {
+				currentPatternSearchInput = relatedEventTypes[currentPatternSearchSuggestionIdx];
+				searchField.property("value",relatedEventTypes[currentPatternSearchSuggestionIdx]);
+				// Updates the suggestion list
+				relatedEventTypes = eventTypes.filter(function(d, i) {
+					return d.startsWith(relatedEventTypes[currentPatternSearchSuggestionIdx]);
+				});
+				relatedEventTypes.sort();
+
+				if (relatedEventTypes.length > 0) {
+					currentPatternSearchSuggestionIdx = 0;
+					suggestionField.property("value",relatedEventTypes[0]);
+				} else {
+					currentPatternSearchSuggestionIdx = -1;
+					suggestionField.property("value","");
+				}
+			}
+			break;
+		case "ArrowUp":
+			console.log("ArrowUp");
+			if (currentPatternSearchSuggestionIdx > 0) {
+				currentPatternSearchSuggestionIdx--;
+				suggestionField.property("value",relatedEventTypes[currentPatternSearchSuggestionIdx]);
+			}
+			break;
+		case "ArrowDown":
+			console.log("ArrowDown");
+			if (currentPatternSearchSuggestionIdx < relatedEventTypes.length - 1) {
+				currentPatternSearchSuggestionIdx++;
+				suggestionField.property("value",relatedEventTypes[currentPatternSearchSuggestionIdx]);
+			}
+			break;
+		default:
+		}
+		currentKeyDown = "";
+	});
 }
 
 var helperTooltipVisible = false;
