@@ -2151,11 +2151,28 @@ function getAgavueColors() {
 	return [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
 }
 
-function getCurrentEventColor(eventType) {
-	if (highlightedEventTypes.length > 0 && !highlightedEventTypes.includes(eventType))
-		return colorList[eventType][1];
-	else
+/**
+ * Returns the current color associated with an event type, depending on the current highlights
+ * If 'user' is omitted, the current user selection is not taken into account 
+ * @param eventType
+ * @param user
+ * @returns
+ */
+function getCurrentEventColor(eventType, user) {
+	let typeHighlight = true;
+	let userHighlight = true;
+	if (highlightedEventTypes.length > 0 && !highlightedEventTypes.includes(eventType)) {
+		typeHighlight = false;
+	}
+	if (user != null) {
+		if (highlightedUsers.length > 0 && !highlightedUsers.includes(user))
+			userHighlight = false;
+	}
+	
+	if (userHighlight && typeHighlight)
 		return colorList[eventType][0];
+	else
+		return colorList[eventType][1];
 }
 
 function getEventColor(eventType) {
@@ -6080,12 +6097,12 @@ var Timeline = function(elemId, options) {
 			if (pixelColor[3] != 0) { // if the pixel is not transparent (i.e. not background)
 			//if (pixelColor[0] != 255 && pixelColor[1] != 255 && pixelColor[2] != 255) { old test when the background was white
 				var colorString = "rgb("+pixelColor[0]+","+pixelColor[1]+","+pixelColor[2]+")";
-				console.log("-----");
-				console.log(pixelColor);
-				console.log(colorString);
+				//console.log("-----");
+				//console.log(pixelColor);
+				//console.log(colorString);
 				var data = self.colorToData[colorString];
-				console.log(data);
-				console.log("coords: "+coords);
+				//console.log(data);
+				//console.log("coords: "+coords);
 				/*console.log("colorString: "+colorString);
 				console.log(data);*/
 				if (typeof data !== 'undefined') {
@@ -6136,7 +6153,7 @@ var Timeline = function(elemId, options) {
 			let mouseUserIndex = Math.round((coords[1] / self.yUsers.step()));
 			
 			let mouseUser = userListDomain[mouseUserIndex];//userListDomain[d3.bisect(userListRange, coords[1]) -2];
-			console.log("Mouse x-y: "+coords[0]+"-"+coords[1]+" / "+mouseUser+" at "+self.xUsers.invert(coords[0]));
+			//console.log("Mouse x-y: "+coords[0]+"-"+coords[1]+" / "+mouseUser+" at "+self.xUsers.invert(coords[0]));
 			// get the correct user session
 			let theSession = null;
 			for (let sessIt=0; sessIt < userSessions[mouseUser].length; sessIt++) {
@@ -6788,7 +6805,7 @@ var Timeline = function(elemId, options) {
 			    self.hiddenCanvasContext.closePath();*/
 				
 				let trueX = x - self.canvasContext.measureText(itemShapes[info[0]]).width/2;
-				let symbolColor = getCurrentEventColor(info[0]).toString();
+				let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
 				//selectedColorFading
 			    self.canvasContext.font = self.yFocus.bandwidth()+"px Geneva";
 			    self.canvasContext.fillStyle = symbolColor;
