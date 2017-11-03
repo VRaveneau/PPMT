@@ -1679,9 +1679,25 @@ function sortUsersByEndDate(decreasing=false) {
 }
 
 function clickOnUserNameHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "User") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastUserSort == "nameDown") {
+		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByName();
 	} else {
+		d3.select(header).text(txt + "\u00A0↑");
 		sortUsersByName(true);
 	}
 	
@@ -1690,9 +1706,25 @@ function clickOnUserNameHeader() {
 }
 
 function clickOnUserNbEventsHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Nb\u00A0events") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastUserSort == "nbEventsDown") {
+		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByNbEvents();
 	} else {
+		d3.select(header).text(txt + "\u00A0↑");
 		sortUsersByNbEvents(true);
 	}
 	
@@ -1701,9 +1733,25 @@ function clickOnUserNbEventsHeader() {
 }
 
 function clickOnUserDurationHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Duration") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastUserSort == "durationDown") {
+		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByTraceDuration();
 	} else {
+		d3.select(header).text(txt + "\u00A0↑");
 		sortUsersByTraceDuration(true);
 	}
 	
@@ -1712,9 +1760,25 @@ function clickOnUserDurationHeader() {
 }
 
 function clickOnUserStartHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Start") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastUserSort == "startDown") {
+		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByStartDate();
 	} else {
+		d3.select(header).text(txt + "\u00A0↑");
 		sortUsersByStartDate(true);
 	}
 	
@@ -1723,9 +1787,25 @@ function clickOnUserStartHeader() {
 }
 
 function clickOnUserEndHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "End") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastUserSort == "endDown") {
+		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByEndDate();
 	} else {
+		d3.select(header).text(txt + "\u00A0↑");
 		sortUsersByEndDate(true);
 	}
 	
@@ -1996,9 +2076,25 @@ function sortEventTypesByCategory(decreasing=false) {
 }
 
 function clickOnEventTypeNameHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#eventTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Event\u00A0type") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastEventTypeSort == "nameDown") {
+		d3.select(header).text(txt + "\u00A0↓");
 		sortEventTypesByName();
 	} else {
+		d3.select(header).text(txt + "\u00A0↑");
 		sortEventTypesByName(true);
 	}
 	
@@ -2008,9 +2104,25 @@ function clickOnEventTypeNameHeader() {
 }
 
 function clickOnEventTypeNbEventsHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#eventTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Nb\u00A0events") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastEventTypeSort == "nbEventsDown") {
+		d3.select(header).text(txt + "\u00A0↓");
 		sortEventTypesByNbEvents();
 	} else {
+		d3.select(header).text(txt + "\u00A0↑");
 		sortEventTypesByNbEvents(true);
 	}
 	
@@ -2020,9 +2132,25 @@ function clickOnEventTypeNbEventsHeader() {
 }
 
 function clickOnEventTypeCategoryHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#eventTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Category") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastEventTypeSort == "categoryDown") {
+		d3.select(header).text(txt + "\u00A0↓");
 		sortEventTypesByCategory();
 	} else {
+		d3.select(header).text(txt + "\u00A0↑");
 		sortEventTypesByCategory(true);
 	}
 	
@@ -2904,9 +3032,23 @@ function sortPatternsBySupport(decreasing=false) {
 var lastPatternSort = "sizeUp";
 
 function clickOnPatternNameHeader() {
+	let nameHeader = null;
+	let nameTxt = "";
+	// Remove the sorting indicators
+	d3.select("#patternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/)[0];
+			if (colName == "Name") {
+				nameHeader = this;
+				nameTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastPatternSort == "nameDown") {
+		d3.select(nameHeader).text(nameTxt + "\u00A0↓");
 		sortPatternsByName();
 	} else {
+		d3.select(nameHeader).text(nameTxt + "\u00A0↑");
 		sortPatternsByName(true);
 	}
 	
@@ -2914,9 +3056,23 @@ function clickOnPatternNameHeader() {
 }
 
 function clickOnPatternSizeHeader() {
+	let sizeHeader = null;
+	let sizeTxt = "";
+	// Remove the sorting indicators
+	d3.select("#patternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/)[0];
+			if (colName == "Size") {
+				sizeHeader = this;
+				sizeTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastPatternSort == "sizeDown") {
+		d3.select(sizeHeader).text(sizeTxt + "\u00A0↓");
 		sortPatternsBySize();
 	} else {
+		d3.select(sizeHeader).text(sizeTxt + "\u00A0↑");
 		sortPatternsBySize(true);
 	}
 	
@@ -2924,9 +3080,23 @@ function clickOnPatternSizeHeader() {
 }
 
 function clickOnPatternSupportHeader() {
+	let supportHeader = null;
+	let supportTxt = "";
+	// Remove the sorting indicators
+	d3.select("#patternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/)[0];
+			if (colName == "Support") {
+				supportHeader = this;
+				supportTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
 	if (lastPatternSort == "supportDown") {
+		d3.select(supportHeader).text(supportTxt + "\u00A0↓");
 		sortPatternsBySupport();
 	} else {
+		d3.select(supportHeader).text(supportTxt + "\u00A0↑");
 		sortPatternsBySupport(true);
 	}
 	
