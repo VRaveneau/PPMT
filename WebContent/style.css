@@ -628,6 +628,7 @@ ul.controlTabs li :not(.active):hover {
     overflow: auto;
     
     flex: 1;
+    flex-direction: column;
 }
 
 .controlTabContent p {
@@ -875,6 +876,7 @@ ul.algorithmTabs li :not(.active):hover {
 
 #userTableArea {
 	max-height: 100%;
+	flex: 1;
  	overflow: auto;
 }
 
@@ -887,6 +889,10 @@ ul.algorithmTabs li :not(.active):hover {
 #userTableArea .userColumn {
 	max-width: 100px;
 	word-wrap: break-word;
+}
+
+#userTableBody {
+	overflow-y: auto;
 }
 
 #userTableBody tr.selectedUserRow {

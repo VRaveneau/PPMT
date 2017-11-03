@@ -734,6 +734,9 @@ function init() {
 }
 
 function setupTool() {
+	// Add event listeners to table headers so that they stay visible
+	//document.getElementById("userTableArea").addEventListener("scroll",keepTableHeaderInSight);
+	
 	// Setup the input for the number of users to display
 	d3.select("#nbUserShownInput")
 		.attr("min", "1")
@@ -3862,6 +3865,11 @@ function formatDate(date) {
 /*				Handling the tabs				*/
 /************************************************/
 
+function keepTableHeaderInSight() {
+	let translate = "translate(0,"+this.scrollTop+"px)";
+	this.querySelector("thead").style.transform = translate;
+}
+
 /**
  * Manage the left-side (control) tabs
  */
@@ -3882,7 +3890,7 @@ function openControlTab(evt, tabName) {
     }
 
     // Show the current tab, and add an "active" class to the link that opened the tab
-    document.getElementById(tabName).style.display = "block";
+    document.getElementById(tabName).style.display = "flex";
     evt.currentTarget.className += " active";
 }
 
