@@ -52,6 +52,34 @@ var colorPalet = [/*First color is brighter, to represent the unselected version
 	["#ffff33","#ffffcc"],
 	["#999999","#f2f2f2"]];
 var shapesDraw = extendedSymbolTypes[0];
+var shapesAlpha = [
+	"A",
+	"B",
+	"C",
+	"D",
+	"E",
+	"F",
+	"G",
+	"H",
+	"I",
+	"J",
+	"K",
+	"L",
+	"M",
+	"N",
+	"O",
+	"P",
+	"Q",
+	"R",
+	"S",
+	"T",
+	"U",
+	"V",
+	"W",
+	"X",
+	"Y",
+	"Z"
+	];
 var shapesWriteWhite = [
 	"□",
 	"△",
@@ -89,6 +117,34 @@ var shapesWriteBlack = [
 ];
 var shapes = shapesWriteBlack;
 var shapeNamesDraw = extendedSymbolTypes[1];
+var shapeNamesAlpha = [
+	"A",
+	"B",
+	"C",
+	"D",
+	"E",
+	"F",
+	"G",
+	"H",
+	"I",
+	"J",
+	"K",
+	"L",
+	"M",
+	"N",
+	"O",
+	"P",
+	"Q",
+	"R",
+	"S",
+	"T",
+	"U",
+	"V",
+	"W",
+	"X",
+	"Y",
+	"Z"
+	];
 var shapeNamesWrite = [
 	"square",
 	"triangleUp",
@@ -6807,12 +6863,12 @@ var Timeline = function(elemId, options) {
 				let trueX = x - self.canvasContext.measureText(itemShapes[info[0]]).width/2;
 				let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
 				//selectedColorFading
-			    self.canvasContext.font = self.yFocus.bandwidth()+"px Geneva";
+			    self.canvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
 			    self.canvasContext.fillStyle = symbolColor;
 			    self.canvasContext.textBaseline="middle";
 				self.canvasContext.fillText(itemShapes[info[0]], trueX, y);
 			    
-				self.hiddenCanvasContext.font = self.yFocus.bandwidth()+"px Geneva";
+				self.hiddenCanvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
 			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
 			    self.hiddenCanvasContext.textBaseline="middle";
 				self.hiddenCanvasContext.fillText(itemShapes[info[0]], trueX, y);
