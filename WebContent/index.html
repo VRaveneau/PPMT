@@ -74,12 +74,12 @@
 							<input type="checkbox" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
 						</div>
 					
-						<table id="eventTable" class="sortable">
+						<table id="eventTable">
 							<thead>
 								<tr>
-									<th>Event type</th>
-									<th id="eventsOccurrencesColumn" class="sorttable_numeric">Nb events</th>
-									<th class="sorttable_numeric">Category</th>
+									<th onclick="clickOnEventTypeNameHeader()">Event type</th>
+									<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeNbEventsHeader()">Nb events</th>
+									<th onclick="clickOnEventTypeCategoryHeader()">Category</th>
 									<!-- <th class="sorttable_numeric">Symbol</th> -->
 								</tr>
 							</thead>

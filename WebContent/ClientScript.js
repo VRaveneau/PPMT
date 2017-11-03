@@ -1953,9 +1953,87 @@ function switchShowEventTypeDescription() {
 	}
 }
 
+var lastEventTypeSort = "";
+
+function sortEventTypesByName(decreasing=false) {
+	eventTypes.sort();
+	
+	if (decreasing == true) {
+		eventTypes.reverse();
+		lastEventTypeSort = "nameDown";
+	} else {
+		lastEventTypeSort = "nameUp";
+	}
+}
+
+function sortEventTypesByNbEvents(decreasing=false) {
+	eventTypes.sort(function(a,b) {
+		return eventTypeInformations[a].nbOccs - eventTypeInformations[b].nbOccs;
+	});
+	
+	if (decreasing == true) {
+		eventTypes.reverse();
+		lastEventTypeSort = "nbEventsDown";
+	} else {
+		lastEventTypeSort = "nbEventsUp";
+	}
+}
+
+function sortEventTypesByCategory(decreasing=false) {
+	eventTypes.sort(function(a,b) {
+		if (eventTypeInformations[a].category <= eventTypeInformations[b].category)
+			return -1;
+		else
+			return 1;
+	});
+	
+	if (decreasing == true) {
+		eventTypes.reverse();
+		lastEventTypeSort = "categoryDown";
+	} else {
+		lastEventTypeSort = "categoryUp";
+	}
+}
+
+function clickOnEventTypeNameHeader() {
+	if (lastEventTypeSort == "nameDown") {
+		sortEventTypesByName();
+	} else {
+		sortEventTypesByName(true);
+	}
+	
+	createEventTypesListDisplay();
+	if (timeline.displayMode == "events")
+		timeline.displayData();
+}
+
+function clickOnEventTypeNbEventsHeader() {
+	if (lastEventTypeSort == "nbEventsDown") {
+		sortEventTypesByNbEvents();
+	} else {
+		sortEventTypesByNbEvents(true);
+	}
+	
+	createEventTypesListDisplay();
+	if (timeline.displayMode == "events")
+		timeline.displayData();
+}
+
+function clickOnEventTypeCategoryHeader() {
+	if (lastEventTypeSort == "categoryDown") {
+		sortEventTypesByCategory();
+	} else {
+		sortEventTypesByCategory(true);
+	}
+	
+	createEventTypesListDisplay();
+	if (timeline.displayMode == "events")
+		timeline.displayData();
+}
+
 var colorList = {};
 var eventTypes = [];
-var eventDisplayHeight = {};
+var eventTypeInformations = {};
 
 function receiveEventTypes(message) {
 	//var typeList = message.types.split(";");
@@ -1969,14 +2047,14 @@ function receiveEventTypes(message) {
 	}*/
 	var nbColors = Math.ceil(nbEvents/shapes.length);
 	var colors = [];
-	for (var i = 1; i <= nbColors; i++)
+	for (let i = 1; i <= nbColors; i++)
 		colors.push(selectColor(i, nbColors));
 	// Symbols and colors are generated
 	if (nbEvents > 0)
 		document.getElementById("noEvent").textContent = "";
-	for (var i = 0; i< nbEvents; i++) {
-		var eventRow = d3.select("#eventTableBody").append("tr");
-		var eventInfo = message[i.toString()].split(";");
+
+	for (let i = 0; i < nbEvents; i++) {
+		let eventInfo = message[i.toString()].split(";");
 		console.log(eventInfo);
 		let eType = "";
 		let eCode = "";
@@ -1984,8 +2062,9 @@ function receiveEventTypes(message) {
 		let eCategory = "";
 		let eDescription = "";
 		let eColor;
+		
 		for (var j=0; j < eventInfo.length;j++) {
-			var info = eventInfo[j].split(":");
+			let info = eventInfo[j].split(":");
 			switch(info[0]) {
 			case "code":
 				eCode = shapes[i%shapes.length];
@@ -2024,31 +2103,41 @@ function receiveEventTypes(message) {
 			}
 		}
 		
-		eventRow.attr("id",eType)
-				.on("click", function() {
-					highlightEventTypeRow(eType);
-					setHighlights();
-					timeline.displayData();
-					d3.event.stopPropagation();
-				});
+		eColor = eventTypeCategoryColors[eCategory];
+		colorList[eType] = eColor;
+		itemShapes[eType] = eCode;
 		
-		if (message.dataset == "Agavue") {
-			colors = getAgavueColors();
-			eColor = getEventColorForAgavue(eType);
-			eCode = getEventShapeForAgavue(eType);
-			colorList[eType] = eColor;
-			itemShapes[eType] = eCode;
-		} else {
-			/* Old color system
-			eColor = colors[i%colors.length];
-			colorList[eType] = eColor;//colors[i%colors.length];
-			*/
-			eColor = eventTypeCategoryColors[eCategory];
-			colorList[eType] = eColor;
-			itemShapes[eType] = eCode;//shapes[i%shapes.length];
-		}
-		eventDisplayHeight[eType] = i+1;
-		//var eColor = colors[i%colors.length];
+		eventTypeInformations[eType] = {
+				"category":eCategory,
+				"description":eDescription,
+				"nbOccs":eNbOccs,
+				"code":eCode
+		};
+	}
+	
+	sortEventTypesByNbEvents(true);
+	
+	createEventTypesListDisplay();
+}
+
+function createEventTypesListDisplay() {
+	// removing the old event types
+	var eventTypeRowsRoot = document.getElementById("eventTableBody");
+	while (eventTypeRowsRoot.firstChild) {
+		eventTypeRowsRoot.removeChild(eventTypeRowsRoot.firstChild);
+	}
+	
+	// Adding the new ones
+	for(let i=0; i< eventTypes.length; i++) {
+		let eType = eventTypes[i];
+		let eventRow = d3.select("#eventTableBody").append("tr")
+			.attr("id", eType)
+			.on("click", function() {
+				highlightEventTypeRow(eType);
+				setHighlights();
+				timeline.displayData();
+				d3.event.stopPropagation();
+			});
 		let firstCell = eventRow.append("td");
 		firstCell.append("span")
 			.style("color",colorList[eType][0].toString())
@@ -2059,78 +2148,42 @@ function receiveEventTypes(message) {
 		firstCell.append("span")
 			.style("color","grey")
 			.classed("eventTypeDescription", true)
-			.text(eDescription);
-		eventRow.append("td").text(eNbOccs);
-		eventRow.append("td").text(eCategory);
+			.style("display", showEventTypeDescription == true ? "initial" : "none")
+			.text(eventTypeInformations[eType].description);
+		eventRow.append("td").text(eventTypeInformations[eType].nbOccs);
+		eventRow.append("td").text(eventTypeInformations[eType].category);
 		
 		/* Old symbol cell, using svg
 		var symbolRow = eventRow.append("td")
-			.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
-			.classed("dropdown", true);
+		.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
+		.classed("dropdown", true);
 		let symbolRowSvg = symbolRow.append("svg")
-			.attr("width", 20)
-			.attr("height", 20)
-			.classed("dropbtn", true);
+		.attr("width", 20)
+		.attr("height", 20)
+		.classed("dropbtn", true);
 		symbolRowSvg.append("path")
-			.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
-			.attr("transform","translate(10,10)")
-			.attr("stroke", colorList[eType].toString())
-			.attr("fill","none");*/
+		.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
+		.attr("transform","translate(10,10)")
+		.attr("stroke", colorList[eType].toString())
+		.attr("fill","none");*/
 		/* New symbol cell, using utf-8 symbols */
 		/*var symbolRow = eventRow.append("td")
-			.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
-			.classed("dropdown", true);
+		.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
+		.classed("dropdown", true);
 		let symbolRowSvg = symbolRow.append("span")
-			.style("color",colorList[eType][0].toString())
-			.classed("dropbtn",true)
-			.text(itemShapes[eType]);*/
-			
+		.style("color",colorList[eType][0].toString())
+		.classed("dropbtn",true)
+		.text(itemShapes[eType]);*/
+		
 		
 		// Create the menu to customize the icon
 		/*var dropMenuDiv = symbolRow.append("div")
-			.classed("dropdown-content", true);
+		.classed("dropdown-content", true);
 		let symbolP = dropMenuDiv.append("p")
-			.text("Change symbol :");
+		.text("Change symbol :");
 		let symbolSelect = symbolP.append("select")
-			.on("change", function() {
-				if (changeEventTypeSymbol(eType, symbolSelect.property('value'))) {
-					// Update the row id for the new color
-					symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType][0]).h)*100+shapes.indexOf(itemShapes[eType]));
-					// draw the new symbol
-					/* Old symbol, svg
-					symbolRowSvg.selectAll("*").remove();
-					symbolRowSvg.append("path")
-						.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
-						.attr("transform","translate(10,10)")
-						.attr("stroke", colorList[eType].toString())
-						.attr("fill","none"); */
-					/* New symbol, utf-8 char */
-					/*symbolRowSvg.style("color",colorList[eType][0].toString())
-						.text(itemShapes[eType]);
-					// refresh the changed displays
-					timeline.displayData();
-					createPatternListDisplay();
-				}
-			});
-		for (var ishape=0; ishape < shapes.length; ishape++) {
-			symbolSelect.append("option")
-				.property("value",ishape)
-				.text(shapeNames[ishape])
-				.property("selected", function() {
-					if (shapes[ishape] == itemShapes[eType])
-						return true;
-					return false;
-				});
-		}
-		let colorP = dropMenuDiv.append("p")
-			.text("Change color :");
-		let colorInput = colorP.append("input")
-			.style("width","60px");
-		let picker = new jscolor(colorInput.node());
-        	picker.fromRGB(Number(colorList[eType][0].r), Number(colorList[eType][0].g), Number(colorList[eType][0].b));
-        	
-        colorInput.on("change", function() {
-			if (changeEventTypeColor(eType, picker.hsv[0])) {
+		.on("change", function() {
+			if (changeEventTypeSymbol(eType, symbolSelect.property('value'))) {
 				// Update the row id for the new color
 				symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType][0]).h)*100+shapes.indexOf(itemShapes[eType]));
 				// draw the new symbol
@@ -2139,27 +2192,54 @@ function receiveEventTypes(message) {
 				symbolRowSvg.append("path")
 					.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
 					.attr("transform","translate(10,10)")
-					.attr("stroke",colorList[eType].toString())
-					.attr("fill","none");*/
-				/* New symbol, UTF-8 */
+					.attr("stroke", colorList[eType].toString())
+					.attr("fill","none"); */
+				/* New symbol, utf-8 char */
 				/*symbolRowSvg.style("color",colorList[eType][0].toString())
+					.text(itemShapes[eType]);
 				// refresh the changed displays
 				timeline.displayData();
 				createPatternListDisplay();
-			/*}
+			}
+		});
+		for (var ishape=0; ishape < shapes.length; ishape++) {
+		symbolSelect.append("option")
+			.property("value",ishape)
+			.text(shapeNames[ishape])
+			.property("selected", function() {
+				if (shapes[ishape] == itemShapes[eType])
+					return true;
+				return false;
+			});
+		}
+		let colorP = dropMenuDiv.append("p")
+		.text("Change color :");
+		let colorInput = colorP.append("input")
+		.style("width","60px");
+		let picker = new jscolor(colorInput.node());
+		picker.fromRGB(Number(colorList[eType][0].r), Number(colorList[eType][0].g), Number(colorList[eType][0].b));
+		
+		colorInput.on("change", function() {
+		if (changeEventTypeColor(eType, picker.hsv[0])) {
+			// Update the row id for the new color
+			symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType][0]).h)*100+shapes.indexOf(itemShapes[eType]));
+			// draw the new symbol
+			/* Old symbol, svg
+			symbolRowSvg.selectAll("*").remove();
+			symbolRowSvg.append("path")
+				.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
+				.attr("transform","translate(10,10)")
+				.attr("stroke",colorList[eType].toString())
+				.attr("fill","none");*/
+			/* New symbol, UTF-8 */
+			/*symbolRowSvg.style("color",colorList[eType][0].toString())
+			// refresh the changed displays
+			timeline.displayData();
+			createPatternListDisplay();
+		/*}
 		});*/
-	}
-	
-	/*for (var type in typeList) {
-		var eventRow = d3.select("#eventTableBody").append("tr");
-		eventRow.append("td").text(type);
-		eventRow.append("td").text("");
-		eventRow.append("td").text("");
-	}*/
-	// sorting by occurrences
-	var userTH = document.getElementById("eventsOccurrencesColumn");
-	sorttable.innerSortFunction.apply(userTH, []);
-	
+		
+	}	
 }
 
 function changeEventTypeSymbol(eventType, newShapeIndex) {
