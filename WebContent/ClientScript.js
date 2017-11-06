@@ -842,7 +842,8 @@ function setupUserSearchField() {
 	});
 }
 
-let currentPatternSearchInput = "";
+let currentPatternSearchInput = ""; // The current value in the search field
+let currentPatternSearchFragment = ""; // The current fragment of the value (what follows the last space)
 let currentPatternSearchSuggestionIdx = -1;
 let relatedEventTypes = [];
 let currentKeyDown = "";
@@ -853,16 +854,19 @@ function setupAlgorithmSearchField() {
 	searchField.on("input", function() {
 		let currentValue = searchField.property("value");
 		currentPatternSearchInput = currentValue;
+		currentPatternSearchFragment = currentValue.split(" ").pop();
 		
-		if(currentValue.length > 0) {
+		if(currentPatternSearchFragment.length > 0) {
+			let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+			let baseValue = currentPatternSearchInput.substr(0, baseLength);
 			relatedEventTypes = eventTypes.filter(function(d, i) {
-				return d.startsWith(currentValue);
+				return d.startsWith(currentPatternSearchFragment);
 			});
 			relatedEventTypes.sort();
 			
 			if (relatedEventTypes.length > 0) {
 				currentPatternSearchSuggestionIdx = 0;
-				suggestionField.property("value",relatedEventTypes[0]);
+				suggestionField.property("value", baseValue + relatedEventTypes[0]);
 			} else {
 				currentPatternSearchSuggestionIdx = -1;
 				suggestionField.property("value","");
@@ -870,6 +874,7 @@ function setupAlgorithmSearchField() {
 		} else {
 			currentPatternSearchInput = "";
 			currentPatternSearchSuggestionIdx = -1;
+			currentPatternSearchFragment = "";
 			relatedEventTypes = [];
 			suggestionField.property("value","");
 		}
@@ -882,19 +887,21 @@ function setupAlgorithmSearchField() {
 		currentKeyDown = keyName;
 		switch(keyName) {
 		case "ArrowRight":
-			console.log("ArrowRight");
 			if (currentPatternSearchSuggestionIdx >= 0) {
-				currentPatternSearchInput = relatedEventTypes[currentPatternSearchSuggestionIdx];
-				searchField.property("value",relatedEventTypes[currentPatternSearchSuggestionIdx]);
+				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+				let baseValue = currentPatternSearchInput.substr(0, baseLength);
+				currentPatternSearchInput = baseValue + relatedEventTypes[currentPatternSearchSuggestionIdx];
+				currentPatternSearchFragment = relatedEventTypes[currentPatternSearchSuggestionIdx];
+				searchField.property("value", currentPatternSearchInput);
 				// Updates the suggestion list
 				relatedEventTypes = eventTypes.filter(function(d, i) {
-					return d.startsWith(relatedEventTypes[currentPatternSearchSuggestionIdx]);
+					return d.startsWith(currentPatternSearchFragment);
 				});
 				relatedEventTypes.sort();
 
 				if (relatedEventTypes.length > 0) {
 					currentPatternSearchSuggestionIdx = 0;
-					suggestionField.property("value",relatedEventTypes[0]);
+					suggestionField.property("value",currentPatternSearchInput);
 				} else {
 					currentPatternSearchSuggestionIdx = -1;
 					suggestionField.property("value","");
@@ -902,17 +909,19 @@ function setupAlgorithmSearchField() {
 			}
 			break;
 		case "ArrowUp":
-			console.log("ArrowUp");
 			if (currentPatternSearchSuggestionIdx > 0) {
+				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx--;
-				suggestionField.property("value",relatedEventTypes[currentPatternSearchSuggestionIdx]);
+				suggestionField.property("value",baseValue + relatedEventTypes[currentPatternSearchSuggestionIdx]);
 			}
 			break;
 		case "ArrowDown":
-			console.log("ArrowDown");
 			if (currentPatternSearchSuggestionIdx < relatedEventTypes.length - 1) {
+				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx++;
-				suggestionField.property("value",relatedEventTypes[currentPatternSearchSuggestionIdx]);
+				suggestionField.property("value",baseValue + relatedEventTypes[currentPatternSearchSuggestionIdx]);
 			}
 			break;
 		default:
@@ -3281,24 +3290,22 @@ var patternMetrics = {"sizeDistribution":{}};
 
 function addPatternToList(message) {
 	
-	var pSize = parseInt(message.size);
-	var pSupport = parseInt(message.support);
-	var pId = message.id;
-	var pString = "";
+	let pSize = parseInt(message.size);
+	let pSupport = parseInt(message.support);
+	let pId = message.id;
+	let pItems = [];
+	for (let k = 0; k < pSize; k++) {
+		pItems.push(message[k]);
+	}
+	let pString = pItems.join(" ");
 	
 	//console.log("receiving Pattern "+pString);
-	
+	/*
 	for (var i = 0; i < pSize; i++) {
 		pString += message[i];
 		if (i <= (pSize-1))
 			pString += " ";
-	}
-
-	let pItems = [];
-	
-	for (var k = 0; k < pSize; k++) {
-		pItems.push(message[k]);
-	}
+	}*/
 
 	patternsInformation[pId] = [pString, pSize, pSupport, pItems];
 	
@@ -3320,7 +3327,12 @@ function addPatternToList(message) {
 	// Update the number of patterns display
 	d3.select("#patternNumberSpan").text(numberOfPattern);
 	
-	//createPatternListDisplay();
+	// Only add the pattern to the list if:
+	// - No filter is applied
+	// - The applied filter accepts the pattern
+	// TODO : Do it
+		
+		
 	if (correctPositionInList == -1) { // append at the end of the list
 		let patternList = d3.select("#patternTableBody");
 		let thisRow = patternList.append("tr")
