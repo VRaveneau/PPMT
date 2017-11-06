@@ -1738,6 +1738,10 @@ function createUserListDisplay() {
 
 		userRow.attr("id",thisUserName);
 		
+		if (highlightedUsers.includes(thisUser[0])) {
+			userRow.attr("class", "selectedUserRow");
+		}
+		
 		userRow.on("click", function(){
 			if (d3.event.shiftKey) { // Shift + click, steering
 				requestSteeringOnUser(userInfo[0]);
