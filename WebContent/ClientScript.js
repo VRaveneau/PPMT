@@ -3216,7 +3216,7 @@ function sortPatternsBySupport(decreasing=false) {
 	}
 }
 
-var lastPatternSort = "sizeDown";
+var lastPatternSort = "sizeUp";
 
 function clickOnPatternNameHeader() {
 	let nameHeader = null;
@@ -3432,8 +3432,9 @@ function addPatternToList(message) {
 			.text(pSupport);
 	} else { // append at the right position in the list
 		let firstUnselectedId = findFirstUnselectedId(correctPositionInList + 1);
+		console.log("First unselectedId: "+firstUnselectedId);
 		let patternList = d3.select("#patternTableBody");
-		let firstUnselectedNode = d3.select("#"+patternIdList[firstUnselectedId]).node();
+		let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
 		
 		let thisRow = d3.select(document.createElement("tr"))
 			.style("font-weight","normal")
@@ -3496,7 +3497,7 @@ function addPatternToList(message) {
 		thisRow.append("td")
 			.text(pSupport);
 		
-		firstUnselectedNode.parentNode.insertBefore(thisRow, firstUnselectedNode);
+		firstUnselectedNode.parentNode.insertBefore(thisRow.node(), firstUnselectedNode);
 	}
 	
 	// Update the relevant metrics
