@@ -735,6 +735,7 @@ function init() {
 
 function setupTool() {
 	setupAlgorithmSearchField();
+	setupUserSearchField();
 	
 	// Add event listeners to table headers so that they stay visible
 	//document.getElementById("userTableArea").addEventListener("scroll",keepTableHeaderInSight);
@@ -761,6 +762,84 @@ function setupTool() {
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
+}
+
+let currentUserSearchInput = "";
+let currentUserSearchSuggestionIdx = -1;
+let relatedUsers = [];
+let currentKeyDownUser = "";
+
+function setupUserSearchField() {
+	let searchField = d3.select("#Users").select("input.searchField");
+	let suggestionField = d3.select("#Users").select("input.suggestionField");
+	searchField.on("input", function() {
+		let currentValue = searchField.property("value");
+		currentUserSearchInput = currentValue;
+		
+		if(currentValue.length > 0) {
+			relatedUsers = userList.filter(function(d, i) {
+				return d.includes(currentValue);
+			});
+			relatedUsers.sort();
+			
+			if (relatedUsers.length > 0) {
+				currentUserSearchSuggestionIdx = 0;
+				suggestionField.property("value",relatedUsers[0]);
+			} else {
+				currentUserSearchSuggestionIdx = -1;
+				suggestionField.property("value","");
+			}
+		} else {
+			currentUserSearchInput = "";
+			currentUserSearchSuggestionIdx = -1;
+			relatedUsers = [];
+			suggestionField.property("value","");
+		}
+		createUserListDisplay();
+	});
+	searchField.on("keydown", function() {
+		let keyName = d3.event.key;
+		// Don't trigger if the user keeps the key down
+		if (currentKeyDownUser == keyName)
+			return;
+		currentKeyDownUser = keyName;
+		switch(keyName) {
+		case "ArrowRight":
+			if (currentUserSearchSuggestionIdx >= 0) {
+				currentUserSearchInput = relatedUsers[currentUserSearchSuggestionIdx];
+				searchField.property("value",relatedUsers[currentUserSearchSuggestionIdx]);
+				// Updates the suggestion list
+				relatedUsers = userList.filter(function(d, i) {
+					return d.includes(relatedUsers[currentUserSearchSuggestionIdx]);
+				});
+				relatedUsers.sort();
+
+				if (relatedUsers.length > 0) {
+					currentUserSearchSuggestionIdx = 0;
+					suggestionField.property("value",relatedUsers[0]);
+				} else {
+					currentUserSearchSuggestionIdx = -1;
+					suggestionField.property("value","");
+				}
+			}
+			createUserListDisplay();
+			break;
+		case "ArrowUp":
+			if (currentUserSearchSuggestionIdx > 0) {
+				currentUserSearchSuggestionIdx--;
+				suggestionField.property("value",relatedUsers[currentUserSearchSuggestionIdx]);
+			}
+			break;
+		case "ArrowDown":
+			if (currentUserSearchSuggestionIdx < relatedUsers.length - 1) {
+				currentUserSearchSuggestionIdx++;
+				suggestionField.property("value",relatedUsers[currentUserSearchSuggestionIdx]);
+			}
+			break;
+		default:
+		}
+		currentKeyDownUser = "";
+	});
 }
 
 let currentPatternSearchInput = "";
@@ -1584,6 +1663,21 @@ function createUserListDisplay() {
 	// Adding the new ones
 	for (var u= 0; u < userInformations.length; u++) {
 		let thisUser = userInformations[u];
+		let thisUserName = thisUser[0];
+		
+		// Only add the user if:
+		// - it is selected (always displayed)
+		// - the filter is empty or accepts the user
+		if (highlightedUsers.includes(thisUserName) == false) {
+			if (relatedUsers.length == 0) {
+				if (currentUserSearchInput.length > 0)
+					continue; // The filter accepts nothing
+			} else {
+				if (!relatedUsers.includes(thisUserName))
+					continue; // The filter rejects the user
+			}
+		}
+		
 		let userRow = d3.select("#userTableBody").append("tr");
 		
 		userRow.append("td").text(thisUser[0]); // name
@@ -1641,9 +1735,6 @@ function createUserListDisplay() {
 		
 		userRow.append("td").text(startDateFormated);  // start
 		userRow.append("td").text(endDateFormated); // end
-		
-
-		let thisUserName = thisUser[0];
 
 		userRow.attr("id",thisUserName);
 		
