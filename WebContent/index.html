@@ -94,7 +94,11 @@
 						<form>
 							<div class="searchBarArea">
 								<input type="button" class="searchButton" value="Search">
-								<div><input type="text" class="searchField"></div>
+								<div class="searchFieldArea">
+									&nbsp;
+									<input type="text" class="searchField" placeholder="Write user names here">
+									<input type="text" class="suggestionField" disabled>
+								</div>
 							</div>
 						</form>
 						
@@ -258,7 +262,7 @@
 					<div id="patternArea" class="section">
 					
 						<div class="title">Patterns</div>
-						<div class="subtitle"><span id="patternNumberSpan">0</span> discovered, <span id="highlightedPatternNumberSpan">0</span> highlighted, <span id="selectedPatternNumberSpan">0</span> selected</div>
+						<div class="subtitle"><span id="patternNumberSpan">0</span> discovered, <span id="highlightedPatternNumberSpan">0</span> filtered, <span id="selectedPatternNumberSpan">0</span> selected</div>
 						<div id="patternListArea" class="body">
 							<form>
 								<div class="searchBarArea">

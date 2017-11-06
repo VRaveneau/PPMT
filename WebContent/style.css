@@ -635,7 +635,7 @@ ul.controlTabs li :not(.active):hover {
 	text-align: left;
 }
 
-.controlTabContent input {
+.controlTabContent input:not([type=checkbox]) {
 	float: right;
 }
 
