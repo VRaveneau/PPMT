@@ -1213,51 +1213,6 @@ function addPattern(pattern) {
 	}
 }
 
-function addPatternToListOldOld(pattern) {
-	// getting the pattern's items
-	//console.log(pattern.items);
-	
-	var items = JSON.parse(pattern.items) + "";
-	var array = items.split(',');
-	//console.log(" it : " + array);
-	
-	var li = document.createElement("li");
-	li.setAttribute("class","pattern");
-	
-	//console.log(items);
-	var str = "";
-	var firstItem = "";
-	for (var i = 0 ; i < pattern.size ; i++) {
-		var span = document.createElement("span");
-		span.setAttribute("class","item");
-		span.appendChild(document.createTextNode(array[i]));
-		span.style.backgroundColor = itemColors[array[i]];
-		li.appendChild(span);
-		str += array[i] + " ";
-		if (firstItem == "")
-			firstItem = array[i];
-	}
-	str = str.trim();
-	li.setAttribute("id","pattern_"+str);
-	li.setAttribute("title", "Support : " + patterns[items].length + "; Proba : " + patternProbabilities[items].toFixed(2));
-	li.onclick = function(event) {
-		switchSelectedLi(li, firstItem, event);
-	};
-	
-	var potentialNode = document.getElementById("pattern_"+str);
-	if (potentialNode == null) {
-		var node = getParentNode(str, pattern.size);
-		if (pattern.size == 1) {
-			node = document.getElementById("patterns");
-		} else {
-			node = getParentNode(str);
-		}
-		node.appendChild(li);
-	} else {
-		console.log("/!\ pattern "+str+" already exists in the list");
-	}
-}
-
 function updatePatternInfos(firstItem) {
 	var node = document.getElementById("nb"+firstItem);
 	
@@ -3735,62 +3690,6 @@ function createPatternListDisplay() {
 				.attr("fill","none");
 		}*/
 	}
-}
-
-function addPatternToListOld(message) {
-	var patternList = d3.select("#List");
-	var pSize = parseInt(message.size);
-	var pSupport = parseInt(message.support);
-	var pString = "";
-	
-	//console.log("receiving Pattern "+pString);
-	
-	for (var i = 0; i < pSize; i++) {
-		pString += message[i];
-		if (i <= (pSize-1))
-			pString += " ";
-	}
-	
-	var pDiv = patternList.append("div");
-	var pSvg = pDiv.append("svg")
-		.attr("width", 20*pSize)
-		.attr("height", 20);
-	let txtSpan = pDiv.append("span")
-		.style("font-weight","normal")
-		.text(pString+" ("+message.support+")")
-		.attr("patternId",message.id)
-		.on("click", function() {
-			if (d3.event.shiftKey) { // Shift + click, steering
-				requestSteeringOnPattern(message.id);
-				d3.event.stopPropagation();
-			} else { // Normal click, displays the occurrences
-				if (timeline.hasPatternOccurrences(message.id) == false)
-					requestPatternOccurrences(message.id, currentDatasetName);
-				else
-					timeline.displayPatternOccurrences(message.id);
-				if (txtSpan.style("font-weight") == "normal")
-					txtSpan.style("font-weight","bold");
-				else
-					txtSpan.style("font-weight","normal");
-				d3.event.stopPropagation();
-				console.log("click on "+message.id);
-			}
-		});
-	for (var k = 0; k < pSize; k++) {
-		pSvg.append("path")
-			.attr("d",d3.symbol().type(itemShapes[message[k]]).size(function(d) {return 100;}))
-			.attr("transform","translate("+(10+20*k)+",10)")
-			.attr("stroke", colorList[message[k]][0].toString())
-			.attr("fill","none");
-	}
-	
-	numberOfPattern++;
-	
-	// Update the number of patterns in the tab name
-	d3.select(".patternTabs")	// first tab in the right panel
-		.select("li").select("a")
-		.text("Full list ("+numberOfPattern+")");
-	// update the metrics tab
 }
 
 function requestPatternOccurrences(patternId, datasetName) {
