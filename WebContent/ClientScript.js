@@ -3204,7 +3204,7 @@ function sortPatternsBySupport(decreasing=false) {
 	}
 }
 
-var lastPatternSort = "sizeUp";
+var lastPatternSort = "sizeDown";
 
 function clickOnPatternNameHeader() {
 	let nameHeader = null;
