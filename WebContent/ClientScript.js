@@ -2189,6 +2189,14 @@ function highlightUserRow(rowId) {
 			// Remove this user from the list of highlighted users
 			let userIdx = highlightedUsers.indexOf(rowId);
 			highlightedUsers.splice(userIdx, 1);
+			// If a filter is being applied, removes the row if necessary
+			if (relatedUsers.length == 0) {
+				if (currentUserSearchInput.length > 0)
+					row.remove(); // The filter accepts nothing
+			} else {
+				if (!relatedUsers.includes(rowId))
+					row.remove(); // The filter rejects the user
+			}
 		}
 	
 	}
