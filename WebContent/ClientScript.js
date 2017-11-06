@@ -860,7 +860,7 @@ function setupAlgorithmSearchField() {
 			let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
 			let baseValue = currentPatternSearchInput.substr(0, baseLength);
 			relatedEventTypes = eventTypes.filter(function(d, i) {
-				return d.startsWith(currentPatternSearchFragment);
+				return d.includes(currentPatternSearchFragment);
 			});
 			relatedEventTypes.sort();
 			
@@ -878,6 +878,8 @@ function setupAlgorithmSearchField() {
 			relatedEventTypes = [];
 			suggestionField.property("value","");
 		}
+
+		createPatternListDisplay();
 	});
 	searchField.on("keydown", function() {
 		let keyName = d3.event.key;
@@ -895,7 +897,7 @@ function setupAlgorithmSearchField() {
 				searchField.property("value", currentPatternSearchInput);
 				// Updates the suggestion list
 				relatedEventTypes = eventTypes.filter(function(d, i) {
-					return d.startsWith(currentPatternSearchFragment);
+					return d.includes(currentPatternSearchFragment);
 				});
 				relatedEventTypes.sort();
 
@@ -906,6 +908,8 @@ function setupAlgorithmSearchField() {
 					currentPatternSearchSuggestionIdx = -1;
 					suggestionField.property("value","");
 				}
+				
+				createPatternListDisplay();
 			}
 			break;
 		case "ArrowUp":
@@ -3330,142 +3334,146 @@ function addPatternToList(message) {
 	// Only add the pattern to the list if:
 	// - No filter is applied
 	// - The applied filter accepts the pattern
-	// TODO : Do it
-		
-		
-	if (correctPositionInList == -1) { // append at the end of the list
-		let patternList = d3.select("#patternTableBody");
-		let thisRow = patternList.append("tr")
-			.style("font-weight", "normal")
-			.attr("id","pattern"+pId)
-			.on("click", function() {
-				if (d3.event.shiftKey) { // Shift + click, steering
+	let properPatternSearchInput = currentPatternSearchInput.split(" ")
+		.filter(function(d,i) {
+			return d.length > 0;
+		}).join(" ");
+	if (pString.includes(properPatternSearchInput) == true) {
+		if (correctPositionInList == -1) { // append at the end of the list
+			let patternList = d3.select("#patternTableBody");
+			let thisRow = patternList.append("tr")
+				.style("font-weight", "normal")
+				.attr("id","pattern"+pId)
+				.on("click", function() {
+					if (d3.event.shiftKey) { // Shift + click, steering
+						requestSteeringOnPattern(pId);
+						d3.event.stopPropagation();
+					} else { // Normal click, displays the occurrences
+						if (timeline.hasPatternOccurrences(pId) == false)
+							requestPatternOccurrences(pId, currentDatasetName);
+						else
+							timeline.displayPatternOccurrences(pId);
+						if (thisRow.style("font-weight") == "normal") {
+							selectedPatternIds.push(pId);
+							//thisRow.style("font-weight","bold");
+						} else {
+							var index = selectedPatternIds.indexOf(pId);
+							if (index >= 0)
+								selectedPatternIds.splice(index, 1);
+							//thisRow.style("font-weight","normal");
+						}
+						d3.event.stopPropagation();
+						console.log("click on "+pId);
+						createPatternListDisplay();
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+						timeline.drawUsersPatterns();
+						
+						// Update the number of selected patterns display
+						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+					}
+				});
+			var thisNameCell = thisRow.append("td");
+			
+			for (var k=0; k < pSize; k++) {
+				thisNameCell.append("span")
+					.style("color",colorList[pItems[k]][0].toString())
+					.text(itemShapes[pItems[k]]);
+			}
+			thisNameCell.append("span")
+				.text(" "+pString)
+				.attr("patternId",pId);
+				//.classed("dropdown", true);
+			/*var pSvg = thisNameCell.append("svg")
+				.attr("width", 20*pSize)
+				.attr("height", 20);*/
+	
+			// Create the menu
+			/*
+			var dropMenuDiv = thisNameCell.append("div")
+				.classed("dropdown-content", true)
+				.style("left","0");
+			let steeringP = dropMenuDiv.append("p")
+				.text("Steer on this pattern")
+				.on("click", function() {
 					requestSteeringOnPattern(pId);
 					d3.event.stopPropagation();
-				} else { // Normal click, displays the occurrences
-					if (timeline.hasPatternOccurrences(pId) == false)
-						requestPatternOccurrences(pId, currentDatasetName);
-					else
-						timeline.displayPatternOccurrences(pId);
-					if (thisRow.style("font-weight") == "normal") {
-						selectedPatternIds.push(pId);
-						//thisRow.style("font-weight","bold");
-					} else {
-						var index = selectedPatternIds.indexOf(pId);
-						if (index >= 0)
-							selectedPatternIds.splice(index, 1);
-						//thisRow.style("font-weight","normal");
+				});*/
+			
+			thisRow.append("td")
+				.text(pSize);
+			thisRow.append("td")
+				.text(pSupport);
+		} else { // append at the right position in the list
+			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
+			console.log("First unselectedId: "+firstUnselectedId);
+			let patternList = d3.select("#patternTableBody");
+			let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
+			
+			let thisRow = d3.select(document.createElement("tr"))
+				.style("font-weight","normal")
+				.attr("id","pattern"+pId)
+				.on("click", function() {
+					if (d3.event.shiftKey) { // Shift + click, steering
+						requestSteeringOnPattern(pId);
+						d3.event.stopPropagation();
+					} else { // Normal click, displays the occurrences
+						if (timeline.hasPatternOccurrences(pId) == false)
+							requestPatternOccurrences(pId, currentDatasetName);
+						else
+							timeline.displayPatternOccurrences(pId);
+						if (thisRow.style("font-weight") == "normal") {
+							selectedPatternIds.push(pId);
+							//thisRow.style("font-weight","bold");
+						} else {
+							var index = selectedPatternIds.indexOf(pId);
+							if (index >= 0)
+								selectedPatternIds.splice(index, 1);
+							//thisRow.style("font-weight","normal");
+						}
+						d3.event.stopPropagation();
+						console.log("click on "+pId);
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+						createPatternListDisplay();
+						timeline.drawUsersPatterns();
+	
+						// Update the number of selected patterns display
+						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 					}
-					d3.event.stopPropagation();
-					console.log("click on "+pId);
-					createPatternListDisplay();
-					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-					timeline.drawUsersPatterns();
-					
-					// Update the number of selected patterns display
-					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-				}
-			});
-		var thisNameCell = thisRow.append("td");
-		
-		for (var k=0; k < pSize; k++) {
+				});
+			let thisNameCell = thisRow.append("td");
+			for (var k=0; k < pSize; k++) {
+				thisNameCell.append("span")
+					.style("color",colorList[pItems[k]][0].toString())
+					.text(itemShapes[pItems[k]]);
+			}
 			thisNameCell.append("span")
-				.style("color",colorList[pItems[k]][0].toString())
-				.text(itemShapes[pItems[k]]);
-		}
-		thisNameCell.append("span")
-			.text(" "+pString)
-			.attr("patternId",pId);
-			//.classed("dropdown", true);
-		/*var pSvg = thisNameCell.append("svg")
-			.attr("width", 20*pSize)
-			.attr("height", 20);*/
-
-		// Create the menu
-		/*
-		var dropMenuDiv = thisNameCell.append("div")
-			.classed("dropdown-content", true)
-			.style("left","0");
-		let steeringP = dropMenuDiv.append("p")
-			.text("Steer on this pattern")
-			.on("click", function() {
-				requestSteeringOnPattern(pId);
-				d3.event.stopPropagation();
-			});*/
-		
-		thisRow.append("td")
-			.text(pSize);
-		thisRow.append("td")
-			.text(pSupport);
-	} else { // append at the right position in the list
-		let firstUnselectedId = findFirstUnselectedId(correctPositionInList + 1);
-		console.log("First unselectedId: "+firstUnselectedId);
-		let patternList = d3.select("#patternTableBody");
-		let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
-		
-		let thisRow = d3.select(document.createElement("tr"))
-			.style("font-weight","normal")
-			.attr("id","pattern"+pId)
-			.on("click", function() {
-				if (d3.event.shiftKey) { // Shift + click, steering
+				.text(" "+pString)
+				.attr("patternId",pId);
+				//.classed("dropdown", true);
+			/*var pSvg = thisNameCell.append("svg")
+				.attr("width", 20*pSize)
+				.attr("height", 20);*/
+	
+			// Create the menu
+			/*let dropMenuDiv = thisNameCell.append("div")
+				.classed("dropdown-content", true)
+				.style("left","0");
+			let steeringP = dropMenuDiv.append("p")
+				.text("Steer on this pattern")
+				.on("click", function() {
 					requestSteeringOnPattern(pId);
 					d3.event.stopPropagation();
-				} else { // Normal click, displays the occurrences
-					if (timeline.hasPatternOccurrences(pId) == false)
-						requestPatternOccurrences(pId, currentDatasetName);
-					else
-						timeline.displayPatternOccurrences(pId);
-					if (thisRow.style("font-weight") == "normal") {
-						selectedPatternIds.push(pId);
-						//thisRow.style("font-weight","bold");
-					} else {
-						var index = selectedPatternIds.indexOf(pId);
-						if (index >= 0)
-							selectedPatternIds.splice(index, 1);
-						//thisRow.style("font-weight","normal");
-					}
-					d3.event.stopPropagation();
-					console.log("click on "+pId);
-					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-					createPatternListDisplay();
-					timeline.drawUsersPatterns();
-
-					// Update the number of selected patterns display
-					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-				}
-			});
-		let thisNameCell = thisRow.append("td");
-		for (var k=0; k < pSize; k++) {
-			thisNameCell.append("span")
-				.style("color",colorList[pItems[k]][0].toString())
-				.text(itemShapes[pItems[k]]);
+				});*/
+			
+			thisRow.append("td")
+				.text(pSize);
+			thisRow.append("td")
+				.text(pSupport);
+			
+			firstUnselectedNode.parentNode.insertBefore(thisRow.node(), firstUnselectedNode);
 		}
-		thisNameCell.append("span")
-			.text(" "+pString)
-			.attr("patternId",pId);
-			//.classed("dropdown", true);
-		/*var pSvg = thisNameCell.append("svg")
-			.attr("width", 20*pSize)
-			.attr("height", 20);*/
-
-		// Create the menu
-		/*let dropMenuDiv = thisNameCell.append("div")
-			.classed("dropdown-content", true)
-			.style("left","0");
-		let steeringP = dropMenuDiv.append("p")
-			.text("Steer on this pattern")
-			.on("click", function() {
-				requestSteeringOnPattern(pId);
-				d3.event.stopPropagation();
-			});*/
-		
-		thisRow.append("td")
-			.text(pSize);
-		thisRow.append("td")
-			.text(pSupport);
-		
-		firstUnselectedNode.parentNode.insertBefore(thisRow.node(), firstUnselectedNode);
 	}
+	// Update the number of filtered patterns if necessary
 	
 	// Update the relevant metrics
 	if (patternMetrics["sizeDistribution"][pSize])
@@ -3575,6 +3583,31 @@ function findFirstUnselectedId(startIdx) {
 }
 
 /*
+ * Finds the first id in the list of a pattern not selected by the user
+ * 	starting at a given index
+ *  and accepted by the current pattern filter
+ * 
+ * Returns the new index in patternIdList
+ * or -1 if no index is suitable
+ * */
+function findFirstFilteredUnselectedId(startIdx) {
+	let newIdx = startIdx;
+	let properPatternSearchInput = currentPatternSearchInput.split(" ")
+		.filter(function(d,i) {
+			return d.length > 0;
+		}).join(" ");
+	if (newIdx > patternIdList.length)
+		return -1;
+	while(selectedPatternIds.indexOf(patternIdList[newIdx]) != -1
+			&& patternInformations[patternIdList[newIdx]][0].includes(properPatternSearchInput)) {
+		newIdx++;
+		if (newIdx > patternIdList.length)
+			return -1;
+	}
+	return newIdx;
+}
+
+/*
  * Add a pattern to the table containing the list of all patterns
  */
 function addPatternListItemBeforeId(id, information, idx ) {
@@ -3593,7 +3626,7 @@ function createPatternListDisplay() {
 	while (patternRowsRoot.firstChild) {
 		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
 	}
-	// removing the old patterns
+	// removing the old selected patterns
 	patternRowsRoot = document.getElementById("selectedPatternTableBody");
 	while (patternRowsRoot.firstChild) {
 		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
@@ -3609,6 +3642,11 @@ function createPatternListDisplay() {
 	}
 	
 	var patternList = d3.select("#patternTableBody");
+	let properPatternSearchInput = currentPatternSearchInput.split(" ")
+		.filter(function(d,i) {
+			return d.length > 0;
+		}).join(" ");
+	let filteredPatterns = 0;
 	
 	// display the new ones
 	for (var i=0; i < patternIdList.length; i++) {
@@ -3620,6 +3658,18 @@ function createPatternListDisplay() {
 		let pItems = patternsInformation[patternIdList[i]][3];
 		
 		let index = selectedPatternIds.indexOf(pId);
+		
+		// Only add the pattern if:
+		// - it is selected (always displayed)
+		// - the filter is empty or accepts the pattern
+		if (selectedPatternIds.includes(pId) == false) {
+			if (pString.includes(properPatternSearchInput) == false) {
+				continue; // The filter rejects the pattern
+			}
+		}
+		
+		filteredPatterns++;
+		
 		let fontWeight = "normal";
 		patternList = d3.select("#patternTableBody");
 		
@@ -3702,6 +3752,9 @@ function createPatternListDisplay() {
 				.attr("fill","none");
 		}*/
 	}
+	
+	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
+	
 }
 
 function requestPatternOccurrences(patternId, datasetName) {
