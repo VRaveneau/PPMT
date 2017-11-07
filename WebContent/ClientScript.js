@@ -1094,7 +1094,13 @@ function receiveDatasetInfo(message) {
 
 	// Update the max number of users to display their sessions
 	d3.select("#nbUserShownInput")
-		.attr("max", datasetInfo.numberOfSequences);
+		.attr("max", datasetInfo.numberOfSequences)
+		.attr("value", datasetInfo.numberOfSequences);
+	// Show all the users by default
+	nbUserShown = datasetInfo.numberOfSequences;
+	d3.select("#nbUserShownValue")
+		.text(nbUserShown);
+	timeline.drawUsersPatterns();
 		
 	timeline.updateContextBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
 	
