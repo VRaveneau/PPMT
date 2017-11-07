@@ -2119,10 +2119,10 @@ function setHighlights() {
 				.text(itemShapes[highlightedEventTypes[i]]);
 			if (i == highlightedEventTypes.length -1) {
 				displayArea.append("span")
-					.text(" "+highlightedEventTypes[i]);
+					.text("\u00A0"+highlightedEventTypes[i]);
 			} else {
 				displayArea.append("span")
-				.text(" "+highlightedEventTypes[i]+", ");
+				.text("\u00A0"+highlightedEventTypes[i]+", ");
 			}
 		}
 	}
