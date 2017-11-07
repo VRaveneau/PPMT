@@ -2091,7 +2091,6 @@ function sortUsersAccordingToTable() {
 
 function setHighlights() {
 	let txtUsers = "";
-	let txtEvents = "";
 	
 	if (highlightedUsers.length == 0) {
 		txtUsers = "No user";
@@ -2103,18 +2102,32 @@ function setHighlights() {
 		}
 	}
 	
+
+	// removing the potential old event type highlights
+	let displayArea = document.getElementById("eventTypeHighlight");
+	while (displayArea.firstChild) {
+		displayArea.removeChild(displayArea.firstChild);
+	}
+	
 	if (highlightedEventTypes.length == 0) {
-		txtEvents = "No event type";
+		d3.select("#eventTypeHighlight").text("No event type");
 	} else {
-		if (highlightedEventTypes.length == 1) {
-			txtEvents = highlightedEventTypes[0];
-		} else {
-			txtEvents = highlightedEventTypes.join(", ");
+		displayArea = d3.select("#eventTypeHighlight");
+		for (let i = 0; i < highlightedEventTypes.length; i++) {
+			displayArea.append("span")
+				.style("color", colorList[highlightedEventTypes[i]][0].toString())
+				.text(itemShapes[highlightedEventTypes[i]]);
+			if (i == highlightedEventTypes.length -1) {
+				displayArea.append("span")
+					.text(" "+highlightedEventTypes[i]);
+			} else {
+				displayArea.append("span")
+				.text(" "+highlightedEventTypes[i]+", ");
+			}
 		}
 	}
 
 	d3.select("#userHighlight").text(txtUsers);
-	d3.select("#eventTypeHighlight").text(txtEvents);
 }
 
 var highlightedEventTypes = [];
