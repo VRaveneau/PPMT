@@ -606,8 +606,7 @@ ul.controlTabs li a:hover {
 
 /* Create an active/current tablink class */
 ul.controlTabs li a:focus, ul.controlTabs li .active {
-	background-color: black/*#006992*/;
-	color: white;
+	font-weight: bold;
 	padding-bottom: 13px;
 }
 
@@ -626,7 +625,7 @@ ul.controlTabs li :not(.active):hover {
   	padding-left: 3px;
   	padding-right: 3px;
   	padding-top: 5px;
-    border-top: 1px solid black;
+    border-top: 1px solid grey;
     overflow: auto;
     
     flex: 1;
@@ -780,8 +779,7 @@ ul.algorithmTabs li a:hover {
 
 /* Create an active/current tablink class */
 ul.algorithmTabs li a:focus, ul.algorithmTabs li .active {
-	background-color: black;/*#006992;*/
-	color: white;
+	font-weight: bold;
 	padding-bottom: 13px;
 }
 
@@ -798,7 +796,7 @@ ul.algorithmTabs li :not(.active):hover {
 .algorithmTabContent {
     display: none;
     padding: 6px 12px;
-    border-top: 1px solid black;
+    border-top: 1px solid grey;
     overflow: auto;
     flex: 1;
 }
