@@ -2387,15 +2387,21 @@ function receiveEventTypes(message) {
 					let catColor = getNextCategoryColor();
 					eventTypeCategoryColors[eCategory] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
 					
-					var categoryRow = d3.select("#categoryTableBody").append("tr");
+					let categoryRow = d3.select("#categoryTableBody").append("tr");
 					categoryRow.append("td").text(eCategory);
-					categoryRow.append("td").append("svg")
-							.attr("width",40)
-							.attr("height", 20)
-							.append("rect")
-							.attr("width", 40)
-							.attr("height", 20)
-							.attr("fill",eventTypeCategoryColors[eCategory][0].toString());
+					let categorySvg = categoryRow.append("td")
+						.append("svg")
+						.attr("width",60)
+						.attr("height", 20);
+					categorySvg.append("rect")
+						.attr("width", 30)
+						.attr("height", 20)
+						.attr("fill",eventTypeCategoryColors[eCategory][0].toString());
+					categorySvg.append("rect")
+						.attr("width", 30)
+						.attr("height", 20)
+						.attr("x",30)
+						.attr("fill",eventTypeCategoryColors[eCategory][1].toString());
 				}
 				break;
 			case "description":
