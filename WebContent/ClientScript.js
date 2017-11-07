@@ -2434,7 +2434,9 @@ function createEventTypesListDisplay() {
 			.style("display", showEventTypeDescription == true ? "initial" : "none")
 			.text(eventTypeInformations[eType].description);
 		eventRow.append("td").text(eventTypeInformations[eType].nbOccs);
-		eventRow.append("td").text(eventTypeInformations[eType].category);
+		eventRow.append("td")
+			.style("color",colorList[eType][0].toString())
+			.text(eventTypeInformations[eType].category);
 		
 		/* Old symbol cell, using svg
 		var symbolRow = eventRow.append("td")
