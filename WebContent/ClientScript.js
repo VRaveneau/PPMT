@@ -485,41 +485,6 @@ function receivePatternDistributionPerUser(message) {
 	timeline.drawUsersPatterns(); // TODO redraw only if visible changes (text displayed)
 }
 
-function receivePatternDistributionPerUserOld(message) {
-	//console.log("Receiving distrib message")
-	let users = message.users.split(";");
-	users.forEach(function(u) {
-		let thisUser = userPatternDistrib[u];
-		let theseOccs = message[u].split(";");
-		
-		if (!(userPatternDistrib.hasOwnProperty(u))) { // The user doesn't have patterns yet
-		userPatternDistrib[u] = [];
-		}
-		
-		theseOccs.forEach(function(o) {
-			let theseSessions = userPatternDistrib[u];
-			let idx = 0;
-			for (idx = 0; idx < theseSessions.length; idx++) {
-				if (theseSessions[idx].start <= Number(o) && theseSessions[idx].start+sessionDuration > Number(o)) {
-					if (theseSessions[idx].count.hasOwnProperty(message.patternId)) {
-						theseSessions[idx].count[message.patternId] += 1;
-					} else {
-						theseSessions[idx].count[message.patternId] = 1;
-					}
-					break;
-				}
-			}
-			// Create a new session if needed
-			let cnt = {};
-			cnt[message.patternId] = 1;
-			userPatternDistrib[u].push({ start: Number(o), count: cnt});
-		});
-		
-	});
-	
-	timeline.drawUsersPatterns();
-}
-
 var sessionInactivityLimit = 30*60*1000; // 30 minutes
 var userSessions = {};
 /**
@@ -1965,119 +1930,6 @@ function clickOnUserEndHeader() {
 	timeline.drawUsersPatterns();
 }
 
-function receiveUserListOld(message) {
-	//console.log("Receiving a list of users")
-	var nbUsers = parseInt(message.size);
-	//console.log("Adding "+message.size+" users");
-	for (var i = 0; i < Math.min(nbUsers,10000); i++) {	// Line for a reduced test set
-	//for (var i = 0; i < nbUsers; i++) {				  // Normal line
-		let iClick = i;
-		// Add the user to the list
-		var userRow = d3.select("#userTableBody").append("tr");
-		var userInfo = message[i.toString()].split(";");
-		userList.push(userInfo[0]);
-		userRow.append("td")
-			.text(userInfo[0])
-			.attr("class","userColumn")
-			.attr("sorttable_customkey",i+1);
-		userRow.append("td").text(userInfo[1]);
-		userRow.attr("id","User"+(i+1).toString());
-		// Date format : yyyy-MM-dd HH:mm:ss
-		var startDate = userInfo[2].split(" ");
-		var part1 = startDate[0].split("-");
-		var part2 = startDate[1].split(":");
-		var d1 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		var startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		var startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		var endDate = userInfo[3].split(" ");
-		part1 = endDate[0].split("-");
-		part2 = endDate[1].split(":");
-		var d2 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		var endCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		var endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		// Calculates the duration of the trace
-		var minutes = 1000 * 60;
-		var hours = minutes * 60;
-		var days = hours * 24;
-		var years = days * 365;
-		var endTime = d2.getTime();
-		var startTime = d1.getTime();
-		var timeDiff = endTime-startTime;
-		
-		var td = userRow.append("td").attr("sorttable_customkey",timeDiff);
-		
-		var result = "";
-		var tmpValue = 0;
-		if (Math.floor(timeDiff / years) > 0) {
-			tmpValue = Math.floor(timeDiff / years);
-			result += tmpValue+"y ";
-			timeDiff = timeDiff - tmpValue*years;
-			td.text("> "+result);
-		}
-		if (result == "") {
-			if (Math.floor(timeDiff / days) > 0) {
-				tmpValue = Math.floor(timeDiff / days);
-				result += tmpValue+"d ";
-				timeDiff = timeDiff - tmpValue*days;
-				td.text(result);
-			} else {
-				td.text("< 1d");
-			}
-			/*if (Math.floor(timeDiff / hours) > 0) {
-				tmpValue = Math.floor(timeDiff / hours);
-				result += tmpValue+"h ";
-				timeDiff = timeDiff - tmpValue*hours;
-			}
-			if (Math.floor(timeDiff / minutes) > 0) {
-				tmpValue = Math.floor(timeDiff / minutes);
-				result += tmpValue+"m ";
-				timeDiff = timeDiff - tmpValue*minutes;
-			}
-			tmpValue = Math.floor(timeDiff / 1000);
-			result += tmpValue+"s";*/
-		}
-		
-		//td.text(result);		// Complete display of the duration 1y 2d 3h 4m 5s
-		
-		userRow.append("td").text(startDateFormated).attr("sorttable_customkey",startCustomKey);
-		userRow.append("td").text(endDateFormated).attr("sorttable_customkey",endCustomKey);
-		
-		let userName = userInfo[0];
-		userRow.on("click", function(){
-			if (d3.event.shiftKey) { // Shift + click, steering
-				requestSteeringOnUser(userInfo[0]);
-				d3.event.stopPropagation();
-			} else { // normal click, highlight
-				//console.log(userName);
-				//setHighlights("User"+(iClick+1).toString());
-				highlightUserRow("User"+(iClick+1).toString())
-				//requestUserTrace(userName, "Agavue");
-				d3.event.stopPropagation();
-			}
-		});
-		// Request the display of the trace
-		//requestUserTrace(userName, "Agavue");
-	}
-	// sorting by event per user
-	var userTH = document.getElementById("eventsPerUserColumn");
-	sorttable.innerSortFunction.apply(userTH, []);
-	
-	sortUsersAccordingToTable();
-	
-	// Calling the display of the trace
-	timeline.updateUserList();
-}
-
 function sortUsersAccordingToTable() {
 	let newUserList = [];
 	d3.select("#userTableBody")
@@ -2981,49 +2833,6 @@ function receiveEvents(eventsCompressed) {
 
 function computeMaxEventAtOneTime() {
 	
-}
-
-/**
- * Receives the trace of a user
- * @param trace
- * @returns
- */
-function receiveUserTraceOld(trace) {
-	/*if (userList.indexOf(trace.user) == -1)
-		userList.push(trace.user);
-	console.log(userList.length +" users");*/
-	var traceSize = parseInt(trace.numberOfEvents);
-	if (userTracesNb == 0)
-		firstTraceReceived = new Date();
-	userTracesNb = userTracesNb + 1;
-	//console.log(traceSize+" events in the trace :");
-	var data = [];
-	for(var i=0; i < traceSize; i++) {
-		//data.push(trace[i.toString().split(';')]);
-		var tmpValue = trace[i.toString().split(';')];
-		data.push({"user":trace.user,
-			"data":tmpValue+";"+colorList[tmpValue.split(";")[0]],
-			"shape":+itemShapes[tmpValue.split(";")[0]]
-		});
-	}
-	userTraces[trace.user] = data;
-	//console.log("Trace received : "+new Date());
-	if (userTracesNb == 31575) {
-		lastTraceReceived = new Date();
-		console.log("31575 traces received between");
-		console.log(firstTraceReceived);
-		console.log("and");
-		console.log(lastTraceReceived);
-		userTracesNb = 0;
-		console.log("sending the data to the timeline");
-		//timeline.addDataset(userTraces);
-	}
-	/*var dataColored = [];
-	for(var i=0; i < data.length; i++) {
-		dataColored.push({"user":trace.user,"data":data[i]+";"+colorList[data[i].split(";")[0]],"shape":+itemShapes[data[i].split(";")[0]]});
-	}
-	//console.log("Trace given to timeline : "+new Date());
-	timeline.addData(dataColored);*/
 }
 
 /************************************************/
@@ -6758,31 +6567,6 @@ var Timeline = function(elemId, options) {
 		self.users.select(".axis--y").call(self.yAxisUsers);
 	}
 	
-	self.updateUserListOld = function() {
-		var nbUserShown = 10.0;
-		var step = self.heightUsers / (nbUserShown+1.0);
-		var i = 0;
-		var range = [];
-		for (i; i<= nbUserShown; i++)
-			range.push(0+i*step);
-		
-		
-		self.yUsers = d3.scaleOrdinal()
-		.domain(userList.slice(0,nbUserShown))
-			.range(range);
-		
-		self.yAxisUsers = d3.axisLeft(self.yUsers)
-	        .tickValues(userList.slice(0,nbUserShown))
-	        .tickFormat(function(d, i) {
-	        	return d;
-	        });
-		self.users.select(".axis--y").call(self.yAxisUsers);
-		
-		//console.log("User List updated on the timeline");
-		
-		requestUsersPatternOccurrences(userList.slice(0,nbUserShown));
-	}
-	
 	self.addDataset = function(data) {
 		
 		self.displayData();
@@ -7048,39 +6832,6 @@ var Timeline = function(elemId, options) {
 			}
 		}
 		
-		//console.log("data drawn");
-	};
-	
-	self.drawCanvasOld = function() {
-		//console.log("Drawing canvas");
-		self.canvasContext.fillStyle = "#fff";
-		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
-		self.canvasContext.fill();
-		
-		var elts = self.dataContainer.selectAll("custom.rect");
-		elts.each(function(d) {
-		    var node = d3.select(this);
-		    self.canvasContext.beginPath();
-		    self.canvasContext.fillStyle = node.attr("fillStyle");
-		    //self.canvasContext.fillRect(0,0,50,50);
-		    self.canvasContext.fillRect(node.attr("x"), node.attr("y"), node.attr("size"), node.attr("size"));
-		    //console.log("x: "+node.attr("x")+" ;y :"+node.attr("y")+" ;size :"+node.attr("size"));
-		    //self.canvasContext.fill();
-		    self.canvasContext.closePath();
-		});
-		
-		/*var elts = self.focus.selectAll(".dot");
-		elts.each(function(d) {
-			var node = d3.select(this);
-			console.log("drawing node");
-			self.canvasContext.beginPath();
-			self.canvasContext.fillStyle = node.attr("fillStyle");
-			self.canvasContext.strokeStyle = node.attr("strokeStyle");
-			self.canvasContext.rect(node.attr("x"), node.attr("y"),node.attr("size"),node.attr("size"));
-			self.canvasContext.fill();
-			self.canvasContext.stroke();
-			self.canvasContext.closePath();
-		});*/
 		//console.log("data drawn");
 	};
 	
