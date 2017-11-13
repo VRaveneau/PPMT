@@ -226,7 +226,7 @@ function selectDataset(datasetName) {
 	requestDatasetInfo(datasetName);	// TODO request the information on the dataset to the server
 	requestEventTypes(datasetName);	// TODO provide info about the event types
 	requestUserList(datasetName);
-	console.log("requesting the dataset "+datasetName);
+	//console.log("requesting the dataset "+datasetName);
 	enableCentralOverlay("The dataset is loading...");
 	requestDataset(datasetName);	// TODO request the data to the server
 	
@@ -268,7 +268,6 @@ function requestDatasetLoad(datasetName) {
 }
 
 function requestDatasetList() {
-	console.log("Requesting dataset list");
 	var action = {
 			action: "request",
 			object: "datasetList"
@@ -364,7 +363,7 @@ function processMessage(message/*Compressed*/) {
 		addPatternToList(msg);
 	}
 	if (msg.action === "remove") {
-		console.log("removing id "+msg.id);
+		//console.log("removing id "+msg.id);
 		removePatternFromList(msg.id);
 	}
 	if (msg.action === "newEvent") {
@@ -487,7 +486,7 @@ function receivePatternDistributionPerUser(message) {
 }
 
 function receivePatternDistributionPerUserOld(message) {
-	console.log("Receiving distrib message")
+	//console.log("Receiving distrib message")
 	let users = message.users.split(";");
 	users.forEach(function(u) {
 		let thisUser = userPatternDistrib[u];
@@ -549,7 +548,7 @@ function buildUserSessions() {
 
 function receiveDatasetList(message) {
 	
-	console.log("Receiving dataset list of size "+message.size);
+	//console.log("Receiving dataset list of size "+message.size);
 	
 	var dsList = d3.select("#datasetList");
 	var datasetNb = parseInt(message.size);
@@ -699,7 +698,7 @@ function receivePatternOccurrences(message) {
 	for (var i=0; i < count; i++) {
 		timeline.addPatternOccurrence(pId, message[i.toString()]);
 	}
-	console.log("Received "+count+" occurrences of pattern "+pId);
+	//console.log("Received "+count+" occurrences of pattern "+pId);
 	timeline.displayPatternOccurrences(pId);
 }
 
@@ -973,7 +972,7 @@ function enableCentralOverlay(message) {
  * @returns
  */
 function disableCentralOverlay() {
-	console.log("Disable central overlay");
+	//console.log("Disable central overlay");
 	d3.select("#centerOverlay")
 		.style("visibility","hidden");
 }
@@ -1077,7 +1076,7 @@ function requestUserList(datasetName) {
  * @returns
  */
 function receiveDatasetInfo(message) {
-	console.log("number of sequences : " + message.numberOfSequences);
+	//console.log("number of sequences : " + message.numberOfSequences);
 	datasetInfo["numberOfSequences"] = parseInt(message.numberOfSequences);
 	datasetInfo["numberOfDifferentEvents"] = parseInt(message.numberOfDifferentEvents);
 	datasetInfo["numberOfEvents"] = parseInt(message.nbEvents);
@@ -1213,7 +1212,7 @@ function addPattern(pattern) {
 		if (array.length == 1 && itemColors[items] == null) {
 			var color = availableColors.shift();
 			itemColors[items] = 'rgb('+color+')';
-			console.log(items + " : " + itemColors[items]);
+			//console.log(items + " : " + itemColors[items]);
 			
 			// look for the occurrences
 			/*var occs = pattern.occs.split(';');
@@ -1246,7 +1245,7 @@ function updatePatternInfos(firstItem) {
 			switchSelectedLi(spanItem, firstItem, event);
 		};
 		spanItem.appendChild(document.createTextNode(firstItem));
-		console.log(firstItem + " - " + itemColors[firstItem]);
+		//console.log(firstItem + " - " + itemColors[firstItem]);
 		spanItem.style.backgroundColor = itemColors[firstItem];
 		li.appendChild(document.createTextNode("Starting by "));
 		li.appendChild(spanItem);
@@ -1272,7 +1271,7 @@ function switchSelectedLi(li, pattern, ev) {
 
 	if (ev.ctrlKey)
 		requestSteeringOnPattern(pattern);
-	console.log("selecting "+pattern);
+	//console.log("selecting "+pattern);
 	/*if (li.style.backgroundColor === "rgb(255,255,255)") {
 		li.style.backgroundColor = "rgb(255,255,51)";
 	} else {
@@ -1576,9 +1575,9 @@ function addToHistory(action) {
 var userInformations = [];
 
 function receiveUserList(message) {
-	console.log("Receiving a list of users")
+	//console.log("Receiving a list of users")
 	var nbUsers = parseInt(message.size);
-	console.log("Adding "+message.size+" users");
+	//console.log("Adding "+message.size+" users");
 	for (var i = 0; i < Math.min(nbUsers,10000); i++) {	// Line for a reduced test set
 	//for (var i = 0; i < nbUsers; i++) {				  // Normal line
 		let userInfo = message[i.toString()].split(";");
@@ -1967,9 +1966,9 @@ function clickOnUserEndHeader() {
 }
 
 function receiveUserListOld(message) {
-	console.log("Receiving a list of users")
+	//console.log("Receiving a list of users")
 	var nbUsers = parseInt(message.size);
-	console.log("Adding "+message.size+" users");
+	//console.log("Adding "+message.size+" users");
 	for (var i = 0; i < Math.min(nbUsers,10000); i++) {	// Line for a reduced test set
 	//for (var i = 0; i < nbUsers; i++) {				  // Normal line
 		let iClick = i;
@@ -2161,13 +2160,13 @@ function highlightUserRow(rowId) {
 	
 	
 	if (row.attr("class") === null) {
-		console.log("adding from null "+rowId);
+		//console.log("adding from null "+rowId);
 		row.attr("class", "selectedUserRow");
 		// Adds the newly highlighted user to the list
 		highlightedUsers.push(rowId);
 	} else {
 		if (row.attr("class").indexOf("selectedUserRow") == -1) {// the row isn't already selected
-			console.log("adding "+rowId);
+			//console.log("adding "+rowId);
 			row.attr("class", row.attr("class")+" selectedUserRow");
 			// Adds the newly highlighted user to the list
 			highlightedUsers.push(rowId);
@@ -2340,7 +2339,7 @@ var eventTypeInformations = {};
 function receiveEventTypes(message) {
 	//var typeList = message.types.split(";");
 	var nbEvents = parseInt(message.size);
-	console.log("Receiving "+nbEvents+" event types");
+	//console.log("Receiving "+nbEvents+" event types");
 	// Starting to generate the symbols and colors associated to the event types
 	/*if (message.dataset == "Agavue") {
 		associateColorAndShapeToEventForAgavue(message);
@@ -2357,7 +2356,7 @@ function receiveEventTypes(message) {
 
 	for (let i = 0; i < nbEvents; i++) {
 		let eventInfo = message[i.toString()].split(";");
-		console.log(eventInfo);
+		//console.log(eventInfo);
 		let eType = "";
 		let eCode = "";
 		var eNbOccs = "";
@@ -2579,10 +2578,10 @@ function changeEventTypeColor(eventType, newColor) {
 function selectColor(colorNum, colors){
 	var presetList = [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
 	if (colors <= presetList.length) {
-		console.log("Selecting number "+colorNum+" out of 6 preset colors");
+		//console.log("Selecting number "+colorNum+" out of 6 preset colors");
 		return presetList[colorNum-1];
 	} else {
-		console.log("Selecting number "+colorNum+" out of "+colors+" generated colors");
+		//console.log("Selecting number "+colorNum+" out of "+colors+" generated colors");
 	    if (colors < 1) colors = 1; // defaults to one color - avoid divide by zero
 	    return colorNum * (360 / colors) % 360;
 	    //return "hsl(" + (colorNum * (360 / colors) % 360) + ",100%,50%)";
@@ -2626,7 +2625,7 @@ function getEventColor(eventType) {
 }
 
 function getEventColorForAgavue(eventType) {
-	console.log("Getting event Colors for agavue");
+	//console.log("Getting event Colors for agavue");
 	var colors = getAgavueColors();
 	switch(eventType.trim()) {
 	// App related events
@@ -2910,7 +2909,7 @@ function receiveUserTrace(trace) {
 		console.log("and");
 		console.log(lastTraceReceived);
 		userTracesNb = 0;
-		console.log("sending the data to the timeline");
+		//console.log("sending the data to the timeline");
 		timeline.setEventsReady();
 	}
 }
@@ -3036,7 +3035,7 @@ function receiveUserTraceOld(trace) {
  */
 function displayUserTrace(trace) {
 	var traceSize = parseInt(trace.numberOfEvents);
-	console.log(traceSize+" events in the trace :");
+	//console.log(traceSize+" events in the trace :");
 	
 	var data = [];
 	for(var i=0; i < traceSize; i++) {
@@ -3071,7 +3070,7 @@ function displayUserTrace(trace) {
 
 function displayUserPatterns(patterns) {
 	var size = parseInt(patterns.numberOfPatterns);
-	console.log(size+" patterns obtenus");
+	//console.log(size+" patterns obtenus");
 	
 	var sizes = {};
 	var lengths = [];
@@ -3432,7 +3431,7 @@ function addPatternToList(message) {
 				.text(pSupport);
 		} else { // append at the right position in the list
 			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
-			console.log("First unselectedId: "+firstUnselectedId);
+			//console.log("First unselectedId: "+firstUnselectedId);
 			let patternList = d3.select("#patternTableBody");
 			let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
 			
@@ -3875,9 +3874,9 @@ function updateTimelineBounds(start, end) {
 			.domain([timeFormat(startString),timeFormat(endString)])
 			.range([0,width]);
 	
-	console.log("Range setup");
+	//console.log("Range setup");
 	var xAxis = d3.axisBottom(x);
-	console.log("Calling the axis");
+	//console.log("Calling the axis");
 
 	timelineXAxis.call(xAxis);
 }
@@ -3911,9 +3910,9 @@ function updateTimelineOverviewBounds(start, end) {
 			.domain([timeFormat(startString),timeFormat(endString)])
 			.range([0,width]);
 	
-	console.log("Range setup");
+	//console.log("Range setup");
 	var xAxis = d3.axisBottom(x);
-	console.log("Calling the axis");
+	//console.log("Calling the axis");
 
 	timelineOverviewXAxis.call(xAxis);
 }
@@ -3924,7 +3923,7 @@ function updateTimelineOverviewBounds(start, end) {
 function resetDatasetInfo() {
 	var infoDiv;
 	
-	console.log("info reset");
+	//console.log("info reset");
 	infoDiv = document.getElementById("datasetInfo");
 	infoDiv.textContent = "No dataset selected, select a dataset to display more information";
 	
@@ -3937,7 +3936,7 @@ function resetDatasetInfo() {
 function resetHistory() {
 	var historyDiv;
 	
-	console.log("history reset");
+	//console.log("history reset");
 	historyDiv = document.getElementById("history");
 	historyDiv.textContent = "No history to display";
 	
@@ -3948,7 +3947,7 @@ function resetHistory() {
  * Reset the display of events
  */
 function resetEvents() {	
-	console.log("Event list reset");
+	//console.log("Event list reset");
 	document.getElementById("noEvent").style.display = "initial";
 	
 	eventDisplayIsDefault = true;
@@ -3998,7 +3997,7 @@ function displayDatasetInfo() {
 	
 	datasetInfoIsDefault = false;
 	
-	console.log("Info displayed");
+	//console.log("Info displayed");
 }
 
 function formatDate(date) {
@@ -5035,7 +5034,7 @@ var Timeline = function(elemId, options) {
 	        });*/
 		self.users.select(".axis--y").call(self.yAxisUsers);
 		
-		console.log("User List updated on the timeline");
+		//console.log("User List updated on the timeline");
 		
 		//requestUsersPatternOccurrences(userInformations.slice(0,nbUserShown));
 	}
@@ -5046,11 +5045,11 @@ var Timeline = function(elemId, options) {
 		self.updateUserList();
 		
 		// get the 10 first users in the list
-		console.log("UI size : "+userInformations.length);
+		//console.log("UI size : "+userInformations.length);
 		var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
 			return x[0];
 		});
-		console.log("UI size after : "+userInformations.length);
+		//console.log("UI size after : "+userInformations.length);
 		
 		self.canvasUsersContext.fillStyle = "#fff";
 		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
@@ -5124,7 +5123,7 @@ var Timeline = function(elemId, options) {
 					color = "#c8daea"; // lighter blue
 					Object.keys(ses.count).forEach(function(id, idx) {
 						if (selectedPatternIds.includes(Number(id))) {
-							console.log(id+" selected");
+							//console.log(id+" selected");
 							color = "red";
 						}
 					});
@@ -5439,7 +5438,7 @@ var Timeline = function(elemId, options) {
 	
 				    	nextColor += 1;
 				    } else {
-				    	console.log('Warning : too may colors needed for the main hidden canvas');
+				    	console.log('Warning : too many colors needed for the main hidden canvas');
 				    }
 				    
 				    let eventTypesColors = [];
@@ -5504,7 +5503,7 @@ var Timeline = function(elemId, options) {
 
 			    	nextColor += 1;
 			    } else {
-			    	console.log('Warning : too may colors needed for the main hidden canvas');
+			    	console.log('Warning : too many colors needed for the main hidden canvas');
 			    }
 			    
 			    let eventTypesColors = [];
@@ -5697,8 +5696,8 @@ var Timeline = function(elemId, options) {
 					displayIsFine = true;
 				break;
 			case "halfDay":
-				console.log("Time (s): "+displaySeconds);
-				console.log("Bounds (s): "+60*60*24*7*3+" - "+60*60*24*3);
+				//console.log("Time (s): "+displaySeconds);
+				//console.log("Bounds (s): "+60*60*24*7*3+" - "+60*60*24*3);
 				if (displaySeconds < 60*60*24*7*3 && displaySeconds > 60*60*24*3) {	// between 3 weeks and 3 days
 					displayIsFine = true;
 					//console.log("==== Distributions over halfDay");
@@ -5721,14 +5720,14 @@ var Timeline = function(elemId, options) {
 		}
 		
 		// Adapt the semantic zoom if needed
-		console.log("DisplayIsFine: "+displayIsFine);
+		//console.log("DisplayIsFine: "+displayIsFine);
 		if (displayIsFine == false) {
-			console.log("semantic zoom not fine : "+self.displayMode);
+			//console.log("semantic zoom not fine : "+self.displayMode);
 			d3.selectAll(".zoomInfoSpan").attr("class", "zoomInfoSpan");
 			if (displaySeconds < 60*60*24*3 ) {	// less than 3 days
 				self.displayMode = "events";
 				d3.select("#zoomInfoEvent").attr("class","zoomInfoSpan currentZoom");
-				console.log("Going to event display mode");
+				//console.log("Going to event display mode");
 				self.switchEventDisplayStyleFormVisibility();
 				self.switchBinsDisplayStyleFormVisibility();
 			} else  {
@@ -5736,7 +5735,7 @@ var Timeline = function(elemId, options) {
 					self.displayMode = "distributions";
 					self.switchEventDisplayStyleFormVisibility();
 					self.switchBinsDisplayStyleFormVisibility();
-					console.log("Going from events to distributions");
+					//console.log("Going from events to distributions");
 				}
 				if (displaySeconds < 60*60*24*7*3 )	{// less than 3 weeks
 					requestHalfDayBins(currentDatasetName);
@@ -5851,7 +5850,7 @@ var Timeline = function(elemId, options) {
 			self.currentZoomScale = Math.max(0.05, self.currentZoomScale);
 			self.zoomRect.call(self.zoom.scaleBy, 1.1);
 			self.zoomRectUsers.call(self.zoom.scaleBy, 1.1);
-			console.log("Zoom: "+self.currentZoomScale);
+			//console.log("Zoom: "+self.currentZoomScale);
 		});
 	self.zoomForm.append("input")
 		.attr("type","button")
@@ -5864,7 +5863,7 @@ var Timeline = function(elemId, options) {
 			self.currentZoomScale = Math.max(1.0, self.currentZoomScale);
 			self.zoomRect.call(self.zoom.scaleBy, 0.9);
 			self.zoomRectUsers.call(self.zoom.scaleBy, 0.9);
-			console.log("Zoom: "+self.currentZoomScale);
+			//console.log("Zoom: "+self.currentZoomScale);
 		});
 	
 	// Adding the zoom's granularity information
@@ -6779,7 +6778,7 @@ var Timeline = function(elemId, options) {
 	        });
 		self.users.select(".axis--y").call(self.yAxisUsers);
 		
-		console.log("User List updated on the timeline");
+		//console.log("User List updated on the timeline");
 		
 		requestUsersPatternOccurrences(userList.slice(0,nbUserShown));
 	}
@@ -7003,7 +7002,7 @@ var Timeline = function(elemId, options) {
 	};
 		
 	self.displayDistributions = function() {
-		console.log("Display distributions");
+		//console.log("Display distributions");
 		self.drawCanvas();	// Replace with a drawing function handling distributions
 		// Code for a transition
 		/*var t = svg.transition().duration(750),
@@ -7013,7 +7012,7 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.displayEvents = function() {
-		console.log("Display events");
+		//console.log("Display events");
 		self.drawCanvas();	// Replace with a drawing function handling events
 		// Code for a transition
 		/*var t = svg.transition().duration(750),
@@ -7023,7 +7022,7 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.drawCanvas = function() {
-		console.log("Drawing canvas");
+		//console.log("Drawing canvas");
 		self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.canvasContext.fill();
@@ -7049,11 +7048,11 @@ var Timeline = function(elemId, options) {
 			}
 		}
 		
-		console.log("data drawn");
+		//console.log("data drawn");
 	};
 	
 	self.drawCanvasOld = function() {
-		console.log("Drawing canvas");
+		//console.log("Drawing canvas");
 		self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.canvasContext.fill();
@@ -7082,11 +7081,11 @@ var Timeline = function(elemId, options) {
 			self.canvasContext.stroke();
 			self.canvasContext.closePath();
 		});*/
-		console.log("data drawn");
+		//console.log("data drawn");
 	};
 	
 	self.drawUsersTest = function() {
-		console.log("drawing users");
+		//console.log("drawing users");
 		
 		var displayStep = (self.yFocus.domain()[1] - self.yFocus.domain()[0] - 2) / datasetInfo["numberOfDifferentEvents"];
 
@@ -7103,7 +7102,7 @@ var Timeline = function(elemId, options) {
 		*/
 		// get the last accessor point before the time-span start
 		var firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
-		console.log("Retreived first index is "+firstIndex);
+		//console.log("Retreived first index is "+firstIndex);
 		// find the real first index
 		var startFound = false;
 		var startingIndex = firstIndex;
@@ -7115,7 +7114,7 @@ var Timeline = function(elemId, options) {
 			else
 				startFound = true;
 		}
-		console.log("drawing from event "+firstIndex);
+		//console.log("drawing from event "+firstIndex);
 		var endReached = false;
 		while (!endReached) {
 			var info = timeOrderedEvents[firstIndex][0].split(";");
@@ -7171,13 +7170,13 @@ var Timeline = function(elemId, options) {
 			    firstIndex++;
 			}
 		}
-		console.log("to event "+firstIndex);
+		//console.log("to event "+firstIndex);
 		
 		var nbEventsChecked = firstIndex-startingIndex;
 		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 	
 		
-		console.log("users drawn");
+		//console.log("users drawn");
 	}
 	
 	self.drawEvents = function() {
@@ -7197,7 +7196,7 @@ var Timeline = function(elemId, options) {
 	}
 		
 	self.drawEventsByType = function() {
-		console.log("drawing events by type");
+		//console.log("drawing events by type");
 		
 		self.yFocus.domain(eventTypes);
 		self.yAxisFocus = d3.axisLeft(self.yFocus)
@@ -7224,7 +7223,7 @@ var Timeline = function(elemId, options) {
 		
 		// get the last accessor point before the time-span start
 		let firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
-		console.log("Retreived first index is "+firstIndex);
+		//console.log("Retreived first index is "+firstIndex);
 		// find the real first index
 		var startFound = false;
 		var startingIndex = firstIndex; // to see how many events have been check vs how many have been drawn
@@ -7237,7 +7236,7 @@ var Timeline = function(elemId, options) {
 				startFound = true;
 		}
 		var nbEventsChecked = firstIndex - startingIndex;
-		console.log("drawing from event "+firstIndex);
+		//console.log("drawing from event "+firstIndex);
 		var endReached = false;
 		while (!endReached) {
 			var info = timeOrderedEvents[firstIndex][0].split(";");
@@ -7310,21 +7309,21 @@ var Timeline = function(elemId, options) {
 			    firstIndex++;
 			}
 		}
-		console.log("to event "+firstIndex);
+		//console.log("to event "+firstIndex);
 		self.canvasContext.restore();
 		self.hiddenCanvasContext.restore();
 		nbEventsChecked += drawCount;
 		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
-		console.log("events drawn");
+		//console.log("events drawn");
 	}
 	
 	self.drawEventsByTime = function() {
-		console.log("drawing events");
+		//console.log("drawing events");
 		
 		// get the last accessor point before the time-span start
 		var firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
-		console.log("Retreived first index is "+firstIndex);
+		//console.log("Retreived first index is "+firstIndex);
 		// find the real first index
 		var startFound = false;
 		var startingIndex = firstIndex;
@@ -7336,7 +7335,7 @@ var Timeline = function(elemId, options) {
 			else
 				startFound = true;
 		}
-		console.log("drawing from event "+firstIndex);
+		//console.log("drawing from event "+firstIndex);
 		// get the last accessor point for the end of the time-span
 		var lastIndex = getEventAccessorAtDate(self.xFocus.domain()[1]);
 
@@ -7438,16 +7437,16 @@ var Timeline = function(elemId, options) {
 			    firstIndex++;
 			}
 		}
-		console.log("to event "+firstIndex);
+		//console.log("to event "+firstIndex);
 		
 		var nbEventsChecked = firstIndex-startingIndex;
 		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
-		console.log("events drawn");
+		//console.log("events drawn");
 	}
 	
 	self.drawEventsByUser= function() {
-		console.log("drawing events");
+		//console.log("drawing events");
 		
 		self.yFocus.domain([0.0, datasetInfo["numberOfDifferentEvents"]+2]);
 		self.focus.select(".axis--y")
@@ -7467,7 +7466,7 @@ var Timeline = function(elemId, options) {
 		
 		// get the last accessor point before the time-span start
 		var firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
-		console.log("Retreived first index is "+firstIndex);
+		//console.log("Retreived first index is "+firstIndex);
 		// find the real first index
 		var startFound = false;
 		var startingIndex = firstIndex;
@@ -7479,7 +7478,7 @@ var Timeline = function(elemId, options) {
 			else
 				startFound = true;
 		}
-		console.log("drawing from event "+firstIndex);
+		//console.log("drawing from event "+firstIndex);
 		var endReached = false;
 		while (!endReached) {
 			var info = timeOrderedEvents[firstIndex][0].split(";");
@@ -7531,12 +7530,12 @@ var Timeline = function(elemId, options) {
 			    firstIndex++;
 			}
 		}
-		console.log("to event "+firstIndex);
+		//console.log("to event "+firstIndex);
 		
 		var nbEventsChecked = firstIndex-startingIndex;
 		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
-		console.log("events drawn");
+		//console.log("events drawn");
 	}
 	
 };
