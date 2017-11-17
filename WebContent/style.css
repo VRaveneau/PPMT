@@ -493,7 +493,6 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	
 	/*width: 100%;*/
 	min-height: 20%;
-	max-height: 20%;
 	/*padding-left: 5px;*/
 }
 
