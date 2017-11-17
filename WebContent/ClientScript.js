@@ -1054,7 +1054,7 @@ function receiveDatasetInfo(message) {
 	datasetInfo["name"] = message.name;
 	
 	displayDatasetInfo();
-	addToHistory('Dataset loaded');
+	addToHistory('Dataset '+message.name+' loaded');
 
 	// Update the max number of users to display their sessions
 	d3.select("#nbUserShownInput")
@@ -1991,16 +1991,19 @@ function highlightEventTypeRow(eType) {
 		row.attr("class", "selectedEventTypeRow");
 		// Adds the newly highlighted event type to the list
 		highlightedEventTypes.push(eType);
+		addToHistory("Highlight event type "+eType);
 	} else {
 		if (row.attr("class").indexOf("selectedEventTypeRow") == -1) {// the row isn't already selected
 			row.attr("class", row.attr("class")+" selectedEventTypeRow");
 			// Adds the newly highlighted user to the list
 			highlightedEventTypes.push(eType);
+			addToHistory("Highlight event type "+eType);
 		} else {
 			row.attr("class", row.attr("class").replace("selectedEventTypeRow", ""));
 			// Remove this event type from the list of highlighted event types
 			let eventIdx = highlightedEventTypes.indexOf(eType);
 			highlightedEventTypes.splice(eventIdx, 1);
+			addToHistory("Deselect event type "+eType);
 		}
 	
 	}
@@ -2016,17 +2019,20 @@ function highlightUserRow(rowId) {
 		row.attr("class", "selectedUserRow");
 		// Adds the newly highlighted user to the list
 		highlightedUsers.push(rowId);
+		addToHistory("Highlight user "+rowId);
 	} else {
 		if (row.attr("class").indexOf("selectedUserRow") == -1) {// the row isn't already selected
 			//console.log("adding "+rowId);
 			row.attr("class", row.attr("class")+" selectedUserRow");
 			// Adds the newly highlighted user to the list
 			highlightedUsers.push(rowId);
+			addToHistory("Highlight user "+rowId);
 		} else {
 			row.attr("class", row.attr("class").replace("selectedUserRow", ""));
 			// Remove this user from the list of highlighted users
 			let userIdx = highlightedUsers.indexOf(rowId);
 			highlightedUsers.splice(userIdx, 1);
+			addToHistory("Deselect user "+rowId);
 			// If a filter is being applied, removes the row if necessary
 			if (relatedUsers.length == 0) {
 				if (currentUserSearchInput.length > 0)
