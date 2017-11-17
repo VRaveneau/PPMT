@@ -1528,9 +1528,14 @@ function addToHistory(action) {
 		history.text("");
 		historyDisplayIsDefault = false;
 	}
-	var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
+	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
+	var formatTime = d3.timeFormat("%H:%M:%S");
 	var now = formatTime(new Date());
-	history.append("p").text(now.toString()+" : "+action);
+	history.append("p")
+		.text("- "+action)
+	  .append("span")
+		.classed("timestamp", true)
+		.text(" "+now.toString());
 }
 
 /****************************************************/

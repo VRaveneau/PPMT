@@ -294,6 +294,11 @@ body {
 	margin-left: 5px;
 }
 
+#history .timestamp{
+	color: grey;
+	font-style: italic;
+}
+
 #pattern-view {
 	width: 30%;
 	max-height: 69%;
