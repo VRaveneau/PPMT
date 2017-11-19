@@ -2906,7 +2906,23 @@ function receiveEvents(eventsCompressed) {
 }
 
 function computeMaxEventAtOneTime() {
-	
+	let previousTime = "";
+	let currentCount = 1;
+	let maxCount = 1;
+	for(let i=0; i < timeOrderedEvents.length; i++) {
+		let thisTime = timeOrderedEvents[i][0].split(";")[1];
+		if (thisTime == previousTime)
+			currentCount++;
+		else {
+			previousTime = thisTime;
+			if(currentCount > maxCount)
+				maxCount = currentCount;
+			currentCount = 1;
+		}
+	}
+	if(currentCount > maxCount)
+		maxCount = currentCount;
+	maxEventAtOneTime = maxCount;
 }
 
 /************************************************/
@@ -6511,16 +6527,31 @@ var Timeline = function(elemId, options) {
 					tooltip.show(message,600);*/
 					
 					if (self.displayMode == "events") {
-						let dataTs = data.split(";")[1];
-						let dataType = data.split(";")[0];
-						let ts = d3.timeParse('%Y-%m-%d %H:%M:%S')(dataTs);
-						let dataX = self.xFocus(ts);
-						let dataY = self.yFocus(dataType) + self.yFocus.bandwidth()/2;
-						
-						self.svgPointerHB.attr("y1",dataY);
-						self.svgPointerHB.attr("y2",dataY);
-						self.svgPointerVB.attr("x1",dataX);
-						self.svgPointerVB.attr("x2",dataX);
+						if (self.eventDisplayStyle == "type") {
+							let dataTs = data.split(";")[1];
+							let dataType = data.split(";")[0];
+							let ts = d3.timeParse('%Y-%m-%d %H:%M:%S')(dataTs);
+							let dataX = self.xFocus(ts);
+							let dataY = self.yFocus(dataType) + self.yFocus.bandwidth()/2;
+							
+							self.svgPointerHB.attr("y1",dataY);
+							self.svgPointerHB.attr("y2",dataY);
+							self.svgPointerVB.attr("x1",dataX);
+							self.svgPointerVB.attr("x2",dataX);
+						}
+						if (self.eventDisplayStyle == "time") {
+							/* Need a way to get the height at which the data is represented to work
+							let dataTs = data.split(";")[1];
+							let dataType = data.split(";")[0];
+							let ts = d3.timeParse('%Y-%m-%d %H:%M:%S')(dataTs);
+							let dataX = self.xFocus(ts);
+							let dataY = self.yFocus(dataType) + self.yFocus.bandwidth()/2;
+							
+							self.svgPointerHB.attr("y1",dataY);
+							self.svgPointerHB.attr("y2",dataY);
+							self.svgPointerVB.attr("x1",dataX);
+							self.svgPointerVB.attr("x2",dataX);*/
+						}
 					}
 				}
 				self.tooltipCreated = true;
@@ -7172,7 +7203,22 @@ var Timeline = function(elemId, options) {
 	}
 	
 	self.drawEventsByTime = function() {
-		//console.log("drawing events");
+		
+		self.yFocus.domain([0, maxEventAtOneTime + 1]);
+		self.yAxisFocus = d3.axisLeft(self.yFocus);
+			//.tickValues(eventTypes);
+		d3.select("#focusLeftAxis").call(self.yAxisFocus);
+		
+
+
+		self.canvasContext.save();
+		self.hiddenCanvasContext.save();
+
+		self.canvasContext.translate("0.5","0.5");
+		self.hiddenCanvasContext.translate("0.5","0.5");
+		
+		
+		
 		
 		// get the last accessor point before the time-span start
 		var firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
@@ -7206,12 +7252,12 @@ var Timeline = function(elemId, options) {
 		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
 */		
 		self.colorToData = {};
-		let nextColor = 1;
+		let nextColor = 100;
 		
 		var endReached = false;
 		var previousTime = undefined;
 		var previousType = "";
-		var currentHeight = 600;
+		var currentHeight = 1;
 		while (!endReached) {
 			var info = timeOrderedEvents[firstIndex][0].split(";");
 			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
@@ -7219,14 +7265,14 @@ var Timeline = function(elemId, options) {
 			if (!(typeof(previousTime) === "undefined")) {
 				if (time.valueOf() == previousTime.valueOf()) {
 					if (type == previousType) {	// Jittering
-						currentHeight = currentHeight + 100;
+						currentHeight = currentHeight + 1;
 						//console.log("Jitter");
 					} else {	// Increment
-						currentHeight = currentHeight + 600;
+						currentHeight = currentHeight + 1;
 						//console.log("    Increment");
 					}
 				} else {
-					currentHeight = 600;
+					currentHeight = 1;
 					//console.log("                Reset")
 				}
 			}
@@ -7276,22 +7322,28 @@ var Timeline = function(elemId, options) {
 				self.hiddenCanvasContext.fill();
 				self.hiddenCanvasContext.translate(-x,-y);
 			    self.hiddenCanvasContext.closePath();*/
-			    
-
 				
-			    self.canvasContext.font = self.yFocus.bandwidth()+"px Geneva";
-			    self.canvasContext.fillStyle = colorList[info[0]][0].toString();
-				self.canvasContext.fillText(itemShapes[info[0]], x, y);
+				let trueX = x - self.canvasContext.measureText(itemShapes[info[0]]).width/2;
+				let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
+				let fontSize = (self.marginFocus.size / maxEventAtOneTime) - 4;
+				
+			    self.canvasContext.font = "bold "+fontSize+"px Geneva";
+			    self.canvasContext.fillStyle = symbolColor;
+			    self.canvasContext.textBaseline="middle";
+				self.canvasContext.fillText(itemShapes[info[0]], trueX, y);
 			    
-				self.hiddenCanvasContext.font = self.yFocus.bandwidth()+"px Geneva";
-			    self.hiddenCanvasContext.fillStyle = colorList[info[0]][0].toString();
-				self.hiddenCanvasContext.fillText(itemShapes[info[0]], x, y);
+				self.hiddenCanvasContext.font = "bold "+fontSize+"px Geneva";
+			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
+			    self.canvasContext.textBaseline="middle";
+				self.hiddenCanvasContext.fillText(itemShapes[info[0]], trueX, y);
 			    
 			    firstIndex++;
 			}
 		}
 		//console.log("to event "+firstIndex);
-		
+
+		self.canvasContext.restore();
+		self.hiddenCanvasContext.restore();
 		var nbEventsChecked = firstIndex-startingIndex;
 		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
