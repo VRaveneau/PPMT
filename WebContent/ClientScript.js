@@ -697,6 +697,67 @@ function init() {
 	webSocket.onerror = processError;
 }
 
+var showUserSessionOption = "all";
+var firstUserShown = 0;
+
+function showUserSessions(arg) {
+	switch (arg) {
+	case "all":
+		if (showUserSessionOption != "all") {
+			d3.selectAll("#showUserSessionsSwitch button")
+			.each(function(d, i) {
+				let elt = d3.select(this);
+				if (elt.text() == "All users") {
+					elt.classed("selectedOption", true);
+				} else {
+					elt.classed("selectedOption", false);
+				}
+			});
+			showUserSessionOption = "all";
+			
+			d3.select("#shownUserSessionsControl")
+				.classed("hidden", true);
+		}
+		break;
+	case "selected":
+		if (showUserSessionOption != "selected") {
+			d3.selectAll("#showUserSessionsSwitch button")
+			.each(function(d, i) {
+				let elt = d3.select(this);
+				if (elt.text() == "Selected users") {
+					elt.classed("selectedOption", true);
+				} else {
+					elt.classed("selectedOption", false);
+				}
+			});
+			showUserSessionOption = "selected";
+		}
+		
+		d3.select("#shownUserSessionsControl")
+			.classed("hidden", true);
+		break;
+	case "some":
+		if (showUserSessionOption != "some") {
+			d3.selectAll("#showUserSessionsSwitch button")
+			.each(function(d, i) {
+				let elt = d3.select(this);
+				if (elt.text() == "Some users") {
+					elt.classed("selectedOption", true);
+				} else {
+					elt.classed("selectedOption", false);
+				}
+			});
+			showUserSessionOption = "some";
+		}
+		
+		d3.select("#shownUserSessionsControl")
+			.classed("hidden", false);
+		break;
+	default:
+	}
+	timeline.drawUsersPatterns();
+}
+
 function setupTool() {
 	setupAlgorithmSearchField();
 	setupUserSearchField();
@@ -705,6 +766,12 @@ function setupTool() {
 	//document.getElementById("userTableArea").addEventListener("scroll",keepTableHeaderInSight);
 	
 	// Setup the input for the number of users to display
+	d3.select("#showAllUserSessionsInput")
+		.on("change", function() {
+			d3.select("#shownUserSessionsControl")
+				.classed("hidden", d3.select("#showAllUserSessionsInput").property("checked"));
+		});
+	
 	d3.select("#nbUserShownInput")
 		.attr("min", "1")
 		.attr("value", defaultNbUserShown)
@@ -1059,11 +1126,7 @@ function receiveDatasetInfo(message) {
 	// Update the max number of users to display their sessions
 	d3.select("#nbUserShownInput")
 		.attr("max", datasetInfo.numberOfSequences)
-		.attr("value", datasetInfo.numberOfSequences);
-	// Show all the users by default
-	nbUserShown = datasetInfo.numberOfSequences;
-	d3.select("#nbUserShownValue")
-		.text(nbUserShown);
+		.attr("value", nbUserShown);
 	timeline.drawUsersPatterns();
 		
 	timeline.updateContextBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
@@ -4814,32 +4877,23 @@ var Timeline = function(elemId, options) {
 			.call(self.brush.move, self.xFocus.range().map(t.invertX, t));
 	};
 	
+	// Probably to be deleted, only called from drawUsersTraces, which should not be used
 	self.updateUserList = function() {
 		
-		var shownUsersNames = userInformations.slice(0, nbUserShown).map(function(uI) {
-			return uI[0]; // Only get the userName
-		});
+		let shownUsersNames = []; 
 		
-		/*var shownUsersNames = Object.keys(userSessions).slice(0, nbUserShown).map(function(x) {
-			return x;
-		});*/
-		//var shownUsersNames = Object.keys(userSessions);
-		//var nbUserShown = shownUsersNames.length;
-		
-		var step = self.marginUsers.size / (nbUserShown);
-		var i = 0;
-		var range = [];
-		for (i; i<= nbUserShown; i++)
-			range.push(0+i*step);
-		
+		if (showUserSessionOption == "all") {
+			shownUsersNames = userInformations.map(function(uI) {
+				return uI[0]; // Only get the userName
+			});
+		} else {
+			shownUsersNames = userInformations.slice(firstUserShown, nbUserShown)
+				.map(function(uI) {
+					return uI[0]; // Only get the userName
+				});
+		}
 		
 		self.yUsers.domain(shownUsersNames);
-		
-		/*self.yUsers = d3.scaleBand()
-			.domain([].concat(shownUsersNames));
-			//.range(range);*/
-		
-		let tickValues = 
 		
 		self.yAxisUsers = d3.axisLeft(self.yUsers)
 	        .tickValues(self.yUsers.domain().filter(function(d, i) {
@@ -4920,22 +4974,59 @@ var Timeline = function(elemId, options) {
 		self.hiddenCanvasUsersContext.rect(0,0,self.hiddenCanvasUsers.attr("width"),self.hiddenCanvasUsers.attr("height"));
 		self.hiddenCanvasUsersContext.fill();
 		
-		let userNames = Object.keys(userSessions);
+		//let userNames = Object.keys(userSessions);
 		
-		var shownUsers = userInformations.slice(0, nbUserShown).map(function(uI) {
-			return uI[0]; // Only get the userName
-		});
-		/*
-		var shownUsers = Object.keys(userSessions).slice(0, nbUserShown).map(function(x) {
-			return x;
-		});*/
+		let shownUsers = [];
+		
+		switch(showUserSessionOption) {
+		case "all":
+			shownUsers = userInformations.map(function(uI) {
+				return uI[0]; // Only get the userName
+			});
+			break;
+		case "selected":
+			let hl = highlightedUsers;
+			hl.sort(function(a, b) {
+				let aIdx = userInformations.findIndex(function(elt) {
+					return elt[0] == a;
+				});
+				let bIdx = userInformations.findIndex(function(elt) {
+					return elt[0] == b;
+				});
+				return aIdx-bIdx;
+			});
+			shownUsers = hl;
+			break;
+		case "some":
+			shownUsers = userInformations.slice(firstUserShown, nbUserShown)
+			.map(function(uI) {
+				return uI[0]; // Only get the userName
+			});
+			break;
+		default:
+		}
 
-		self.updateUserList();
-			
+		// Update the left axis
+		self.yUsers.domain(shownUsers);
+		
+		self.yAxisUsers = d3.axisLeft(self.yUsers)
+	        .tickValues(self.yUsers.domain().filter(function(d, i) {
+	        	// Ensures a readable size of tick label
+	        	if (self.yUsers.bandwidth() >= 9)
+	        		return true;
+	        	else
+	        		return false;
+	        }));
+	        /*.tickFormat(function(d, i) {
+	        	return d;
+	        });*/
+		self.users.select(".axis--y").call(self.yAxisUsers);
+		
+		
 		let hasSelected = (selectedPatternIds.length > 0);
 		
-		for (var i=0; i < userNames.length; i++) {
-			let userName = userNames[i];
+		for (var i=0; i < shownUsers.length; i++) {
+			let userName = shownUsers[i];
 			
 			userSessions[userName].forEach(function(ses, sesIdx) {
 				let color = "#04B7FB";

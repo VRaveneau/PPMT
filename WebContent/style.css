@@ -385,6 +385,48 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
     content: " \25B4\25BE" 
 }
 
+.hidden {
+	display: none;	
+}
+
+.switchArea {
+	padding: 0px;
+}
+
+.switchArea * {
+	margin: 0px;
+	border: 0px;
+	border: 1px solid black;
+	cursor: pointer;
+}
+
+.switchArea *:not(:first-child) {
+	border: 0px;
+	border: 1px solid black;
+	border-left: 0px;
+}
+
+.switchArea *:first-child {
+	border-radius: 5px 0px 0px 5px;
+}
+
+.switchArea *:last-child {
+	border-radius: 0px 5px 5px 0px;
+}
+
+.switchArea .selectedOption {
+	background-color: #006992;
+	color: white;
+}
+
+.switchArea :not(.selectedOption) {
+	background-color: white;
+}
+
+.switchArea :not(.selectedOption):hover {
+	background-color: lightgrey;
+}
+
 /********************************/
 /* 			General Layout 		*/
 /********************************/

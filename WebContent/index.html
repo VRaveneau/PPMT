@@ -172,7 +172,11 @@
 								<div class="subsection">
 									<div class="title">Exploration per user</div>
 									<div id="tl_usersControl" class="param">
-									<span>Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput"></span>
+									<span>Show 
+										<span id="showUserSessionsSwitch" class="switchArea">
+											<button type="button" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" onclick="showUserSessions('selected');">Selected users</button><button type="button" onclick="showUserSessions('some');">Some users</button></span>
+									</span>
+									<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput"></span>
 									</div>
 									<div id="tl_users" class="body"></div>
 								</div>
