@@ -43,9 +43,11 @@
 					
 					<div id="Trace" class="controlTabContent defaultControlTab">
 						<!-- Info on trace -->
-						<p>This dataset:</p>
-						<div id="datasetInfo">
+						<div class="subsection">
+							<div class="title">This dataset</div>
+							<div class="body" id="datasetInfo">
 							
+							</div>
 						</div>
 						<!-- <hr>
 						<p>You can:</p>
@@ -54,22 +56,16 @@
 						<button type="button" class='trace-action-button'>Truncate trace</button>
 						<button type="button" class='trace-action-button'>Delete user</button> -->
 						<hr>
-						<p>You did:</p>
 						<!-- history -->
-						<div id="history">
+						<div class="subsection">
+							<div class="title">Your actions</div>
+							<div class="body" id="history">
 							
+							</div>
 						</div>
 					</div>
 					
 					<div id="Events" class="controlTabContent">
-						<!-- 
-						<form>
-							<div class="searchBarArea">
-								<input type="button" class="searchButton" value="Search">
-								<div><input type="text" class="searchField"></div>
-							</div>
-						</form>
-						 -->
 						<div class="left-aligned">
 							Show descriptions:
 							<input type="checkbox" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
