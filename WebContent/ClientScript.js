@@ -115,7 +115,7 @@ var shapesWriteBlack = [
 	"→",
 	"↓"
 ];
-var shapes = shapesWriteBlack;
+var shapes = shapesAlpha;
 var shapeNamesDraw = extendedSymbolTypes[1];
 var shapeNamesAlpha = [
 	"A",
@@ -162,13 +162,14 @@ var shapeNamesWrite = [
 	"arrowUp",
 	"arrowRight",
 	"arrowDown"];
-var shapeNames = shapeNamesWrite;
+var shapeNames = shapeNamesAlpha;
 var unselectedColorFading = 5;
 var itemShapes = {};	// TODO request a list of shapes from the server to populate this list
 var datasetInfo = {};
 var availableColors = [];
 
 var eventTypeCategories = [];
+var eventTypesByCategory = {};
 var eventTypeCategoryColors = {};
 
 var highlightedUsers = [];
@@ -2282,7 +2283,7 @@ function receiveEventTypes(message) {
 
 	for (let i = 0; i < nbEvents; i++) {
 		let eventInfo = message[i.toString()].split(";");
-		//console.log(eventInfo);
+		console.log(eventInfo);
 		let eType = "";
 		let eCode = "";
 		var eNbOccs = "";
@@ -2308,6 +2309,7 @@ function receiveEventTypes(message) {
 				eCategory = info[1];
 				// Setup the category if it is a new one
 				if (eventTypeCategories.includes(eCategory) == false) {
+					eventTypesByCategory[eCategory] = [];
 					eventTypeCategories.push(eCategory);
 					let catColor = getNextCategoryColor();
 					eventTypeCategoryColors[eCategory] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
@@ -2335,6 +2337,10 @@ function receiveEventTypes(message) {
 			default:
 			}
 		}
+		
+		// Correct the event code now that we have the category
+		eventTypesByCategory[eCategory].push(eType);
+		eCode = shapes[(eventTypesByCategory[eCategory].length - 1)%shapes.length];
 		
 		eColor = eventTypeCategoryColors[eCategory];
 		colorList[eType] = eColor;
