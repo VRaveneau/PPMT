@@ -16,8 +16,8 @@ var timelineOverview = null;
 var timelineOverviewXAxis = null;
 var timelineIds = 0;
 
-var defaultNbUserShown = 10;
-var nbUserShown = 10;
+var defaultNbUserShown = 15;
+var nbUserShown = defaultNbUserShown;
 
 var currentDatasetName = "";
 
@@ -773,12 +773,12 @@ function setupTool() {
 		});
 	
 	d3.select("#nbUserShownInput")
-		.attr("min", "1")
-		.attr("value", defaultNbUserShown)
+		.attr("min", "0")
+		.attr("value", firstUserShown)
 		.on("input", function() {
-			nbUserShown = this.value;
-			d3.select("#nbUserShownValue")
-				.text(nbUserShown);
+			firstUserShown = Number(this.value);
+			/*d3.select("#nbUserShownValue")
+				.text(nbUserShown);*/
 			timeline.drawUsersPatterns();
 		});
 	
@@ -1125,8 +1125,8 @@ function receiveDatasetInfo(message) {
 
 	// Update the max number of users to display their sessions
 	d3.select("#nbUserShownInput")
-		.attr("max", datasetInfo.numberOfSequences)
-		.attr("value", nbUserShown);
+		.attr("max", datasetInfo.numberOfSequences-nbUserShown)
+		.attr("value", firstUserShown);
 	timeline.drawUsersPatterns();
 		
 	timeline.updateContextBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
@@ -4887,7 +4887,7 @@ var Timeline = function(elemId, options) {
 				return uI[0]; // Only get the userName
 			});
 		} else {
-			shownUsersNames = userInformations.slice(firstUserShown, nbUserShown)
+			shownUsersNames = userInformations.slice(firstUserShown, firstUserShown + nbUserShown)
 				.map(function(uI) {
 					return uI[0]; // Only get the userName
 				});
@@ -4998,7 +4998,7 @@ var Timeline = function(elemId, options) {
 			shownUsers = hl;
 			break;
 		case "some":
-			shownUsers = userInformations.slice(firstUserShown, nbUserShown)
+			shownUsers = userInformations.slice(firstUserShown, firstUserShown + nbUserShown)
 			.map(function(uI) {
 				return uI[0]; // Only get the userName
 			});
