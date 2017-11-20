@@ -6116,6 +6116,17 @@ var Timeline = function(elemId, options) {
 			.call(self.yAxisFocus);
 	}
 	
+	self.customizeFocusLeftAxis = function() {
+		d3.select("#focusLeftAxis")
+			.selectAll(".tick text")
+			.attr("fill", function(d,i) {
+				return colorList[d][0].toString();
+			})
+			.text(function(d,i) {
+				return itemShapes[d];
+			});
+	}
+	
 	self.eventDisplayStyle = "type";
 	
 	self.changeEventDisplayStyle = function() {
@@ -7208,6 +7219,9 @@ var Timeline = function(elemId, options) {
 		self.yAxisFocus = d3.axisLeft(self.yFocus)
 			.tickValues(eventTypes);
 		d3.select("#focusLeftAxis").call(self.yAxisFocus);
+		
+		// Display the event type symbols instead of the event types
+		self.customizeFocusLeftAxis();
 		
 		var drawCount = 0;
 
