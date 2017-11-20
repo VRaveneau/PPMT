@@ -115,7 +115,7 @@ var shapesWriteBlack = [
 	"→",
 	"↓"
 ];
-var shapes = shapesAlpha;
+var shapes = shapesWriteBlack;
 var shapeNamesDraw = extendedSymbolTypes[1];
 var shapeNamesAlpha = [
 	"A",
@@ -162,7 +162,7 @@ var shapeNamesWrite = [
 	"arrowUp",
 	"arrowRight",
 	"arrowDown"];
-var shapeNames = shapeNamesAlpha;
+var shapeNames = shapeNamesWrite;
 var unselectedColorFading = 5;
 var itemShapes = {};	// TODO request a list of shapes from the server to populate this list
 var datasetInfo = {};
@@ -7340,7 +7340,7 @@ var Timeline = function(elemId, options) {
 			    
 				self.hiddenCanvasContext.font = "bold "+fontSize+"px Geneva";
 			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
-			    self.canvasContext.textBaseline="middle";
+			    self.hiddenCanvasContext.textBaseline="middle";
 				self.hiddenCanvasContext.fillText(itemShapes[info[0]], trueX, y);
 			    
 			    firstIndex++;
