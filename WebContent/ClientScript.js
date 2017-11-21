@@ -5242,6 +5242,8 @@ var Timeline = function(elemId, options) {
 					    firstIndex++;
 					}
 				} else {
+					if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
+						endReached = true;
 					firstIndex++;
 				}
 			}
