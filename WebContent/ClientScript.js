@@ -5169,7 +5169,7 @@ var Timeline = function(elemId, options) {
 				// Only draw if the user is displayed
 				if (shownUsers.includes(info[3])) {
 					var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-					if (time > self.xFocus.domain()[1])
+					if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
 						endReached = true;
 					else {
 						drawCount++;
@@ -5253,30 +5253,58 @@ var Timeline = function(elemId, options) {
 		  }
 		}
 		
-		/*var listOfPatternsToDraw = [" "].concat(idsToDraw);
+		//console.log("patterns to draw: "+listOfPatternsToDraw);
 		
-		console.log("patterns to draw: "+listOfPatternsToDraw);*/
-		
-		var step = self.marginFocus.size / (idsToDraw.length+1.0);
-		var i = 0;
-		var range = [];
-		for (i; i<= idsToDraw.length+1; i++)
-			range.push(0+i*step);
+		let step = self.marginFocus.size / (idsToDraw.length + 1.0);
+		let range = [];
+		for (let i = 0; i< idsToDraw.length + 2; i++)
+			range.push(i*step);
 		
 		
 		self.yPatterns = d3.scaleOrdinal()
-			.domain([" "].concat(idsToDraw))
+			.domain([""].concat(idsToDraw).concat([""]))
 			.range(range);
 	
 		self.yAxisPatterns = d3.axisRight(self.yPatterns)
-	        .tickValues([" "].concat(idsToDraw))
+	        .tickValues(self.yPatterns.domain())
 	        .tickFormat(function(d, i) {
-	        	if (patternsInformation[d] && patternsInformation[d].length >= 0)
-	        		return patternsInformation[d][0];
-	        	else
+	        	if (patternsInformation[d] && patternsInformation[d].length >= 0) {
+	        		let txt = patternsInformation[d][0].split(" ");
+	        		
+	        		return txt.map(function(d,i) {
+	        					return itemShapes[d];
+	        				}).join(" ");
+	        		
+	        		//return patternsInformation[d][0];
+	        	} else
 	        		return d;
 	        });
 		self.focus.select("#focusRightAxis").call(self.yAxisPatterns);
+		
+		// Hide the axis if there is no selected pattern or if we are not in distribution mode
+		if (self.displayMode != "distributions" || idsToDraw.length == 0) {
+			d3.select("#focusRightAxis")
+				.classed("hidden", true);
+		} else {
+			// Replace the event types in the patterns by their symbols
+			d3.select("#focusRightAxis")
+				.classed("hidden", false);/*
+			d3.select("#focusRightAxis").selectAll(".tick text")
+				.text(function(d, i) {
+					if (patternsInformation[d] && patternsInformation[d].length >= 0) {
+		        		return patternsInformation[d][0];
+		        	} else
+		        		return d;
+				});*/
+					/*elts.map(function(txt, idx) {
+								return txt;//itemShapes[txt];
+							});
+					return elts.join(";");
+				});
+				/*.attr("fill", function(d,i) {
+					return colorList[d][0].toString();
+				})*/
+		}
 		
 		switch(self.displayMode) {
 		case "distributions": // Displays all occurrences of a pattern on a line
@@ -7136,7 +7164,7 @@ var Timeline = function(elemId, options) {
 		while (!endReached) {
 			var info = timeOrderedEvents[firstIndex][0].split(";");
 			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time > self.xFocus.domain()[1])
+			if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
 				endReached = true;
 			else {
 				drawCount++;
@@ -7261,7 +7289,7 @@ var Timeline = function(elemId, options) {
 		while (!endReached) {
 			var info = timeOrderedEvents[firstIndex][0].split(";");
 			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time > self.xFocus.domain()[1])
+			if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
 				endReached = true;
 			else {
 				drawCount++;
@@ -7414,7 +7442,7 @@ var Timeline = function(elemId, options) {
 			}
 			previousTime = time;
 			previousType = type;
-			if (time > self.xFocus.domain()[1])
+			if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
 				endReached = true;
 			else {
 				drawCount++;
@@ -7524,7 +7552,7 @@ var Timeline = function(elemId, options) {
 		while (!endReached) {
 			var info = timeOrderedEvents[firstIndex][0].split(";");
 			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time > self.xFocus.domain()[1])
+			if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
 				endReached = true;
 			else {
 				drawCount++;
