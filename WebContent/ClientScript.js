@@ -7490,6 +7490,7 @@ var Timeline = function(elemId, options) {
 				let trueX = x - self.canvasContext.measureText(itemShapes[info[0]]).width/2;
 				let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
 				let fontSize = (self.marginFocus.size / maxEventAtOneTime) - 4;
+				fontSize = Math.min(fontSize, 18);
 				
 			    self.canvasContext.font = "bold "+fontSize+"px Geneva";
 			    self.canvasContext.fillStyle = symbolColor;
