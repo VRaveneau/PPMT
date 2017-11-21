@@ -5088,16 +5088,25 @@ var Timeline = function(elemId, options) {
 				/*var event = userTraces[userName][j];
 				var eventData = event[0].split(";");*/
 				
-				var x1 = self.xUsers(new Date(ses.start));
-				var x2 = self.xUsers(new Date(ses.end));
-				var y = self.yUsers(userName) + self.yUsers.bandwidth()/2;
 				self.canvasUsersContext.beginPath();
 				
+				let x1 = self.xUsers(new Date(ses.start));
+				let x2 = self.xUsers(new Date(ses.end));
+				let y1 = 0;
+				let y2 = 0;
+				if (x1 == x2) {
+					y1 = self.yUsers(userName);
+					y2 = self.yUsers(userName) + self.yUsers.bandwidth();
+					self.canvasUsersContext.lineWidth = 1;
+				} else {
+					y1 = self.yUsers(userName) + self.yUsers.bandwidth()/2;
+					y2 = y1;
+					self.canvasUsersContext.lineWidth = self.yUsers.bandwidth();
+				}
 
-				self.canvasUsersContext.lineWidth = self.yUsers.bandwidth();
 				self.canvasUsersContext.strokeStyle = color;
-				self.canvasUsersContext.moveTo(x1,y);
-				self.canvasUsersContext.lineTo(x2,y);
+				self.canvasUsersContext.moveTo(x1,y1);
+				self.canvasUsersContext.lineTo(x2,y2);
 				self.canvasUsersContext.lineCap = "butt";
 				self.canvasUsersContext.stroke();
 			    self.canvasUsersContext.closePath();
