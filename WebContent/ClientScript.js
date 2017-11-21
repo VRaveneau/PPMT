@@ -6756,6 +6756,14 @@ var Timeline = function(elemId, options) {
 			let mouseUserIndex = Math.round((coords[1] / self.yUsers.step()));
 			
 			let mouseUser = userListDomain[mouseUserIndex];//userListDomain[d3.bisect(userListRange, coords[1]) -2];
+			
+			// If there is no user under the mouse, no point in trying to detect something
+			if (mouseUser == undefined) {
+				if (self.userTooltipCreated == true)
+					tooltip.hide();
+				return;
+			}
+			
 			//console.log("Mouse x-y: "+coords[0]+"-"+coords[1]+" / "+mouseUser+" at "+self.xUsers.invert(coords[0]));
 			// get the correct user session
 			let theSession = null;
