@@ -2402,6 +2402,10 @@ function createEventTypesListDisplay() {
 		eventRow.append("td")
 			.style("color",colorList[eType][0].toString())
 			.text(eventTypeInformations[eType].category);
+
+		if (highlightedEventTypes.includes(eType)) {
+			eventRow.classed("selectedEventTypeRow", true);
+		}
 		
 		/* Old symbol cell, using svg
 		var symbolRow = eventRow.append("td")
