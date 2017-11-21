@@ -2072,7 +2072,7 @@ function highlightEventTypeRow(eType) {
 			// Remove this event type from the list of highlighted event types
 			let eventIdx = highlightedEventTypes.indexOf(eType);
 			highlightedEventTypes.splice(eventIdx, 1);
-			addToHistory("Deselect event type "+eType);
+			addToHistory("Unhighlight event type "+eType);
 		}
 	
 	}
@@ -2138,6 +2138,20 @@ function switchShowEventTypeDescription() {
 	} else {
 		showEventTypeDescription = true;
 		d3.selectAll(".eventTypeDescription")
+			.style("display", "initial");
+	}
+}
+
+var showPatternText = true;
+
+function switchShowPatternText() {
+	if (showPatternText == true) {
+		showPatternText = false;
+		d3.selectAll(".patternText")
+			.style("display", "none");
+	} else {
+		showPatternText = true;
+		d3.selectAll(".patternText")
 			.style("display", "initial");
 	}
 }
@@ -3325,7 +3339,9 @@ function addPatternToList(message) {
 			}
 			thisNameCell.append("span")
 				.text(" "+pString)
-				.attr("patternId",pId);
+				.attr("patternId",pId)
+				.classed("patternText", true)
+				.style("display", showPatternText ? "initial" : "none");
 				//.classed("dropdown", true);
 			/*var pSvg = thisNameCell.append("svg")
 				.attr("width", 20*pSize)
@@ -3392,7 +3408,9 @@ function addPatternToList(message) {
 			}
 			thisNameCell.append("span")
 				.text(" "+pString)
-				.attr("patternId",pId);
+				.attr("patternId",pId)
+				.classed("patternText", true)
+				.style("display", showPatternText ? "initial" : "none");
 				//.classed("dropdown", true);
 			/*var pSvg = thisNameCell.append("svg")
 				.attr("width", 20*pSize)
@@ -3670,7 +3688,9 @@ function createPatternListDisplay() {
 		}
 		thisNameCell.append("span")
 			.text(" "+pString)
-			.attr("patternId",pId);
+			.attr("patternId",pId)
+			.classed("patternText", true)
+			.style("display", showPatternText ? "initial" : "none");
 
 		// Create the menu
 		/*var dropMenuDiv = thisNameCell.append("div")

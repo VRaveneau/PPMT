@@ -66,6 +66,10 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	padding-top: -5px;
 }
 
+.section > .param {
+	padding: 0px 5px;
+}
+
 .section > .body {
 	padding: 0px 5px;
 }
