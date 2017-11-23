@@ -5094,7 +5094,7 @@ var Timeline = function(elemId, options) {
 				.classed("hidden", true);
 		}
 
-		// To prevent an error atthe start, when the call to getEventAccessorAtDate tries to access
+		// To prevent an error at the start, when the call to getEventAccessorAtDate tries to access
 		//  the eventAccessor before it has been populated
 		//  TODO replace by a proper exception handling
 		if (shownUsers.length == 0)
@@ -5260,7 +5260,7 @@ var Timeline = function(elemId, options) {
 						
 						let trueX = x - self.canvasUsersContext.measureText(itemShapes[info[0]]).width/2;
 						let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
-						let symbolSize = Math.min(self.yUsers.bandwidth(), 18)
+						let symbolSize = Math.min(self.yUsers.bandwidth() * 0.8, 18);
 						
 					    self.canvasUsersContext.font = "bold "+symbolSize+"px Geneva";
 					    self.canvasUsersContext.fillStyle = symbolColor;
