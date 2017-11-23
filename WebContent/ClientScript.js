@@ -1743,7 +1743,7 @@ function createUserListDisplay() {
 		userRow.append("td").text(startDateFormated);  // start
 		userRow.append("td").text(endDateFormated); // end
 
-		userRow.attr("id",thisUserName);
+		userRow.attr("id","u"+thisUserName);
 		
 		if (highlightedUsers.includes(thisUser[0])) {
 			userRow.attr("class", "selectedUserRow");
@@ -2078,39 +2078,39 @@ function highlightEventTypeRow(eType) {
 	}
 }
 
-function highlightUserRow(rowId) {
+function highlightUserRow(userName) {
 	// Highlights the user
-	var row = d3.select("#userTableBody").select("#"+rowId);
+	var row = d3.select("#userTableBody").select("#u"+userName);
 	
 	
 	if (row.attr("class") === null) {
 		//console.log("adding from null "+rowId);
 		row.attr("class", "selectedUserRow");
 		// Adds the newly highlighted user to the list
-		highlightedUsers.push(rowId);
+		highlightedUsers.push(userName);
 		// Updates the displays of the number of selected users
 		d3.select("#showSelectedUserSessionsButton")
 			.text("Selected users ("+highlightedUsers.length+")");
-		addToHistory("Highlight user "+rowId);
+		addToHistory("Highlight user "+userName);
 	} else {
 		if (row.attr("class").indexOf("selectedUserRow") == -1) {// the row isn't already selected
 			//console.log("adding "+rowId);
 			row.attr("class", row.attr("class")+" selectedUserRow");
 			// Adds the newly highlighted user to the list
-			highlightedUsers.push(rowId);
+			highlightedUsers.push(userName);
 			// Updates the displays of the number of selected users
 			d3.select("#showSelectedUserSessionsButton")
 				.text("Selected users ("+highlightedUsers.length+")");
-			addToHistory("Highlight user "+rowId);
+			addToHistory("Highlight user "+userName);
 		} else {
 			row.attr("class", row.attr("class").replace("selectedUserRow", ""));
 			// Remove this user from the list of highlighted users
-			let userIdx = highlightedUsers.indexOf(rowId);
+			let userIdx = highlightedUsers.indexOf(userName);
 			highlightedUsers.splice(userIdx, 1);
 			// Updates the displays of the number of selected users
 			d3.select("#showSelectedUserSessionsButton")
 				.text("Selected users ("+highlightedUsers.length+")");
-			addToHistory("Deselect user "+rowId);
+			addToHistory("Deselect user "+userName);
 			// If a filter is being applied, removes the row if necessary
 			if (relatedUsers.length == 0) {
 				if (currentUserSearchInput.length > 0)

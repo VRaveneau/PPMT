@@ -189,7 +189,13 @@ public class Dataset {
 				
 				// Checks if the user is known
 				if (!userRenaming.containsKey(properties[3])) {
-					String rename = "user"+Integer.toString(userRenaming.size());
+					// Code if we want to rename the users
+					/*String rename = "user"+Integer.toString(userRenaming.size());
+					userRenaming.put(properties[3], rename);
+					userSequences.put(rename, new ArrayList<String>());
+					userIsNew = true;*/
+					// Code if we don't want to rename the users
+					String rename = properties[3];
 					userRenaming.put(properties[3], rename);
 					userSequences.put(rename, new ArrayList<String>());
 					userIsNew = true;
