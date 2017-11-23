@@ -903,10 +903,6 @@ ul.algorithmTabs li :not(.active):hover {
 	fill: black;
 }
 
-#patternSizesSvg .bar:hover {
-  fill: red;
-}
-
 #patternSizesSvg .axis {
   font: 10px sans-serif;
 }
