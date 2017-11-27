@@ -2116,7 +2116,7 @@ function highlightUserRow(userName) {
 				if (currentUserSearchInput.length > 0)
 					row.remove(); // The filter accepts nothing
 			} else {
-				if (!relatedUsers.includes(rowId))
+				if (!relatedUsers.includes(userName))
 					row.remove(); // The filter rejects the user
 			}
 		}
