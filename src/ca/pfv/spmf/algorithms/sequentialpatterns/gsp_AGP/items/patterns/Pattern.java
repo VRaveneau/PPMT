@@ -419,6 +419,10 @@ public class Pattern implements Comparable<Pattern> {
     	support++;
     }
     
+    public List<Integer> getAppearencesInSequence(Integer sId) {
+    	return appearencesBySequence.get(sId);
+    }
+    
     public List<String> getAppearenceUserInSequence(Integer seqId) {
     	List<String> result = new ArrayList<>();
     	for (Integer occId : appearencesBySequence.get(seqId))

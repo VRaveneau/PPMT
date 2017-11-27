@@ -34,6 +34,7 @@ import com.raveneau.ppmt.algorithms.SteeringTypes;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.events.SteeringListener;
+import com.raveneau.ppmt.patterns.Occurrence;
 import com.raveneau.ppmt.patterns.Pattern;
 
 import ca.pfv.spmf.test.MainTestGSP_saveToMemory;
@@ -748,10 +749,10 @@ public class SessionHandler {
 				.add("patternId", patternId)
 				.add("count", p.getSupport());
     	int patternCount = 0;
-    	for (Integer sId : p.getSequenceId()) {
-    		String occ = p.getUserFromSeqId(sId);
-    		long[] ts = p.getTimestampsFromSeqId(sId);
-    		
+    	for (Occurrence o : p.getOccurrences()) {
+    		String occ = o.getUser();
+    		long[] ts = o.getTimestamps();
+
     		for (int idx =0; idx < ts.length; idx++) {
     			occ += ";"+ts[idx];
     		}

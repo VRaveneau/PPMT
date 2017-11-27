@@ -1,26 +1,47 @@
 package com.raveneau.ppmt.patterns;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
 public class Occurrence {
 
-	private Pattern pattern;
-	private ArrayList<Event> events;
-	private HashMap<String, String> properties;
+	private Integer seqId;
+	private String user;
+	private long[] timestamps;
 	
-	public Occurrence(Pattern pattern, ArrayList<Event> events, HashMap<String, String> properties) {
+	// Store the events, including the ones that create gaps
+	//private ArrayList<Event> events;
+	// Store the properties tied to the occurrence
+	//private HashMap<String, String> properties;
+	
+	public Occurrence(Integer seqId, String user, long[] timestamps) {
 		super();
-		this.pattern = pattern;
-		this.events = events;
-		this.properties = properties;
+		this.seqId = seqId;
+		this.user = user;
+		this.timestamps = timestamps;
 	}
-	public Pattern getPattern() {
-		return pattern;
+
+	public Integer getSeqId() {
+		return seqId;
 	}
-	public void setPattern(Pattern pattern) {
-		this.pattern = pattern;
+
+	public void setSeqId(Integer seqId) {
+		this.seqId = seqId;
 	}
+
+	public String getUser() {
+		return user;
+	}
+
+	public void setUser(String user) {
+		this.user = user;
+	}
+
+	public long[] getTimestamps() {
+		return timestamps;
+	}
+
+	public void setTimestamps(long[] timestamps) {
+		this.timestamps = timestamps;
+	}
+	/*
 	public ArrayList<Event> getEvents() {
 		return events;
 	}
@@ -32,5 +53,5 @@ public class Occurrence {
 	}
 	public void setProperties(HashMap<String, String> properties) {
 		this.properties = properties;
-	}
+	}*/
 }

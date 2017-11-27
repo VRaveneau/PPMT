@@ -21,10 +21,10 @@ public class Pattern {
 	private List<String> itemsReadable;
 	private Integer support;
 
+	private List<Occurrence> occurrences = new ArrayList<>();
 	private List<Integer> sequenceId = new ArrayList<>();
 	
 	private Map<Integer,String> seqIdToUser = new HashMap<>();
-	private Map<Integer,long[]> seqIdToTimestamps = new HashMap<>();
 
 	public Pattern(List<String> items) {
 		super();
@@ -55,6 +55,10 @@ public class Pattern {
 		this.support = support;
 	}
 
+	public List<Occurrence> getOccurrences() {
+		return occurrences;
+	}
+
 	public List<Integer> getSequenceId() {
 		return sequenceId;
 	}
@@ -83,9 +87,9 @@ public class Pattern {
 	}
 	
 	public void addOccurrences(Integer seqId, String user, long[] ts) {
+		this.occurrences.add(new Occurrence(seqId, user, ts));
 		this.sequenceId.add(seqId);
 		this.seqIdToUser.put(seqId, user);
-		this.seqIdToTimestamps.put(seqId, ts);
 	}
 	
 	public void setReadableItems(List<String> readableItems) {
@@ -100,15 +104,11 @@ public class Pattern {
 		return seqIdToUser.get(sId);
 	}
 	
-	public long[] getTimestampsFromSeqId(Integer sId) {
-		return seqIdToTimestamps.get(sId);
-	}
-	
 	public List<long[]> buildOccurrencesBinForUser(String userId) {
 		List<long[]> ts = new ArrayList<>();
-		for (Integer seqId : sequenceId) {
-			if (seqIdToUser.get(seqId).equals(userId))
-				ts.add(seqIdToTimestamps.get(seqId));
+		for (Occurrence occ : occurrences) {
+			if (occ.getUser().equals(userId))
+				ts.add(occ.getTimestamps());
 		}
 		
 		return ts;
