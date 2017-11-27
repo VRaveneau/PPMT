@@ -2009,45 +2009,77 @@ function sortUsersAccordingToTable() {
 	userList = newUserList;
 }
 
+var numberOfDetailedHighlights = 5;
+
 function setHighlights() {
-	let txtUsers = "";
+	// removing the potential old event type highlights
+	let userDisplayArea = document.getElementById("userHighlight");
+	while (userDisplayArea.firstChild) {
+		userDisplayArea.removeChild(userDisplayArea.firstChild);
+	}
+	userDisplayArea = d3.select("#userHighlight");
 	
 	if (highlightedUsers.length == 0) {
-		txtUsers = "No user";
+		userDisplayArea.text("No user");
 	} else {
-		if (highlightedUsers.length == 1) {
-			txtUsers = highlightedUsers[0];
+		if (highlightedUsers.length <= numberOfDetailedHighlights) {
+			userDisplayArea.text("Users ");
+			for (let i = 0; i < highlightedUsers.length; i++) {
+				let thisUser = highlightedUsers[i];
+				userDisplayArea.append("span")
+					.text(thisUser)
+					.on("click", function() {
+						highlightUserRow(thisUser);
+						setHighlights();
+						timeline.displayData();
+						d3.event.stopPropagation();
+					});
+				if (i < highlightedUsers.length - 1)
+					userDisplayArea.append("span")
+						.text(", ");
+			}
 		} else {
-			txtUsers = highlightedUsers.join(", ");
+			userDisplayArea.text(highlightedUsers.length +" users");
 		}
 	}
 	
 
 	// removing the potential old event type highlights
-	let displayArea = document.getElementById("eventTypeHighlight");
-	while (displayArea.firstChild) {
-		displayArea.removeChild(displayArea.firstChild);
+	let eventTypeDisplayArea = document.getElementById("eventTypeHighlight");
+	while (eventTypeDisplayArea.firstChild) {
+		eventTypeDisplayArea.removeChild(eventTypeDisplayArea.firstChild);
 	}
+	eventTypeDisplayArea = d3.select(eventTypeDisplayArea);
 	
 	if (highlightedEventTypes.length == 0) {
-		d3.select("#eventTypeHighlight").text("No event type");
+		eventTypeDisplayArea.text("No event type");
 	} else {
-		displayArea = d3.select("#eventTypeHighlight");
-		for (let i = 0; i < highlightedEventTypes.length; i++) {
-			displayArea.append("span")
-				.style("color", colorList[highlightedEventTypes[i]][0].toString())
-				.text(itemShapes[highlightedEventTypes[i]]);
-			if (i == highlightedEventTypes.length -1) {
-				displayArea.append("span")
+		if (highlightedEventTypes.length <= numberOfDetailedHighlights) {
+			eventTypeDisplayArea.text("Events ");
+			for (let i = 0; i < highlightedEventTypes.length; i++) {
+				let thisEventType = highlightedEventTypes[i];
+				eventTypeDisplayArea.append("span")
+					.style("color", colorList[highlightedEventTypes[i]][0].toString())
+					.text(itemShapes[highlightedEventTypes[i]])
+					.on("click", function() {
+						highlightEventTypeRow(thisEventType);
+						setHighlights();
+						timeline.displayData();
+						d3.event.stopPropagation();
+					})
+				  .append("span")
+					.style("color", "black")
 					.text("\u00A0"+highlightedEventTypes[i]);
-			} else {
-				displayArea.append("span")
-				.text("\u00A0"+highlightedEventTypes[i]+", ");
+
+				if (i < highlightedEventTypes.length - 1)
+					eventTypeDisplayArea.append("span")
+						.text(", ");
 			}
+		} else {
+			eventTypeDisplayArea.text(highlightedEventTypes.length +" event types");
 		}
 	}
 
-	d3.select("#userHighlight").text(txtUsers);
 }
 
 var highlightedEventTypes = [];
