@@ -6297,8 +6297,11 @@ var Timeline = function(elemId, options) {
 	    } else if (this.value === "time") {
     		self.eventDisplayStyle = "time";
     		
-	    } else {
+	    } else if (this.value === "user") {
     		self.eventDisplayStyle = "user";
+	    } else if (this.value === "showOnlyHighlighted") {
+	    	let optionChecked = self.showOnlyHighlightedInFocusForm.select("input").property("checked");
+	    	self.showOnlyHighlightedInFocus = optionChecked;
 	    }
 	    self.displayData();
 	};
@@ -6312,14 +6315,14 @@ var Timeline = function(elemId, options) {
 		.text("Order events by: ");
 	self.eventDisplayStyleForm.append("label")
 		.text("Type")
-		.append("input")
+	  .append("input")
 		.attr("type","radio")
 		.attr("name","scale")
 		.property("checked",true)
 		.attr("value","type");
 	self.eventDisplayStyleForm.append("label")
 		.text("Time")
-		.append("input")
+	  .append("input")
 		.attr("type","radio")
 		.attr("name","scale")
 		.attr("value","time");
@@ -6330,11 +6333,30 @@ var Timeline = function(elemId, options) {
 		switch(currentVisibility) {
 			case "none":
 				self.eventDisplayStyleForm.style("display","flex");
+				self.showOnlyHighlightedInFocusForm.style("display", "flex");
 				break;
 			default:
 				self.eventDisplayStyleForm.style("display","none");
+				self.showOnlyHighlightedInFocusForm.style("display", "none");
 		}
 	}
+	
+	self.showOnlyHighlightedInFocus = false;
+	
+	self.showOnlyHighlightedInFocusForm = self.controls.append("form")
+						.style("margin-left","15px")
+						.attr("class","displayControlForm")
+						.style("display","none")
+						.style("float","right");
+	self.showOnlyHighlightedInFocusForm.append("label")
+		.text("Only show highlighted: ")
+	  .append("input")
+		.attr("type","checkbox")
+		.attr("name","showOnlyHighlighted")
+		.property("checked",false)
+		.attr("value","showOnlyHighlighted");
+
+	self.showOnlyHighlightedInFocusForm.selectAll("input").on("change", self.changeEventDisplayStyle);
 	
 	self.displayToolTipGeneral = function(data) {
 		/* Structure : 
@@ -7456,7 +7478,12 @@ var Timeline = function(elemId, options) {
 			    }
 			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
 			    //console.log("event at index "+firstIndex+" gets color "+color.join(','));
+			    firstIndex++;
 			    
+			    if (self.showOnlyHighlightedInFocus == true) {
+			    	if (getCurrentEventColor(info[0], info[3]) == colorList[info[0]][1])
+			    		continue;
+			    }
 			    
 				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
 				var y = self.yFocus(info[0]) + self.yFocus.bandwidth()/2;
@@ -7499,7 +7526,6 @@ var Timeline = function(elemId, options) {
 			    self.hiddenCanvasContext.textBaseline="middle";
 				self.hiddenCanvasContext.fillText(itemShapes[info[0]], trueX, y);
 				
-			    firstIndex++;
 			}
 		}
 		//console.log("to event "+firstIndex);
@@ -7603,7 +7629,14 @@ var Timeline = function(elemId, options) {
 			    	nextColor += 1;
 			    }
 			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
-				
+			    
+			    firstIndex++;
+			    
+			    if (self.showOnlyHighlightedInFocus == true) {
+			    	if (getCurrentEventColor(info[0], info[3]) == colorList[info[0]][1])
+			    		continue;
+			    }
+			    
 				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
 				var y = self.yFocus(currentHeight);
 				
@@ -7646,8 +7679,6 @@ var Timeline = function(elemId, options) {
 			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
 			    self.hiddenCanvasContext.textBaseline="middle";
 				self.hiddenCanvasContext.fillText(itemShapes[info[0]], trueX, y);
-			    
-			    firstIndex++;
 			}
 		}
 		//console.log("to event "+firstIndex);
