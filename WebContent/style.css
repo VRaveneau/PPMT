@@ -12,6 +12,15 @@
 http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 */
 
+#nbUserShownInput {
+	position: absolute;
+	transform: rotate(90deg);
+	right: -90px;
+	top: 146px;
+	width: 250px;
+	z-index: 10;
+}
+
 #patternListArea {
 	display: flex;
 	flex-direction: column;
