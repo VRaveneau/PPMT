@@ -6838,17 +6838,17 @@ var Timeline = function(elemId, options) {
 							self.svgPointerVB.attr("x2",dataX);
 						}
 						if (self.eventDisplayStyle == "time") {
-							/* Need a way to get the height at which the data is represented to work
+							// Need a way to get the height at which the data is represented to work fully
 							let dataTs = data.split(";")[1];
 							let dataType = data.split(";")[0];
 							let ts = d3.timeParse('%Y-%m-%d %H:%M:%S')(dataTs);
 							let dataX = self.xFocus(ts);
-							let dataY = self.yFocus(dataType) + self.yFocus.bandwidth()/2;
+							let dataY = 0;//self.yFocus(dataType) + self.yFocus.bandwidth()/2;
 							
 							self.svgPointerHB.attr("y1",dataY);
 							self.svgPointerHB.attr("y2",dataY);
 							self.svgPointerVB.attr("x1",dataX);
-							self.svgPointerVB.attr("x2",dataX);*/
+							self.svgPointerVB.attr("x2",dataX);
 						}
 					}
 				}
