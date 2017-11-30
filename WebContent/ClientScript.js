@@ -702,6 +702,7 @@ var showUserSessionOption = "all";
 var firstUserShown = 0;
 
 function showUserSessions(arg) {
+	let eventsShown = true;
 	switch (arg) {
 	case "all":
 		if (showUserSessionOption != "all") {
@@ -717,6 +718,8 @@ function showUserSessions(arg) {
 			showUserSessionOption = "all";
 			
 			d3.select("#shownUserSessionsControl")
+				.classed("hidden", true);
+			d3.select("#showOnlyHighlightedInSessions")
 				.classed("hidden", true);
 		}
 		break;
@@ -736,6 +739,9 @@ function showUserSessions(arg) {
 		
 		d3.select("#shownUserSessionsControl")
 			.classed("hidden", true);
+		eventsShown = d3.select("#drawIndividualEventsInput").property("checked");
+		d3.select("#showOnlyHighlightedInSessions")
+			.classed("hidden", !eventsShown);
 		break;
 	case "some":
 		if (showUserSessionOption != "some") {
@@ -753,6 +759,9 @@ function showUserSessions(arg) {
 		
 		d3.select("#shownUserSessionsControl")
 			.classed("hidden", false);
+		eventsShown = d3.select("#drawIndividualEventsInput").property("checked");
+		d3.select("#showOnlyHighlightedInSessions")
+			.classed("hidden", !eventsShown);
 		break;
 	default:
 	}
@@ -4613,6 +4622,15 @@ function updateAlgorithmGapSlider() {
 	
 }
 
+function changeDrawIndividualEventsOnSessions() {
+	let checked = d3.select("#drawIndividualEventsInput").property("checked");
+	if (checked == true)
+		d3.select("#showOnlyHighlightedInSessions").classed("hidden", false);
+	else
+		d3.select("#showOnlyHighlightedInSessions").classed("hidden", true);
+	refreshUserPatterns();
+}
+
 function refreshUserPatterns() {
 	timeline.drawUsersPatterns();
 }
@@ -5142,10 +5160,13 @@ var Timeline = function(elemId, options) {
 
 		// If there is enough space, show the option to draw the individual events and draw them accordingly
 		let drawEvents = false;
+		let drawOnlyHighlightedEvents = false;
 		if (self.yUsers.bandwidth() >= 9) {
 			d3.select("#drawIndividualEvents")
 				.classed("hidden", false);
 			drawEvents = d3.select("#drawIndividualEventsInput")
+				.property("checked");
+			drawOnlyHighlightedEvents = d3.select("#showOnlyHighlightedInSessionsInput")
 				.property("checked");
 		} else {
 			d3.select("#drawIndividualEvents")
@@ -5272,6 +5293,13 @@ var Timeline = function(elemId, options) {
 					if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
 						endReached = true;
 					else {
+					    firstIndex++;
+					    // Don't draw if the event is not highlighted and we only want the highlighted ones
+						if (drawOnlyHighlightedEvents == true) {
+							if (getCurrentEventColor(info[0], info[3]) == colorList[info[0]][1]) {
+								continue;
+							}
+						}
 						drawCount++;
 						
 						// Attributing a color to data link
@@ -5330,7 +5358,6 @@ var Timeline = function(elemId, options) {
 					    self.hiddenCanvasUsersContext.textBaseline="middle";
 						self.hiddenCanvasUsersContext.fillText(itemShapes[info[0]], trueX, y);
 						*/
-					    firstIndex++;
 					}
 				} else {
 					if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
