@@ -4948,8 +4948,9 @@ var Timeline = function(elemId, options) {
 	}
 	
 	self.zoomed = function() {
-		//console.log("zooming");
-		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") return; // ignore zoom-by-brush
+		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") {
+			return; // ignore zoom-by-brush
+		}
 		var t = d3.event.transform;
 		self.xFocus.domain(t.rescaleX(self.xContext).domain());
 		self.xPatterns.domain(t.rescaleX(self.xContext).domain());
@@ -4966,6 +4967,31 @@ var Timeline = function(elemId, options) {
 		self.displayData();
 		self.context.select(".brush")
 			.call(self.brush.move, self.xFocus.range().map(t.invertX, t));
+		self.zoomRectUsers.property("__zoom", t);  // Manually save the transform to clear the saved old transform
+		console.log(this);
+	};
+	
+	self.zoomedUsers = function() {
+		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "brush") {
+			return; // ignore zoom-by-brush
+		}
+		var t = d3.event.transform;
+		self.xFocus.domain(t.rescaleX(self.xContext).domain());
+		self.xPatterns.domain(t.rescaleX(self.xContext).domain());
+		self.xUsers.domain(t.rescaleX(self.xContext).domain());
+		/*self.focus.select(".area")
+			.attr("d", self.areaFocus);*/
+		self.focus.select(".axis--x")
+			.call(self.xAxisFocus);
+		self.users.select(".axis--x")
+			.call(self.xAxisUsers);
+		/*self.focus.selectAll(".dot")
+			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"});*/
+		//self.drawCurrentBins();
+		self.displayData();
+		self.context.select(".brush")
+			.call(self.brush.move, self.xUsers.range().map(t.invertX, t));
+		self.zoomRect.property("__zoom", t);  // Manually save the transform to clear the saved old transform
 	};
 	
 	// Probably to be deleted, only called from drawUsersTraces, which should not be used
@@ -5319,7 +5345,7 @@ var Timeline = function(elemId, options) {
 	
 	self.drawPatternOccurrences = function() {
 		
-		console.log("Starting to draw pattern occurrences");
+		//console.log("Starting to draw pattern occurrences");
 		var idsToDraw = [];
 		
 		for (var key in self.displayPatternOccs) {
@@ -5773,8 +5799,9 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.brushed = function() {
-		console.log("brushing");
-		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") return; // ignore brush-by-zoom
+		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") {
+			return; // ignore brush-by-zoom
+		}
 		var s = d3.event.selection || self.xContext.range();
 		self.xFocus.domain(s.map(self.xContext.invert, self.xContext));
 		self.xPatterns.domain(s.map(self.xContext.invert, self.xContext));
@@ -5793,7 +5820,7 @@ var Timeline = function(elemId, options) {
 			.call(self.zoom.transform, d3.zoomIdentity.scale(self.width / (s[1] - s[0]))
 			.translate(-s[0], 0));
 		self.svgUsers.select(".zoom")
-			.call(self.zoom.transform, d3.zoomIdentity.scale(self.width / (s[1] - s[0]))
+			.call(self.zoomUsers.transform, d3.zoomIdentity.scale(self.width / (s[1] - s[0]))
 			.translate(-s[0], 0));
 	};
 
@@ -5933,7 +5960,7 @@ var Timeline = function(elemId, options) {
 			break;
 		case "events":
 			//self.displayEvents();
-			console.log("----Draw Events");
+			//console.log("----Draw Events");
 			//self.drawPatternOccurrences();
 			self.drawEvents();
 			self.drawPatternOccurrences();
@@ -5951,7 +5978,7 @@ var Timeline = function(elemId, options) {
 	
 	self.zoomClick = function() {
 		self.zoomRect.call(self.zoom.transform, d3.zoomIdentity.scale(0.2));
-		self.zoomRectUsers.call(self.zoom.transform, d3.zoomIdentity.scale(0.2));
+		self.zoomRectUsers.call(self.zoomUsers.transform, d3.zoomIdentity.scale(0.2));
 		
 		//var t = d3.zoomTransforme(self.zoomRect.node());
 		//var x = t.x;
@@ -6002,7 +6029,7 @@ var Timeline = function(elemId, options) {
 			self.currentZoomScale += 0.05;
 			self.currentZoomScale = Math.max(0.05, self.currentZoomScale);
 			self.zoomRect.call(self.zoom.scaleBy, 1.1);
-			self.zoomRectUsers.call(self.zoom.scaleBy, 1.1);
+			self.zoomRectUsers.call(self.zoomUsers.scaleBy, 1.1);
 			//console.log("Zoom: "+self.currentZoomScale);
 		});
 	self.zoomForm.append("input")
@@ -6015,7 +6042,7 @@ var Timeline = function(elemId, options) {
 			self.currentZoomScale -= 0.05;
 			self.currentZoomScale = Math.max(1.0, self.currentZoomScale);
 			self.zoomRect.call(self.zoom.scaleBy, 0.9);
-			self.zoomRectUsers.call(self.zoom.scaleBy, 0.9);
+			self.zoomRectUsers.call(self.zoomUsers.scaleBy, 0.9);
 			//console.log("Zoom: "+self.currentZoomScale);
 		});
 	
@@ -6616,6 +6643,13 @@ var Timeline = function(elemId, options) {
 		.extent([[0, 0], [self.width, self.marginFocus.size]])
 		.on("zoom", self.zoomed);
 	
+	// The zoomable rectangle on the user part
+	self.zoomUsers = d3.zoom()
+		.scaleExtent([1, Infinity])
+		.translateExtent([[0, 0], [self.width, self.marginUsers.size]])
+		.extent([[0, 0], [self.width, self.marginUsers.size]])
+		.on("zoom", self.zoomedUsers);
+	
 	// Adding the axis to the svg area
 	// focus part of the timeline
 	self.focus = self.svgFocus.append("g")
@@ -6809,7 +6843,7 @@ var Timeline = function(elemId, options) {
 		.attr("width", self.width)
 		.attr("height", self.marginUsers.size)
 		.attr("transform", "translate(" + self.marginUsers.left + "," + self.marginUsers.top + ")")
-		.call(self.zoom)
+		.call(self.zoomUsers)
 		.on("mousemove", function(){	// Handling picking
 			var coords = d3.mouse(this);
 			// offset the y mouse position according to the sessions offset
