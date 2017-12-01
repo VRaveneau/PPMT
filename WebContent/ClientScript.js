@@ -49,8 +49,8 @@ var colorPalet = [/*First color is brighter, to represent the unselected version
 	["#ff7f00","#fed9a6"],
 	["#a65628","#e5d8bd"],
 	["#f781bf","#fddaec"],
-	["#ffff33","#ffffcc"],
-	["#999999","#f2f2f2"]];
+	["#999999","#f2f2f2"],
+	["#ffff33","#ffffcc"]];
 var shapesDraw = extendedSymbolTypes[0];
 var shapesAlpha = [
 	"A",
