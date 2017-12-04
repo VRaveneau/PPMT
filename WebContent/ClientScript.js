@@ -192,6 +192,23 @@ var numberOfPattern = 0;
 /************************************************************/
 
 /**
+ * 
+ */
+function handleKeyPress() {
+	let kc = d3.event.key;
+	console.log(kc)
+	switch(kc) {
+	case "f":
+		if (tooltipHasContent) {
+			tooltipIsFixed = !tooltipIsFixed;
+			updateTooltipLockMessage();
+		}
+		break;
+	default:
+	}
+}
+
+/**
  * Activate or deactivate debug tools
  */
 function debug() {
@@ -800,6 +817,8 @@ function setupTool() {
 	
 	setupAlgorithmSliders();
 	setupPatternSizesChart();
+	
+	d3.select("body").on("keyup", handleKeyPress);
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
@@ -4643,6 +4662,47 @@ function refreshUserPatterns() {
 	timeline.drawUsersPatterns();
 }
 
+var tooltipIsFixed = false;
+var tooltipHasContent = false;
+
+function updateTooltip(htmlContent) {
+	// If using the tooltip.js tooltip :
+	// tooltip.show(message, 400);
+	if (!tooltipIsFixed) {
+		d3.select("#tooltip").select(".body")
+			.html(htmlContent);
+		tooltipHasContent = true;
+		updateTooltipLockMessage();
+	}
+}
+
+function clearTooltip() {
+	// If using the tooltip.js tooltip :
+	// tooltip.hide();
+	if (!tooltipIsFixed) {
+		d3.select("#tooltip").select(".body")
+			.html("Hover over the visualizations to get more information");
+		tooltipHasContent = false;
+		updateTooltipLockMessage();
+	}
+}
+
+function updateTooltipLockMessage() {
+	let tt = d3.select("#tooltip");
+	if (tooltipHasContent) {
+		if (tooltipIsFixed) {
+			tt.select(".subtitle").text("Press f to unlock the tooltip");
+			tt.select(".title").text("Tooltip 🔒");
+		} else {
+			tt.select(".subtitle").text("Press f to lock the tooltip");
+			tt.select(".title").text("Tooltip 🔓");
+		}
+	} else {
+		tt.select(".subtitle").text("");
+		tt.select(".title").text("Tooltip");
+	}
+}
+
 /************************************************************************************************************/
 /*
 												Support slider
@@ -6448,7 +6508,7 @@ var Timeline = function(elemId, options) {
 				for(var i = 4; i < splitData.length; i++)
 					message += "<br>&nbsp;&nbsp;&nbsp;&nbsp;"+splitData[i];
 		}
-		tooltip.show(message, 400);
+		updateTooltip(message);
 	}
 	
 	self.displayToolTipForAgavue = function(data) {
@@ -6521,7 +6581,7 @@ var Timeline = function(elemId, options) {
 				for(var i = 6; i < splitData.length; i++)
 					message += "<br>&nbsp;&nbsp;&nbsp;&nbsp;"+splitData[i];
 		}
-		tooltip.show(message, 400);
+		updateTooltip(message);
 	}
 	
 	self.displayToolTip = function(data) {
@@ -6550,7 +6610,7 @@ var Timeline = function(elemId, options) {
 					message += "<br>"
 			}
 		}
-		tooltip.show(message, 400);
+		updateTooltip(message);
 	}
 	
 	// Parameters about size and margin of the timeline's parts
@@ -6884,13 +6944,15 @@ var Timeline = function(elemId, options) {
 				}
 				self.tooltipCreated = true;
 			} else {
-				if (self.tooltipCreated == true)
-					tooltip.hide();
+				if (self.tooltipCreated == true) {
+					clearTooltip();
+				}
 			}
 		})
 		.on("mouseout", function(){
-			if (self.tooltipCreated == true)
-				tooltip.hide();
+			if (self.tooltipCreated == true) {
+				clearTooltip();
+			}
 		});
 	// Creating the zoomable rectangle on the user patterns part of the timeline
 	self.userTooltipCreated = false;
@@ -6915,8 +6977,9 @@ var Timeline = function(elemId, options) {
 			
 			// If there is no user under the mouse, no point in trying to detect something
 			if (mouseUser == undefined) {
-				if (self.userTooltipCreated == true)
-					tooltip.hide();
+				if (self.userTooltipCreated == true) {
+					clearTooltip();
+				}
 				return;
 			}
 			
@@ -6947,8 +7010,9 @@ var Timeline = function(elemId, options) {
 				self.displayToolTipSessionPatterns(data);
 				self.userTooltipCreated = true;
 			} else {
-				if (self.userTooltipCreated == true)
-					tooltip.hide();
+				if (self.userTooltipCreated == true) {
+					clearTooltip();
+				}
 			}
 			
 			 // Old version, with the pixel colors
@@ -6966,8 +7030,9 @@ var Timeline = function(elemId, options) {
 			}*/
 		})
 		.on("mouseout", function(){
-			if (self.userTooltipCreated == true)
-				tooltip.hide();
+			if (self.userTooltipCreated == true) {
+				clearTooltip();
+			}
 		})
 		.on("click", function() {
 			if (self.hoveredSession != null)

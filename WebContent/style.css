@@ -32,6 +32,8 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	margin: 5px;
 	background-color: white;
 	border-radius: 5px;
+	
+	position: relative;
 	/*border: 1px solid #006992;*/
 }
 
@@ -552,6 +554,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	
 	display: flex;
 	flex-direction: column;
+}
+
+#tooltip .subtitle {
+	position: absolute;
+	top: 13px;
+	right: 10px;
 }
 
 #center {
