@@ -35,6 +35,11 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	/*border: 1px solid #006992;*/
 }
 
+.section + .section {
+	/* Erase the double margin due to two section next to each other */
+	margin-top: 0px;
+}
+
 .subsection {
 	flex: 1;
 	border-radius: 5px;
@@ -531,6 +536,24 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	text-align: left;
 }
 
+#data {
+	flex: 1;
+	
+	order: 1;
+	
+	display: flex;
+	flex-direction: column;
+}
+
+#tooltip {
+	height: 250px;
+	
+	order: 2;
+	
+	display: flex;
+	flex-direction: column;
+}
+
 #center {
 	
 	/* Erase the double margin from the sections */
@@ -557,8 +580,6 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 }
 
 #patternArea {
-	/* Erase the double margin due to two section next to each other */
-	margin-top: 0px;
 	
 	flex: 1;
 	

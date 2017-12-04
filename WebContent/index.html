@@ -30,105 +30,118 @@
 			</div>
 			<div id="tool">
 			
-				<div id="left" class="section">
+				<div id="left">
 					
-					<div class="title">Data</div>
+					<div id="data" class="section">
 					
-					<ul class="controlTabs">
-						<li><a href="javascript:void(0)" class="controlTabLink active" onclick="openControlTab(event, 'Trace')">Trace</a></li>
-						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Event types</a></li>
-						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
-						<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Categories')">Categories</a></li>
-					</ul>
-					
-					<div id="Trace" class="controlTabContent defaultControlTab">
-						<!-- Info on trace -->
-						<div class="subsection">
-							<div class="title">This dataset</div>
-							<div class="body" id="datasetInfo">
-							
-							</div>
-						</div>
-						<!-- <hr>
-						<p>You can:</p>
-						<button type="button" class='trace-action-button'>Create event</button>
-						<button type="button" class='trace-action-button'>Delete event</button>
-						<button type="button" class='trace-action-button'>Truncate trace</button>
-						<button type="button" class='trace-action-button'>Delete user</button> -->
-						<hr>
-						<!-- history -->
-						<div class="subsection">
-							<div class="title">Your actions</div>
-							<div class="body" id="history">
-							
-							</div>
-						</div>
-					</div>
-					
-					<div id="Events" class="controlTabContent">
-						<div class="left-aligned">
-							Show descriptions:
-							<input type="checkbox" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
-						</div>
-					
-						<table id="eventTable">
-							<thead>
-								<tr>
-									<th onclick="clickOnEventTypeNameHeader()">Event&nbsp;type&nbsp;</th>
-									<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
-									<th onclick="clickOnEventTypeCategoryHeader()">Category&nbsp;</th>
-									<!-- <th class="sorttable_numeric">Symbol</th> -->
-								</tr>
-							</thead>
-							<tbody id="eventTableBody">
-							</tbody>
-						</table>
-						<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
-					</div>
-					
-					<div id="Users" class="controlTabContent">
-						<form>
-							<div class="searchBarArea">
-								<!-- <input type="button" class="searchButton" value="Search"> -->
-								<div class="searchFieldArea">
-									&nbsp;
-									<input type="text" class="searchField" placeholder="Write user names here">
-									<input type="text" class="suggestionField" disabled>
+						<div class="title">Data</div>
+						
+						<ul class="controlTabs">
+							<li><a href="javascript:void(0)" class="controlTabLink active" onclick="openControlTab(event, 'Trace')">Trace</a></li>
+							<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Event types</a></li>
+							<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
+							<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Categories')">Categories</a></li>
+						</ul>
+						
+						<div id="Trace" class="controlTabContent defaultControlTab">
+							<!-- Info on trace -->
+							<div class="subsection">
+								<div class="title">This dataset</div>
+								<div class="body" id="datasetInfo">
+								
 								</div>
 							</div>
-						</form>
+							<!-- <hr>
+							<p>You can:</p>
+							<button type="button" class='trace-action-button'>Create event</button>
+							<button type="button" class='trace-action-button'>Delete event</button>
+							<button type="button" class='trace-action-button'>Truncate trace</button>
+							<button type="button" class='trace-action-button'>Delete user</button> -->
+							<hr>
+							<!-- history -->
+							<div class="subsection">
+								<div class="title">Your actions</div>
+								<div class="body" id="history">
+								
+								</div>
+							</div>
+						</div>
 						
-						<div id="userTableArea">
-							<table id="userTable">
+						<div id="Events" class="controlTabContent">
+							<div class="left-aligned">
+								Show descriptions:
+								<input type="checkbox" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
+							</div>
+						
+							<table id="eventTable">
 								<thead>
 									<tr>
-										<th onclick="clickOnUserNameHeader()">User&nbsp;</th>
-										<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
-										<th onclick="clickOnUserDurationHeader()">Duration&nbsp;</th>
-										<th onclick="clickOnUserStartHeader()">Start&nbsp;</th>
-										<th onclick="clickOnUserEndHeader()">End&nbsp;</th>
+										<th onclick="clickOnEventTypeNameHeader()">Event&nbsp;type&nbsp;</th>
+										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
+										<th onclick="clickOnEventTypeCategoryHeader()">Category&nbsp;</th>
+										<!-- <th class="sorttable_numeric">Symbol</th> -->
 									</tr>
 								</thead>
-								<tbody id="userTableBody">
+								<tbody id="eventTableBody">
 								</tbody>
 							</table>
+							<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
 						</div>
+						
+						<div id="Users" class="controlTabContent">
+							<form>
+								<div class="searchBarArea">
+									<!-- <input type="button" class="searchButton" value="Search"> -->
+									<div class="searchFieldArea">
+										&nbsp;
+										<input type="text" class="searchField" placeholder="Write user names here">
+										<input type="text" class="suggestionField" disabled>
+									</div>
+								</div>
+							</form>
+							
+							<div id="userTableArea">
+								<table id="userTable">
+									<thead>
+										<tr>
+											<th onclick="clickOnUserNameHeader()">User&nbsp;</th>
+											<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
+											<th onclick="clickOnUserDurationHeader()">Duration&nbsp;</th>
+											<th onclick="clickOnUserStartHeader()">Start&nbsp;</th>
+											<th onclick="clickOnUserEndHeader()">End&nbsp;</th>
+										</tr>
+									</thead>
+									<tbody id="userTableBody">
+									</tbody>
+								</table>
+							</div>
+						</div>
+						
+						<div id="Categories" class="controlTabContent">
+							<div id="categoryTableArea">
+								<table id="categoryTable">
+									<thead>
+										<tr>
+											<th onclick="clickOnCategoryNameHeader()">Category</th>
+											<!-- <th id="eventsPerCategoryColumn" onclick="clickOnCategoryNbEventsHeader()">Nb events</th> -->
+											<th>Color</th>
+										</tr>
+									</thead>
+									<tbody id="categoryTableBody">
+									</tbody>
+								</table>
+							</div>
+						</div>
+					
 					</div>
 					
-					<div id="Categories" class="controlTabContent">
-						<div id="categoryTableArea">
-							<table id="categoryTable">
-								<thead>
-									<tr>
-										<th onclick="clickOnCategoryNameHeader()">Category</th>
-										<!-- <th id="eventsPerCategoryColumn" onclick="clickOnCategoryNbEventsHeader()">Nb events</th> -->
-										<th>Color</th>
-									</tr>
-								</thead>
-								<tbody id="categoryTableBody">
-								</tbody>
-							</table>
+					<div id="tooltip" class="section">
+					
+						<div class="title">Tooltip</div>
+						
+						<div class="body">
 						</div>
+					
 					</div>
 					
 				</div>
