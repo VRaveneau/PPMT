@@ -3998,39 +3998,57 @@ function displayDatasetInfo() {
 	//console.log("Info displayed");
 }
 
+var monthsNames = [
+	"January", "February", "March",
+	"April", "May", "June",
+	"July", "August", "September",
+	"October", "November", "December"];
+
 function formatDate(date) {
-	// Agavue format : Sun Mar 31 01:32:10 CET 2013
-	let parts = date.split(" ");
-	if (parts.length != 6)
-		return date;
-	let month = "";
-	switch(parts[1]) {
-		case "Jan":
-			return " January "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Feb":
-			return " February "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Mar":
-			return " March "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Apr":
-			return " April "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "May":
-			return " May "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Jun":
-			return " June "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Jul":
-			return " July "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Aug":
-			return " August "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Sep":
-			return " September "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Oct":
-			return " October "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Nov":
-			return " November "+parts[2]+", "+parts[5]+", "+parts[3];
-		case "Dec":
-			return " December "+parts[2]+", "+parts[5]+", "+parts[3];
-		default:
-			return parts[1]+" "+parts[2]+", "+parts[5]+", "+parts[3];
+	if (typeof date == "string") {
+		// Create from the format inherited from Agavue
+		// Agavue format : Sun Mar 31 01:32:10 CET 2013
+		let parts = date.split(" ");
+		if (parts.length != 6)
+			return date;
+		let month = "";
+		switch(parts[1]) {
+			case "Jan":
+				return " January "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Feb":
+				return " February "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Mar":
+				return " March "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Apr":
+				return " April "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "May":
+				return " May "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Jun":
+				return " June "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Jul":
+				return " July "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Aug":
+				return " August "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Sep":
+				return " September "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Oct":
+				return " October "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Nov":
+				return " November "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Dec":
+				return " December "+parts[2]+", "+parts[5]+", "+parts[3];
+			default:
+				return parts[1]+" "+parts[2]+", "+parts[5]+", "+parts[3];
+		}
+	} else {
+		let day = date.getDate();
+		let monthIdx = date.getMonth();
+		let year = date.getFullYear();
+		let hour = date.getHours();
+		let minutes = date.getMinutes();
+		let seconds = date.getSeconds();
+		
+		return " "+monthsNames[monthIdx]+" "+day+", "+year+", "+hour+":"+minutes+":"+seconds;
 	}
 }
 
@@ -4790,7 +4808,9 @@ function updateTooltip(data, origin) {
 				dateStart = new Date(data[2]);
 				dateEnd = new Date(data[3]);
 				area.append("p")
-					.text("Session from "+dateStart+" to "+dateEnd);
+					.text("Session start: "+formatDate(dateStart));
+				area.append("p")
+					.text("Session end: "+formatDate(dateEnd));
 				area.append("p")
 					.text("No pattern in this session");
 				break;
@@ -4798,7 +4818,9 @@ function updateTooltip(data, origin) {
 				dateStart = new Date(data[2]);
 				dateEnd = new Date(data[3]);
 				area.append("p")
-					.text("Session from "+dateStart+" to "+dateEnd);
+					.text("Session start: "+formatDate(dateStart));
+				area.append("p")
+					.text("Session end:  "+formatDate(dateEnd));
 				
 				let ttTable = area.append("table");
 				let ttTableHead = ttTable.append("thead").append("tr");
