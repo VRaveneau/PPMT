@@ -4000,10 +4000,10 @@ function displayDatasetInfo() {
 
 function formatDate(date) {
 	// Agavue format : Sun Mar 31 01:32:10 CET 2013
-	var parts = date.split(" ");
+	let parts = date.split(" ");
 	if (parts.length != 6)
 		return date;
-	var month = "";
+	let month = "";
 	switch(parts[1]) {
 		case "Jan":
 			return " January "+parts[2]+", "+parts[5]+", "+parts[3];
@@ -4767,15 +4767,39 @@ function updateTooltip(data, origin) {
 			}
 			break;
 		case "session":
-			/* Structure : 
-			 * ["name: number"]
+			/* Structure of data : 
+			 * ["user",
+			 * 	nbrOfPatternsInSession, (-1 if no session)
+			 * 	sessionStart,
+			 * 	sessionEnd,
+			 * 	"name: number"]
 		   	 */
-			var message = "";
 			
-			if (data.length == 0) {
+			area.append("p")
+				.text("User " + data[0]);
+			
+			let dateStart = "";
+			let dateEnd = "";
+			
+			switch(data[1]) {
+			case -1:/*
+				area.append("p")
+					.text("No session");*/
+				break;
+			case 0:
+				dateStart = new Date(data[2]);
+				dateEnd = new Date(data[3]);
+				area.append("p")
+					.text("Session from "+dateStart+" to "+dateEnd);
 				area.append("p")
 					.text("No pattern in this session");
-			} else {
+				break;
+			default:
+				dateStart = new Date(data[2]);
+				dateEnd = new Date(data[3]);
+				area.append("p")
+					.text("Session from "+dateStart+" to "+dateEnd);
+				
 				let ttTable = area.append("table");
 				let ttTableHead = ttTable.append("thead").append("tr");
 				ttTableHead.append("th")
@@ -4783,7 +4807,7 @@ function updateTooltip(data, origin) {
 				ttTableHead.append("th")
 					.text("Support");
 				let ttTableBody = ttTable.append("tbody");
-				for (let pIdx = 0; pIdx < data.length; pIdx++) {
+				for (let pIdx = 4; pIdx < data.length; pIdx++) {
 					let thisData = data[pIdx].split(":");
 					let ttTableRow = ttTableBody.append("tr");
 					ttTableRow.append("td")
@@ -7097,8 +7121,9 @@ var Timeline = function(elemId, options) {
 			let userListDomain = self.yUsers.domain();
 			let userListRange = self.yUsers.range();
 			
-			let mouseUserIndex = Math.round((coords[1] / self.yUsers.step()));
+			let data = [];
 			
+			let mouseUserIndex = Math.round((coords[1] / self.yUsers.step()));
 			let mouseUser = userListDomain[mouseUserIndex];//userListDomain[d3.bisect(userListRange, coords[1]) -2];
 			
 			// If there is no user under the mouse, no point in trying to detect something
@@ -7108,6 +7133,8 @@ var Timeline = function(elemId, options) {
 				}
 				return;
 			}
+			
+			data.push(mouseUser);
 			
 			//console.log("Mouse x-y: "+coords[0]+"-"+coords[1]+" / "+mouseUser+" at "+self.xUsers.invert(coords[0]));
 			// get the correct user session
@@ -7125,7 +7152,11 @@ var Timeline = function(elemId, options) {
 			}
 			// Display the tooltip if we have found a session
 			if (theSession !== null) {
-				let data = [];
+				// Add the number of patterns to the data
+				data.push(Object.keys(theSession.count).length);
+				data.push(theSession.start);
+				data.push(theSession.end);
+				// Addthe patterns to the data
 				if (Object.keys(theSession.count).length > 0) {
 					Object.keys(theSession.count).forEach(function(id, idx) {
 						let msg = patternsInformation[id][0]+": ";
@@ -7133,13 +7164,11 @@ var Timeline = function(elemId, options) {
 				    	data.push(msg);
 					})
 				}
-				self.displayToolTipSessionPatterns(data);
-				self.userTooltipCreated = true;
 			} else {
-				if (self.userTooltipCreated == true) {
-					clearTooltip();
-				}
+				data.push(-1);
 			}
+			self.displayToolTipSessionPatterns(data);
+			self.userTooltipCreated = true;
 			
 			 // Old version, with the pixel colors
 			/*var pixelColor = self.hiddenCanvasUsersContext.getImageData(coords[0], coords[1],1,1).data;
