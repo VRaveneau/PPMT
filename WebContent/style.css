@@ -88,6 +88,8 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 
 .section > .body {
 	padding: 0px 5px;
+	
+	overflow: auto;
 }
 
 .subsection > .title {
@@ -560,6 +562,15 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	position: absolute;
 	top: 13px;
 	right: 10px;
+}
+
+#tooltip .body p {
+	margin-top: 2px;
+	margin-bottom: 2px;
+}
+
+.tooltipEventProperty {
+	margin-left: 15px;
 }
 
 #center {

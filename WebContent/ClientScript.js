@@ -4665,12 +4665,138 @@ function refreshUserPatterns() {
 var tooltipIsFixed = false;
 var tooltipHasContent = false;
 
-function updateTooltip(htmlContent) {
+/**
+ * Origin can be either "general" or "session"
+ */
+function updateTooltip(data, origin) {
 	// If using the tooltip.js tooltip :
 	// tooltip.show(message, 400);
 	if (!tooltipIsFixed) {
-		d3.select("#tooltip").select(".body")
-			.html(htmlContent);
+		
+		let area = d3.select("#tooltip").select(".body");
+		area.html("");
+		
+		switch(origin) {
+		case "general":
+			/* Structure : 
+			 * [year,
+		     * start,
+		     * end,
+		     * nbEventsInBin,
+		     * user1;user2;...,
+		     * type1;type2;...,
+		     * type1:nbOcc;type2:nbOcc;...
+		     * nbEventsInSubBin,
+			 * type1:hslColorValue1;type2:hslColorValue1;...]
+		   	 */
+			switch(timeline.displayMode) {
+			case "distributions":
+				switch(timeline.distributionScale) {
+				case "year":
+					//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
+				case "month":
+				case "halfMonth":
+				case "day":
+				case "halfDay":
+					let nbUsers = data[4].split(";").length;
+					let nbOccs = data[6].split(';');
+					//console.log("pre-sort: "+nbOccs);
+					nbOccs.sort(function(a,b) {
+						let aVal = parseInt(a.split(":")[1]);
+						let bVal = parseInt(b.split(":")[1]);
+						return bVal - aVal;	// sort in descending order
+					});
+					//console.log("post-sort: "+nbOccs);
+					area.append("p")
+						.text("From "+data[1]+" to "+data[2]);
+					area.append("p")
+						.text(data[3]+" events across "+nbUsers+" users");
+					area.append("p")
+						.text(data[7]+" in this subpart:");
+					
+					let ttTable = area.append("table");
+					let ttTableHead = ttTable.append("thead").append("tr");
+					ttTableHead.append("th")
+						.text("Event type");
+					ttTableHead.append("th")
+						.text("Support");
+					ttTableHead.append("th")
+						.text("% of this bin");
+					let ttTableBody = ttTable.append("tbody");
+					
+					for (let i = 0; i < nbOccs.length; i++) {
+						let ttTableRow = ttTableBody.append("tr");
+						
+						let occ = nbOccs[i].split(":");
+						let percentage = parseInt(occ[1])/parseInt(data[3]);
+						
+						let hslValues = data[8].split(";");
+						let hslValue = 0;
+						for (let idx = 0; idx < hslValues.length; idx++) {
+							if (hslValues[idx].split(":")[0] == occ[0]) {
+								hslValue = parseInt(hslValues[idx].split(":")[1]);
+								break;
+							}
+						}
+						
+						let ttFirstCell = ttTableRow.append("td");
+						ttFirstCell.append("span")
+							.style("color",colorList[occ[0]][0].toString())
+							.text(itemShapes[occ[0]]);
+						ttFirstCell.append("span").text(" "+occ[0]);
+						ttTableRow.append("td").text(occ[1]);
+						ttTableRow.append("td").text((percentage*100).toPrecision(3)+"%");
+					}
+				}
+				break;
+			case "events":
+					splitData = data.split(";");
+					
+					area.append("p")
+						.text("Type: " + splitData[0]);
+					area.append("p")
+						.text("Time: " + splitData[1]);
+					area.append("p")
+						.text("User: " + splitData[3]);
+					area.append("p")
+						.text("Properties:");
+					for(var i = 4; i < splitData.length; i++)
+						area.append("p")
+							.classed("tooltipEventProperty", true)
+							.text(splitData[i]);
+			}
+			break;
+		case "session":
+			/* Structure : 
+			 * ["name: number"]
+		   	 */
+			var message = "";
+			
+			if (data.length == 0) {
+				area.append("p")
+					.text("No pattern in this session");
+			} else {
+				let ttTable = area.append("table");
+				let ttTableHead = ttTable.append("thead").append("tr");
+				ttTableHead.append("th")
+					.text("Pattern");
+				ttTableHead.append("th")
+					.text("Support");
+				let ttTableBody = ttTable.append("tbody");
+				for (let pIdx = 0; pIdx < data.length; pIdx++) {
+					let thisData = data[pIdx].split(":");
+					let ttTableRow = ttTableBody.append("tr");
+					ttTableRow.append("td")
+						.text(thisData[0].trim());
+					ttTableRow.append("td")
+						.text(thisData[1].trim());
+				}
+			}
+			
+			break;
+		default:
+		}
+		
 		tooltipHasContent = true;
 		updateTooltipLockMessage();
 	}
@@ -6438,7 +6564,7 @@ var Timeline = function(elemId, options) {
 	     * nbEventsInSubBin,
 		 * type1:hslColorValue1;type2:hslColorValue1;...]
 	   	 */
-		var message = "";
+		/*var message = "";
 		
 		switch(self.displayMode) {
 		case "distributions":
@@ -6480,7 +6606,7 @@ var Timeline = function(elemId, options) {
 					var divOutsideOfDom = document.createElementNS("http://www.w3.org/1999/xhtml","div");
 					divOutsideOfDom.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
 					
-					var div = d3.select(divOutsideOfDom);
+					var div = d3.select(divOutsideOfDom);*/
 					/* Create an event type line with svg for the event symbols
 					var svg = div.append("svg")
 						.attr("width", 16)
@@ -6491,7 +6617,7 @@ var Timeline = function(elemId, options) {
 						.attr("stroke", colorList[occ[0]].toString())
 						.attr("fill","none");*/
 					/* create an event type line with utf-8 for the event symbols */
-					div.append("span")
+					/*div.append("span")
 						.style("color",colorList[occ[0]][0].toString())
 						.text(itemShapes[occ[0]]);
 					message += "<br>"+div.html()+"&nbsp;"+occ[0]+" : "+occ[1]+" ("+(percentage*100).toPrecision(3)+"%)";
@@ -6507,8 +6633,8 @@ var Timeline = function(elemId, options) {
 				message += "Properties:";
 				for(var i = 4; i < splitData.length; i++)
 					message += "<br>&nbsp;&nbsp;&nbsp;&nbsp;"+splitData[i];
-		}
-		updateTooltip(message);
+		}*/
+		updateTooltip(data, "general");
 	}
 	
 	self.displayToolTipForAgavue = function(data) {
@@ -6581,7 +6707,7 @@ var Timeline = function(elemId, options) {
 				for(var i = 6; i < splitData.length; i++)
 					message += "<br>&nbsp;&nbsp;&nbsp;&nbsp;"+splitData[i];
 		}
-		updateTooltip(message);
+		updateTooltip(message, "agavue");
 	}
 	
 	self.displayToolTip = function(data) {
@@ -6599,7 +6725,7 @@ var Timeline = function(elemId, options) {
 		/* Structure : 
 		 * ["name: number"]
 	   	 */
-		var message = "";
+		/*var message = "";
 		
 		if (data.length == 0)
 			message = "No pattern in this session";
@@ -6609,8 +6735,8 @@ var Timeline = function(elemId, options) {
 				if (pIdx + 1 < data.length)
 					message += "<br>"
 			}
-		}
-		updateTooltip(message);
+		}*/
+		updateTooltip(data, "session");
 	}
 	
 	// Parameters about size and margin of the timeline's parts
