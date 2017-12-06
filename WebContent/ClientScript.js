@@ -2367,7 +2367,7 @@ function receiveEventTypes(message) {
 		colors.push(selectColor(i, nbColors));
 	// Symbols and colors are generated
 	if (nbEvents > 0)
-		document.getElementById("noEvent").textContent = "";
+		d3.select("#noEvent").classed("hidden", true);
 
 	for (let i = 0; i < nbEvents; i++) {
 		let eventInfo = message[i.toString()].split(";");
