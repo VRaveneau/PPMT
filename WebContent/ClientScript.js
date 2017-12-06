@@ -4872,15 +4872,15 @@ function updateTooltipLockMessage() {
 	let tt = d3.select("#tooltip");
 	if (tooltipHasContent) {
 		if (tooltipIsFixed) {
-			tt.select(".subtitle").text("Press f to unlock the tooltip");
-			tt.select(".title").text("Tooltip 🔒");
+			tt.select(".subtitle").text("Press f to unlock this content");
+			tt.select(".title").text("Inspector 🔒");
 		} else {
-			tt.select(".subtitle").text("Press f to lock the tooltip");
-			tt.select(".title").text("Tooltip 🔓");
+			tt.select(".subtitle").text("Press f to lock this content");
+			tt.select(".title").text("Inspector 🔓");
 		}
 	} else {
 		tt.select(".subtitle").text("");
-		tt.select(".title").text("Tooltip");
+		tt.select(".title").text("Inspector");
 	}
 }
 
