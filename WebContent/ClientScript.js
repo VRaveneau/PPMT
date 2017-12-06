@@ -5638,13 +5638,7 @@ var Timeline = function(elemId, options) {
 	        .tickValues(self.yPatterns.domain())
 	        .tickFormat(function(d, i) {
 	        	if (patternsInformation[d] && patternsInformation[d].length >= 0) {
-	        		let txt = patternsInformation[d][0].split(" ");
-	        		
-	        		return txt.map(function(d,i) {
-	        					return itemShapes[d];
-	        				}).join(" ");
-	        		
-	        		//return patternsInformation[d][0];
+	        		return patternsInformation[d][0];
 	        	} else
 	        		return d;
 	        });
@@ -5657,22 +5651,24 @@ var Timeline = function(elemId, options) {
 		} else {
 			// Replace the event types in the patterns by their symbols
 			d3.select("#focusRightAxis")
-				.classed("hidden", false);/*
+				.classed("hidden", false);
 			d3.select("#focusRightAxis").selectAll(".tick text")
-				.text(function(d, i) {
-					if (patternsInformation[d] && patternsInformation[d].length >= 0) {
-		        		return patternsInformation[d][0];
-		        	} else
-		        		return d;
-				});*/
-					/*elts.map(function(txt, idx) {
-								return txt;//itemShapes[txt];
-							});
-					return elts.join(";");
+				.each(function(d) {
+					let el = d3.select(this);
+					let elts = el.text().split(' ');
+					
+					if (elts.length > 0 && elts[0].length > 0) {
+						// erase the old text
+						el.text("");
+						// add a tspan for each event type symbol
+						for (let symbolIdx = 0; symbolIdx < elts.length; symbolIdx++) {
+							let evtName = elts[symbolIdx];
+							el.append("tspan")
+								.text(itemShapes[evtName])
+								.style("fill", colorList[evtName][0].toString());
+						}
+					}
 				});
-				/*.attr("fill", function(d,i) {
-					return colorList[d][0].toString();
-				})*/
 		}
 		
 		switch(self.displayMode) {
