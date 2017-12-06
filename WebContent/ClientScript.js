@@ -539,7 +539,9 @@ function receiveDatasetList(message) {
 	for (datasetNb; datasetNb > 0;) {
 		datasetNb--;
 		let dsName = message[datasetNb.toString()];
-		var item = dsList.append("li").text(dsName);
+		var item = dsList.append("li")
+			.text(dsName)
+			.classed("clickable", true);
 		item.on("click",function() {
 			startTool(dsName);
 		});
@@ -1713,7 +1715,8 @@ function createUserListDisplay() {
 			}
 		}
 		
-		let userRow = d3.select("#userTableBody").append("tr");
+		let userRow = d3.select("#userTableBody").append("tr")
+			.classed("clickable", true);
 		
 		userRow.append("td").text(thisUser[0]); // name
 		userRow.append("td").text(thisUser[1]); // nbEvents
@@ -2055,6 +2058,7 @@ function setHighlights() {
 			for (let i = 0; i < highlightedUsers.length; i++) {
 				let thisUser = highlightedUsers[i];
 				userDisplayArea.append("span")
+					.classed("clickable", true)
 					.text(thisUser)
 					.on("click", function() {
 						highlightUserRow(thisUser);
@@ -2087,6 +2091,7 @@ function setHighlights() {
 			for (let i = 0; i < highlightedEventTypes.length; i++) {
 				let thisEventType = highlightedEventTypes[i];
 				eventTypeDisplayArea.append("span")
+					.classed("clickable", true)
 					.style("color", colorList[highlightedEventTypes[i]][0].toString())
 					.text(itemShapes[highlightedEventTypes[i]])
 					.on("click", function() {
@@ -2454,6 +2459,7 @@ function createEventTypesListDisplay() {
 		let eType = eventTypes[i];
 		let eventRow = d3.select("#eventTableBody").append("tr")
 			.attr("id", eType)
+			.classed("clickable", true)
 			.on("click", function() {
 				highlightEventTypeRow(eType);
 				setHighlights();
@@ -3362,6 +3368,7 @@ function addPatternToList(message) {
 			let thisRow = patternList.append("tr")
 				.style("font-weight", "normal")
 				.attr("id","pattern"+pId)
+				.classed("clickable", true)
 				.on("click", function() {
 					if (d3.event.shiftKey) { // Shift + click, steering
 						requestSteeringOnPattern(pId);
@@ -3432,6 +3439,7 @@ function addPatternToList(message) {
 			let thisRow = d3.select(document.createElement("tr"))
 				.style("font-weight","normal")
 				.attr("id","pattern"+pId)
+				.classed("clickable", true)
 				.on("click", function() {
 					if (d3.event.shiftKey) { // Shift + click, steering
 						requestSteeringOnPattern(pId);
@@ -3708,6 +3716,7 @@ function createPatternListDisplay() {
 		let thisRow = patternList.append("tr")
 			.style("font-weight",fontWeight)
 			.attr("id","pattern"+pId)
+			.classed("clickable",true)
 			.on("click", function() {
 				if (d3.event.shiftKey) { // Shift + click, steering
 					requestSteeringOnPattern(pId);
@@ -6286,6 +6295,7 @@ var Timeline = function(elemId, options) {
 		.attr("type","button")
 		.attr("name","zoom")
 		.attr("value","+")
+		.classed("clickable", true)
 		.attr("id", "zoomIn")
 		.on("click", function() {
 			console.log("zoomedIn");
@@ -6299,6 +6309,7 @@ var Timeline = function(elemId, options) {
 		.attr("type","button")
 		.attr("name","zoom")
 		.attr("value","-")
+		.classed("clickable", true)
 		.attr("id", "zoomOut")
 		.on("click", function() {
 			console.log("zoomedOut");
@@ -6430,6 +6441,7 @@ var Timeline = function(elemId, options) {
 		.attr("id","displayBinColorInput")
 		.attr("type","checkbox")
 		.attr("name","scale")
+		.classed("clickable", true)
 		.property("checked",false)
 		.style("order","4")
 		.attr("value","Colors")
@@ -6454,6 +6466,7 @@ var Timeline = function(elemId, options) {
 		.attr("id","displayBinFullHeightInput")
 		.attr("type","checkbox")
 		.attr("name","scale")
+		.classed("clickable", true)
 		.property("checked",false)
 		.style("visibility","hidden")
 		.style("order","2")
@@ -6554,6 +6567,7 @@ var Timeline = function(elemId, options) {
 	  .append("input")
 		.attr("type","radio")
 		.attr("name","scale")
+		.classed("clickable", true)
 		.property("checked",true)
 		.attr("value","type");
 	self.eventDisplayStyleForm.append("label")
@@ -6561,7 +6575,8 @@ var Timeline = function(elemId, options) {
 	  .append("input")
 		.attr("type","radio")
 		.attr("name","scale")
-		.attr("value","time");
+		.attr("value","time")
+		.classed("clickable", true);
 	self.eventDisplayStyleForm.selectAll("input").on("change", self.changeEventDisplayStyle);
 	
 	self.switchEventDisplayStyleFormVisibility = function() {
@@ -6590,6 +6605,7 @@ var Timeline = function(elemId, options) {
 		.attr("type","checkbox")
 		.attr("name","showOnlyHighlighted")
 		.property("checked",false)
+		.classed("clickable", true)
 		.attr("value","showOnlyHighlighted");
 
 	self.showOnlyHighlightedInFocusForm.selectAll("input").on("change", self.changeEventDisplayStyle);

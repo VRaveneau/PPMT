@@ -70,12 +70,12 @@
 						<div id="Events" class="controlTabContent">
 							<div class="left-aligned">
 								Show descriptions:
-								<input type="checkbox" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
+								<input type="checkbox" class="clickable" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
 							</div>
 						
 							<table id="eventTable">
 								<thead>
-									<tr>
+									<tr class="clickable">
 										<th onclick="clickOnEventTypeNameHeader()">Event&nbsp;type&nbsp;</th>
 										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
 										<th onclick="clickOnEventTypeCategoryHeader()">Category&nbsp;</th>
@@ -103,7 +103,7 @@
 							<div id="userTableArea">
 								<table id="userTable">
 									<thead>
-										<tr>
+										<tr class="clickable">
 											<th onclick="clickOnUserNameHeader()">User&nbsp;</th>
 											<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
 											<th onclick="clickOnUserDurationHeader()">Duration&nbsp;</th>
@@ -188,8 +188,8 @@
 											<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button><button type="button" value="some" onclick="showUserSessions('some');">Some users</button></span>
 									</span>
 									<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput"></span>
-									<span id="drawIndividualEvents" class="hidden">Show events: <input type="checkbox" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
-									<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
+									<span id="drawIndividualEvents" class="hidden">Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
+									<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" class="clickable" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
 									</div>
 									<div id="tl_users" class="body"></div>
 								</div>
@@ -283,7 +283,7 @@
 						<div class="param">
 							<div class="left-aligned">
 								Show text:
-								<input type="checkbox" id="showPatternTextInput" checked onchange="switchShowPatternText();">
+								<input type="checkbox" class="clickable" id="showPatternTextInput" checked onchange="switchShowPatternText();">
 							</div>
 						</div>
 						<div id="patternListArea" class="body">
@@ -301,7 +301,7 @@
 							<div id="List">
 								<table id="patternTable">
 									<thead>
-										<tr>
+										<tr class="clickable">
 											<th onclick="clickOnPatternNameHeader()">Name&nbsp;</th>
 											<th onclick="clickOnPatternSizeHeader()">Size&nbsp;↓</th>
 											<th onclick="clickOnPatternSupportHeader()">Support&nbsp;</th>
