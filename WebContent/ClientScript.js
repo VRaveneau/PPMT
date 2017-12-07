@@ -823,7 +823,7 @@ function setupTool() {
 	//d3.select("body").on("keyup", handleKeyPress);
 	d3.select("body").on("mousemove", moveTooltip);
 	d3.select("body").on("click", switchTooltipLock);
-	d3.select("#tooltip").on("mouseleave", unlockTooltip);
+	d3.select("#tooltip").on("mouseleave", leaveTooltip);
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
@@ -4887,8 +4887,15 @@ function clearTooltip() {
 	}
 }
 
-// Only used if the tooltip is used as inspector (fixed in the UI)
 function updateTooltipLockMessage() {
+	if (tooltipIsFixed) {
+		tooltip.select(".subtitle")
+			.text("Click to unlock this tooltip");
+	} else {
+		tooltip.select(".subtitle")
+			.text("Click to lock this tooltip");
+	}
+	/*// Only used if the tooltip is used as inspector (fixed in the UI)
 	let tt = d3.select("#tooltip");
 	if (tooltipHasContent) {
 		if (tooltipIsFixed) {
@@ -4901,12 +4908,12 @@ function updateTooltipLockMessage() {
 	} else {
 		tt.select(".subtitle").text("");
 		tt.select(".title").text("Inspector");
-	}
+	}*/
 }
 
 var tooltip = d3.select("#tooltip");
 var tooltipNode = tooltip.node();
-var tooltipOffsetFromMouse = 10;
+var tooltipOffsetFromMouse = 5;
 //var tooltipCornerX = 0;
 //var tooltipCornerY = 0;
 
@@ -4930,15 +4937,30 @@ function moveTooltip() {
 
 function lockTooltip() {
 	tooltipIsFixed = true;
+	updateTooltipLockMessage();
 }
 
 function unlockTooltip() {
 	tooltipIsFixed = false;
+	updateTooltipLockMessage();
+}
+
+function leaveTooltip() {
+	unlockTooltip();
+	clearTooltip();
 }
 
 function switchTooltipLock() {
+	let mousePos = d3.mouse(d3.select("body").node());
+	// Prevent from unlocking when the mouse is inside the tooltip
+	if (mousePos[0] >= tooltipNode.offsetLeft
+			&& mousePos[1] >= tooltipNode.offsetTop
+			&& mousePos[0] <= tooltipNode.offsetLeft + tooltipNode.offsetWidth
+			&& mousePos[1] <= tooltipNode.offsetTop + tooltipNode.offsetHeight)
+		return;
 	if (tooltipHasContent) {
 		tooltipIsFixed = !tooltipIsFixed;
+		updateTooltipLockMessage();
 		if (!tooltipIsFixed) {
 			updateTooltip();
 		}

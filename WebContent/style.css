@@ -562,11 +562,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	overflow: auto;
 }
 
+/* When the tooltip is fixed and used as an inspector
 #tooltip .subtitle {
 	position: absolute;
 	top: 13px;
 	right: 10px;
-}
+}*/
 
 #tooltip .body p {
 	margin-top: 2px;
