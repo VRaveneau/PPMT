@@ -4807,7 +4807,19 @@ function changeTooltip(data, origin) {
 					area.append("p")
 						.text("Time: " + splitData[1]);
 					area.append("p")
-						.text("User: " + splitData[3]);
+					.classed("clickable", true)
+						.style("font-weight", (highlightedUsers.includes(splitData[3]) ? "bold" : "normal"))
+						.text("User: " + splitData[3])
+						.on("click", function() {
+							highlightUserRow(splitData[3]);
+							if (highlightedUsers.includes(splitData[3])) {
+								d3.select(this).style("font-weight", "bold");
+							} else {
+								d3.select(this).style("font-weight", "normal");
+							}
+							setHighlights();
+							timeline.displayData();
+						});;
 					area.append("p")
 						.text("Properties:");
 					for(var i = 4; i < splitData.length; i++)
@@ -4826,7 +4838,19 @@ function changeTooltip(data, origin) {
 		   	 */
 			
 			area.append("p")
-				.text("User " + data[0]);
+				.classed("clickable", true)
+				.style("font-weight", (highlightedUsers.includes(data[0]) ? "bold" : "normal"))
+				.text("User " + data[0])
+				.on("click", function() {
+					highlightUserRow(data[0]);
+					if (highlightedUsers.includes(data[0])) {
+						d3.select(this).style("font-weight", "bold");
+					} else {
+						d3.select(this).style("font-weight", "normal");
+					}
+					setHighlights();
+					timeline.displayData();
+				});
 			
 			let dateStart = "";
 			let dateEnd = "";
