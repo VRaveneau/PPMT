@@ -1792,7 +1792,7 @@ function createUserListDisplay() {
 				highlightUserRow(thisUserName);
 				setHighlights();
 				timeline.displayData();
-				d3.event.stopPropagation();
+				//d3.event.stopPropagation();
 			}
 		});
 	}
@@ -2067,7 +2067,7 @@ function setHighlights() {
 						highlightUserRow(thisUser);
 						setHighlights();
 						timeline.displayData();
-						d3.event.stopPropagation();
+						//d3.event.stopPropagation();
 					});
 				if (i < highlightedUsers.length - 1)
 					userDisplayArea.append("span")
@@ -2101,7 +2101,7 @@ function setHighlights() {
 						highlightEventTypeRow(thisEventType);
 						setHighlights();
 						timeline.displayData();
-						d3.event.stopPropagation();
+						//d3.event.stopPropagation();
 					})
 				  .append("span")
 					.style("color", "black")
@@ -2467,7 +2467,7 @@ function createEventTypesListDisplay() {
 				highlightEventTypeRow(eType);
 				setHighlights();
 				timeline.displayData();
-				d3.event.stopPropagation();
+				//d3.event.stopPropagation();
 			});
 		let firstCell = eventRow.append("td");
 		firstCell.append("span")
@@ -3390,7 +3390,7 @@ function addPatternToList(message) {
 								selectedPatternIds.splice(index, 1);
 							//thisRow.style("font-weight","normal");
 						}
-						d3.event.stopPropagation();
+						//d3.event.stopPropagation();
 						console.log("click on "+pId);
 						createPatternListDisplay();
 						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
@@ -3461,7 +3461,7 @@ function addPatternToList(message) {
 								selectedPatternIds.splice(index, 1);
 							//thisRow.style("font-weight","normal");
 						}
-						d3.event.stopPropagation();
+						//d3.event.stopPropagation();
 						console.log("click on "+pId);
 						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 						createPatternListDisplay();
@@ -3738,7 +3738,7 @@ function createPatternListDisplay() {
 							selectedPatternIds.splice(index, 1);
 						//thisRow.style("font-weight","normal");
 					}
-					d3.event.stopPropagation();
+					//d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
 					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
