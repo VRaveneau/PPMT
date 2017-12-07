@@ -4784,6 +4784,19 @@ function changeTooltip(data, origin) {
 							}
 						}
 						
+						ttTableRow.classed("clickable", true)
+							.style("font-weight", (highlightedEventTypes.includes(occ[0]) ? "bold" : "normal"))
+							.on("click", function() {
+								highlightEventTypeRow(occ[0]);
+								if (highlightedEventTypes.includes(occ[0])) {
+									d3.select(this).style("font-weight", "bold");
+								} else {
+									d3.select(this).style("font-weight", "normal");
+								}
+								setHighlights();
+								timeline.displayData();
+							});
+						
 						let ttFirstCell = ttTableRow.append("td");
 						ttFirstCell.append("span")
 							.style("color",colorList[occ[0]][0].toString())
@@ -4798,7 +4811,19 @@ function changeTooltip(data, origin) {
 					splitData = data.split(";");
 					
 					let typeLine = area.append("p")
-						.text("Type: ");
+						.classed("clickable", true)
+						.style("font-weight", (highlightedEventTypes.includes(splitData[0]) ? "bold" : "normal"))
+						.text("Type: ")
+						.on("click", function() {
+							highlightEventTypeRow(splitData[0]);
+							if (highlightedEventTypes.includes(splitData[0])) {
+								d3.select(this).style("font-weight", "bold");
+							} else {
+								d3.select(this).style("font-weight", "normal");
+							}
+							setHighlights();
+							timeline.displayData();
+						});
 					typeLine.append("span")
 						.style("color",colorList[splitData[0]][0])
 						.text(itemShapes[splitData[0]]);
@@ -4807,7 +4832,7 @@ function changeTooltip(data, origin) {
 					area.append("p")
 						.text("Time: " + splitData[1]);
 					area.append("p")
-					.classed("clickable", true)
+						.classed("clickable", true)
 						.style("font-weight", (highlightedUsers.includes(splitData[3]) ? "bold" : "normal"))
 						.text("User: " + splitData[3])
 						.on("click", function() {
