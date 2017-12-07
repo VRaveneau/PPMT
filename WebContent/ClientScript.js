@@ -4855,6 +4855,7 @@ function changeTooltip(data, origin) {
 				  .append("input")
 				  	.attr("type", "checkbox")
 				  	.property("checked", true)
+				  	.classed("clickable", true)
 				  	.on("change", function() {
 				  		if (d3.select(this).property("checked")) {
 				  			d3.selectAll(".tooltipPatternText")
@@ -4866,8 +4867,13 @@ function changeTooltip(data, origin) {
 				  	});
 				let ttTable = area.append("table");
 				let ttTableHead = ttTable.append("thead").append("tr");
-				ttTableHead.append("th")
-					.text("Pattern");
+				if (data[1] > 1) {
+					ttTableHead.append("th")
+						.text(data[1] + " patterns");
+				} else {
+					ttTableHead.append("th")
+						.text(data[1] + " pattern");
+				}
 				ttTableHead.append("th")
 					.text("Support");
 				let ttTableBody = ttTable.append("tbody");
