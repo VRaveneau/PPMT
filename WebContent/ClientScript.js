@@ -4822,7 +4822,7 @@ function changeTooltip(data, origin) {
 			 * 	nbrOfPatternsInSession, (-1 if no session)
 			 * 	sessionStart,
 			 * 	sessionEnd,
-			 * 	"name: number"]
+			 * 	"patternId: number"]
 		   	 */
 			
 			area.append("p")
@@ -4884,8 +4884,34 @@ function changeTooltip(data, origin) {
 				let ttTableBody = ttTable.append("tbody");
 				for (let pIdx = 4; pIdx < data.length; pIdx++) {
 					let thisData = data[pIdx].split(":");
-					let evtTypes = thisData[0].trim().split(" ");
-					let ttTableRow = ttTableBody.append("tr");
+					let pId = Number(thisData[0].trim());
+					let evtTypes = patternsInformation[pId][3];
+					let ttTableRow = ttTableBody.append("tr")
+						.classed("clickable", true)
+						.style("font-weight", (selectedPatternIds.includes(pId) ? "bold" : "normal"))
+						.on("click", function() {
+							if (timeline.hasPatternOccurrences(pId) == false)
+								requestPatternOccurrences(pId, currentDatasetName);
+							else
+								timeline.displayPatternOccurrences(pId);
+							if (d3.select(this).style("font-weight") == "normal") {
+								selectedPatternIds.push(pId);
+								d3.select(this).style("font-weight", "bold");
+							} else {
+								let index = selectedPatternIds.indexOf(pId);
+								if (index >= 0)
+									selectedPatternIds.splice(index, 1);
+								d3.select(this).style("font-weight", "normal");
+							}
+							//d3.event.stopPropagation();
+							console.log("click on "+pId);
+							createPatternListDisplay();
+							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+							timeline.drawUsersPatterns();
+							
+							// Update the number of selected patterns display
+							d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+						});
 					let firstCell = ttTableRow.append("td");
 					for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
 						firstCell.append("span")
@@ -4894,7 +4920,7 @@ function changeTooltip(data, origin) {
 					}
 					firstCell.append("span")
 						.classed("tooltipPatternText", true)
-						.text(" " + thisData[0].trim());
+						.text(" " + patternsInformation[pId][0]);
 					ttTableRow.append("td")
 						.text(thisData[1].trim());
 				}
@@ -6913,7 +6939,7 @@ var Timeline = function(elemId, options) {
 	
 	self.displayToolTipSessionPatterns = function(data) {
 		/* Structure : 
-		 * ["name: number"]
+		 * ["id: number"]
 	   	 */
 		/*var message = "";
 		
@@ -7325,7 +7351,7 @@ var Timeline = function(elemId, options) {
 				// Addthe patterns to the data
 				if (Object.keys(theSession.count).length > 0) {
 					Object.keys(theSession.count).forEach(function(id, idx) {
-						let msg = patternsInformation[id][0]+": ";
+						let msg = id+": ";
 				    	msg += theSession.count[id];
 				    	data.push(msg);
 					})
