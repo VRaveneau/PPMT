@@ -4792,8 +4792,13 @@ function changeTooltip(data, origin) {
 			case "events":
 					splitData = data.split(";");
 					
-					area.append("p")
-						.text("Type: " + splitData[0]);
+					let typeLine = area.append("p")
+						.text("Type: ");
+					typeLine.append("span")
+						.style("color",colorList[splitData[0]][0])
+						.text(itemShapes[splitData[0]]);
+					typeLine.append("span")
+						.text(" "+splitData[0]);
 					area.append("p")
 						.text("Time: " + splitData[1]);
 					area.append("p")
@@ -7331,10 +7336,10 @@ var Timeline = function(elemId, options) {
 	/*			Methods			*/
 	/****************************/
 	
-	/*self.focusOnSession = function(start, end) {
-		self.context.select(".brush")
-			.call(self.brush.move, [self.xFocus(start), self.xFocus(end)]);
-	}*/
+	self.focusOnSession = function(start, end) {
+		//self.context.select(".brush")
+			//.call(self.brush.move, [self.xFocus(start), self.xFocus(end)]);
+	}
 	
 	self.updateContextBounds = function(start, end) {
 		console.log("Updating context bounds");
