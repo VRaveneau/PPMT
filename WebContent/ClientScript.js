@@ -4925,10 +4925,10 @@ function clearTooltip() {
 function updateTooltipLockMessage() {
 	if (tooltipIsFixed) {
 		tooltip.select(".subtitle")
-			.text("Click to unlock this tooltip");
+			.text("Click somewhere to unlock this tooltip");
 	} else {
 		tooltip.select(".subtitle")
-			.text("Click to lock this tooltip");
+			.text("Click somewhere to lock this tooltip");
 	}
 	/*// Only used if the tooltip is used as inspector (fixed in the UI)
 	let tt = d3.select("#tooltip");
