@@ -4838,6 +4838,7 @@ function changeTooltip(data, origin) {
 					.text("Session start: "+formatDate(dateStart));
 				area.append("p")
 					.text("Session end: "+formatDate(dateEnd));
+				area.append("hr");
 				area.append("p")
 					.text("No pattern in this session");
 				break;
@@ -4848,7 +4849,21 @@ function changeTooltip(data, origin) {
 					.text("Session start: "+formatDate(dateStart));
 				area.append("p")
 					.text("Session end:  "+formatDate(dateEnd));
-				
+				area.append("hr");
+				area.append("p")
+					.text("Show patterns' text: ")
+				  .append("input")
+				  	.attr("type", "checkbox")
+				  	.property("checked", true)
+				  	.on("change", function() {
+				  		if (d3.select(this).property("checked")) {
+				  			d3.selectAll(".tooltipPatternText")
+				  				.classed("hidden", false);
+				  		} else {
+				  			d3.selectAll(".tooltipPatternText")
+			  					.classed("hidden", true);
+				  		}
+				  	});
 				let ttTable = area.append("table");
 				let ttTableHead = ttTable.append("thead").append("tr");
 				ttTableHead.append("th")
@@ -4858,9 +4873,17 @@ function changeTooltip(data, origin) {
 				let ttTableBody = ttTable.append("tbody");
 				for (let pIdx = 4; pIdx < data.length; pIdx++) {
 					let thisData = data[pIdx].split(":");
+					let evtTypes = thisData[0].trim().split(" ");
 					let ttTableRow = ttTableBody.append("tr");
-					ttTableRow.append("td")
-						.text(thisData[0].trim());
+					let firstCell = ttTableRow.append("td");
+					for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
+						firstCell.append("span")
+							.style("color", colorList[evtTypes[tIdx]][0])
+							.text(itemShapes[evtTypes[tIdx]]);
+					}
+					firstCell.append("span")
+						.classed("tooltipPatternText", true)
+						.text(" " + thisData[0].trim());
 					ttTableRow.append("td")
 						.text(thisData[1].trim());
 				}
