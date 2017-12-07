@@ -2178,7 +2178,7 @@ function highlightUserRow(userName) {
 			// Updates the displays of the number of selected users
 			d3.select("#showSelectedUserSessionsButton")
 				.text("Selected users ("+highlightedUsers.length+")");
-			addToHistory("Deselect user "+userName);
+			addToHistory("Unhighlight user "+userName);
 			// If a filter is being applied, removes the row if necessary
 			if (relatedUsers.length == 0) {
 				if (currentUserSearchInput.length > 0)
