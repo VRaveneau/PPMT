@@ -4866,6 +4866,7 @@ function changeTooltip(data, origin) {
 		}
 		
 		tooltipHasContent = true;
+		tooltip.property("scrollTop",0);
 		//updateTooltipLockMessage();
 		tooltip.classed("hidden", false);
 	}
