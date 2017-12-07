@@ -4756,8 +4756,13 @@ function changeTooltip(data, origin) {
 					
 					let ttTable = area.append("table");
 					let ttTableHead = ttTable.append("thead").append("tr");
-					ttTableHead.append("th")
-						.text("Event type");
+					if (nbOccs.length > 1) {
+						ttTableHead.append("th")
+							.text(nbOccs.length + " event types");
+					} else {
+						ttTableHead.append("th")
+							.text(nbOccs.length + " event type");
+					}
 					ttTableHead.append("th")
 						.text("Support");
 					ttTableHead.append("th")
