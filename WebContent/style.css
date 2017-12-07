@@ -549,12 +549,17 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 }
 
 #tooltip {
-	height: 250px;
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	max-height: 300px;
+	z-index: 300; /* Make sure it's always on top*/
+	/*display: flex;
+	flex-direction: column;*/
+	margin: 0px;
+	border: 1px solid black;
 	
-	order: 2;
-	
-	display: flex;
-	flex-direction: column;
+	overflow: auto;
 }
 
 #tooltip .subtitle {

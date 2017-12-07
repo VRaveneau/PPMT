@@ -820,7 +820,10 @@ function setupTool() {
 	setupAlgorithmSliders();
 	setupPatternSizesChart();
 	
-	d3.select("body").on("keyup", handleKeyPress);
+	//d3.select("body").on("keyup", handleKeyPress);
+	d3.select("body").on("mousemove", moveTooltip);
+	d3.select("body").on("click", switchTooltipLock);
+	d3.select("#tooltip").on("mouseleave", unlockTooltip);
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
@@ -4691,15 +4694,25 @@ function refreshUserPatterns() {
 
 var tooltipIsFixed = false;
 var tooltipHasContent = false;
+var tooltipData = {};
+var tooltipOrigin = "";
+var tooltipSupposedData = {};
+var tooltipSupposedOrigin = "";
 
 /**
  * Origin can be either "general" or "session"
  */
-function updateTooltip(data, origin) {
+function changeTooltip(data, origin) {
 	// If using the tooltip.js tooltip :
 	// tooltip.show(message, 400);
-	if (!tooltipIsFixed) {
-		
+	if (tooltipIsFixed) {
+		tooltipSupposedOrigin = origin;
+		tooltipSupposedData = data;
+		tooltipShouldBeCleared= false;
+	} else {
+		tooltipShouldBeCleared = false;
+		tooltipData = data;
+		tooltipOrigin = origin;
 		let area = d3.select("#tooltip").select(".body");
 		area.html("");
 		
@@ -4853,9 +4866,12 @@ function updateTooltip(data, origin) {
 		}
 		
 		tooltipHasContent = true;
-		updateTooltipLockMessage();
+		//updateTooltipLockMessage();
+		tooltip.classed("hidden", false);
 	}
 }
+
+var tooltipShouldBeCleared = false;
 
 function clearTooltip() {
 	// If using the tooltip.js tooltip :
@@ -4864,10 +4880,14 @@ function clearTooltip() {
 		d3.select("#tooltip").select(".body")
 			.html("Hover over the visualizations to get more information");
 		tooltipHasContent = false;
-		updateTooltipLockMessage();
+		//updateTooltipLockMessage();
+		tooltip.classed("hidden", true);
+	} else {
+		tooltipShouldBeCleared = true;
 	}
 }
 
+// Only used if the tooltip is used as inspector (fixed in the UI)
 function updateTooltipLockMessage() {
 	let tt = d3.select("#tooltip");
 	if (tooltipHasContent) {
@@ -4884,6 +4904,56 @@ function updateTooltipLockMessage() {
 	}
 }
 
+var tooltip = d3.select("#tooltip");
+var tooltipNode = tooltip.node();
+var tooltipOffsetFromMouse = 10;
+//var tooltipCornerX = 0;
+//var tooltipCornerY = 0;
+
+function moveTooltip() {
+	if (tooltipIsFixed == true)
+		return;
+	let mousePosition = d3.mouse(d3.select("body").node());
+	let mX = mousePosition[0];
+	let mY = mousePosition[1];
+	//let xDistance = Math.max(tooltipCornerX - mX, mX - tooltipCornerX);
+	//let yDistance = Math.max(tooltipCornerY - mY, mY - tooltipCornerY);
+	let newPosX = mousePosition[0] + tooltipOffsetFromMouse;
+	let newPosY = mousePosition[1] - tooltipOffsetFromMouse - tooltipNode.offsetHeight;
+	if (newPosY < 0)
+		newPosY = 0;
+	tooltip.style("left", newPosX+"px")
+		.style("top", newPosY+"px");
+	//tooltipCornerX = newPosX;
+	//tooltipCornerY = newPosY + tooltipNode.offsetHeight;
+}
+
+function lockTooltip() {
+	tooltipIsFixed = true;
+}
+
+function unlockTooltip() {
+	tooltipIsFixed = false;
+}
+
+function switchTooltipLock() {
+	if (tooltipHasContent) {
+		tooltipIsFixed = !tooltipIsFixed;
+		if (!tooltipIsFixed) {
+			updateTooltip();
+		}
+	}
+}
+
+function updateTooltip() {
+	if (tooltipShouldBeCleared)
+		clearTooltip();
+	else {
+		changeTooltip(tooltipSupposedData, tooltipSupposedOrigin);
+		moveTooltip();
+	}
+}
+
 /************************************************************************************************************/
 /*
 												Support slider
@@ -4891,7 +4961,7 @@ function updateTooltipLockMessage() {
 /************************************************************************************************************/
 
 var SupportSlider = function(elemId) {
-	var self = this;
+	let self = this;
 	self.parentNodeId = elemId;
 	
 	self.svg = d3.select("#"+self.parentNodeId).append("svg")
@@ -6692,7 +6762,7 @@ var Timeline = function(elemId, options) {
 				for(var i = 4; i < splitData.length; i++)
 					message += "<br>&nbsp;&nbsp;&nbsp;&nbsp;"+splitData[i];
 		}*/
-		updateTooltip(data, "general");
+		changeTooltip(data, "general");
 	}
 	
 	self.displayToolTipForAgavue = function(data) {
@@ -6765,7 +6835,7 @@ var Timeline = function(elemId, options) {
 				for(var i = 6; i < splitData.length; i++)
 					message += "<br>&nbsp;&nbsp;&nbsp;&nbsp;"+splitData[i];
 		}
-		updateTooltip(message, "agavue");
+		changeTooltip(message, "agavue");
 	}
 	
 	self.displayToolTip = function(data) {
@@ -6794,7 +6864,7 @@ var Timeline = function(elemId, options) {
 					message += "<br>"
 			}
 		}*/
-		updateTooltip(data, "session");
+		changeTooltip(data, "session");
 	}
 	
 	// Parameters about size and margin of the timeline's parts
