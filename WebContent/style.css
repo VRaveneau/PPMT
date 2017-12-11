@@ -12,6 +12,31 @@
 http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 */
 
+#debugHelp {
+	display: none;
+	flex-direction: column;
+	flex-wrap: wrap;
+	
+	position: absolute;
+	top: 8px;
+	left: 5px;
+	
+	background-color: white;
+	color: black;
+	
+	max-height: 50px;
+	max-width: 43%;
+	padding: 0px 2px;
+}
+
+#debugHelp #filler:nth-child(2n+1) {
+	display: none;
+}
+
+.kbShort {
+	font-weight: bold;
+}
+
 #nbUserShownInput {
 	position: absolute;
 	transform: rotate(90deg);

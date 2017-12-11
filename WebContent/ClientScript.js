@@ -198,24 +198,69 @@ function handleKeyPress() {
 	let kc = d3.event.key;
 	console.log(kc)
 	switch(kc) {
-	case "f":
+	/*case "f":
 		if (tooltipHasContent) {
 			tooltipIsFixed = !tooltipIsFixed;
 			updateTooltipLockMessage();
 		}
+		break;*/
+	case "d":
+		debug();
 		break;
+	case "s":
+		if (debugMode) {
+			stopUIUpdate();
+		}
+		break;
+	case "g":
+		if (debugMode) {
+			switchPointerTarget();
+		}
 	default:
 	}
 }
+
+var debugMode = false;
 
 /**
  * Activate or deactivate debug tools
  */
 function debug() {
+	if (debugMode) {
+		console.log("Exiting debug mode");
+		d3.select("#debugHelp").style("display", "none");
+		if (showPointerTarget) {
+			timeline.showTarget();
+			timeline.showPosition();
+		}
+	} else {
+		console.log("Entering debug mode");
+		d3.select("#debugHelp").style("display", "flex");
+		if (!showPointerTarget) {
+			switchPointerTarget();
+		}
+	}
+	debugMode = !debugMode;
+}
+
+var showPointerTarget = false;
+
+function switchPointerTarget() {
+	showPointerTarget = !showPointerTarget;
+	if (showPointerTarget)
+		d3.select("#debugHelpPointerTarget").select(".kbTxt").text("Hide pointer target");
+	else
+		d3.select("#debugHelpPointerTarget").select(".kbTxt").text("Show pointer target");
 	timeline.showTarget();
 	timeline.showPosition();
 }
 
+var updateUI = true;
+
+function stopUIUpdate() {
+	console.log("Pattern reception now ignored");
+	updateUI = false;
+}
 
 /************************************/
 /*				Kept				*/
@@ -432,9 +477,11 @@ function processMessage(message/*Compressed*/) {
 	}
 	if (msg.action === "info") {
 		if (msg.object === "newPattern") {
-			addPatternToList(msg);
-			drawPatternSizesChart();
-			requestUserDistributionForPattern(msg);
+			if (updateUI) {
+				addPatternToList(msg);
+				drawPatternSizesChart();
+				requestUserDistributionForPattern(msg);
+			}
 		}
 	}
 	if (msg.action === "signal") {
@@ -820,7 +867,7 @@ function setupTool() {
 	setupAlgorithmSliders();
 	setupPatternSizesChart();
 	
-	//d3.select("body").on("keyup", handleKeyPress);
+	d3.select("body").on("keyup", handleKeyPress);
 	d3.select("body").on("mousemove", moveTooltip);
 	d3.select("body").on("click", switchTooltipLock);
 	d3.select("#tooltip").on("mouseleave", leaveTooltip);
