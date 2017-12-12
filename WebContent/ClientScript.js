@@ -275,6 +275,11 @@ function stopUIUpdate() {
 	updateUI = false;
 }
 
+function sendToServer(jsonMessage) {
+	console.log("Sending to server on " + new Date());
+	webSocket.send(JSON.stringify(jsonMessage));
+}
+
 /************************************/
 /*				Kept				*/
 /************************************/
@@ -293,7 +298,7 @@ function selectDataset(datasetName) {
 	/*var action = {
 			action: "testFileReading"
 	};
-	webSocket.send(JSON.stringify(action));*/
+	sendToServer(action);*/
 	
 	currentDatasetName = datasetName;
 	
@@ -340,7 +345,7 @@ function requestDatasetLoad(datasetName) {
 			object: "dataset",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function requestDatasetList() {
@@ -348,7 +353,7 @@ function requestDatasetList() {
 			action: "request",
 			object: "datasetList"
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function requestPatterns(datasetName) {
@@ -357,7 +362,7 @@ function requestPatterns(datasetName) {
 			object: "allPatterns",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function requestYearBins(datasetName) {
@@ -368,7 +373,7 @@ function requestYearBins(datasetName) {
 			scale: "year",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function requestMonthBins(datasetName) {
@@ -379,7 +384,7 @@ function requestMonthBins(datasetName) {
 			scale: "month",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function requestHalfMonthBins(datasetName) {
@@ -390,7 +395,7 @@ function requestHalfMonthBins(datasetName) {
 			scale: "halfMonth",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function requestDayBins(datasetName) {
@@ -401,7 +406,7 @@ function requestDayBins(datasetName) {
 			scale: "day",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function requestHalfDayBins(datasetName) {
@@ -412,7 +417,7 @@ function requestHalfDayBins(datasetName) {
 			scale: "halfDay",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 /*
 function requestUsersPatternOccurrences(userList) {
@@ -433,6 +438,7 @@ function processMessage(message/*Compressed*/) {
 	//console.log("Receive from server => " + message.data + "\n");
 	//var message = LZString.decompressFromUTF16(messageCompressed.data);
 	var msg = JSON.parse(message.data);
+	console.log("Receive message on " + new Date());
 	
 	if (msg.action === "add") {
 		addPattern(msg);
@@ -751,14 +757,14 @@ function receivePatternOccurrences(message) {
  * Handling the disconnection with the server
  */
 function processClose(message) {
-	console.log("Server disconnected." + "\n");
+	console.log("Server disconnected on " + new Date());
 }
 
 /**
  * Handling error messages from the server
  */
 function processError(message) {
-	console.log("Error" + "\n");
+	console.log("Error on " + new Date());
 }
 
 /**
@@ -1110,7 +1116,7 @@ function requestUserDistributionForPattern(message) {
 			pattern: message.id,
 			dataset: currentDatasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 /**
@@ -1122,7 +1128,7 @@ function requestDataset(datasetName) {
 			object: "dataset",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 /**
@@ -1134,7 +1140,7 @@ function requestDatasetInfo(datasetName) {
 			object: "datasetInfo",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 /**
@@ -1149,7 +1155,7 @@ function requestUserTrace(user, datasetName) {
 			user: user,
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 	requestUserPatterns(user, datasetName);
 }
 
@@ -1165,7 +1171,7 @@ function requestUserPatterns(user, datasetName) {
 			user: user,
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 /**
@@ -1179,7 +1185,7 @@ function requestEventTypes(datasetName) {
 			object: "eventTypes",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 /**
@@ -1193,7 +1199,7 @@ function requestUserList(datasetName) {
 			object: "userList",
 			dataset: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 /**
@@ -1254,7 +1260,7 @@ function startMining() {
 	var action = {
 			action: "startMining"
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function stopMining() {
@@ -1262,7 +1268,7 @@ function stopMining() {
 	var action = {
 			action: "stopMining"
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 
 	resetPatternsData();
 }
@@ -1570,7 +1576,7 @@ function requestSteeringOnPattern(patternId) {
 			action: "steerOnPattern",
 			patternId: patternId
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function requestSteeringOnUser(userId) {
@@ -1579,7 +1585,7 @@ function requestSteeringOnUser(userId) {
 			action: "steerOnuser",
 			userId: userId
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 
@@ -3860,7 +3866,7 @@ function requestPatternOccurrences(patternId, datasetName) {
 			dataset: datasetName,
 			patternId: patternId
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function requestPatternDistribution(patternRequested, datasetName) {
@@ -3870,7 +3876,7 @@ function requestPatternDistribution(patternRequested, datasetName) {
 			dataset: datasetName,
 			pattern: patternRequested
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 function createPatternMetricsDisplay() {
@@ -4256,7 +4262,7 @@ function runAlgoToFile() {
 			action: "run",
 			object: "algoToFile"
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 }
 
 // Not at all using the right version of requestAlgorithmStart
@@ -4299,7 +4305,7 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap, 
 			maxDuration: maxDuration,
 			datasetName: datasetName
 	};
-	webSocket.send(JSON.stringify(action));
+	sendToServer(action);
 	// Start the timer independently from the server
 	//stopAlgorithmRuntime();
 	//startAlgorithmRuntime();
