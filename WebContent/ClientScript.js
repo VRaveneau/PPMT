@@ -216,6 +216,19 @@ function handleKeyPress() {
 		if (debugMode) {
 			switchPointerTarget();
 		}
+		break;
+	case "+":
+		timeline.currentZoomScale += 0.05;
+		timeline.currentZoomScale = Math.max(0.05, timeline.currentZoomScale);
+		timeline.zoomRect.call(timeline.zoom.scaleBy, 1.1);
+		timeline.zoomRectUsers.call(timeline.zoomUsers.scaleBy, 1.1);
+		break;
+	case "-":
+		timeline.currentZoomScale -= 0.05;
+		timeline.currentZoomScale = Math.max(1.0, timeline.currentZoomScale);
+		timeline.zoomRect.call(timeline.zoom.scaleBy, 0.9);
+		timeline.zoomRectUsers.call(timeline.zoomUsers.scaleBy, 0.9);
+		break;
 	default:
 	}
 }
