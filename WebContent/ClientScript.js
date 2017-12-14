@@ -183,6 +183,11 @@ var eventDisplayIsDefault = true;
 var userTraces = {};
 var userList = [];
 
+var rawData = [];
+var dataset = {};
+var dataDimensions = {};
+var userProperties = {};
+
 var numberOfPattern = 0;
 
 /************************************************************/
@@ -1709,47 +1714,47 @@ var userInformations = [];
 
 function receiveUserList(message) {
 	//console.log("Receiving a list of users")
-	var nbUsers = parseInt(message.size);
+	let nbUsers = parseInt(message.size);
 	//console.log("Adding "+message.size+" users");
-	for (var i = 0; i < Math.min(nbUsers,10000); i++) {	// Line for a reduced test set
+	for (let i = 0; i < Math.min(nbUsers,10000); i++) {	// Line for a reduced test set
 	//for (var i = 0; i < nbUsers; i++) {				  // Normal line
 		let userInfo = message[i.toString()].split(";");
 		let infoToSave = [userInfo[0], userInfo[1]]; // name and nbEvents
 		userList.push(userInfo[0]);
 		// Date format : yyyy-MM-dd HH:mm:ss
-		var startDate = userInfo[2].split(" ");
-		var part1 = startDate[0].split("-");
-		var part2 = startDate[1].split(":");
-		var d1 = new Date(parseInt(part1[0]),
+		let startDate = userInfo[2].split(" ");
+		let part1 = startDate[0].split("-");
+		let part2 = startDate[1].split(":");
+		let d1 = new Date(parseInt(part1[0]),
 				parseInt(part1[1]),
 				parseInt(part1[2]),
 				parseInt(part2[0]),
 				parseInt(part2[1]),
 				parseInt(part2[2]));
-		var startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		var startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		var endDate = userInfo[3].split(" ");
+		let startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
+		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		let endDate = userInfo[3].split(" ");
 		part1 = endDate[0].split("-");
 		part2 = endDate[1].split(":");
-		var d2 = new Date(parseInt(part1[0]),
+		let d2 = new Date(parseInt(part1[0]),
 				parseInt(part1[1]),
 				parseInt(part1[2]),
 				parseInt(part2[0]),
 				parseInt(part2[1]),
 				parseInt(part2[2]));
-		var endCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		var endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		let endCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
+		let endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
 		// Calculates the duration of the trace
-		var minutes = 1000 * 60;
-		var hours = minutes * 60;
-		var days = hours * 24;
-		var years = days * 365;
-		var endTime = d2.getTime();
-		var startTime = d1.getTime();
-		var timeDiff = endTime-startTime;
+		let minutes = 1000 * 60;
+		let hours = minutes * 60;
+		let days = hours * 24;
+		let years = days * 365;
+		let endTime = d2.getTime();
+		let startTime = d1.getTime();
+		let timeDiff = endTime-startTime;
 		
 		infoToSave.push(timeDiff, userInfo[2], userInfo[3]); // trace duration, start, end
-		
+		userProperties[userInfo[0]] = {"start": d1, "end":d2, "duration": timediff};
 		userInformations.push(infoToSave);	// Add this user to the list of already known ones
 	}
 	// sorting by event per user, in descending order
@@ -3021,23 +3026,35 @@ function receiveEvents(eventsCompressed) {
 	//var dataCompressed = LZString.decompressFromUTF16(eventsCompressed.data);
 	//var events = JSON.parse(dataCompressed);
 	
-	var events = eventsCompressed;//JSON.parse(eventsCompressed.data);
+	let events = eventsCompressed;//JSON.parse(eventsCompressed.data);
 	
-	var nbEventsInMessage = parseInt(events.numberOfEvents);
+	let nbEventsInMessage = parseInt(events.numberOfEvents);
 	if (nbEventsReceived == 0)
 		firstEventReceived = new Date();
-	var formatFirstLevel = d3.timeFormat("%Y%j");
-	var formatSecondLevel = d3.timeFormat("%H%M");
+	let formatFirstLevel = d3.timeFormat("%Y%j");
+	let formatSecondLevel = d3.timeFormat("%H%M");
 	for (var i=0; i < nbEventsInMessage; i++) {
-		var user = events[i.toString()].split(";")[3];
+		let evtParts = events[i.toString()].split(";");
+		let evtObj = {
+			"type": evtParts[0],
+			"start": evtParts[1],
+			"end": evtParts[2],
+			"user": evtParts[3]	
+		};
+		for(let propertyIdx=4; propertyIdx < evtParts.length; propertyIdx++) {
+			evtObj["property"+(propertyIdx-3)] = evtParts[propertyIdx];
+		}
+		let user = evtParts[3];
 		timeOrderedEvents.push([events[i.toString()]]);
+		// Add the event to the array later used to create the crossfilter
+		rawData.push(evtObj);
 		// Adding the event to its user
 		if(typeof(userTraces[user]) == typeof([]))
 			userTraces[user].push(timeOrderedEvents[timeOrderedEvents.length-1]);
 		else
 			userTraces[user] = [timeOrderedEvents[timeOrderedEvents.length-1]];
 		// Setting the accessor if necessary
-		var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(events[i.toString()].split(";")[1]);
+		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(events[i.toString()].split(";")[1]);
 		if (!eventAccessor.hasOwnProperty(formatFirstLevel(time))) {
 			eventAccessor[formatFirstLevel(time)] = {};
 			eventAccessor[formatFirstLevel(time)][formatSecondLevel(time)] = timeOrderedEvents.length-1;
@@ -3057,6 +3074,15 @@ function receiveEvents(eventsCompressed) {
 		console.log(firstEventReceived);
 		console.log("and");
 		console.log(lastEventReceived);
+		console.log("Creating crossfilter at "+new Date());
+		dataset = crossfilter(rawData);
+		console.log("Crossfilter created at "+new Date());
+		dataDimensions["user"] = dataset.dimension(function(d) {return d.user;});
+		dataDimensions["time"] = dataset.dimension(function(d) {return d.start;});
+		dataDimensions["type"] = dataset.dimension(function(d) {return d.type;});
+		console.log("Dimensions created at "+new Date());
+		rawData = null;
+		console.log("raw data removed");
 		buildUserSessions();
 		computeMaxEventAtOneTime();
 		timeline.setEventsReady();
@@ -3074,7 +3100,9 @@ function receiveEvents(eventsCompressed) {
 }
 
 function computeMaxEventAtOneTime() {
-	let previousTime = "";
+	maxEventAtOneTime = dataDimensions.time.group().top(1)[0].value;
+	//Before Crossfilter
+	/*let previousTime = "";
 	let currentCount = 1;
 	let maxCount = 1;
 	for(let i=0; i < timeOrderedEvents.length; i++) {
@@ -3090,7 +3118,7 @@ function computeMaxEventAtOneTime() {
 	}
 	if(currentCount > maxCount)
 		maxCount = currentCount;
-	maxEventAtOneTime = maxCount;
+	maxEventAtOneTime = maxCount;*/
 }
 
 /************************************************/
