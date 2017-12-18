@@ -188,6 +188,8 @@ var dataset = {};
 var dataDimensions = {};
 var userProperties = {};
 
+var currentTimeFilter = [];
+
 var numberOfPattern = 0;
 
 /************************************************************/
@@ -1754,7 +1756,7 @@ function receiveUserList(message) {
 		let timeDiff = endTime-startTime;
 		
 		infoToSave.push(timeDiff, userInfo[2], userInfo[3]); // trace duration, start, end
-		userProperties[userInfo[0]] = {"start": d1, "end":d2, "duration": timediff};
+		userProperties[userInfo[0]] = {"start": d1, "end":d2, "duration": timeDiff};
 		userInformations.push(infoToSave);	// Add this user to the list of already known ones
 	}
 	// sorting by event per user, in descending order
@@ -3035,9 +3037,10 @@ function receiveEvents(eventsCompressed) {
 	let formatSecondLevel = d3.timeFormat("%H%M");
 	for (var i=0; i < nbEventsInMessage; i++) {
 		let evtParts = events[i.toString()].split(";");
+		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(events[i.toString()].split(";")[1]);
 		let evtObj = {
 			"type": evtParts[0],
-			"start": evtParts[1],
+			"start": time.getTime(),
 			"end": evtParts[2],
 			"user": evtParts[3]	
 		};
@@ -3054,7 +3057,6 @@ function receiveEvents(eventsCompressed) {
 		else
 			userTraces[user] = [timeOrderedEvents[timeOrderedEvents.length-1]];
 		// Setting the accessor if necessary
-		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(events[i.toString()].split(";")[1]);
 		if (!eventAccessor.hasOwnProperty(formatFirstLevel(time))) {
 			eventAccessor[formatFirstLevel(time)] = {};
 			eventAccessor[formatFirstLevel(time)][formatSecondLevel(time)] = timeOrderedEvents.length-1;
@@ -5529,6 +5531,11 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
+		
+		if (dataDimensions.time) {
+			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			dataDimensions.time.filterRange(currentTimeFilter);
+		}
 		/*self.focus.selectAll(".dot")
 			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"});*/
 		//self.drawCurrentBins();
@@ -5553,6 +5560,11 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
+
+		if (dataDimensions.time) {
+			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			dataDimensions.time.filterRange(currentTimeFilter);
+		}
 		/*self.focus.selectAll(".dot")
 			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"});*/
 		//self.drawCurrentBins();
@@ -6385,6 +6397,12 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
+		
+		if (dataDimensions.time) {
+			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			dataDimensions.time.filterRange(currentTimeFilter);
+		}
+		
 		/*self.focus.selectAll(".dot")
 			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"});*/
 		//self.drawCurrentBins();
