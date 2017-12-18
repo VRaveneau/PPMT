@@ -212,15 +212,18 @@ function handleKeyPress() {
 		}
 		break;*/
 	case "h":
+	case "H":
 	case "?":
 		debug();
 		break;
 	case "s":
+	case "S":
 		if (debugMode) {
 			stopUIUpdate();
 		}
 		break;
 	case "g":
+	case "G":
 		if (debugMode) {
 			switchPointerTarget();
 		}
@@ -250,14 +253,13 @@ function debug() {
 	if (debugMode) {
 		console.log("Exiting debug mode");
 		d3.select("#debugHelp").style("display", "none");
-		if (showPointerTarget) {
-			timeline.showTarget();
-			timeline.showPosition();
+		if (showPointerTarget == true) {
+			switchPointerTarget();
 		}
 	} else {
 		console.log("Entering debug mode");
 		d3.select("#debugHelp").style("display", "flex");
-		if (!showPointerTarget) {
+		if (showPointerTarget == false) {
 			switchPointerTarget();
 		}
 	}
