@@ -211,7 +211,8 @@ function handleKeyPress() {
 			updateTooltipLockMessage();
 		}
 		break;*/
-	case "d":
+	case "h":
+	case "?":
 		debug();
 		break;
 	case "s":
