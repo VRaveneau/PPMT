@@ -603,6 +603,9 @@ function buildUserSessions() {
 			lastEventDate = thisEventDate;
 		}
 	}
+	
+	// Refresh the user list display
+	createUserListDisplay();
 }
 
 function receiveDatasetList(message) {
@@ -1827,6 +1830,14 @@ function createUserListDisplay() {
 			}
 		}
 		userRow.append("td").text(tdText); // traceDuration
+		
+		 // number of sessions
+		if (userSessions[thisUser[0]]) {
+			userRow.append("td").text(userSessions[thisUser[0]].length);
+		} else {
+			userRow.append("td").text("??");
+		}
+		
 
 		// Date format : yyyy-MM-dd HH:mm:ss
 		var startDate = thisUser[3].split(" ");
@@ -1929,6 +1940,24 @@ function sortUsersByTraceDuration(decreasing=false) {
 		lastUserSort = "durationDown";
 	} else {
 		lastUserSort = "durationUp";
+	}
+}
+
+function sortUsersByNbSessions(decreasing=false) {
+	if (Object.keys(userSessions).length > 0) {
+		userInformations.sort(function(a, b) {
+			var nbA = userSessions[a[0]].length;
+			var nbB = userSessions[b[0]].length;
+			
+			return nbA-nbB;
+		});
+		
+		if (decreasing == true) {
+			userInformations.reverse();
+			lastUserSort = "nbSessionsDown";
+		} else {
+			lastUserSort = "nbSessionsUp";
+		}
 	}
 }
 
@@ -2049,6 +2078,33 @@ function clickOnUserDurationHeader() {
 	} else {
 		d3.select(header).text(txt + "\u00A0↑");
 		sortUsersByTraceDuration(true);
+	}
+	
+	createUserListDisplay();
+	timeline.drawUsersPatterns();
+}
+
+function clickOnUserNbSessionsHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Nb\u00A0sessions") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastUserSort == "nbSessionsDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortUsersByNbSessions();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortUsersByNbSessions(true);
 	}
 	
 	createUserListDisplay();
