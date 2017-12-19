@@ -7576,11 +7576,14 @@ var Timeline = function(elemId, options) {
 				    	data.push(msg);
 					})
 				}
+				self.displayToolTipSessionPatterns(data);
+				self.userTooltipCreated = true;
 			} else {
 				data.push(-1);
+				if (self.userTooltipCreated == true) {
+					clearTooltip();
+				}
 			}
-			self.displayToolTipSessionPatterns(data);
-			self.userTooltipCreated = true;
 			
 			 // Old version, with the pixel colors
 			/*var pixelColor = self.hiddenCanvasUsersContext.getImageData(coords[0], coords[1],1,1).data;
