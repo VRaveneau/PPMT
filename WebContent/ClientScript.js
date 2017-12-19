@@ -8004,11 +8004,12 @@ var Timeline = function(elemId, options) {
 		
 		var drawCount = 0;
 
+		/* Try to get sharper lines
 		self.canvasContext.save();
 		self.hiddenCanvasContext.save();
-
+		
 		self.canvasContext.translate("0.5","0.5");
-		self.hiddenCanvasContext.translate("0.5","0.5");
+		self.hiddenCanvasContext.translate("0.5","0.5");*/
 		
 		/*self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
@@ -8113,8 +8114,9 @@ var Timeline = function(elemId, options) {
 			}
 		}
 		//console.log("to event "+firstIndex);
+		/*
 		self.canvasContext.restore();
-		self.hiddenCanvasContext.restore();
+		self.hiddenCanvasContext.restore();*/
 		nbEventsChecked += drawCount;
 		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
@@ -8129,12 +8131,12 @@ var Timeline = function(elemId, options) {
 		d3.select("#focusLeftAxis").call(self.yAxisFocus);
 		
 
-
+		/* Try to get sharper lines
 		self.canvasContext.save();
 		self.hiddenCanvasContext.save();
 
 		self.canvasContext.translate("0.5","0.5");
-		self.hiddenCanvasContext.translate("0.5","0.5");
+		self.hiddenCanvasContext.translate("0.5","0.5");*/
 		
 		
 		
@@ -8267,8 +8269,8 @@ var Timeline = function(elemId, options) {
 		}
 		//console.log("to event "+firstIndex);
 
-		self.canvasContext.restore();
-		self.hiddenCanvasContext.restore();
+		/*self.canvasContext.restore();
+		self.hiddenCanvasContext.restore();*/
 		var nbEventsChecked = firstIndex-startingIndex;
 		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
