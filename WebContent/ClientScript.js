@@ -592,15 +592,16 @@ function buildUserSessions() {
 	for (var userIdx = 0; userIdx < userList.length; userIdx++) {
 		let u = userList[userIdx];
 		let lastEventDate = d3.timeParse('%Y-%m-%d %H:%M:%S')(userTraces[u][0][0].split(";")[1]).getTime();
-		userSessions[u] = [{start: Number(lastEventDate), end: Number(lastEventDate), count: {}}];
+		userSessions[u] = [{start: Number(lastEventDate), end: Number(lastEventDate), count: {}, nbEvents: 1}];
 		let idx = 1;
 		
 		for ( idx = 1; idx < userTraces[u].length; idx++) {
 			let thisEventDate = d3.timeParse('%Y-%m-%d %H:%M:%S')(userTraces[u][idx][0].split(";")[1]).getTime();
 			if (lastEventDate + sessionInactivityLimit > thisEventDate) { // keeping the current session
 				userSessions[u][userSessions[u].length - 1].end = Number(thisEventDate);
+				userSessions[u][userSessions[u].length - 1].nbEvents++;
 			} else { // Create a new session
-				userSessions[u].push({start: Number(thisEventDate), end: Number(thisEventDate), count: {}});
+				userSessions[u].push({start: Number(thisEventDate), end: Number(thisEventDate), count: {}, nbEvents: 1});
 			}
 			lastEventDate = thisEventDate;
 		}
@@ -5036,6 +5037,17 @@ function changeTooltip(data, origin) {
 			
 			let dateStart = "";
 			let dateEnd = "";
+			let duration = (data[3] - data[2]) / 1000; // In seconds
+			let dS = duration % 60;
+			let dM = Math.floor(duration / 60);
+			let dH = Math.floor(dM / 60);
+			dM = dM % 60;
+			let durationString = "";
+			if (dH > 0)
+				durationString += dH + "h ";
+			if (dM > 0 || dH > 0)
+				durationString += dM + "m ";
+			durationString += dS + "s";
 			
 			switch(data[1]) {
 			case -1:/*
@@ -5045,6 +5057,10 @@ function changeTooltip(data, origin) {
 			case 0:
 				dateStart = new Date(data[2]);
 				dateEnd = new Date(data[3]);
+				area.append("p")
+					.text(data[4]+" events");
+				area.append("p")
+					.text("Session duration: "+durationString);
 				area.append("p")
 					.text("Session start: "+formatDate(dateStart));
 				area.append("p")
@@ -5056,6 +5072,10 @@ function changeTooltip(data, origin) {
 			default:
 				dateStart = new Date(data[2]);
 				dateEnd = new Date(data[3]);
+				area.append("p")
+				.text(data[4]+" events");
+			area.append("p")
+				.text("Session duration: "+durationString);
 				area.append("p")
 					.text("Session start: "+formatDate(dateStart));
 				area.append("p")
@@ -5088,7 +5108,7 @@ function changeTooltip(data, origin) {
 				ttTableHead.append("th")
 					.text("Support");
 				let ttTableBody = ttTable.append("tbody");
-				for (let pIdx = 4; pIdx < data.length; pIdx++) {
+				for (let pIdx = 5; pIdx < data.length; pIdx++) {
 					let thisData = data[pIdx].split(":");
 					let pId = Number(thisData[0].trim());
 					let evtTypes = patternsInformation[pId][3];
@@ -7570,6 +7590,7 @@ var Timeline = function(elemId, options) {
 				data.push(Object.keys(theSession.count).length);
 				data.push(theSession.start);
 				data.push(theSession.end);
+				data.push(theSession.nbEvents);
 				// Addthe patterns to the data
 				if (Object.keys(theSession.count).length > 0) {
 					Object.keys(theSession.count).forEach(function(id, idx) {
