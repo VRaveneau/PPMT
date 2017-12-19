@@ -576,7 +576,9 @@ function receivePatternDistributionPerUser(message) {
 		
 	});
 	
-	timeline.drawUsersPatterns(); // TODO redraw only if visible changes (text displayed)
+	// Commented because it makes the page freeze or crash when too many patterns arrive
+	// TODO redraw only if visible changes (new patterns in the displayed tooltip)
+	//timeline.drawUsersPatterns();
 }
 
 var sessionInactivityLimit = 30*60*1000; // 30 minutes
