@@ -321,20 +321,6 @@ function selectDataset(datasetName) {
 	enableCentralOverlay("The dataset is loading...");
 	requestDataset(datasetName);	// TODO request the data to the server
 	
-	switch(currentDatasetName) {
-		case "Agavue":
-		case "MiniAgavue":
-			requestYearBins(datasetName);
-			break;
-		case "recsysSamplecategory":
-			requestHalfDayBins(datasetName);
-			break;
-		case "coconotesPPMT":
-			requestHalfMonthBins(datasetName);
-			break;
-		default:
-			
-	}
 	
 	/* For Agavue when it was hardcoded
 	
@@ -373,6 +359,28 @@ function requestPatterns(datasetName) {
 			dataset: datasetName
 	};
 	sendToServer(action);
+}
+
+function requestRelevantBins(datasetName, distributionScale) {
+	switch(distributionScale) {
+	case "year":
+		requestYearBins(datasetName);
+		break;
+	case "month":
+		requestMonthBins(datasetName);
+		break;
+	case "halfMonth":
+		requestHalfMonthBins(datasetName);
+		break;
+	case "day":
+		requestDayBins(datasetName);
+		break;
+	case "halfDay":
+		requestHalfDayBins(datasetName);
+		break;
+	default:
+		console.log("Unexpected distribution :" + distributionScale);
+	}
 }
 
 function requestYearBins(datasetName) {
@@ -478,8 +486,10 @@ function processMessage(message/*Compressed*/) {
 			receiveUserList(msg);
 		if (msg.type === "userTrace")
 			receiveUserTrace(msg);
-		if (msg.type === "bin")
+		if (msg.type === "bin") {
+			console.log("receiving bins");
 			receiveDataBins(msg);
+		}
 		if (msg.type === "patterns")
 			receiveAllPatterns(msg);
 		if (msg.type === "events")
@@ -3073,7 +3083,6 @@ function receiveUserTrace(trace) {
 		console.log(lastTraceReceived);
 		userTracesNb = 0;
 		//console.log("sending the data to the timeline");
-		timeline.setEventsReady();
 	}
 }
 
@@ -3149,8 +3158,8 @@ function receiveEvents(eventsCompressed) {
 		console.log("raw data removed");
 		buildUserSessions();
 		computeMaxEventAtOneTime();
-		timeline.setEventsReady();
 		disableCentralOverlay();
+		requestRelevantBins(currentDatasetName, timeline.getRelevantDistributionScale());
 		startInitialMining();
 	}
 	/*nbEventsReceived += 1000;
@@ -6522,96 +6531,86 @@ var Timeline = function(elemId, options) {
 	    self.displayData();
 	};
 	
+	self.getRelevantDisplayMode = function() {
+		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
+		if (displaySeconds < 60*60*24*3 ) { // less than 3 days
+			return "events";
+		} else {
+			return "distributions";
+		}
+	};
+	
+	self.getRelevantDistributionScale = function() {
+		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
+		if (self.getRelevantDisplayMode() == "distributions") {
+			if (displaySeconds > 60*60*24*365*3 )	// more than 3 years
+				return "year";
+			if (displaySeconds < 60*60*24*365*3 && displaySeconds > 60*60*24*365)	// between 1 year and 3 years
+				return "month";
+			if (displaySeconds < 60*60*24*365 && displaySeconds > 60*60*24*31*3)	// between 3 months and 1 year
+				return "halfMonth";
+			if (displaySeconds < 60*60*24*31*3 && displaySeconds > 60*60*24*7*3)	// between 3 months and 3 weeks
+				return "day";
+			if (displaySeconds < 60*60*24*7*3 && displaySeconds > 60*60*24*3)	// between 3 weeks and 3 days
+				return "halfDay";
+			// If no other condition is met
+			console.log("Trying to scale distributions in an unknown way. distributionScale = "+self.distributionScale);
+			return "halfDay";
+		}
+		console.log("Trying to display data in an unknown way. displayMode = "+self.displayMode);
+	};
+	
 	self.displayData = function() {
 		//startRunningTaskIndicator();
 		//console.log("----DisplayData----");
 		// check if we need to adapt the semantic zoom
-		var displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
-		var displayIsFine = false;
-		switch(self.displayMode) {
-		case "distributions":
-			switch(self.distributionScale) {
-			case "year":
-				if (displaySeconds > 60*60*24*365*3 )	// more than 3 years
-					displayIsFine = true;
-				break;
-			case "month":
-				if (displaySeconds < 60*60*24*365*3 && displaySeconds > 60*60*24*365)	// between 1 year and 3 years
-					displayIsFine = true;
-				break;
-			case "halfMonth":
-				if (displaySeconds < 60*60*24*365 && displaySeconds > 60*60*24*31*3)	// between 3 months and 1 year
-					displayIsFine = true;
-				break;
-			case "day":
-				if (displaySeconds < 60*60*24*31*3 && displaySeconds > 60*60*24*7*3)	// between 3 months and 3 weeks
-					displayIsFine = true;
-				break;
-			case "halfDay":
-				//console.log("Time (s): "+displaySeconds);
-				//console.log("Bounds (s): "+60*60*24*7*3+" - "+60*60*24*3);
-				if (displaySeconds < 60*60*24*7*3 && displaySeconds > 60*60*24*3) {	// between 3 weeks and 3 days
-					displayIsFine = true;
-					//console.log("==== Distributions over halfDay");
-				}
-				break;
-			default:
-				console.log("Trying to scale distributions in an unknown way. distributionScale = "+self.distributionScale);
-				break;
-			}
-			break;
-		case "events":
-			if (displaySeconds < 60*60*24*3 ) {	// less than 3 days
-				//console.log("Event mode, time (s): "+displaySeconds);
-				//console.log("Display mode: "+self.displayMode);
-				displayIsFine = true;
-			}
-			break;
-		default:
-			console.log("Trying to display data in an unknown way. displayMode = "+self.displayMode);
+		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
+		let displayModeIsFine = false;
+		let displayDistributionIsFine = false;
+		if (self.getRelevantDisplayMode() == self.displayMode) {
+			displayModeIsFine = true;
+			if (self.displayMode == "events")
+				displayDistributionIsFine = true;
+			else
+				displayDistributionIsFine = (self.getRelevantDistributionScale() == self.distributionScale);
 		}
 		
 		// Adapt the semantic zoom if needed
-		//console.log("DisplayIsFine: "+displayIsFine);
-		if (displayIsFine == false) {
-			//console.log("semantic zoom not fine : "+self.displayMode);
-			d3.selectAll(".zoomInfoSpan").attr("class", "zoomInfoSpan");
-			if (displaySeconds < 60*60*24*3 ) {	// less than 3 days
-				self.displayMode = "events";
-				d3.select("#zoomInfoEvent").attr("class","zoomInfoSpan currentZoom");
-				//console.log("Going to event display mode");
-				self.switchEventDisplayStyleFormVisibility();
-				self.switchBinsDisplayStyleFormVisibility();
-			} else  {
-				if (self.displayMode == "events") {
-					self.displayMode = "distributions";
-					self.switchEventDisplayStyleFormVisibility();
-					self.switchBinsDisplayStyleFormVisibility();
-					//console.log("Going from events to distributions");
-				}
-				if (displaySeconds < 60*60*24*7*3 )	{// less than 3 weeks
-					requestHalfDayBins(currentDatasetName);
-					self.distributionScale = "halfDay";
-					d3.select("#zoomInfoHalfDay").attr("class","zoomInfoSpan currentZoom");
-				} else if (displaySeconds < 60*60*24*31*3 )	{// less than 3 months
-					requestDayBins(currentDatasetName);
-					self.distributionScale = "day";
-					d3.select("#zoomInfoDay").attr("class","zoomInfoSpan currentZoom");
-				} else if (displaySeconds < 60*60*24*365 ) {// less than 1 year
-					requestHalfMonthBins(currentDatasetName);
-					self.distributionScale = "halfMonth";
-					d3.select("#zoomInfoHalfMonth").attr("class","zoomInfoSpan currentZoom");
-				} else if (displaySeconds < 60*60*24*365*3 ) {// less than 3 years
-					requestMonthBins(currentDatasetName);
-					self.distributionScale = "month";
-					d3.select("#zoomInfoMonth").attr("class","zoomInfoSpan currentZoom");
-				} else {// more than 3 years
-					requestYearBins(currentDatasetName);
-					self.distributionScale = "year";
-					d3.select("#zoomInfoYear").attr("class","zoomInfoSpan currentZoom");
-				}
+		if (displayModeIsFine == false || displayDistributionIsFine == false) {
+			d3.selectAll(".zoomInfoSpan").classed("currentZoom", false); // remove the .currentZoom from the previously used zomm level
+		}
+		
+		if (displayModeIsFine == false) {
+			self.displayMode = self.getRelevantDisplayMode();
+			self.switchEventDisplayStyleFormVisibility();
+			self.switchBinsDisplayStyleFormVisibility();
+			if (self.displayMode == "events")
+				d3.select("#zoomInfoEvent").classed("currentZoom", true);
+		}
+		
+		if (displayDistributionIsFine == false) {
+			self.distributionScale = self.getRelevantDistributionScale();
+			requestRelevantBins(currentDatasetName, self.distributionScale);
+			switch(self.distributionScale) {
+			case "halfDay":
+				d3.select("#zoomInfoHalfDay").classed("currentZoom", true);
+				break;
+			case "day":
+				d3.select("#zoomInfoDay").classed("currentZoom", true);
+				break;
+			case "halfMonth":
+				d3.select("#zoomInfoHalfMonth").classed("currentZoom", true);
+				break;
+			case "month":
+				d3.select("#zoomInfoMonth").classed("currentZoom", true);
+				break;
+			case "year":
+				d3.select("#zoomInfoYear").classed("currentZoom", true);
+				break;
+			default:
 			}
 		}
+		
 		self.setupFocusLeftAxis();
 		
 		// clear the focus canvas and hidden canvas
@@ -6752,12 +6751,6 @@ var Timeline = function(elemId, options) {
 		.attr("id","eventDisplay")
 		.property("disabled", true);
 	self.controlForm.selectAll("input").on("change", self.changeDisplayMode);*/
-	
-	self.setEventsReady = function() {
-		/*self.controlForm.select("input#eventDisplay")
-			.property("disabled", false);*/
-		// TODO delete the function (useless)
-	};
 	
 	self.changeDistributionScale = function() {
 	    if (this.value === "year")
