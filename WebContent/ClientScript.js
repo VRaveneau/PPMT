@@ -5841,7 +5841,19 @@ var Timeline = function(elemId, options) {
 	        /*.tickFormat(function(d, i) {
 	        	return d;
 	        });*/
-		self.users.select(".axis--y").call(self.yAxisUsers);
+		let yAxis = self.users.select(".axis--y");
+		yAxis.call(self.yAxisUsers);
+		// Format the labels and make them clickable
+		yAxis.selectAll(".tick text")
+			.each(function(d) {
+				let el = d3.select(this);
+				el.classed("clickable", true)
+					.on("click", function(){
+						highlightUserRow(el.text());
+						setHighlights();
+						timeline.displayData();
+					});
+			});
 
 		// If there is enough space, show the option to draw the individual events and draw them accordingly
 		let drawEvents = false;
