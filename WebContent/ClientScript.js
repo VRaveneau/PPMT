@@ -6964,6 +6964,12 @@ var Timeline = function(elemId, options) {
 	self.customizeFocusLeftAxis = function() {
 		d3.select("#focusLeftAxis")
 			.selectAll(".tick text")
+			.classed("clickable", true)
+			.on("click", function(d,i) {
+				highlightEventTypeRow(d);
+				setHighlights();
+				timeline.displayData();
+			})
 			.attr("fill", function(d,i) {
 				return colorList[d][0].toString();
 			})
