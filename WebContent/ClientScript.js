@@ -1828,18 +1828,22 @@ function createUserListDisplay() {
 		var tmpValue = 0;
 		if (Math.floor(timeDiff / years) > 0) {
 			tmpValue = Math.floor(timeDiff / years);
-			result += tmpValue+"y ";
+			result += tmpValue+" year";
+			if (tmpValue > 1)
+				result += "s";
 			timeDiff = timeDiff - tmpValue*years;
 			tdText = "> "+result;
 		}
 		if (result == "") {
 			if (Math.floor(timeDiff / days) > 0) {
 				tmpValue = Math.floor(timeDiff / days);
-				result += tmpValue+"d ";
+				result += tmpValue+" day";
+				if (tmpValue > 1)
+					result += "s";
 				timeDiff = timeDiff - tmpValue*days;
 				tdText = result;
 			} else {
-				tdText = "< 1d";
+				tdText = "< 1 day";
 			}
 		}
 		userRow.append("td").text(tdText); // traceDuration
