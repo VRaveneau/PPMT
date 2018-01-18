@@ -2620,7 +2620,8 @@ function createEventTypesListDisplay() {
 				timeline.displayData();
 				//d3.event.stopPropagation();
 			});
-		let firstCell = eventRow.append("td");
+		let firstCell = eventRow.append("td")
+			.property("title",eventTypeInformations[eType].description);
 		firstCell.append("span")
 			.style("color",colorList[eType][0].toString())
 			.text(itemShapes[eType]+"  ");
