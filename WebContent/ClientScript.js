@@ -2195,7 +2195,7 @@ function sortUsersAccordingToTable() {
 var numberOfDetailedHighlights = 5;
 
 function setHighlights() {
-	// removing the potential old event type highlights
+	// removing the potential old user highlights
 	let userDisplayArea = document.getElementById("userHighlight");
 	while (userDisplayArea.firstChild) {
 		userDisplayArea.removeChild(userDisplayArea.firstChild);
@@ -2211,6 +2211,7 @@ function setHighlights() {
 				let thisUser = highlightedUsers[i];
 				userDisplayArea.append("span")
 					.classed("clickable", true)
+					.classed("highlightButton", true)
 					.text(thisUser)
 					.on("click", function() {
 						highlightUserRow(thisUser);
@@ -2220,7 +2221,7 @@ function setHighlights() {
 					});
 				if (i < highlightedUsers.length - 1)
 					userDisplayArea.append("span")
-						.text(", ");
+						.text(" ");
 			}
 		} else {
 			userDisplayArea.text(highlightedUsers.length +" users");
@@ -2244,6 +2245,7 @@ function setHighlights() {
 				let thisEventType = highlightedEventTypes[i];
 				eventTypeDisplayArea.append("span")
 					.classed("clickable", true)
+					.classed("highlightButton", true)
 					.style("color", colorList[highlightedEventTypes[i]][0].toString())
 					.text(itemShapes[highlightedEventTypes[i]])
 					.on("click", function() {
@@ -2258,7 +2260,7 @@ function setHighlights() {
 
 				if (i < highlightedEventTypes.length - 1)
 					eventTypeDisplayArea.append("span")
-						.text(", ");
+						.text(" ");
 			}
 		} else {
 			eventTypeDisplayArea.text(highlightedEventTypes.length +" event types");

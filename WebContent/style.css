@@ -225,6 +225,16 @@ body {
 	cursor: pointer;
 }
 
+.highlightButton {
+    color: black;
+    background-color: #dddee0;
+    padding: 0px 2px 0px 2px;
+    margin: auto;
+    border-radius: 5px;
+    box-shadow: none;
+    border: 1px solid black;
+}
+
 .button:hover {
     background-color: #999999;
 }
