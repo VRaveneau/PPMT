@@ -915,7 +915,8 @@ function setupTool() {
 	d3.select("body").on("keyup", handleKeyPress);
 	d3.select("body").on("mousemove", moveTooltip);
 	d3.select("body").on("click", switchTooltipLock);
-	d3.select("#tooltip").on("mouseleave", leaveTooltip);
+	d3.select("#tooltip").on("mouseleave", prepareToLeaveTooltip);
+	d3.select("#tooltip").on("mouseenter", enterTooltip);
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
@@ -5222,13 +5223,23 @@ function updateTooltipLockMessage() {
 var tooltip = d3.select("#tooltip");
 var tooltipNode = tooltip.node();
 var tooltipOffsetFromMouse = 5;
+
+var currentMousePos = [];
 //var tooltipCornerX = 0;
 //var tooltipCornerY = 0;
 
 function moveTooltip() {
+	let mousePosition;
+	try {
+		mousePosition = d3.mouse(d3.select("body").node());
+		currentMousePos = mousePosition;
+	} catch(e) {
+		mousePosition = currentMousePos;
+	}
+	
 	if (tooltipIsFixed == true)
 		return;
-	let mousePosition = d3.mouse(d3.select("body").node());
+	
 	let mX = mousePosition[0];
 	let mY = mousePosition[1];
 	//let xDistance = Math.max(tooltipCornerX - mX, mX - tooltipCornerX);
@@ -5253,9 +5264,24 @@ function unlockTooltip() {
 	updateTooltipLockMessage();
 }
 
+var tooltipCloseTimeout;
+
+function prepareToLeaveTooltip() {
+	tooltipCloseTimeout = setTimeout(leaveTooltip, 500);
+}
+
 function leaveTooltip() {
 	unlockTooltip();
 	clearTooltip();
+	updateTooltip();
+}
+
+function enterTooltip() {
+	// Prevent the hiding of the tooltip if it has been planned
+	clearTimeout(tooltipCloseTimeout);
+	
+	tooltip.select(".subtitle")
+		.text("Move the pointer out of this tooltip to close it");
 }
 
 function switchTooltipLock() {
