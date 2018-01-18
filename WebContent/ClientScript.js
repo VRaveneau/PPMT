@@ -3597,9 +3597,9 @@ function addPatternToList(message) {
 				});*/
 			
 			thisRow.append("td")
-				.text(pSize);
-			thisRow.append("td")
 				.text(pSupport);
+			thisRow.append("td")
+				.text(pSize);
 		} else { // append at the right position in the list
 			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
 			//console.log("First unselectedId: "+firstUnselectedId);
@@ -3666,9 +3666,9 @@ function addPatternToList(message) {
 				});*/
 			
 			thisRow.append("td")
-				.text(pSize);
-			thisRow.append("td")
 				.text(pSupport);
+			thisRow.append("td")
+				.text(pSize);
 			
 			firstUnselectedNode.parentNode.insertBefore(thisRow.node(), firstUnselectedNode);
 		}
@@ -3943,9 +3943,9 @@ function createPatternListDisplay() {
 			});*/
 		
 		thisRow.append("td")
-			.text(pSize);
-		thisRow.append("td")
 			.text(pSupport);
+		thisRow.append("td")
+			.text(pSize);
 		/*
 		for (var k = 0; k < pSize; k++) {
 			pSvg.append("path")
