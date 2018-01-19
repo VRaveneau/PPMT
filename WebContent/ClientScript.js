@@ -5787,9 +5787,7 @@ var Timeline = function(elemId, options) {
 		
 		//console.log("UI size after : "+userInformations.length);
 		
-		self.canvasUsersContext.fillStyle = "#fff";
-		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
-		self.canvasUsersContext.fill();
+		self.canvasUsersContext.clearRect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
 		
 		self.hiddenCanvasUsersContext.fillStyle = "#fff";
 		self.hiddenCanvasUsersContext.rect(0,0,self.hiddenCanvasUsers.attr("width"),self.hiddenCanvasUsers.attr("height"));
@@ -7604,14 +7602,14 @@ var Timeline = function(elemId, options) {
 		.on("mousemove", function(){	// Handling picking
 			var coords = d3.mouse(this);
 			// offset the y mouse position according to the sessions offset
-			coords[1] = coords[1] - self.yUsers.bandwidth()/2;
+			coords[1] = coords[1];// - self.yUsers.bandwidth()/2;
 			let mouseDate = self.xUsers.invert(coords[0]).getTime();
 			let userListDomain = self.yUsers.domain();
 			let userListRange = self.yUsers.range();
 			
 			let data = [];
 			
-			let mouseUserIndex = Math.round((coords[1] / self.yUsers.step()));
+			let mouseUserIndex = Math.floor((coords[1] / self.yUsers.step()));
 			let mouseUser = userListDomain[mouseUserIndex];//userListDomain[d3.bisect(userListRange, coords[1]) -2];
 			
 			// If there is no user under the mouse, no point in trying to detect something
@@ -7624,18 +7622,23 @@ var Timeline = function(elemId, options) {
 			
 			data.push(mouseUser);
 			
-			//console.log("Mouse x-y: "+coords[0]+"-"+coords[1]+" / "+mouseUser+" at "+self.xUsers.invert(coords[0]));
-			// get the correct user session
 			let theSession = null;
-			for (let sessIt=0; sessIt < userSessions[mouseUser].length; sessIt++) {
-				self.hoveredSession = null;
-				let sess = userSessions[mouseUser][sessIt];
-				if (sess.start > mouseDate)
-					break;
-				if (sess.end >= mouseDate) {
-					theSession = sess;
-					self.hoveredSession = sess;
-					break;
+			
+			// try to find the session if there is one under (the pixel is not white)
+			let pixelColors = self.canvasUsersContext.getImageData(coords[0], coords[1],1,1).data;
+			if (pixelColors[3]!= 0) {
+				//console.log("Mouse x-y: "+coords[0]+"-"+coords[1]+" / "+mouseUser+" at "+self.xUsers.invert(coords[0]));
+				// get the correct user session
+				for (let sessIt=0; sessIt < userSessions[mouseUser].length; sessIt++) {
+					self.hoveredSession = null;
+					let sess = userSessions[mouseUser][sessIt];
+					if (sess.start > mouseDate)
+						break;
+					if (sess.end >= mouseDate) {
+						theSession = sess;
+						self.hoveredSession = sess;
+						break;
+					}
 				}
 			}
 			// Display the tooltip if we have found a session
