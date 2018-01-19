@@ -3908,7 +3908,7 @@ function createPatternListDisplay() {
 						selectedPatternIds.push(pId);
 						//thisRow.style("font-weight","bold");
 					} else {
-						var index = selectedPatternIds.indexOf(pId);
+						let index = selectedPatternIds.indexOf(pId);
 						if (index >= 0)
 							selectedPatternIds.splice(index, 1);
 						//thisRow.style("font-weight","normal");
@@ -6072,7 +6072,7 @@ var Timeline = function(elemId, options) {
 		//console.log("Starting to draw pattern occurrences");
 		var idsToDraw = [];
 		
-		for (var key in self.displayPatternOccs) {
+		for (let key in self.displayPatternOccs) {
 		  if (self.displayPatternOccs.hasOwnProperty(key)) {
 		    if (self.displayPatternOccs[key] == true)
 		    	idsToDraw.push(key);
@@ -6092,13 +6092,7 @@ var Timeline = function(elemId, options) {
 			.range(range);
 	
 		self.yAxisPatterns = d3.axisRight(self.yPatterns)
-	        .tickValues(self.yPatterns.domain())
-	        .tickFormat(function(d, i) {
-	        	if (patternsInformation[d] && patternsInformation[d].length >= 0) {
-	        		return patternsInformation[d][0];
-	        	} else
-	        		return d;
-	        });
+	        .tickValues(self.yPatterns.domain());
 		self.focus.select("#focusRightAxis").call(self.yAxisPatterns);
 		
 		// Hide the axis if there is no selected pattern or if we are not in distribution mode
@@ -6112,19 +6106,33 @@ var Timeline = function(elemId, options) {
 			d3.select("#focusRightAxis").selectAll(".tick text")
 				.each(function(d) {
 					let el = d3.select(this);
-					let elts = el.text().split(' ');
-					
-					if (elts.length > 0 && elts[0].length > 0) {
-						// erase the old text
-						el.text("");
-						// add a tspan for each event type symbol
-						for (let symbolIdx = 0; symbolIdx < elts.length; symbolIdx++) {
-							let evtName = elts[symbolIdx];
-							el.append("tspan")
-								.text(itemShapes[evtName])
-								.style("fill", colorList[evtName][0].toString());
+					let pId = parseInt(el.text());
+					if (!isNaN(pId) && patternsInformation[pId] && patternsInformation[pId].length >= 0) {
+		        		let elts = patternsInformation[pId][0].split(' ');
+		        		
+		        		el.classed("clickable", true)
+		        			.on("click", function() {
+		        				let index = selectedPatternIds.indexOf(pId);
+								if (index >= 0) {
+									selectedPatternIds.splice(index, 1);
+									self.displayPatternOccurrences(pId);
+									createPatternListDisplay();
+									d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+								}
+		        			});
+		        		
+		        		if (elts.length > 0 && elts[0].length > 0) {
+							// erase the old text
+							el.text("");
+							// add a tspan for each event type symbol
+							for (let symbolIdx = 0; symbolIdx < elts.length; symbolIdx++) {
+								let evtName = elts[symbolIdx];
+								el.append("tspan")
+									.text(itemShapes[evtName])
+									.style("fill", colorList[evtName][0].toString());
+							}
 						}
-					}
+		        	}
 				});
 		}
 		
