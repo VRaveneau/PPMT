@@ -6124,6 +6124,8 @@ var Timeline = function(elemId, options) {
 		        		if (elts.length > 0 && elts[0].length > 0) {
 							// erase the old text
 							el.text("");
+							el.append("title")
+								.text(patternsInformation[pId][0]);
 							// add a tspan for each event type symbol
 							for (let symbolIdx = 0; symbolIdx < elts.length; symbolIdx++) {
 								let evtName = elts[symbolIdx];
