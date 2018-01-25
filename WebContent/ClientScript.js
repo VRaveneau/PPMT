@@ -6881,7 +6881,7 @@ var Timeline = function(elemId, options) {
 						.attr("class","displayControlForm")
 						.style("float","right");
 	self.binsDisplayStyleForm.append("label")
-		.text("Colors: ")
+		.text("Show categories: ")
 		.style("order","3");
 	self.binsDisplayStyleForm.append("input")
 		.attr("id","displayBinColorInput")
@@ -6905,7 +6905,7 @@ var Timeline = function(elemId, options) {
 			self.displayData();
 	});
 	self.binsDisplayStyleForm.append("label")
-		.text("Full height: ")
+		.text("Relative size: ")
 		.style("order","1")
 		.style("visibility","hidden");
 	self.binsDisplayStyleForm.append("input")
