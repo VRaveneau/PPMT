@@ -676,6 +676,14 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	margin-bottom: 0px;
 }
 
+/************************************/
+/*	Override d3 default settings	*/
+/************************************/
+
+.brush rect.selection {
+	fill: black;
+}
+
 /********************************/
 /* 	Dataset selection panel 	*/
 /********************************/

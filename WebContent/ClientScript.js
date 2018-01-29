@@ -6666,10 +6666,14 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.brushed = function() {
-		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") {
+		let s = d3.event.selection || self.xContext.range();
+		// draw the custom brush handles
+		self.brushHandles.attr("display", null).attr("transform", function(d, i) { return "translate(" + [ s[i], - self.marginContext.size / 4] + ")"; });
+		
+		if (d3.event.sourceEvent && d3.event.sourceEvent.type === "zoom") {	
 			return; // ignore brush-by-zoom
 		}
-		var s = d3.event.selection || self.xContext.range();
+		
 		self.xFocus.domain(s.map(self.xContext.invert, self.xContext));
 		self.xPatterns.domain(s.map(self.xContext.invert, self.xContext));
 		self.xUsers.domain(s.map(self.xContext.invert, self.xContext));
@@ -6695,6 +6699,9 @@ var Timeline = function(elemId, options) {
 		self.svgUsers.select(".zoom")
 			.call(self.zoomUsers.transform, d3.zoomIdentity.scale(self.width / (s[1] - s[0]))
 			.translate(-s[0], 0));
+		
+		// draw the custom brush handles
+		//self.brushHandles.attr("display", null).attr("transform", function(d, i) { return "translate(" + [ s[i], - self.marginContext.size / 4] + ")"; });
 	};
 
 	self.typeHeight = {};
@@ -7589,10 +7596,28 @@ var Timeline = function(elemId, options) {
 		//.attr("transform", "translate(0,0)")
 		.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Adding the brush to the context part
-	self.context.append("g")
+	self.gBrush = self.context.append("g")
 		.attr("class", "brush")
-		.call(self.brush)
-		.call(self.brush.move, self.xFocus.range());
+		.call(self.brush);
+	// Creating the custom handles for the context brush
+	self.brushResizePath = function(d) {
+	    var e = +(d.type == "e"),
+	        x = e ? 1 : -1,
+	        y = self.marginContext.size / 2;
+	    return "M" + (.5 * x) + "," + y + "A6,6 0 0 " + e + " " + (6.5 * x) + "," + (y + 6) + "V" + (2 * y - 6) + "A6,6 0 0 " + e + " " + (.5 * x) + "," + (2 * y) + "Z" + "M" + (2.5 * x) + "," + (y + 8) + "V" + (2 * y - 8) + "M" + (4.5 * x) + "," + (y + 8) + "V" + (2 * y - 8);
+	}
+	// Adding custom handles to the context brush
+	self.brushHandles = self.gBrush.selectAll(".handle--custom")
+		.data([{type: "w"}, {type: "e"}])
+		.enter().append("path")
+		  .attr("class", "handle--custom")
+		  .attr("stroke", "#000")
+		  .attr("fill", "#666")
+		  .attr("fill-opacity", 0.8)
+		  .attr("cursor", "ew-resize")
+		  .attr("d", self.brushResizePath);
+	self.gBrush.call(self.brush.move, self.xFocus.range());
+	
 	
 	self.showPosition = function() {
 		if (self.svgPointerH.style("display") == "none") {
