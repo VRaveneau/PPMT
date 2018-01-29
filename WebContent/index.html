@@ -101,7 +101,8 @@
 									<div class="searchFieldArea">
 										&nbsp;
 										<input type="text" class="searchField" placeholder="Write user names here">
-										<input type="text" class="suggestionField" disabled>
+										<input type="text" class="hidden" disabled>
+										<div class="suggestionDiv"></div>
 									</div>
 								</div>
 							</form>
@@ -290,7 +291,9 @@
 									<div class="searchFieldArea">
 										&nbsp;
 										<input type="text" class="searchField" placeholder="Write event types here">
-										<input type="text" class="suggestionField" disabled>
+										<input type="text" class="hidden" disabled> <!-- To prevent submitting the form and reloading the page -->
+										<div class="suggestionDiv">
+										</div>
 									</div>
 								</div>
 							</form>

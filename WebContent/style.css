@@ -798,7 +798,7 @@ table {
 }
 
 .searchBarArea {
-    overflow: hidden;
+    /*overflow: hidden;*/
 }
 
 .searchBarArea input.searchButton {
@@ -806,7 +806,7 @@ table {
 }
 
 .searchBarArea div {
-    overflow: hidden;
+    /*overflow: hidden;*/
 }
 
 .searchFieldArea {
@@ -819,19 +819,38 @@ table {
 	position: absolute;
 	top: 0px;
 	left: 0px;
-	width: 100%;
+	width: 98%;
 	z-index: 1;
 	background: transparent;
 }
-.suggestionField {
+
+.suggestionDiv {
 	position: absolute;
-	top: 0px;
+	top: 20px;
 	left: 0px;
-	z-index: 0;
-	background: transparent;
-	
-	width: 100%;
-	color: rgb(51, 51, 51);
+	z-index: 300;
+	width: 99%;
+	display: none;
+	background: rgba(255,255,255,0.85);
+	color: black;
+	border-style: solid;
+	border-color: lightgrey;
+	border-width: 0px 1px 1px 1px;
+	max-height: 250px;
+	overflow-y: auto;
+}
+
+.suggestionDiv p {
+	margin-top: 0px;
+	margin-bottom: 0px;
+	padding-left: 5px;
+}
+
+.suggestionDiv p.selected {
+	margin-top: 0px;
+	margin-bottom: 0px;
+	background-color: #04B7FB;
+	color: black;
 }
 
 /********************************/

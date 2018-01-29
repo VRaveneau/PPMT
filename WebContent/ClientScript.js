@@ -926,10 +926,30 @@ let currentUserSearchInput = "";
 let currentUserSearchSuggestionIdx = -1;
 let relatedUsers = [];
 let currentKeyDownUser = "";
+let mouseIsOverUserSuggestions = false;
 
 function setupUserSearchField() {
 	let searchField = d3.select("#Users").select("input.searchField");
 	let suggestionField = d3.select("#Users").select("input.suggestionField");
+	let suggestionDiv = d3.select("#Users").select(".suggestionDiv");
+	
+	suggestionDiv.on("mouseenter", function(d,i) {
+		mouseIsOverUserSuggestions = true;
+	});
+	
+	suggestionDiv.on("mouseleave", function(d,i) {
+		mouseIsOverUserSuggestions = false;
+	});
+	
+	searchField.on("focus", function() {
+		suggestionDiv.style("display", "block");
+	});
+	
+	searchField.on("focusout", function() {
+		if (mouseIsOverUserSuggestions == false)
+			suggestionDiv.style("display", "none");
+	});
+	
 	searchField.on("input", function() {
 		let currentValue = searchField.property("value");
 		currentUserSearchInput = currentValue;
@@ -942,16 +962,48 @@ function setupUserSearchField() {
 			
 			if (relatedUsers.length > 0) {
 				currentUserSearchSuggestionIdx = 0;
+				suggestionDiv.html("");
+				relatedUsers.forEach(function(d,i) {
+					suggestionDiv.append("p")
+						.classed("selected", i==currentUserSearchSuggestionIdx)
+						.classed("clickable", true)
+						.text(d)
+						.on("click", function() {
+							currentUserSearchInput = relatedUsers[i];
+							searchField.property("value",currentUserSearchInput);
+							// Updates the suggestion list
+							relatedUsers = userList.filter(function(e, j) {
+								return e.includes(currentUserSearchInput);
+							});
+							relatedUsers.sort();
+
+							if (relatedUsers.length > 0) {
+								currentUserSearchSuggestionIdx = 0;
+								suggestionDiv.html("");
+								relatedUsers.forEach(function(e,j) {
+									suggestionDiv.append("p")
+										.classed("selected", j==currentUserSearchSuggestionIdx)
+										.text(e);
+								});
+							} else {
+								currentUserSearchSuggestionIdx = -1;
+								suggestionDiv.html("");
+							}
+							
+							createUserListDisplay();
+							suggestionDiv.style("display", "none");
+						});
+				});
 				suggestionField.property("value",relatedUsers[0]);
 			} else {
 				currentUserSearchSuggestionIdx = -1;
-				suggestionField.property("value","");
+				suggestionDiv.html("");
 			}
 		} else {
 			currentUserSearchInput = "";
 			currentUserSearchSuggestionIdx = -1;
 			relatedUsers = [];
-			suggestionField.property("value","");
+			suggestionDiv.html("");
 		}
 		createUserListDisplay();
 	});
@@ -962,7 +1014,11 @@ function setupUserSearchField() {
 			return;
 		currentKeyDownUser = keyName;
 		switch(keyName) {
+		case "Escape":
+			suggestionDiv.style("display", "none");
+			break;
 		case "ArrowRight":
+		case "Enter":
 			if (currentUserSearchSuggestionIdx >= 0) {
 				currentUserSearchInput = relatedUsers[currentUserSearchSuggestionIdx];
 				searchField.property("value",relatedUsers[currentUserSearchSuggestionIdx]);
@@ -974,10 +1030,15 @@ function setupUserSearchField() {
 
 				if (relatedUsers.length > 0) {
 					currentUserSearchSuggestionIdx = 0;
-					suggestionField.property("value",relatedUsers[0]);
+					suggestionDiv.html("");
+					relatedUsers.forEach(function(d,i) {
+						suggestionDiv.append("p")
+							.classed("selected", i==currentUserSearchSuggestionIdx)
+							.text(d);
+					});
 				} else {
 					currentUserSearchSuggestionIdx = -1;
-					suggestionField.property("value","");
+					suggestionDiv.html("");
 				}
 			}
 			createUserListDisplay();
@@ -985,13 +1046,17 @@ function setupUserSearchField() {
 		case "ArrowUp":
 			if (currentUserSearchSuggestionIdx > 0) {
 				currentUserSearchSuggestionIdx--;
-				suggestionField.property("value",relatedUsers[currentUserSearchSuggestionIdx]);
+				suggestionDiv.selectAll("p").each(function(d,i) {
+					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
+				});
 			}
 			break;
 		case "ArrowDown":
 			if (currentUserSearchSuggestionIdx < relatedUsers.length - 1) {
 				currentUserSearchSuggestionIdx++;
-				suggestionField.property("value",relatedUsers[currentUserSearchSuggestionIdx]);
+				suggestionDiv.selectAll("p").each(function(d,i) {
+					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
+				});
 			}
 			break;
 		default:
@@ -1005,10 +1070,29 @@ let currentPatternSearchFragment = ""; // The current fragment of the value (wha
 let currentPatternSearchSuggestionIdx = -1;
 let relatedEventTypes = [];
 let currentKeyDown = "";
+let mouseIsOverPatternSuggestions = false;
 
 function setupAlgorithmSearchField() {
 	let searchField = d3.select("#patternListArea").select("input.searchField");
-	let suggestionField = d3.select("#patternListArea").select("input.suggestionField");
+	let suggestionDiv = d3.select("#patternListArea").select(".suggestionDiv");
+	
+	suggestionDiv.on("mouseenter", function(d,i) {
+		mouseIsOverPatternSuggestions = true;
+	});
+	
+	suggestionDiv.on("mouseleave", function(d,i) {
+		mouseIsOverPatternSuggestions = false;
+	});
+	
+	searchField.on("focus", function() {
+		suggestionDiv.style("display", "block");
+	});
+	
+	searchField.on("focusout", function() {
+		if (mouseIsOverPatternSuggestions == false)
+			suggestionDiv.style("display", "none");
+	});
+	
 	searchField.on("input", function() {
 		let currentValue = searchField.property("value");
 		currentPatternSearchInput = currentValue;
@@ -1024,17 +1108,51 @@ function setupAlgorithmSearchField() {
 			
 			if (relatedEventTypes.length > 0) {
 				currentPatternSearchSuggestionIdx = 0;
-				suggestionField.property("value", baseValue + relatedEventTypes[0]);
+				suggestionDiv.html("");
+				relatedEventTypes.forEach(function(d,i) {
+					suggestionDiv.append("p")
+						.classed("selected", i==currentPatternSearchSuggestionIdx)
+						.classed("clickable", true)
+						.text(baseValue + d)
+						.on("click", function() {
+							let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+							let baseValue = currentPatternSearchInput.substr(0, baseLength);
+							currentPatternSearchInput = baseValue + relatedEventTypes[i];
+							currentPatternSearchFragment = relatedEventTypes[i];
+							searchField.property("value", currentPatternSearchInput);
+							// Updates the suggestion list
+							relatedEventTypes = eventTypes.filter(function(e, j) {
+								return e.includes(currentPatternSearchFragment);
+							});
+							relatedEventTypes.sort();
+
+							if (relatedEventTypes.length > 0) {
+								currentPatternSearchSuggestionIdx = 0;
+								suggestionDiv.html("");
+								relatedEventTypes.forEach(function(e,j) {
+									suggestionDiv.append("p")
+										.classed("selected", j==currentPatternSearchSuggestionIdx)
+										.text(baseValue + e);
+								});
+							} else {
+								currentPatternSearchSuggestionIdx = -1;
+								suggestionDiv.html("");
+							}
+							
+							createPatternListDisplay();
+							suggestionDiv.style("display", "none");
+						});
+				});
 			} else {
 				currentPatternSearchSuggestionIdx = -1;
-				suggestionField.property("value","");
+				suggestionDiv.html("");
 			}
 		} else {
 			currentPatternSearchInput = "";
 			currentPatternSearchSuggestionIdx = -1;
 			currentPatternSearchFragment = "";
 			relatedEventTypes = [];
-			suggestionField.property("value","");
+			suggestionDiv.html("");
 		}
 
 		createPatternListDisplay();
@@ -1046,7 +1164,11 @@ function setupAlgorithmSearchField() {
 			return;
 		currentKeyDown = keyName;
 		switch(keyName) {
+		case "Escape":
+			suggestionDiv.style("display", "none");
+			break;
 		case "ArrowRight":
+		case "Enter":
 			if (currentPatternSearchSuggestionIdx >= 0) {
 				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
@@ -1061,10 +1183,15 @@ function setupAlgorithmSearchField() {
 
 				if (relatedEventTypes.length > 0) {
 					currentPatternSearchSuggestionIdx = 0;
-					suggestionField.property("value",currentPatternSearchInput);
+					suggestionDiv.html("");
+					relatedEventTypes.forEach(function(d,i) {
+						suggestionDiv.append("p")
+							.classed("selected", i==currentPatternSearchSuggestionIdx)
+							.text(baseValue + d);
+					});
 				} else {
 					currentPatternSearchSuggestionIdx = -1;
-					suggestionField.property("value","");
+					suggestionDiv.html("");
 				}
 				
 				createPatternListDisplay();
@@ -1075,7 +1202,9 @@ function setupAlgorithmSearchField() {
 				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx--;
-				suggestionField.property("value",baseValue + relatedEventTypes[currentPatternSearchSuggestionIdx]);
+				suggestionDiv.selectAll("p").each(function(d,i) {
+					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
+				});
 			}
 			break;
 		case "ArrowDown":
@@ -1083,7 +1212,9 @@ function setupAlgorithmSearchField() {
 				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx++;
-				suggestionField.property("value",baseValue + relatedEventTypes[currentPatternSearchSuggestionIdx]);
+				suggestionDiv.selectAll("p").each(function(d,i) {
+					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
+				});
 			}
 			break;
 		default:
