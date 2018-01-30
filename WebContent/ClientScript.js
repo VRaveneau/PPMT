@@ -5296,7 +5296,7 @@ function changeTooltip(data, origin) {
 						.text(data[1] + " pattern");
 				}
 				ttTableHead.append("th")
-					.text("Support");
+					.text("Support (here"+String.fromCharCode(160)+"/"+String.fromCharCode(160)+"total)"); // Use non-breaking spaces
 				let ttTableBody = ttTable.append("tbody");
 				for (let pIdx = 5; pIdx < data.length; pIdx++) {
 					let thisData = data[pIdx].split(":");
@@ -5338,7 +5338,7 @@ function changeTooltip(data, origin) {
 						.classed("tooltipPatternText", true)
 						.text(" " + patternsInformation[pId][0]);
 					ttTableRow.append("td")
-						.text(thisData[1].trim());
+						.text(thisData[1].trim() + " / " + patternsInformation[pId][2]);
 				}
 			}
 			
