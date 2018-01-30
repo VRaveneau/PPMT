@@ -432,6 +432,17 @@ body {
 /*								*/
 /********************************/
 
+thead {
+	background-color: white;
+	position: -webkit-sticky;
+	position: sticky;
+	top: -1px;
+}
+/* Deal with the event panel, where a button is above the table */
+#Events thead {
+	top: -7px;
+}
+
 table.sortable tbody tr:nth-child(2n) td {
   /*background: #e3e2e2;*/
 }

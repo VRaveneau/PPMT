@@ -925,9 +925,6 @@ function setupTool() {
 	setupAlgorithmSearchField();
 	setupUserSearchField();
 	
-	// Add event listeners to table headers so that they stay visible
-	//document.getElementById("userTableArea").addEventListener("scroll",keepTableHeaderInSight);
-	
 	// Setup the input for the number of users to display
 	d3.select("#showAllUserSessionsInput")
 		.on("change", function() {
@@ -4426,11 +4423,6 @@ function formatDate(date) {
 /************************************************/
 /*				Handling the tabs				*/
 /************************************************/
-
-function keepTableHeaderInSight() {
-	let translate = "translate(0,"+this.scrollTop+"px)";
-	this.querySelector("thead").style.transform = translate;
-}
 
 /**
  * Manage the left-side (control) tabs
