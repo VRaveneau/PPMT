@@ -698,14 +698,47 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	padding: 0px;
 }
 
-#datasetList li {
-	padding: 45px 0px;
+#datasetList .datasetCard {
+	padding: 40px 0px 20px 0px;
 	margin: 0px 0px 20px 0px;
 	
 	width: 40%;
 	border: 4px solid #006992;
 	
+	display: flex;
+	flex-wrap: wrap;
+}
+
+#datasetList .datasetCard .name {
 	text-align: center;
+	min-width: 100%;
+	margin-top: 0px;
+	margin-bottom: 20px;
+	
+	font-weight: bold;
+}
+
+#datasetList .datasetCard .datasetParameter {
+	width: 25%;
+	text-align: center;
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+
+#datasetList .datasetCard .nbUsers {
+	
+}
+
+#datasetList .datasetCard .nbEvents {
+	
+}
+
+#datasetList .datasetCard .nbEventTypes {
+	
+}
+
+#datasetList .datasetCard .duration {
+	
 }
 
 /********************************/

@@ -412,6 +412,10 @@ public class Dataset {
 		return loading;
 	}
 	
+	public JsonObject getParameters() {
+		return parameters;
+	}
+	
 	public String getFirstEvent() {
 		return firstEvent.toString();
 	}

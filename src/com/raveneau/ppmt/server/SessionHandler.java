@@ -636,14 +636,15 @@ public class SessionHandler {
 		System.out.println("requesting dataset list");
 		
 		// list of dataset names
-		List<String> list = datasetManager.getDatasetList();
+		List<Dataset> list = datasetManager.getDatasetList();
 		
 		dataMessage = provider.createObjectBuilder()
 				.add("action", "datasetList")
 				.add("size", list.size());
 		int count = 0;
-		for (String t : list) {
-			dataMessage.add(Integer.toString(count), t);
+		for (Dataset d : list) {
+			dataMessage.add(Integer.toString(count), d.getName());
+			dataMessage.add("param"+Integer.toString(count), d.getParameters().toString());
 			count++;
 		}
 		sendToSession(session, dataMessage.build());

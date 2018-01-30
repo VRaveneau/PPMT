@@ -124,9 +124,9 @@ public class DatasetManager {
 		return getDataset(datasetName).getName();
 	}
 	
-	public List<String> getDatasetList() {
+	public List<Dataset> getDatasetList() {
 		updateDatasetList();
-		return datasetNames;
+		return datasets;
 	}
 	
 	public void updateDatasetList() {

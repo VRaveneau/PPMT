@@ -457,6 +457,7 @@ function processMessage(message/*Compressed*/) {
 	//var message = LZString.decompressFromUTF16(messageCompressed.data);
 	var msg = JSON.parse(message.data);
 	console.log("Receive message on " + new Date());
+	console.log(msg);
 	
 	if (msg.action === "add") {
 		addPattern(msg);
@@ -625,25 +626,66 @@ function receiveDatasetList(message) {
 	
 	//console.log("Receiving dataset list of size "+message.size);
 	
-	var dsList = d3.select("#datasetList");
-	var datasetNb = parseInt(message.size);
+	let dsList = d3.select("#datasetList");
+	let datasetNb = parseInt(message.size);
 	
-	for (datasetNb; datasetNb > 0;) {
-		datasetNb--;
-		let dsName = message[datasetNb.toString()];
-		var item = dsList.append("li")
-			.text(dsName)
+	for (let i = 0; i < datasetNb; i++) {
+		let dsName = message[i.toString()];
+		let dsParams = JSON.parse(message["param"+i.toString()]);
+		console.log(dsParams);
+		let card = dsList.append("div")
+			.classed("datasetCard", true)
 			.classed("clickable", true);
-		item.on("click",function() {
+		card.on("click",function() {
 			startTool(dsName);
 		});
+		card.append("p")
+			.classed("name", true)
+			.text(dsName);
+		
+		// Add more information to the card if they are available
+		if (dsParams.nbUsers) {
+			card.append("p")
+				.classed("nbUsers", true)
+				.classed("datasetParameter", true)
+				.text("Users : " + dsParams.nbUsers);
+		}
+		if (dsParams.nbEvents) {
+			// Display large numbers with a space every 3 digit
+			let nbE = dsParams.nbEvents
+				.toString().split('').reverse().reduce(function(acc,val) {
+					if (acc.size % 3 == 0) {
+						acc.val.push(" ");
+					}
+					acc.val.push(val);
+					acc.size += 1;
+					return acc;
+				}, {"val":[], "size" :0})
+				.val.reverse().join('').trim();
+			card.append("p")
+				.classed("nbEvents", true)
+				.classed("datasetParameter", true)
+				.text("Events : " + nbE);
+		}
+		if (dsParams.nbEventTypes) {
+			card.append("p")
+				.classed("nbEventTypes", true)
+				.classed("datasetParameter", true)
+				.text("Event types : " + dsParams.nbEventTypes);
+		}
+		if (dsParams.duration) {
+			card.append("p")
+				.classed("duration", true)
+				.classed("datasetParameter", true)
+				.text("Duration : " + dsParams.duration);
+		}
 		
 		switch(dsName) {
 		case "coconotesPPMT":
-			item.style("order","1");
+			card.style("order","1");
 			break;
 		case "recsysSamplecategory":
-			item.style("order","2");
+			card.style("order","2");
 			break;
 		default:
 		}
