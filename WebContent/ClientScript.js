@@ -3944,6 +3944,17 @@ function updatePatternPageSize() {
 	createPatternListDisplay();
 }
 
+function unselectAllPatterns() {
+	timeline.resetPatternOccurrencesDisplay(selectedPatternIds);
+	selectedPatternIds = [];
+	
+	createPatternListDisplay();
+	timeline.drawUsersPatterns();
+	
+	// Update the number of selected patterns display
+	d3.select("#selectedPatternNumberSpan").text('0');
+}
+
 /*
  * Finds the first id in the list of a pattern not selected by the user
  * 	starting at a given index
@@ -5793,7 +5804,19 @@ var Timeline = function(elemId, options) {
 			self.displayPatternOccs[id] = true;
 		}
 		//self.drawPatternOccurrences();  Prefered to displaying the old data, only when the patterns will always be drawn on their specific layer
-		timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+		self.displayData(); // TODO optimize by just displaying the pattern occurrences
+	}
+	
+	// Stop displaying any pattern
+	// Essentially serves as a replacement for several calls to self.displayPatternOccurrences
+	//   avoiding multiple displayData() calls
+	// The expected argument is an array of pattern id
+	self.resetPatternOccurrencesDisplay = function(ids) {
+		ids.forEach(function(d,i) {
+			self.displayPatternOccs[d] = false;
+		});
+		
+		self.displayData(); // TODO optimize by just displaying the pattern occurrences
 	}
 	
 	self.addPatternOccurrence = function(id, occ) {

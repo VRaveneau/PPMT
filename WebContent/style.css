@@ -208,6 +208,10 @@ body {
 	float: left;
 }
 
+.right-aligned {
+	float: right;
+}
+
 .button {
     display: inline;
     color: #fff;
