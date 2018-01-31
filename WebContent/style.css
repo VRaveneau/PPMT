@@ -1054,6 +1054,12 @@ ul.algorithmTabs li :not(.active):hover {
 
 .algoParameterRecap {
 	margin: 0px;
+	font-weight: bold;
+}
+
+.algoParameterRecap span{
+	margin: 0px;
+	font-weight: normal;
 }
 
 /********************************/

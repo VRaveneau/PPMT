@@ -4596,10 +4596,11 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap, 
 	//startAlgorithmRuntime();
 	
 	// Update the display of the current parameters in the Execution tab
-	d3.select("#currentSupport").text(minSupport);
-	d3.select("#currentGap").text(minGap+" to "+maxGap);
+	d3.select("#currentSupport").text(minSupport+" occs.");
+	d3.select("#currentGap").text(minGap+"-"+maxGap+" events");
 	d3.select("#currentWindow").text(windowSize);
-	d3.select("#currentSize").text(maxSize);
+	d3.select("#currentSize").text(maxSize+" events");
+	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
 	
 }
 
