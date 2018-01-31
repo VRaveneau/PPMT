@@ -5958,6 +5958,10 @@ var Timeline = function(elemId, options) {
 	}
 	
 	self.colorToDataUserPatterns = {};
+
+	self.sessionColor = "#01668C";//04B7FB
+	self.sessionColorFaded = "#7DCAE7";//c8daea
+	self.sessionColorHighlighted = "#9B0000";//red
 	
 	self.drawUsersPatterns = function() {
 		//console.log("Starting to draw users patterns");
@@ -6069,13 +6073,13 @@ var Timeline = function(elemId, options) {
 			let userName = shownUsers[i];
 			
 			userSessions[userName].forEach(function(ses, sesIdx) {
-				let color = "#04B7FB";
+				let color = self.sessionColor;
 				if (hasSelected == true) {
-					color = "#c8daea"; // lighter blue
+					color = self.sessionColorFaded; // lighter blue
 					Object.keys(ses.count).forEach(function(id, idx) {
 						if (selectedPatternIds.includes(Number(id))) {
 							//console.log(id+" selected");
-							color = "red";
+							color = self.sessionColorHighlighted;
 						}
 					});
 				}
