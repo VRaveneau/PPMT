@@ -6089,20 +6089,23 @@ var Timeline = function(elemId, options) {
 				
 				self.canvasUsersContext.beginPath();
 				
-				let x1 = self.xUsers(new Date(ses.start));
-				let x2 = self.xUsers(new Date(ses.end));
+				let x1 = Math.floor(self.xUsers(new Date(ses.start)));
+				let x2 = Math.floor(self.xUsers(new Date(ses.end)));
 				let y1 = 0;
 				let y2 = 0;
 				if (x1 == x2) {
+					// Offset the position to get crisp lines
+					x1 += 0.5;
+					x2 += 0.5;
 					y1 = self.yUsers(userName);
 					y2 = self.yUsers(userName) + self.yUsers.bandwidth();
 					self.canvasUsersContext.lineWidth = 1;
 				} else {
 					y1 = self.yUsers(userName) + self.yUsers.bandwidth()/2;
 					y2 = y1;
-					self.canvasUsersContext.lineWidth = self.yUsers.bandwidth();
+					self.canvasUsersContext.lineWidth = Math.floor(self.yUsers.bandwidth());
 				}
-
+				
 				self.canvasUsersContext.strokeStyle = color;
 				self.canvasUsersContext.moveTo(x1,y1);
 				self.canvasUsersContext.lineTo(x2,y2);
