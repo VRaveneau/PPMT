@@ -1,47 +1,28 @@
-console.log("start");
-
-// live version
-//var __websocketAdress__ = "ppmt.univ-nantes.fr/ppmt/wsppmt";
-// local version
-var __websocketAdress__ = "localhost:8080/ppmt/wsppmt";
-
 window.addEventListener ? 
-		window.addEventListener("load",init,false) : 
-		window.attachEvent && window.attachEvent("onload",init);
+		window.addEventListener("load", init, false) : 
+		window.attachEvent && window.attachEvent("onload", init);
 
+var isLive = false;	// Switch between live and dev socket adress
+//isLive = true;	// Uncomment for the live version
+
+/******************************************************************************/
+/*																			  */
+/*									Variables								  */
+/*																			  */
+/******************************************************************************/
+
+// Adress of the websocket that we want to connect to
+var __websocketAdress__ = isLive ?
+							"ppmt.univ-nantes.fr/ppmt/wsppmt" :
+							"localhost:8080/ppmt/wsppmt";
 var webSocket = null;
-var timeline = null;
-var timelineXAxis = null;
-var timelineOverview = null;
-var timelineOverviewXAxis = null;
-var timelineIds = 0;
 
-var defaultNbUserShown = 15;
-var nbUserShown = defaultNbUserShown;
-
-var currentDatasetName = "";
-
-var patternsLoaded = false;
-var patternsReceived = false;
-
-// Timeline brushing
-var brush = null;
-var zoom = null;
-var x = null;
-var xOverview = null;
-var xAxis = null;
-var xAxisOverview = null;
-var y = null;
-var yOverview = null;
-var area = null;
-var area2 = null;
-var tlHeight = null;
-
-var patterns = {};
-var occurrences = {}
-var patternProbabilities = {};
-var itemColors = {};
-var colorPalet = [/*First color is brighter, to represent the unselected version */
+/*************************************/
+/*			Display elements		 */
+/*************************************/
+// Colors available for the event type categories
+//First color is brighter, to represent the unselected version
+var colorPalet = [
 	["#e41a1c","#fbb4ae"], 
 	["#377eb8","#b3cde3"],
 	["#4daf4a","#ccebc5"],
@@ -51,8 +32,9 @@ var colorPalet = [/*First color is brighter, to represent the unselected version
 	["#f781bf","#fddaec"],
 	["#999999","#f2f2f2"],
 	["#ffff33","#ffffcc"]];
-var shapesDraw = extendedSymbolTypes[0];
-var shapesAlpha = [
+// Shapes available for the event types
+var shapesDraw = extendedSymbolTypes[0]; // SVG drawings
+var shapesAlpha = [ // Capitalized letters
 	"A",
 	"B",
 	"C",
@@ -80,7 +62,7 @@ var shapesAlpha = [
 	"Y",
 	"Z"
 	];
-var shapesWriteWhite = [
+var shapesWriteWhite = [ // UTF-8 symbols
 	"□",
 	"△",
 	"▷",
@@ -97,7 +79,7 @@ var shapesWriteWhite = [
 	"⇧",
 	"⇨",
 	"⇩"];
-var shapesWriteBlack = [
+var shapesWriteBlack = [ // Filled UTF-8 symbols
 	"■",
 	"▲",
 	"▶",
@@ -113,9 +95,10 @@ var shapesWriteBlack = [
 	"←",
 	"↑",
 	"→",
-	"↓"
-];
+	"↓"];
+// Selected shapes
 var shapes = shapesWriteBlack;
+// Names for the available shapes
 var shapeNamesDraw = extendedSymbolTypes[1];
 var shapeNamesAlpha = [
 	"A",
@@ -162,23 +145,54 @@ var shapeNamesWrite = [
 	"arrowUp",
 	"arrowRight",
 	"arrowDown"];
+// Selected names
 var shapeNames = shapeNamesWrite;
-var unselectedColorFading = 5;
-var itemShapes = {};	// TODO request a list of shapes from the server to populate this list
+
+/*************************************/
+/*			HCI elements			 */
+/*************************************/
+//
+var timeline = null;
+//
+var timelineXAxis = null;
+//
+var timelineOverview = null;
+//
+var timelineOverviewXAxis = null;
+//
+var timelineIds = 0;
+// Default number of users shown in the session view
+var defaultNbUserShown = 15;
+// Number of users shown in the session view
+var nbUserShown = defaultNbUserShown;
+
+// Timeline brushing
+var brush = null;
+var zoom = null;
+var x = null;
+var xOverview = null;
+var xAxis = null;
+var xAxisOverview = null;
+var y = null;
+var yOverview = null;
+var area = null;
+var area2 = null;
+var tlHeight = null;
+
+/*************************************/
+/*			Data elements			 */
+/*************************************/
+// Name of the selected dataset
+var currentDatasetName = "";
+
+var patterns = {};
+var occurrences = {}
+var patternProbabilities = {};
 var datasetInfo = {};
-var availableColors = [];
 
 var eventTypeCategories = [];
 var eventTypesByCategory = {};
 var eventTypeCategoryColors = {};
-
-var highlightedUsers = [];
-
-var history = [];
-
-var datasetInfoIsDefault = true;
-var historyDisplayIsDefault = true;
-var eventDisplayIsDefault = true;
 
 var userTraces = {};
 var userList = [];
@@ -188,29 +202,60 @@ var dataset = {};
 var dataDimensions = {};
 var userProperties = {};
 
-var currentTimeFilter = [];
-
 var numberOfPattern = 0;
 
-/************************************************************/
-/*															*/
-/*						Old functions						*/
-/*															*/
-/************************************************************/
+var highlightedUsers = [];
+
+/*************************************/
+/*			State elements			 */
+/*************************************/
+//
+var patternsLoaded = false;
+//
+var patternsReceived = false;
+// Whether debug mode is active or not
+var debugMode = false;
+// Whether the pointer target is visible or not in the focus view
+var showPointerTarget = false;
+// Whether future patterns will be processed or not
+var updateUI = true;
+
+var history = [];
+
+var datasetInfoIsDefault = true;
+var historyDisplayIsDefault = true;
+var eventDisplayIsDefault = true;
+
+var currentTimeFilter = [];
+
+
+/*************************************/
+/*				?????				 */
+/*************************************/
+
+var itemColors = {};
+var unselectedColorFading = 5;
+var itemShapes = {}; // TODO request a list of shapes from the server to populate this list
+var availableColors = [];
+
+
+/******************************************************************************/
+/*																			  */
+/*									Functions								  */
+/*																			  */
+/******************************************************************************/
+
+/*************************************/
+/*				Utility				 */
+/*************************************/
 
 /**
- * 
+ * Manages keyboard input
  */
 function handleKeyPress() {
 	let kc = d3.event.key;
 	console.log(kc)
 	switch(kc) {
-	/*case "f":
-		if (tooltipHasContent) {
-			tooltipIsFixed = !tooltipIsFixed;
-			updateTooltipLockMessage();
-		}
-		break;*/
 	case "h":
 	case "H":
 	case "?":
@@ -244,10 +289,8 @@ function handleKeyPress() {
 	}
 }
 
-var debugMode = false;
-
 /**
- * Activate or deactivate debug tools
+ * Activates or deactivates debug tools
  */
 function debug() {
 	if (debugMode) {
@@ -266,192 +309,126 @@ function debug() {
 	debugMode = !debugMode;
 }
 
-var showPointerTarget = false;
-
+/**
+ * Activates or deactivates the visualization of the pointer target in the focus view
+ */
 function switchPointerTarget() {
 	showPointerTarget = !showPointerTarget;
 	if (showPointerTarget)
-		d3.select("#debugHelpPointerTarget").select(".kbTxt").text("Hide pointer target");
+		d3.select("#debugHelpPointerTarget").select(".kbTxt")
+			.text("Hide pointer target");
 	else
-		d3.select("#debugHelpPointerTarget").select(".kbTxt").text("Show pointer target");
+		d3.select("#debugHelpPointerTarget").select(".kbTxt")
+			.text("Show pointer target");
 	timeline.showTarget();
 	timeline.showPosition();
 }
 
-var updateUI = true;
-
+/**
+ * Stops handling incomming patterns
+ */
 function stopUIUpdate() {
 	console.log("Pattern reception now ignored");
 	updateUI = false;
 }
 
-function sendToServer(jsonMessage) {
-	console.log("Sending to server on " + new Date());
-	webSocket.send(JSON.stringify(jsonMessage));
-}
-
-/************************************/
-/*				Kept				*/
-/************************************/
+/*************************************/
+/*				Setup				 */
+/*************************************/
 
 /**
- * Handling the connection to the server
+ * Initializes the system at the start
+ */
+function init() {
+	// Hide the tool until a dataset is selected
+	d3.select("#tool").style("display","none");
+	// Try to establish the websocket connection
+	webSocket = new WebSocket("ws://"+__websocketAdress__);
+	// Handle the future communication through the socket
+	webSocket.onopen = processOpen;
+	webSocket.onmessage = processMessage;
+	webSocket.onclose = processClose;
+	webSocket.onerror = processError;
+}
+
+/**
+ * Initializes the tool once a dataset has been selected
+ */
+function setupTool() {
+	setupAlgorithmSearchField();
+	setupUserSearchField();
+	
+	// Setup the input for the number of users to display
+	d3.select("#showAllUserSessionsInput")
+		.on("change", function() {
+			d3.select("#shownUserSessionsControl")
+				.classed("hidden",
+					d3.select("#showAllUserSessionsInput").property("checked")
+				);
+		});
+	
+	d3.select("#nbUserShownInput")
+		.attr("min", "0")
+		.attr("value", firstUserShown)
+		.on("input", function() {
+			firstUserShown = Number(this.value);
+			/*d3.select("#nbUserShownValue")
+				.text(nbUserShown);*/
+			timeline.drawUsersPatterns();
+		});
+	
+	d3.select("#nbUserShownValue")
+		.text(nbUserShown);
+	
+	createTimeline();	// TODO Initialize the timeline
+	setupHelpers();
+	
+	setupAlgorithmSliders();
+	setupPatternSizesChart();
+	
+	d3.select("body").on("keyup", handleKeyPress);
+	d3.select("body").on("mousemove", moveTooltip);
+	d3.select("body").on("click", switchTooltipLock);
+	d3.select("#tooltip").on("mouseleave", prepareToLeaveTooltip);
+	d3.select("#tooltip").on("mouseenter", enterTooltip);
+	
+	resetDatasetInfo();	// Set the display of information on the dataset
+	resetHistory();	// Reset the history display
+}
+
+/*************************************/
+/*		Websocket management		 */
+/*************************************/
+
+/**
+ * Handles the connection to the server
+ * @param {string} message - the JSON message sent by the server
  */
 function processOpen(message) {
 	console.log("Server connected." + "\n");
-	
-	//requestDatasetList();   automatically sent by the server upon connection
 }
-
-function selectDataset(datasetName) {
-	// For test purpose
-	/*var action = {
-			action: "testFileReading"
-	};
-	sendToServer(action);*/
-	
-	currentDatasetName = datasetName;
-	
-	requestDatasetLoad(datasetName);
-	
-	requestDatasetInfo(datasetName);	// TODO request the information on the dataset to the server
-	requestEventTypes(datasetName);	// TODO provide info about the event types
-	requestUserList(datasetName);
-	//console.log("requesting the dataset "+datasetName);
-	enableCentralOverlay("The dataset is loading...");
-	requestDataset(datasetName);	// TODO request the data to the server
-	
-	
-	/* For Agavue when it was hardcoded
-	
-	requestDatasetInfo("Agavue");	// TODO request the information on the dataset to the server
-	requestEventTypes("Agavue");	// TODO provide info about the event types
-	requestUserList("Agavue");
-	console.log("requesting the dataset");
-	enableCentralOverlay("The dataset is loading...");
-	requestDataset("Agavue");	// TODO request the data to the server
-	requestYearBins("Agavue");
-	*/
-	
-}
-
-function requestDatasetLoad(datasetName) {
-	var action = {
-			action: "load",
-			object: "dataset",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-function requestDatasetList() {
-	var action = {
-			action: "request",
-			object: "datasetList"
-	};
-	sendToServer(action);
-}
-
-function requestPatterns(datasetName) {
-	var action = {
-			action: "request",
-			object: "allPatterns",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-function requestRelevantBins(datasetName, distributionScale) {
-	switch(distributionScale) {
-	case "year":
-		requestYearBins(datasetName);
-		break;
-	case "month":
-		requestMonthBins(datasetName);
-		break;
-	case "halfMonth":
-		requestHalfMonthBins(datasetName);
-		break;
-	case "day":
-		requestDayBins(datasetName);
-		break;
-	case "halfDay":
-		requestHalfDayBins(datasetName);
-		break;
-	default:
-		console.log("Unexpected distribution :" + distributionScale);
-	}
-}
-
-function requestYearBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "year",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-function requestMonthBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "month",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-function requestHalfMonthBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "halfMonth",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-function requestDayBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "day",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-function requestHalfDayBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "halfDay",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-/*
-function requestUsersPatternOccurrences(userList) {
-	var action = {
-			action: "request",
-			object: "occurrences",
-			shape: "bin",
-			scale: "halfDay",
-			dataset: datasetName
-	}
-}*/
 
 /**
- * Handling the reception of a message from the server
+ * Handles the disconnection with the server
+ * @param {string} message - the JSON message sent by the server
  */
+function processClose(message) {
+	console.log("Server disconnected on " + new Date());
+}
 
+/**
+ * Handles error messages from the server
+ * @param {string} message - the JSON message sent by the server
+ */
+function processError(message) {
+	console.log("Error on " + new Date());
+}
+
+/**
+ * Handles the reception of messages from the server
+ * @param {string} message - Stringified JSON object containing the message.
+ * Should at least contain the "action" property
+ */
 function processMessage(message/*Compressed*/) {
 	//console.log("Receive from server => " + message.data + "\n");
 	//var message = LZString.decompressFromUTF16(messageCompressed.data);
@@ -512,7 +489,7 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "debug") {	// Receiving a debug message from the server
 		displayServerDebugMessage(msg);
 	}
-	if (msg.action === "startLoading") {		// The server starts to load the dataset
+	if (msg.action === "startLoading") { // The server starts to load the dataset
 		displayDatasetLoading();
 	}
 	if (msg.action === "info") {
@@ -544,6 +521,237 @@ function processMessage(message/*Compressed*/) {
 		receiveDatasetList(msg);
 	}
 }
+
+/*************************************/
+/*			Communication			 */
+/*************************************/
+
+/**
+ * Sends a message to the server
+ * @param {JSON} jsonMessage - the JSON object to be sent
+ */
+function sendToServer(jsonMessage) {
+	console.log("Sending to server on " + new Date());
+	webSocket.send(JSON.stringify(jsonMessage));
+}
+
+/**
+ * Asks the server to load a given dataset
+ * @param {string} datasetName - Name of the dataset to be loaded
+ */
+function requestDatasetLoad(datasetName) {
+	var action = {
+			action: "load",
+			object: "dataset",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Asks for the list of available datasets
+ */
+function requestDatasetList() {
+	var action = {
+			action: "request",
+			object: "datasetList"
+	};
+	sendToServer(action);
+}
+
+/**
+ * Asks for the patterns discovered in the given dataset
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestPatterns(datasetName) {
+	var action = {
+			action: "request",
+			object: "allPatterns",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Asks for the event bins for a given dataset, at a given scale
+ * @param {string} datasetName - Name of the dataset
+ * @param {string} distributionScale - Scale of the distribution we want.
+ * Expected values are "year", "month", "halfMonth", "day" or "halfDay"
+ */
+function requestRelevantBins(datasetName, distributionScale) {
+	switch(distributionScale) {
+	case "year":
+		requestYearBins(datasetName);
+		break;
+	case "month":
+		requestMonthBins(datasetName);
+		break;
+	case "halfMonth":
+		requestHalfMonthBins(datasetName);
+		break;
+	case "day":
+		requestDayBins(datasetName);
+		break;
+	case "halfDay":
+		requestHalfDayBins(datasetName);
+		break;
+	default:
+		console.log("Unexpected distribution :" + distributionScale);
+	}
+}
+
+/**
+ * Asks for the event bins in a given dataset, at year scale
+ * Equivalent as requestRelevantBins(datasetName, "year")
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestYearBins(datasetName) {
+	var action = {
+			action: "request",
+			object: "data",
+			shape: "bin",
+			scale: "year",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Asks for the event bins in a given dataset, at month scale
+ * Equivalent as requestRelevantBins(datasetName, "month")
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestMonthBins(datasetName) {
+	var action = {
+			action: "request",
+			object: "data",
+			shape: "bin",
+			scale: "month",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Asks for the event bins in a given dataset, at half month scale
+ * Equivalent as requestRelevantBins(datasetName, "halfMonth")
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestHalfMonthBins(datasetName) {
+	var action = {
+			action: "request",
+			object: "data",
+			shape: "bin",
+			scale: "halfMonth",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Asks for the event bins in a given dataset, at day scale
+ * Equivalent as requestRelevantBins(datasetName, "day")
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestDayBins(datasetName) {
+	var action = {
+			action: "request",
+			object: "data",
+			shape: "bin",
+			scale: "day",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Asks for the event bins in a given dataset, at half day scale
+ * Equivalent as requestRelevantBins(datasetName, "halfDay")
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestHalfDayBins(datasetName) {
+	var action = {
+			action: "request",
+			object: "data",
+			shape: "bin",
+			scale: "halfDay",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/*
+function requestUsersPatternOccurrences(userList) {
+	var action = {
+			action: "request",
+			object: "occurrences",
+			shape: "bin",
+			scale: "halfDay",
+			dataset: datasetName
+	}
+}*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/************************************/
+/*			To be cleaned			*/
+/************************************/
+
+
+
+function selectDataset(datasetName) {
+	// For test purpose
+	/*var action = {
+			action: "testFileReading"
+	};
+	sendToServer(action);*/
+	
+	currentDatasetName = datasetName;
+	
+	requestDatasetLoad(datasetName);
+	
+	requestDatasetInfo(datasetName); // TODO request the information on the dataset to the server
+	requestEventTypes(datasetName);	// TODO provide info about the event types
+	requestUserList(datasetName);
+	//console.log("requesting the dataset "+datasetName);
+	enableCentralOverlay("The dataset is loading...");
+	requestDataset(datasetName); // TODO request the data to the server
+	
+	
+	/* For Agavue when it was hardcoded
+	
+	requestDatasetInfo("Agavue");	// TODO request the information on the dataset to the server
+	requestEventTypes("Agavue");	// TODO provide info about the event types
+	requestUserList("Agavue");
+	console.log("requesting the dataset");
+	enableCentralOverlay("The dataset is loading...");
+	requestDataset("Agavue");	// TODO request the data to the server
+	requestYearBins("Agavue");
+	*/
+	
+}
+
 
 function handleSteeringStartSignal(type, value) {
 	var displaySpan = d3.select("#focus")
@@ -821,36 +1029,6 @@ function receivePatternOccurrences(message) {
 	timeline.displayPatternOccurrences(pId);
 }
 
-/**
- * Handling the disconnection with the server
- */
-function processClose(message) {
-	console.log("Server disconnected on " + new Date());
-}
-
-/**
- * Handling error messages from the server
- */
-function processError(message) {
-	console.log("Error on " + new Date());
-}
-
-/**
- * Initializing the system at the start
- */
-function init() {
-	d3.select("#tool")
-		.style("display","none");
-	
-	//webSocket = new WebSocket("ws://localhost:8080/ppmt/wsppmt");
-	webSocket = new WebSocket("ws://"+__websocketAdress__);
-
-	webSocket.onopen = processOpen;
-	webSocket.onmessage = processMessage;
-	webSocket.onclose = processClose;
-	webSocket.onerror = processError;
-}
-
 var showUserSessionOption = "all";
 var firstUserShown = 0;
 
@@ -919,46 +1097,6 @@ function showUserSessions(arg) {
 	default:
 	}
 	timeline.drawUsersPatterns();
-}
-
-function setupTool() {
-	setupAlgorithmSearchField();
-	setupUserSearchField();
-	
-	// Setup the input for the number of users to display
-	d3.select("#showAllUserSessionsInput")
-		.on("change", function() {
-			d3.select("#shownUserSessionsControl")
-				.classed("hidden", d3.select("#showAllUserSessionsInput").property("checked"));
-		});
-	
-	d3.select("#nbUserShownInput")
-		.attr("min", "0")
-		.attr("value", firstUserShown)
-		.on("input", function() {
-			firstUserShown = Number(this.value);
-			/*d3.select("#nbUserShownValue")
-				.text(nbUserShown);*/
-			timeline.drawUsersPatterns();
-		});
-	
-	d3.select("#nbUserShownValue")
-		.text(nbUserShown);
-	
-	createTimeline();	// TODO Initialize the timeline
-	setupHelpers();
-	
-	setupAlgorithmSliders();
-	setupPatternSizesChart();
-	
-	d3.select("body").on("keyup", handleKeyPress);
-	d3.select("body").on("mousemove", moveTooltip);
-	d3.select("body").on("click", switchTooltipLock);
-	d3.select("#tooltip").on("mouseleave", prepareToLeaveTooltip);
-	d3.select("#tooltip").on("mouseenter", enterTooltip);
-	
-	resetDatasetInfo();	// Set the display of information on the dataset
-	resetHistory();	// Reset the history display
 }
 
 let currentUserSearchInput = "";
@@ -5613,8 +5751,8 @@ var SupportSlider = function(elemId) {
 	self.moveHandle2To = function(value) {
 		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
 			self.handle2.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
 			self.currentHandleMinValue = Math.min(value, otherValue);
+			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
 			self.currentHandleMaxValue = Math.max(value, otherValue);
 	
 			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
