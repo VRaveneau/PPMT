@@ -159,8 +159,6 @@ var timelineXAxis = null;
 var timelineOverview = null;
 //
 var timelineOverviewXAxis = null;
-//
-var timelineIds = 0;
 // Default number of users shown in the session view
 var defaultNbUserShown = 15;
 // Number of users shown in the session view
@@ -179,6 +177,37 @@ var area = null;
 var area2 = null;
 var tlHeight = null;
 
+// Number of elements fully displayed in the highlight summary.
+// Beyond this value, only the number of highlighted elements is displayed
+var numberOfDetailedHighlights = 5;
+// List of highlighted event type ids
+var highlightedEventTypes = [];
+
+// Current input in the user panel's search field
+let currentUserSearchInput = "";
+// Index of the currently selected suggestion in the user panel's search field
+let currentUserSearchSuggestionIdx = -1;
+// Users matching the current filter in the user panel's search field
+let relatedUsers = [];
+// Keyboard key currently down
+let currentKeyDownUser = "";
+// Whether the mouse pointer is above the user panel's suggestion list or not
+let mouseIsOverUserSuggestions = false;
+
+// Current input in the pattern search field
+let currentPatternSearchInput = "";
+// Current fragment of the pattern search field (what follows the last space)
+let currentPatternSearchFragment = "";
+// Index of the currently selected suggestion in the pattern search field
+let currentPatternSearchSuggestionIdx = -1;
+// Patterns matching the current filter in the pattern search field
+let relatedEventTypes = [];
+// Keyboard key currently down
+let currentKeyDown = "";
+// Whether the mouse pointer is above the pattern suggestion list or not
+let mouseIsOverPatternSuggestions = false;
+
+
 /*************************************/
 /*			Data elements			 */
 /*************************************/
@@ -195,6 +224,7 @@ var eventTypesByCategory = {};
 var eventTypeCategoryColors = {};
 
 var userTraces = {};
+// The names of all users present in the dataset
 var userList = [];
 
 var rawData = [];
@@ -202,9 +232,19 @@ var dataset = {};
 var dataDimensions = {};
 var userProperties = {};
 
+// Informations about the users
+// Each user is an array with the following informations :
+// userName - nbEvents - traceDuration - startDate - endDate
+var userInformations = [];
+
+// Number of extracted patterns
 var numberOfPattern = 0;
 
 var highlightedUsers = [];
+// Duration between two events beyond which a new session is created
+var sessionInactivityLimit = 30*60*1000; // 30 minutes
+// The sessions for every user
+var userSessions = {};
 
 /*************************************/
 /*			State elements			 */
@@ -228,6 +268,14 @@ var eventDisplayIsDefault = true;
 
 var currentTimeFilter = [];
 
+// Sort order for the list of users. Expected value is one among the following :
+// nbEventsDown - nbEventsUp
+// nameDown - nameUp
+// durationDown - durationUp
+// nbSessionsDown - nbSessionsUp
+// startDown - startUp
+// endDown - endUp
+var lastUserSort = "";
 
 /*************************************/
 /*				?????				 */
@@ -235,7 +283,8 @@ var currentTimeFilter = [];
 
 var itemColors = {};
 var unselectedColorFading = 5;
-var itemShapes = {}; // TODO request a list of shapes from the server to populate this list
+// TODO request a list of shapes from the server to populate this list
+var itemShapes = {};
 var availableColors = [];
 
 
@@ -290,7 +339,7 @@ function handleKeyPress() {
 }
 
 /**
- * Activates or deactivates debug tools
+ * (De)activates debug tools
  */
 function debug() {
 	if (debugMode) {
@@ -310,7 +359,7 @@ function debug() {
 }
 
 /**
- * Activates or deactivates the visualization of the pointer target in the focus view
+ * (De)activates the visualization of the pointer target in the focus view
  */
 function switchPointerTarget() {
 	showPointerTarget = !showPointerTarget;
@@ -330,6 +379,106 @@ function switchPointerTarget() {
 function stopUIUpdate() {
 	console.log("Pattern reception now ignored");
 	updateUI = false;
+}
+
+/**
+ * Displays the blocking overlay over the center of the tool with a message
+ * @param {string} message - the message to be displayed
+ */
+function enableCentralOverlay(message) {
+	d3.select("#centerOverlay")
+		.style("visibility","initial")
+		.text(message);
+}
+
+/**
+ * Hide the blocking overlay over the center of the tool
+ */
+function disableCentralOverlay() {
+	d3.select("#centerOverlay")
+		.style("visibility","hidden");
+}
+
+/**
+ * Converts a color from HSV to RGB
+ *
+ * H runs from 0 to 360 degrees
+ * S and V run from 0 to 100
+ * 
+ * Ported from the excellent java algorithm by Eugene Vishnevsky at:
+ * http://www.cs.rit.edu/~ncs/color/t_convert.html
+ * @param {int} h - The hue value of the color
+ * @param {int} s - The saturation value of the color
+ * @param {int} v - The vibrance value of the color
+ */
+function hsvToRgb(h, s, v) {
+	var r, g, b;
+	var i;
+	var f, p, q, t;
+ 
+	// Make sure our arguments stay in-range
+	h = Math.max(0, Math.min(360, h));
+	s = Math.max(0, Math.min(100, s));
+	v = Math.max(0, Math.min(100, v));
+ 
+	// We accept saturation and value arguments from 0 to 100 because that's
+	// how Photoshop represents those values. Internally, however, the
+	// saturation and value are calculated from a range of 0 to 1. We make
+	// That conversion here.
+	s /= 100;
+	v /= 100;
+ 
+	if(s == 0) {
+		// Achromatic (grey)
+		r = g = b = v;
+		return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+	}
+ 
+	h /= 60; // sector 0 to 5
+	i = Math.floor(h);
+	f = h - i; // factorial part of h
+	p = v * (1 - s);
+	q = v * (1 - s * f);
+	t = v * (1 - s * (1 - f));
+ 
+	switch(i) {
+		case 0:
+			r = v;
+			g = t;
+			b = p;
+			break;
+ 
+		case 1:
+			r = q;
+			g = v;
+			b = p;
+			break;
+ 
+		case 2:
+			r = p;
+			g = v;
+			b = t;
+			break;
+ 
+		case 3:
+			r = p;
+			g = q;
+			b = v;
+			break;
+ 
+		case 4:
+			r = t;
+			g = p;
+			b = v;
+			break;
+ 
+		default: // case 5:
+			r = v;
+			g = p;
+			b = q;
+	}
+ 
+	return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
 
 /*************************************/
@@ -396,6 +545,337 @@ function setupTool() {
 	resetHistory();	// Reset the history display
 }
 
+/**
+ * Starts the tool after selecting a dataset
+ * @param {string} datasetName - Name of the dataset
+ */
+function startTool(datasetName) {
+	// Hide the dataset selection panel
+	d3.select("#datasetSelection").style("display","none");
+	// Show the tool
+	d3.select("#tool").style("display","flex");
+	
+	setupTool();
+	selectDataset(datasetName);
+}
+
+/**
+ * Setups the search field in the user panel
+ */
+function setupUserSearchField() {
+	let searchField = d3.select("#Users").select("input.searchField");
+	let suggestionField = d3.select("#Users").select("input.suggestionField");
+	let suggestionDiv = d3.select("#Users").select(".suggestionDiv");
+	
+	suggestionDiv.on("mouseenter", function(d,i) {
+		mouseIsOverUserSuggestions = true;
+	});
+	
+	suggestionDiv.on("mouseleave", function(d,i) {
+		mouseIsOverUserSuggestions = false;
+	});
+	
+	searchField.on("focus", function() {
+		suggestionDiv.style("display", "block");
+	});
+	
+	searchField.on("focusout", function() {
+		if (mouseIsOverUserSuggestions == false)
+			suggestionDiv.style("display", "none");
+	});
+	
+	searchField.on("input", function() {
+		currentUserSearchInput = searchField.property("value");
+		
+		if(currentUserSearchInput.length > 0) {
+			relatedUsers = userList.filter(function(d, i) {
+				return d.includes(currentUserSearchInput);
+			});
+			relatedUsers.sort();
+			
+			if (relatedUsers.length > 0) {
+				currentUserSearchSuggestionIdx = 0;
+				suggestionDiv.html("");
+				relatedUsers.forEach(function(d,i) {
+					suggestionDiv.append("p")
+						.classed("selected", i==currentUserSearchSuggestionIdx)
+						.classed("clickable", true)
+						.text(d)
+						.on("click", function() {
+							currentUserSearchInput = relatedUsers[i];
+							searchField.property("value",currentUserSearchInput);
+							// Updates the suggestion list
+							relatedUsers = userList.filter(function(e, j) {
+								return e.includes(currentUserSearchInput);
+							});
+							relatedUsers.sort();
+
+							if (relatedUsers.length > 0) {
+								currentUserSearchSuggestionIdx = 0;
+								suggestionDiv.html("");
+								relatedUsers.forEach(function(e,j) {
+									suggestionDiv.append("p")
+										.classed("selected", j==currentUserSearchSuggestionIdx)
+										.text(e);
+								});
+							} else {
+								currentUserSearchSuggestionIdx = -1;
+								suggestionDiv.html("");
+							}
+							
+							createUserListDisplay();
+							suggestionDiv.style("display", "none");
+						});
+				});
+				suggestionField.property("value",relatedUsers[0]);
+			} else {
+				currentUserSearchSuggestionIdx = -1;
+				suggestionDiv.html("");
+			}
+		} else {
+			currentUserSearchInput = "";
+			currentUserSearchSuggestionIdx = -1;
+			relatedUsers = [];
+			suggestionDiv.html("");
+		}
+		createUserListDisplay();
+	});
+	searchField.on("keydown", function() {
+		let keyName = d3.event.key;
+		// Don't trigger if the user keeps the key down
+		if (currentKeyDownUser == keyName)
+			return;
+		currentKeyDownUser = keyName;
+		switch(keyName) {
+		case "Escape": // Hide the suggestion list
+			suggestionDiv.style("display", "none");
+			break;
+		case "ArrowRight":
+		case "Enter": // Complete the field with the currently target suggestion
+			if (currentUserSearchSuggestionIdx >= 0) {
+				currentUserSearchInput = relatedUsers[currentUserSearchSuggestionIdx];
+				searchField.property("value",relatedUsers[currentUserSearchSuggestionIdx]);
+				// Updates the suggestion list
+				relatedUsers = userList.filter(function(d, i) {
+					return d.includes(relatedUsers[currentUserSearchSuggestionIdx]);
+				});
+				relatedUsers.sort();
+
+				if (relatedUsers.length > 0) {
+					currentUserSearchSuggestionIdx = 0;
+					suggestionDiv.html("");
+					relatedUsers.forEach(function(d,i) {
+						suggestionDiv.append("p")
+							.classed("selected", i==currentUserSearchSuggestionIdx)
+							.text(d);
+					});
+				} else {
+					currentUserSearchSuggestionIdx = -1;
+					suggestionDiv.html("");
+				}
+			}
+			createUserListDisplay();
+			break;
+		case "ArrowUp": // Change the currently targeted suggestion
+			if (currentUserSearchSuggestionIdx > 0) {
+				currentUserSearchSuggestionIdx--;
+				suggestionDiv.selectAll("p").each(function(d,i) {
+					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
+				});
+			}
+			break;
+		case "ArrowDown": // Change the currently targeted suggestion
+			if (currentUserSearchSuggestionIdx < relatedUsers.length - 1) {
+				currentUserSearchSuggestionIdx++;
+				suggestionDiv.selectAll("p").each(function(d,i) {
+					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
+				});
+			}
+			break;
+		default:
+		}
+		currentKeyDownUser = "";
+	});
+}
+
+/**
+ * Setups the search field in the pattern panel
+ */
+function setupAlgorithmSearchField() {
+	let searchField = d3.select("#patternListArea").select("input.searchField");
+	let suggestionDiv = d3.select("#patternListArea").select(".suggestionDiv");
+	
+	suggestionDiv.on("mouseenter", function(d,i) {
+		mouseIsOverPatternSuggestions = true;
+	});
+	
+	suggestionDiv.on("mouseleave", function(d,i) {
+		mouseIsOverPatternSuggestions = false;
+	});
+	
+	searchField.on("focus", function() {
+		suggestionDiv.style("display", "block");
+	});
+	
+	searchField.on("focusout", function() {
+		if (mouseIsOverPatternSuggestions == false)
+			suggestionDiv.style("display", "none");
+	});
+	
+	searchField.on("input", function() {
+		let currentValue = searchField.property("value");
+		currentPatternSearchInput = currentValue;
+		currentPatternSearchFragment = currentValue.split(" ").pop();
+		
+		if(currentPatternSearchFragment.length > 0) {
+			let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+			let baseValue = currentPatternSearchInput.substr(0, baseLength);
+			relatedEventTypes = eventTypes.filter(function(d, i) {
+				return d.includes(currentPatternSearchFragment);
+			});
+			relatedEventTypes.sort();
+			
+			if (relatedEventTypes.length > 0) {
+				currentPatternSearchSuggestionIdx = 0;
+				suggestionDiv.html("");
+				relatedEventTypes.forEach(function(d,i) {
+					suggestionDiv.append("p")
+						.classed("selected", i==currentPatternSearchSuggestionIdx)
+						.classed("clickable", true)
+						.text(baseValue + d)
+						.on("click", function() {
+							let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+							let baseValue = currentPatternSearchInput.substr(0, baseLength);
+							currentPatternSearchInput = baseValue + relatedEventTypes[i];
+							currentPatternSearchFragment = relatedEventTypes[i];
+							searchField.property("value", currentPatternSearchInput);
+							// Updates the suggestion list
+							relatedEventTypes = eventTypes.filter(function(e, j) {
+								return e.includes(currentPatternSearchFragment);
+							});
+							relatedEventTypes.sort();
+
+							if (relatedEventTypes.length > 0) {
+								currentPatternSearchSuggestionIdx = 0;
+								suggestionDiv.html("");
+								relatedEventTypes.forEach(function(e,j) {
+									suggestionDiv.append("p")
+										.classed("selected", j==currentPatternSearchSuggestionIdx)
+										.text(baseValue + e);
+								});
+							} else {
+								currentPatternSearchSuggestionIdx = -1;
+								suggestionDiv.html("");
+							}
+							
+							createPatternListDisplay();
+							suggestionDiv.style("display", "none");
+						});
+				});
+			} else {
+				currentPatternSearchSuggestionIdx = -1;
+				suggestionDiv.html("");
+			}
+		} else {
+			currentPatternSearchInput = "";
+			currentPatternSearchSuggestionIdx = -1;
+			currentPatternSearchFragment = "";
+			relatedEventTypes = [];
+			suggestionDiv.html("");
+		}
+
+		createPatternListDisplay();
+	});
+	searchField.on("keydown", function() {
+		let keyName = d3.event.key;
+		// Don't trigger if the user keeps the key down
+		if (currentKeyDown == keyName)
+			return;
+		currentKeyDown = keyName;
+		switch(keyName) {
+		case "Escape":
+			suggestionDiv.style("display", "none");
+			break;
+		case "ArrowRight":
+		case "Enter":
+			if (currentPatternSearchSuggestionIdx >= 0) {
+				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+				let baseValue = currentPatternSearchInput.substr(0, baseLength);
+				currentPatternSearchInput = baseValue + relatedEventTypes[currentPatternSearchSuggestionIdx];
+				currentPatternSearchFragment = relatedEventTypes[currentPatternSearchSuggestionIdx];
+				searchField.property("value", currentPatternSearchInput);
+				// Updates the suggestion list
+				relatedEventTypes = eventTypes.filter(function(d, i) {
+					return d.includes(currentPatternSearchFragment);
+				});
+				relatedEventTypes.sort();
+
+				if (relatedEventTypes.length > 0) {
+					currentPatternSearchSuggestionIdx = 0;
+					suggestionDiv.html("");
+					relatedEventTypes.forEach(function(d,i) {
+						suggestionDiv.append("p")
+							.classed("selected", i==currentPatternSearchSuggestionIdx)
+							.text(baseValue + d);
+					});
+				} else {
+					currentPatternSearchSuggestionIdx = -1;
+					suggestionDiv.html("");
+				}
+				
+				createPatternListDisplay();
+			}
+			break;
+		case "ArrowUp":
+			if (currentPatternSearchSuggestionIdx > 0) {
+				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+				let baseValue = currentPatternSearchInput.substr(0, baseLength);
+				currentPatternSearchSuggestionIdx--;
+				suggestionDiv.selectAll("p").each(function(d,i) {
+					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
+				});
+			}
+			break;
+		case "ArrowDown":
+			if (currentPatternSearchSuggestionIdx < relatedEventTypes.length - 1) {
+				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+				let baseValue = currentPatternSearchInput.substr(0, baseLength);
+				currentPatternSearchSuggestionIdx++;
+				suggestionDiv.selectAll("p").each(function(d,i) {
+					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
+				});
+			}
+			break;
+		default:
+		}
+		currentKeyDown = "";
+	});
+}
+
+/*************************************/
+/*				Logging				 */
+/*************************************/
+
+/**
+ * Adds an action to the displayed history
+ * @param {string} action - The message to be added to the history
+ */
+function addToHistory(action) {
+	let history = d3.select("#history");
+	if (historyDisplayIsDefault) {
+		history.text("");
+		historyDisplayIsDefault = false;
+	}
+	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
+	let formatTime = d3.timeFormat("%H:%M:%S");
+	let now = formatTime(new Date());
+	history.append("p")
+		.text("- "+action)
+	  .append("span")
+		.classed("timestamp", true)
+		.text(" "+now.toString());
+}
+
 /*************************************/
 /*		Websocket management		 */
 /*************************************/
@@ -453,7 +933,7 @@ function processMessage(message/*Compressed*/) {
 		}*/
 	}
 	if (msg.action === "refresh") {
-	  	console.log("Refresh received, but the handling of such message is disabled");
+	  	console.log("Refresh received, but the this message is disabled");
 		//timeline.setItems(timelineItems);
 	}
 	if (msg.action === "datasetInfo") {	// Reception of information about the dataset
@@ -523,7 +1003,7 @@ function processMessage(message/*Compressed*/) {
 }
 
 /*************************************/
-/*			Communication			 */
+/*		Communication - sending		 */
 /*************************************/
 
 /**
@@ -691,22 +1171,679 @@ function requestUsersPatternOccurrences(userList) {
 	}
 }*/
 
+/**
+ * Requests information about the event types of a dataset
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestEventTypes(datasetName) {
+	let action = {
+			action: "request",
+			object: "eventTypes",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
 
+/**
+ * Requests the list of users in the dataset
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestUserList(datasetName) {
+	let action = {
+			action: "request",
+			object: "userList",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
 
+/**
+ * Requests a steering of the algorithm on a given pattern
+ * @param {string} patternId - Id of the pattern to steer on
+ */
+function requestSteeringOnPattern(patternId) {
+	console.log('requesting steering on patternId '+patternId);
+	let action = {
+			action: "steerOnPattern",
+			patternId: patternId
+	};
+	sendToServer(action);
+}
 
+/**
+ * Requests a steering of the algorithm on a given user
+ * @param {string} userId - Id of the user to steer on
+ */
+function requestSteeringOnUser(userId) {
+	console.log('requesting steering on user '+userId);
+	let action = {
+			action: "steerOnuser",
+			userId: userId
+	};
+	sendToServer(action);
+}
 
+/*************************************/
+/*		Communication - receiving	 */
+/*************************************/
 
+/**
+ * Receives information about a dataset from the server
+ * @param {JSON} message - The message containing the information
+ */
+function receiveDatasetInfo(message) {
+	//console.log("number of sequences : " + message.numberOfSequences);
+	datasetInfo["numberOfSequences"] = parseInt(message.numberOfSequences);
+	datasetInfo["numberOfDifferentEvents"] = parseInt(message.numberOfDifferentEvents);
+	datasetInfo["numberOfEvents"] = parseInt(message.nbEvents);
+	let userList = [];
+	for (let i=0; i < datasetInfo["numberOfSequences"];i++)
+		userList.push(message["user"+i.toString()]);
+	datasetInfo["users"] = userList;
+	datasetInfo["firstEvent"] = message.firstEvent;
+	datasetInfo["lastEvent"] = message.lastEvent;
+	datasetInfo["name"] = message.name;
+	
+	displayDatasetInfo();
+	addToHistory('Dataset '+message.name+' loaded');
 
+	// Update the max number of users to display their sessions
+	d3.select("#nbUserShownInput")
+		.attr("max", datasetInfo.numberOfSequences-nbUserShown)
+		.attr("value", firstUserShown);
+	timeline.drawUsersPatterns();
+		
+	timeline.updateContextBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
+	
+	/*updateTimelineBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
+	updateTimelineOverviewBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);*/
+	
+	// Old content
+	/*
+	// generate a color for each event
+	availableColors = generateColors(datasetInfo["numberOfDifferentEvents"]);
+	console.log("color: "+availableColors[0]);*/
+}
 
+/**
+ * Receives the list of users present in the dataset, with some info about them
+ * @param {JSON} message - The message containing the information
+ */
+function receiveUserList(message) {
+	//console.log("Receiving a list of users")
+	let nbUsers = parseInt(message.size);
+	//console.log("Adding "+message.size+" users");
+	for (let i = 0; i < nbUsers; i++) {
+		let userInfo = message[i.toString()].split(";");
+		let infoToSave = [userInfo[0], userInfo[1]]; // name and nbEvents
+		userList.push(userInfo[0]);
+		// Date format : yyyy-MM-dd HH:mm:ss
+		let startDate = userInfo[2].split(" ");
+		let part1 = startDate[0].split("-");
+		let part2 = startDate[1].split(":");
+		let d1 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		let startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
+		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		let endDate = userInfo[3].split(" ");
+		part1 = endDate[0].split("-");
+		part2 = endDate[1].split(":");
+		let d2 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		let endCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
+		let endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		// Calculates the duration of the trace
+		let minutes = 1000 * 60;
+		let hours = minutes * 60;
+		let days = hours * 24;
+		let years = days * 365;
+		let endTime = d2.getTime();
+		let startTime = d1.getTime();
+		let timeDiff = endTime-startTime;
+		
+		infoToSave.push(timeDiff, userInfo[2], userInfo[3]); // trace duration, start, end
+		userProperties[userInfo[0]] = {"start": d1, "end":d2, "duration": timeDiff};
+		userInformations.push(infoToSave);	// Add this user to the list of already known ones
+	}
+	// sorting by event per user, in descending order
+	sortUsersByNbEvents(true);
+	
+	// Creating the table
+	createUserListDisplay();
+}
 
+/************************************/
+/*		Data manipulation			*/
+/************************************/
 
+/**
+ * Builds the user sessions based on the value of sessionInactivityLimit
+ * A session has :
+ * - a start (in milliseconds)
+ * - an end (in milliseconds)
+ * - a pattern count
+ * - an event count
+ */
+function buildUserSessions() {
+	for (let userIdx = 0; userIdx < userList.length; userIdx++) {
+		let timeParser = d3.timeParse('%Y-%m-%d %H:%M:%S');
+		let u = userList[userIdx];
+		let lastEventDate = timeParser(userTraces[u][0][0].split(";")[1]).getTime();
+		userSessions[u] = [
+			{
+				start: Number(lastEventDate), 
+				end: Number(lastEventDate), 
+				count: {}, 
+				nbEvents: 1
+			}
+		];
+		
+		for (let idx = 1; idx < userTraces[u].length; idx++) {
+			let thisEventDate = timeParser(userTraces[u][idx][0].split(";")[1]).getTime();
+			if (lastEventDate + sessionInactivityLimit > thisEventDate) {
+				// Keep growing the current session
+				userSessions[u][userSessions[u].length - 1].end = Number(thisEventDate);
+				userSessions[u][userSessions[u].length - 1].nbEvents++;
+			} else {
+				// Create a new session
+				userSessions[u].push(
+					{
+						start: Number(thisEventDate), 
+						end: Number(thisEventDate), 
+						count: {}, 
+						nbEvents: 1
+					}
+				);
+			}
+			lastEventDate = thisEventDate;
+		}
+	}
+	
+	// Refresh the user list display
+	createUserListDisplay();
+}
 
+/**
+ * Sorts the user list according to the number of events in the traces
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortUsersByNbEvents(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var nbA = parseInt(a[1]);
+		var nbB = parseInt(b[1]);
+		
+		return nbA-nbB;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "nbEventsDown";
+	} else {
+		lastUserSort = "nbEventsUp";
+	}
+}
 
+/**
+ * Sorts the user list according to the name of the user
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortUsersByName(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var nameA = a[0];
+		var nameB = b[0];
+		
+		if (nameA < nameB)
+			return -1;
+		else if (nameA > nameB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "nameDown";
+	} else {
+		lastUserSort = "nameUp";
+	}
+}
 
+/**
+ * Sorts the user list according to the nduration of the traces
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortUsersByTraceDuration(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var durationA = parseInt(a[2]);
+		var durationB = parseInt(b[2]);
+		
+		return durationA-durationB;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "durationDown";
+	} else {
+		lastUserSort = "durationUp";
+	}
+}
 
+/**
+ * Sorts the user list according to the number of sessions in the traces
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortUsersByNbSessions(decreasing=false) {
+	if (Object.keys(userSessions).length > 0) {
+		userInformations.sort(function(a, b) {
+			var nbA = userSessions[a[0]].length;
+			var nbB = userSessions[b[0]].length;
+			
+			return nbA-nbB;
+		});
+		
+		if (decreasing == true) {
+			userInformations.reverse();
+			lastUserSort = "nbSessionsDown";
+		} else {
+			lastUserSort = "nbSessionsUp";
+		}
+	}
+}
 
+/**
+ * Sorts the user list according to their first event
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortUsersByStartDate(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var startA = a[3];
+		var startB = b[3];
+		
+		if (startA < startB)
+			return -1;
+		else if (startA > startB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "startDown";
+	} else {
+		lastUserSort = "startUp";
+	}
+}
 
+/**
+ * Sorts the user list according to their last event
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortUsersByEndDate(decreasing=false) {
+	userInformations.sort(function(a, b) {
+		var endA = a[4];
+		var endB = b[4];
+		
+		if (endA < endB)
+			return -1;
+		else if (endA > endB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		userInformations.reverse();
+		lastUserSort = "endDown";
+	} else {
+		lastUserSort = "endUp";
+	}
+}
 
+/************************************/
+/*			HCI manipulation		*/
+/************************************/
+
+/**
+ * Handles a click on the 'name' header in the user list
+ */
+function clickOnUserNameHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "User") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastUserSort == "nameDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortUsersByName();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortUsersByName(true);
+	}
+	
+	createUserListDisplay();
+	timeline.drawUsersPatterns();
+}
+
+/**
+ * Handles a click on the 'nbEvents' header in the user list
+ */
+function clickOnUserNbEventsHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Nb\u00A0events") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastUserSort == "nbEventsDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortUsersByNbEvents();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortUsersByNbEvents(true);
+	}
+	
+	createUserListDisplay();
+	timeline.drawUsersPatterns();
+}
+
+/**
+ * Handles a click on the 'duration' header in the user list
+ */
+function clickOnUserDurationHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Duration") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastUserSort == "durationDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortUsersByTraceDuration();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortUsersByTraceDuration(true);
+	}
+	
+	createUserListDisplay();
+	timeline.drawUsersPatterns();
+}
+
+/**
+ * Handles a click on the 'nbSessions' header in the user list
+ */
+function clickOnUserNbSessionsHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Nb\u00A0sessions") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastUserSort == "nbSessionsDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortUsersByNbSessions();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortUsersByNbSessions(true);
+	}
+	
+	createUserListDisplay();
+	timeline.drawUsersPatterns();
+}
+
+/**
+ * Handles a click on the 'start' header in the user list
+ */
+function clickOnUserStartHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Start") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastUserSort == "startDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortUsersByStartDate();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortUsersByStartDate(true);
+	}
+	
+	createUserListDisplay();
+	timeline.drawUsersPatterns();
+}
+
+/**
+ * Handles a click on the 'end' header in the user list
+ */
+function clickOnUserEndHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#userTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "End") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastUserSort == "endDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortUsersByEndDate();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortUsersByEndDate(true);
+	}
+	
+	createUserListDisplay();
+	timeline.drawUsersPatterns();
+}
+
+/**
+ * (Re)creates the display of the highlights summary
+ */
+function setHighlights() {
+	// removing the potential old user highlights
+	let userDisplayArea = document.getElementById("userHighlight");
+	while (userDisplayArea.firstChild) {
+		userDisplayArea.removeChild(userDisplayArea.firstChild);
+	}
+	userDisplayArea = d3.select("#userHighlight");
+	
+	if (highlightedUsers.length == 0) {
+		userDisplayArea.text("No user");
+	} else {
+		if (highlightedUsers.length <= numberOfDetailedHighlights) {
+			userDisplayArea.text("Users ");
+			for (let i = 0; i < highlightedUsers.length; i++) {
+				let thisUser = highlightedUsers[i];
+				userDisplayArea.append("span")
+					.classed("clickable", true)
+					.classed("highlightButton", true)
+					.text(thisUser)
+					.on("click", function() {
+						highlightUserRow(thisUser);
+						setHighlights();
+						timeline.displayData();
+						//d3.event.stopPropagation();
+					});
+				if (i < highlightedUsers.length - 1)
+					userDisplayArea.append("span")
+						.text(" ");
+			}
+		} else {
+			userDisplayArea.text(highlightedUsers.length +" users");
+		}
+	}
+	
+
+	// removing the potential old event type highlights
+	let eventTypeDisplayArea = document.getElementById("eventTypeHighlight");
+	while (eventTypeDisplayArea.firstChild) {
+		eventTypeDisplayArea.removeChild(eventTypeDisplayArea.firstChild);
+	}
+	eventTypeDisplayArea = d3.select(eventTypeDisplayArea);
+	
+	if (highlightedEventTypes.length == 0) {
+		eventTypeDisplayArea.text("No event type");
+	} else {
+		if (highlightedEventTypes.length <= numberOfDetailedHighlights) {
+			eventTypeDisplayArea.text("Events ");
+			for (let i = 0; i < highlightedEventTypes.length; i++) {
+				let thisEventType = highlightedEventTypes[i];
+				eventTypeDisplayArea.append("span")
+					.classed("clickable", true)
+					.classed("highlightButton", true)
+					.style("color", colorList[highlightedEventTypes[i]][0].toString())
+					.text(itemShapes[highlightedEventTypes[i]])
+					.on("click", function() {
+						highlightEventTypeRow(thisEventType);
+						setHighlights();
+						timeline.displayData();
+						//d3.event.stopPropagation();
+					})
+				  .append("span")
+					.style("color", "black")
+					.text("\u00A0"+highlightedEventTypes[i]);
+
+				if (i < highlightedEventTypes.length - 1)
+					eventTypeDisplayArea.append("span")
+						.text(" ");
+			}
+		} else {
+			eventTypeDisplayArea.text(highlightedEventTypes.length +" event types");
+		}
+	}
+
+}
+
+/**
+ * Switch the highlight of a given event type in the event types list
+ * @param {string} eType - The event type we want the highlight switched
+ */
+function highlightEventTypeRow(eType) {
+	// Highlights the row
+	var row = d3.select("#eventTableBody").select("#"+eType);
+	
+	if (row.attr("class") === null) {
+		row.classed("selectedEventTypeRow", true);
+		// Adds the newly highlighted event type to the list
+		highlightedEventTypes.push(eType);
+		addToHistory("Highlight event type "+eType);
+	} else {
+		if (row.classed("selectedEventTypeRow")) {
+			// Remove this event type from the list of highlighted event types
+			let eventIdx = highlightedEventTypes.indexOf(eType);
+			highlightedEventTypes.splice(eventIdx, 1);
+			addToHistory("Unhighlight event type "+eType);
+		} else {
+			// Adds the newly highlighted user to the list
+			highlightedEventTypes.push(eType);
+			addToHistory("Highlight event type "+eType);
+		}
+		row.classed("selectedEventTypeRow", !row.classed("selectedEventTypeRow"));
+	}
+}
+
+/**
+ * Switch the highlight of a given user in the user list
+ * @param {string} userName - The user we want the highlight switched
+ */
+function highlightUserRow(userName) {
+	// Highlights the user
+	var row = d3.select("#userTableBody").select("#u"+userName);
+	
+	if (row.attr("class") === null) {
+		//console.log("adding from null "+rowId);
+		row.classed("selectedUserRow", true);
+		// Adds the newly highlighted user to the list
+		highlightedUsers.push(userName);
+		// Updates the displays of the number of selected users
+		d3.select("#showSelectedUserSessionsButton")
+			.text("Selected users ("+highlightedUsers.length+")");
+		addToHistory("Highlight user "+userName);
+	} else {
+		if (row.classed("selectedUserRow")) {
+			// Remove this user from the list of highlighted users
+			let userIdx = highlightedUsers.indexOf(userName);
+			highlightedUsers.splice(userIdx, 1);
+			// Updates the displays of the number of selected users
+			d3.select("#showSelectedUserSessionsButton")
+				.text("Selected users ("+highlightedUsers.length+")");
+			addToHistory("Unhighlight user "+userName);
+			// If a filter is being applied, removes the row if necessary
+			if (relatedUsers.length == 0) {
+				if (currentUserSearchInput.length > 0)
+					row.remove(); // The filter accepts nothing
+			} else {
+				if (!relatedUsers.includes(userName))
+					row.remove(); // The filter rejects the user
+			}
+		} else {
+			//console.log("adding "+rowId);
+			// Adds the newly highlighted user to the list
+			highlightedUsers.push(userName);
+			// Updates the displays of the number of selected users
+			d3.select("#showSelectedUserSessionsButton")
+				.text("Selected users ("+highlightedUsers.length+")");
+			addToHistory("Highlight user "+userName);
+		}
+		row.classed("selectedUserRow", !row.classed("selectedUserRow"));
+	}
+}
 
 
 
@@ -749,7 +1886,6 @@ function selectDataset(datasetName) {
 	requestDataset("Agavue");	// TODO request the data to the server
 	requestYearBins("Agavue");
 	*/
-	
 }
 
 
@@ -763,9 +1899,9 @@ function handleSteeringStopSignal() {
 	.text("");
 }
 
-var userPatternDistrib = {};
+var userPatternDistrib = {}; // Should probably be removed, never used
 // Duration of a session in ms
-var sessionDuration = 3*60*60*1000;
+var sessionDuration = 3*60*60*1000; // Should probably be removed, never used
 
 /**
  * Updates the pattern counts in the users sessions
@@ -800,35 +1936,6 @@ function receivePatternDistributionPerUser(message) {
 	//timeline.drawUsersPatterns();
 }
 
-var sessionInactivityLimit = 30*60*1000; // 30 minutes
-var userSessions = {};
-/**
- * Builds the user sessions based on the given inactivity duration to end a session
- * A session has a start and an end (in milliseconds) and a pattern count
- * @returns
- */
-function buildUserSessions() {
-	for (var userIdx = 0; userIdx < userList.length; userIdx++) {
-		let u = userList[userIdx];
-		let lastEventDate = d3.timeParse('%Y-%m-%d %H:%M:%S')(userTraces[u][0][0].split(";")[1]).getTime();
-		userSessions[u] = [{start: Number(lastEventDate), end: Number(lastEventDate), count: {}, nbEvents: 1}];
-		let idx = 1;
-		
-		for ( idx = 1; idx < userTraces[u].length; idx++) {
-			let thisEventDate = d3.timeParse('%Y-%m-%d %H:%M:%S')(userTraces[u][idx][0].split(";")[1]).getTime();
-			if (lastEventDate + sessionInactivityLimit > thisEventDate) { // keeping the current session
-				userSessions[u][userSessions[u].length - 1].end = Number(thisEventDate);
-				userSessions[u][userSessions[u].length - 1].nbEvents++;
-			} else { // Create a new session
-				userSessions[u].push({start: Number(thisEventDate), end: Number(thisEventDate), count: {}, nbEvents: 1});
-			}
-			lastEventDate = thisEventDate;
-		}
-	}
-	
-	// Refresh the user list display
-	createUserListDisplay();
-}
 
 function receiveDatasetList(message) {
 	
@@ -1099,307 +2206,6 @@ function showUserSessions(arg) {
 	timeline.drawUsersPatterns();
 }
 
-let currentUserSearchInput = "";
-let currentUserSearchSuggestionIdx = -1;
-let relatedUsers = [];
-let currentKeyDownUser = "";
-let mouseIsOverUserSuggestions = false;
-
-function setupUserSearchField() {
-	let searchField = d3.select("#Users").select("input.searchField");
-	let suggestionField = d3.select("#Users").select("input.suggestionField");
-	let suggestionDiv = d3.select("#Users").select(".suggestionDiv");
-	
-	suggestionDiv.on("mouseenter", function(d,i) {
-		mouseIsOverUserSuggestions = true;
-	});
-	
-	suggestionDiv.on("mouseleave", function(d,i) {
-		mouseIsOverUserSuggestions = false;
-	});
-	
-	searchField.on("focus", function() {
-		suggestionDiv.style("display", "block");
-	});
-	
-	searchField.on("focusout", function() {
-		if (mouseIsOverUserSuggestions == false)
-			suggestionDiv.style("display", "none");
-	});
-	
-	searchField.on("input", function() {
-		let currentValue = searchField.property("value");
-		currentUserSearchInput = currentValue;
-		
-		if(currentValue.length > 0) {
-			relatedUsers = userList.filter(function(d, i) {
-				return d.includes(currentValue);
-			});
-			relatedUsers.sort();
-			
-			if (relatedUsers.length > 0) {
-				currentUserSearchSuggestionIdx = 0;
-				suggestionDiv.html("");
-				relatedUsers.forEach(function(d,i) {
-					suggestionDiv.append("p")
-						.classed("selected", i==currentUserSearchSuggestionIdx)
-						.classed("clickable", true)
-						.text(d)
-						.on("click", function() {
-							currentUserSearchInput = relatedUsers[i];
-							searchField.property("value",currentUserSearchInput);
-							// Updates the suggestion list
-							relatedUsers = userList.filter(function(e, j) {
-								return e.includes(currentUserSearchInput);
-							});
-							relatedUsers.sort();
-
-							if (relatedUsers.length > 0) {
-								currentUserSearchSuggestionIdx = 0;
-								suggestionDiv.html("");
-								relatedUsers.forEach(function(e,j) {
-									suggestionDiv.append("p")
-										.classed("selected", j==currentUserSearchSuggestionIdx)
-										.text(e);
-								});
-							} else {
-								currentUserSearchSuggestionIdx = -1;
-								suggestionDiv.html("");
-							}
-							
-							createUserListDisplay();
-							suggestionDiv.style("display", "none");
-						});
-				});
-				suggestionField.property("value",relatedUsers[0]);
-			} else {
-				currentUserSearchSuggestionIdx = -1;
-				suggestionDiv.html("");
-			}
-		} else {
-			currentUserSearchInput = "";
-			currentUserSearchSuggestionIdx = -1;
-			relatedUsers = [];
-			suggestionDiv.html("");
-		}
-		createUserListDisplay();
-	});
-	searchField.on("keydown", function() {
-		let keyName = d3.event.key;
-		// Don't trigger if the user keeps the key down
-		if (currentKeyDownUser == keyName)
-			return;
-		currentKeyDownUser = keyName;
-		switch(keyName) {
-		case "Escape":
-			suggestionDiv.style("display", "none");
-			break;
-		case "ArrowRight":
-		case "Enter":
-			if (currentUserSearchSuggestionIdx >= 0) {
-				currentUserSearchInput = relatedUsers[currentUserSearchSuggestionIdx];
-				searchField.property("value",relatedUsers[currentUserSearchSuggestionIdx]);
-				// Updates the suggestion list
-				relatedUsers = userList.filter(function(d, i) {
-					return d.includes(relatedUsers[currentUserSearchSuggestionIdx]);
-				});
-				relatedUsers.sort();
-
-				if (relatedUsers.length > 0) {
-					currentUserSearchSuggestionIdx = 0;
-					suggestionDiv.html("");
-					relatedUsers.forEach(function(d,i) {
-						suggestionDiv.append("p")
-							.classed("selected", i==currentUserSearchSuggestionIdx)
-							.text(d);
-					});
-				} else {
-					currentUserSearchSuggestionIdx = -1;
-					suggestionDiv.html("");
-				}
-			}
-			createUserListDisplay();
-			break;
-		case "ArrowUp":
-			if (currentUserSearchSuggestionIdx > 0) {
-				currentUserSearchSuggestionIdx--;
-				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
-				});
-			}
-			break;
-		case "ArrowDown":
-			if (currentUserSearchSuggestionIdx < relatedUsers.length - 1) {
-				currentUserSearchSuggestionIdx++;
-				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
-				});
-			}
-			break;
-		default:
-		}
-		currentKeyDownUser = "";
-	});
-}
-
-let currentPatternSearchInput = ""; // The current value in the search field
-let currentPatternSearchFragment = ""; // The current fragment of the value (what follows the last space)
-let currentPatternSearchSuggestionIdx = -1;
-let relatedEventTypes = [];
-let currentKeyDown = "";
-let mouseIsOverPatternSuggestions = false;
-
-function setupAlgorithmSearchField() {
-	let searchField = d3.select("#patternListArea").select("input.searchField");
-	let suggestionDiv = d3.select("#patternListArea").select(".suggestionDiv");
-	
-	suggestionDiv.on("mouseenter", function(d,i) {
-		mouseIsOverPatternSuggestions = true;
-	});
-	
-	suggestionDiv.on("mouseleave", function(d,i) {
-		mouseIsOverPatternSuggestions = false;
-	});
-	
-	searchField.on("focus", function() {
-		suggestionDiv.style("display", "block");
-	});
-	
-	searchField.on("focusout", function() {
-		if (mouseIsOverPatternSuggestions == false)
-			suggestionDiv.style("display", "none");
-	});
-	
-	searchField.on("input", function() {
-		let currentValue = searchField.property("value");
-		currentPatternSearchInput = currentValue;
-		currentPatternSearchFragment = currentValue.split(" ").pop();
-		
-		if(currentPatternSearchFragment.length > 0) {
-			let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
-			let baseValue = currentPatternSearchInput.substr(0, baseLength);
-			relatedEventTypes = eventTypes.filter(function(d, i) {
-				return d.includes(currentPatternSearchFragment);
-			});
-			relatedEventTypes.sort();
-			
-			if (relatedEventTypes.length > 0) {
-				currentPatternSearchSuggestionIdx = 0;
-				suggestionDiv.html("");
-				relatedEventTypes.forEach(function(d,i) {
-					suggestionDiv.append("p")
-						.classed("selected", i==currentPatternSearchSuggestionIdx)
-						.classed("clickable", true)
-						.text(baseValue + d)
-						.on("click", function() {
-							let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
-							let baseValue = currentPatternSearchInput.substr(0, baseLength);
-							currentPatternSearchInput = baseValue + relatedEventTypes[i];
-							currentPatternSearchFragment = relatedEventTypes[i];
-							searchField.property("value", currentPatternSearchInput);
-							// Updates the suggestion list
-							relatedEventTypes = eventTypes.filter(function(e, j) {
-								return e.includes(currentPatternSearchFragment);
-							});
-							relatedEventTypes.sort();
-
-							if (relatedEventTypes.length > 0) {
-								currentPatternSearchSuggestionIdx = 0;
-								suggestionDiv.html("");
-								relatedEventTypes.forEach(function(e,j) {
-									suggestionDiv.append("p")
-										.classed("selected", j==currentPatternSearchSuggestionIdx)
-										.text(baseValue + e);
-								});
-							} else {
-								currentPatternSearchSuggestionIdx = -1;
-								suggestionDiv.html("");
-							}
-							
-							createPatternListDisplay();
-							suggestionDiv.style("display", "none");
-						});
-				});
-			} else {
-				currentPatternSearchSuggestionIdx = -1;
-				suggestionDiv.html("");
-			}
-		} else {
-			currentPatternSearchInput = "";
-			currentPatternSearchSuggestionIdx = -1;
-			currentPatternSearchFragment = "";
-			relatedEventTypes = [];
-			suggestionDiv.html("");
-		}
-
-		createPatternListDisplay();
-	});
-	searchField.on("keydown", function() {
-		let keyName = d3.event.key;
-		// Don't trigger if the user keeps the key down
-		if (currentKeyDown == keyName)
-			return;
-		currentKeyDown = keyName;
-		switch(keyName) {
-		case "Escape":
-			suggestionDiv.style("display", "none");
-			break;
-		case "ArrowRight":
-		case "Enter":
-			if (currentPatternSearchSuggestionIdx >= 0) {
-				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
-				let baseValue = currentPatternSearchInput.substr(0, baseLength);
-				currentPatternSearchInput = baseValue + relatedEventTypes[currentPatternSearchSuggestionIdx];
-				currentPatternSearchFragment = relatedEventTypes[currentPatternSearchSuggestionIdx];
-				searchField.property("value", currentPatternSearchInput);
-				// Updates the suggestion list
-				relatedEventTypes = eventTypes.filter(function(d, i) {
-					return d.includes(currentPatternSearchFragment);
-				});
-				relatedEventTypes.sort();
-
-				if (relatedEventTypes.length > 0) {
-					currentPatternSearchSuggestionIdx = 0;
-					suggestionDiv.html("");
-					relatedEventTypes.forEach(function(d,i) {
-						suggestionDiv.append("p")
-							.classed("selected", i==currentPatternSearchSuggestionIdx)
-							.text(baseValue + d);
-					});
-				} else {
-					currentPatternSearchSuggestionIdx = -1;
-					suggestionDiv.html("");
-				}
-				
-				createPatternListDisplay();
-			}
-			break;
-		case "ArrowUp":
-			if (currentPatternSearchSuggestionIdx > 0) {
-				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
-				let baseValue = currentPatternSearchInput.substr(0, baseLength);
-				currentPatternSearchSuggestionIdx--;
-				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
-				});
-			}
-			break;
-		case "ArrowDown":
-			if (currentPatternSearchSuggestionIdx < relatedEventTypes.length - 1) {
-				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
-				let baseValue = currentPatternSearchInput.substr(0, baseLength);
-				currentPatternSearchSuggestionIdx++;
-				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
-				});
-			}
-			break;
-		default:
-		}
-		currentKeyDown = "";
-	});
-}
-
 var helperTooltipVisible = false;
 
 function setupHelpers() {
@@ -1411,37 +2217,6 @@ function setupHelpers() {
 		.attr("title", "The minimal support for a pattern to be frequent");
 	d3.select("#helpSize")
 		.attr("title", "Maximum number of event in a pattern");
-}
-
-function startTool(datasetName) {
-	d3.select("#datasetSelection")
-		.style("display","none");
-	d3.select("#tool")
-		.style("display","flex");
-	
-	setupTool();
-	selectDataset(datasetName);
-}
-
-/**
- * 
- * @returns
- */
-function enableCentralOverlay(message) {
-	//console.log("Enable central overlay");
-	var node = d3.select("#centerOverlay")
-				.style("visibility","initial")
-				.text(message);
-}
-
-/**
- * 
- * @returns
- */
-function disableCentralOverlay() {
-	//console.log("Disable central overlay");
-	d3.select("#centerOverlay")
-		.style("visibility","hidden");
 }
 
 function requestUserDistributionForPattern(message) {
@@ -1509,105 +2284,13 @@ function requestUserPatterns(user, datasetName) {
 	sendToServer(action);
 }
 
-/**
- * Requests information about the events of a dataset
- * @param datasetName
- * @returns
- */
-function requestEventTypes(datasetName) {
-	var action = {
-			action: "request",
-			object: "eventTypes",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
 
-/**
- * Requests the list of users in the dataset
- * @param datasetName
- * @returns
- */
-function requestUserList(datasetName) {
-	var action = {
-			action: "request",
-			object: "userList",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-/**
- * Receives information about a dataset from the server
- * @param message The message containing the information
- * @returns
- */
-function receiveDatasetInfo(message) {
-	//console.log("number of sequences : " + message.numberOfSequences);
-	datasetInfo["numberOfSequences"] = parseInt(message.numberOfSequences);
-	datasetInfo["numberOfDifferentEvents"] = parseInt(message.numberOfDifferentEvents);
-	datasetInfo["numberOfEvents"] = parseInt(message.nbEvents);
-	var userList = [];
-	for (var i=0; i < datasetInfo["numberOfSequences"];i++)
-		userList.push(message["user"+i.toString()]);
-	datasetInfo["users"] = userList;
-	datasetInfo["firstEvent"] = message.firstEvent;
-	datasetInfo["lastEvent"] = message.lastEvent;
-	datasetInfo["name"] = message.name;
-	
-	displayDatasetInfo();
-	addToHistory('Dataset '+message.name+' loaded');
-
-	// Update the max number of users to display their sessions
-	d3.select("#nbUserShownInput")
-		.attr("max", datasetInfo.numberOfSequences-nbUserShown)
-		.attr("value", firstUserShown);
-	timeline.drawUsersPatterns();
-		
-	timeline.updateContextBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
-	
-	/*updateTimelineBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
-	updateTimelineOverviewBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);*/
-	
-	// Maj des bornes de la timeline
-	//d3.select
-	
-	// Old content
-	/*var node = document.getElementById("nbDiffEvents");
-	node.textContent = message.nbDifferentEvents;
-	
-	// generate a color for each event
-	availableColors = generateColors(datasetInfo["numberOfDifferentEvents"]);
-	console.log("color: "+availableColors[0]);
-	
-	// display the available users
-	node = document.getElementById("nbUsers");
-	node.textContent = datasetInfo["users"].split(';').length;*/
-}
 
 /************************************/
 /*				Pending				*/
 /************************************/
 
-
-function startMining() {
-	setReadyToStop();
-	var action = {
-			action: "startMining"
-	};
-	sendToServer(action);
-}
-
-function stopMining() {
-	setReadyToStart();
-	var action = {
-			action: "stopMining"
-	};
-	sendToServer(action);
-
-	resetPatternsData();
-}
-
+// Probably still from the pre-vis proto
 function resetPatternsData() {
 	var node = document.getElementById("patterns");
 	while (node.lastChild) {
@@ -1622,29 +2305,6 @@ function createTimeline() {
 	var container = document.getElementById('timeline');
 	timeline = new Timeline("timeline",{});
 	
-}
-
-function addToTimeline(type, start, quantity, end) {
-	//console.log("{id: "+timelineIds+", content: "+type+", start: "+start+", end: "+end+"}");
-	timelineItems.add({id: timelineIds, content: type+" : "+quantity, start: start, end: end});
-	timelineIds = timelineIds + 1;
-}
-
-function addToTimeline(type, start, quantity) {
-	timelineItems.add({id: timelineIds, content: type+" : "+quantity, start: start});
-  	timelineIds = timelineIds + 1;
-}
-
-function setReadyToStart() {
-	document.getElementById("startMining").style.display = "";
-	document.getElementById("stopMining").style.display = "none";
-	document.getElementById("startMining").style.backgroundColor = "#2eb82e";
-}
-
-function setReadyToStop() {
-	document.getElementById("startMining").style.display = "none";
-	document.getElementById("stopMining").style.display = "";
-	document.getElementById("stopMining").style.backgroundColor = "#cc0000";
 }
 
 function addPattern(pattern) {
@@ -1760,16 +2420,6 @@ function getParentNode(pattern, size) {
 
 function removePatternFromList(id) {
 	document.getElementById("pattern"+id).remove();
-}
-
-
-function goToTimelineStart() {
-	var start = timeline.getItemRange();
-	timeline.moveTo(start.min);
-}
-
-function timelineOverview() {
-	timeline.fit();
 }
 
 function getProbabilityOfIntersection(A, B) {	
@@ -1905,25 +2555,6 @@ function drawLiftD3() {
 	
 }
 
-function requestSteeringOnPattern(patternId) {
-	console.log('requesting steering on patternId '+patternId);
-	var action = {
-			action: "steerOnPattern",
-			patternId: patternId
-	};
-	sendToServer(action);
-}
-
-function requestSteeringOnUser(userId) {
-	console.log('requesting steering on user '+userId);
-	var action = {
-			action: "steerOnuser",
-			userId: userId
-	};
-	sendToServer(action);
-}
-
-
 // Generates nbColors different RGB colors
 function generateColors(nbColors) {
     var i = 360 / (nbColors - 1); // distribute the colors evenly on the hue range
@@ -1935,84 +2566,7 @@ function generateColors(nbColors) {
     return r;
 }
 
-/**
- * HSV to RGB color conversion
- *
- * H runs from 0 to 360 degrees
- * S and V run from 0 to 100
- * 
- * Ported from the excellent java algorithm by Eugene Vishnevsky at:
- * http://www.cs.rit.edu/~ncs/color/t_convert.html
- */
-function hsvToRgb(h, s, v) {
-	var r, g, b;
-	var i;
-	var f, p, q, t;
- 
-	// Make sure our arguments stay in-range
-	h = Math.max(0, Math.min(360, h));
-	s = Math.max(0, Math.min(100, s));
-	v = Math.max(0, Math.min(100, v));
- 
-	// We accept saturation and value arguments from 0 to 100 because that's
-	// how Photoshop represents those values. Internally, however, the
-	// saturation and value are calculated from a range of 0 to 1. We make
-	// That conversion here.
-	s /= 100;
-	v /= 100;
- 
-	if(s == 0) {
-		// Achromatic (grey)
-		r = g = b = v;
-		return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-	}
- 
-	h /= 60; // sector 0 to 5
-	i = Math.floor(h);
-	f = h - i; // factorial part of h
-	p = v * (1 - s);
-	q = v * (1 - s * f);
-	t = v * (1 - s * (1 - f));
- 
-	switch(i) {
-		case 0:
-			r = v;
-			g = t;
-			b = p;
-			break;
- 
-		case 1:
-			r = q;
-			g = v;
-			b = p;
-			break;
- 
-		case 2:
-			r = p;
-			g = v;
-			b = t;
-			break;
- 
-		case 3:
-			r = p;
-			g = q;
-			b = v;
-			break;
- 
-		case 4:
-			r = t;
-			g = p;
-			b = v;
-			break;
- 
-		default: // case 5:
-			r = v;
-			g = p;
-			b = q;
-	}
- 
-	return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-}
+
 
 /************************************************************/
 /*															*/
@@ -2020,79 +2574,10 @@ function hsvToRgb(h, s, v) {
 /*															*/
 /************************************************************/
 
-function addToHistory(action) {
-	var history = d3.select("#history");
-	if (historyDisplayIsDefault) {
-		history.text("");
-		historyDisplayIsDefault = false;
-	}
-	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
-	var formatTime = d3.timeFormat("%H:%M:%S");
-	var now = formatTime(new Date());
-	history.append("p")
-		.text("- "+action)
-	  .append("span")
-		.classed("timestamp", true)
-		.text(" "+now.toString());
-}
 
 /****************************************************/
 /*				Data handling functions				*/
 /****************************************************/
-
-var userInformations = [];
-
-function receiveUserList(message) {
-	//console.log("Receiving a list of users")
-	let nbUsers = parseInt(message.size);
-	//console.log("Adding "+message.size+" users");
-	for (let i = 0; i < Math.min(nbUsers,10000); i++) {	// Line for a reduced test set
-	//for (var i = 0; i < nbUsers; i++) {				  // Normal line
-		let userInfo = message[i.toString()].split(";");
-		let infoToSave = [userInfo[0], userInfo[1]]; // name and nbEvents
-		userList.push(userInfo[0]);
-		// Date format : yyyy-MM-dd HH:mm:ss
-		let startDate = userInfo[2].split(" ");
-		let part1 = startDate[0].split("-");
-		let part2 = startDate[1].split(":");
-		let d1 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		let endDate = userInfo[3].split(" ");
-		part1 = endDate[0].split("-");
-		part2 = endDate[1].split(":");
-		let d2 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let endCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		let endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		// Calculates the duration of the trace
-		let minutes = 1000 * 60;
-		let hours = minutes * 60;
-		let days = hours * 24;
-		let years = days * 365;
-		let endTime = d2.getTime();
-		let startTime = d1.getTime();
-		let timeDiff = endTime-startTime;
-		
-		infoToSave.push(timeDiff, userInfo[2], userInfo[3]); // trace duration, start, end
-		userProperties[userInfo[0]] = {"start": d1, "end":d2, "duration": timeDiff};
-		userInformations.push(infoToSave);	// Add this user to the list of already known ones
-	}
-	// sorting by event per user, in descending order
-	sortUsersByNbEvents(true);
-	
-	// Creating the table
-	createUserListDisplay();
-}
 
 function createUserListDisplay() {
 	// removing the old users
@@ -2214,283 +2699,7 @@ function createUserListDisplay() {
 	//timeline.drawUsersTraces();  Keep commented until the function really draws the user traces
 }
 
-var lastUserSort = "";
-
-function sortUsersByNbEvents(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var nbA = parseInt(a[1]);
-		var nbB = parseInt(b[1]);
-		
-		return nbA-nbB;
-	});
-	
-	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "nbEventsDown";
-	} else {
-		lastUserSort = "nbEventsUp";
-	}
-}
-
-function sortUsersByName(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var nameA = a[0];
-		var nameB = b[0];
-		
-		if (nameA < nameB)
-			return -1;
-		else if (nameA > nameB)
-			return 1;
-		else
-			return 0;
-	});
-	
-	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "nameDown";
-	} else {
-		lastUserSort = "nameUp";
-	}
-}
-
-function sortUsersByTraceDuration(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var durationA = parseInt(a[2]);
-		var durationB = parseInt(b[2]);
-		
-		return durationA-durationB;
-	});
-	
-	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "durationDown";
-	} else {
-		lastUserSort = "durationUp";
-	}
-}
-
-function sortUsersByNbSessions(decreasing=false) {
-	if (Object.keys(userSessions).length > 0) {
-		userInformations.sort(function(a, b) {
-			var nbA = userSessions[a[0]].length;
-			var nbB = userSessions[b[0]].length;
-			
-			return nbA-nbB;
-		});
-		
-		if (decreasing == true) {
-			userInformations.reverse();
-			lastUserSort = "nbSessionsDown";
-		} else {
-			lastUserSort = "nbSessionsUp";
-		}
-	}
-}
-
-function sortUsersByStartDate(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var startA = a[3];
-		var startB = b[3];
-		
-		if (startA < startB)
-			return -1;
-		else if (startA > startB)
-			return 1;
-		else
-			return 0;
-	});
-	
-	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "startDown";
-	} else {
-		lastUserSort = "startUp";
-	}
-}
-
-function sortUsersByEndDate(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var endA = a[4];
-		var endB = b[4];
-		
-		if (endA < endB)
-			return -1;
-		else if (endA > endB)
-			return 1;
-		else
-			return 0;
-	});
-	
-	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "endDown";
-	} else {
-		lastUserSort = "endUp";
-	}
-}
-
-function clickOnUserNameHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "User") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "nameDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByName();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByName(true);
-	}
-	
-	createUserListDisplay();
-	timeline.drawUsersPatterns();
-}
-
-function clickOnUserNbEventsHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0events") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "nbEventsDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByNbEvents();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByNbEvents(true);
-	}
-	
-	createUserListDisplay();
-	timeline.drawUsersPatterns();
-}
-
-function clickOnUserDurationHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Duration") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "durationDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByTraceDuration();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByTraceDuration(true);
-	}
-	
-	createUserListDisplay();
-	timeline.drawUsersPatterns();
-}
-
-function clickOnUserNbSessionsHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0sessions") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "nbSessionsDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByNbSessions();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByNbSessions(true);
-	}
-	
-	createUserListDisplay();
-	timeline.drawUsersPatterns();
-}
-
-function clickOnUserStartHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Start") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "startDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByStartDate();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByStartDate(true);
-	}
-	
-	createUserListDisplay();
-	timeline.drawUsersPatterns();
-}
-
-function clickOnUserEndHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "End") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "endDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByEndDate();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByEndDate(true);
-	}
-	
-	createUserListDisplay();
-	timeline.drawUsersPatterns();
-}
-
+// Not used anywhere apparently...
 function sortUsersAccordingToTable() {
 	let newUserList = [];
 	d3.select("#userTableBody")
@@ -2501,156 +2710,9 @@ function sortUsersAccordingToTable() {
 	userList = newUserList;
 }
 
-var numberOfDetailedHighlights = 5;
 
-function setHighlights() {
-	// removing the potential old user highlights
-	let userDisplayArea = document.getElementById("userHighlight");
-	while (userDisplayArea.firstChild) {
-		userDisplayArea.removeChild(userDisplayArea.firstChild);
-	}
-	userDisplayArea = d3.select("#userHighlight");
-	
-	if (highlightedUsers.length == 0) {
-		userDisplayArea.text("No user");
-	} else {
-		if (highlightedUsers.length <= numberOfDetailedHighlights) {
-			userDisplayArea.text("Users ");
-			for (let i = 0; i < highlightedUsers.length; i++) {
-				let thisUser = highlightedUsers[i];
-				userDisplayArea.append("span")
-					.classed("clickable", true)
-					.classed("highlightButton", true)
-					.text(thisUser)
-					.on("click", function() {
-						highlightUserRow(thisUser);
-						setHighlights();
-						timeline.displayData();
-						//d3.event.stopPropagation();
-					});
-				if (i < highlightedUsers.length - 1)
-					userDisplayArea.append("span")
-						.text(" ");
-			}
-		} else {
-			userDisplayArea.text(highlightedUsers.length +" users");
-		}
-	}
-	
 
-	// removing the potential old event type highlights
-	let eventTypeDisplayArea = document.getElementById("eventTypeHighlight");
-	while (eventTypeDisplayArea.firstChild) {
-		eventTypeDisplayArea.removeChild(eventTypeDisplayArea.firstChild);
-	}
-	eventTypeDisplayArea = d3.select(eventTypeDisplayArea);
-	
-	if (highlightedEventTypes.length == 0) {
-		eventTypeDisplayArea.text("No event type");
-	} else {
-		if (highlightedEventTypes.length <= numberOfDetailedHighlights) {
-			eventTypeDisplayArea.text("Events ");
-			for (let i = 0; i < highlightedEventTypes.length; i++) {
-				let thisEventType = highlightedEventTypes[i];
-				eventTypeDisplayArea.append("span")
-					.classed("clickable", true)
-					.classed("highlightButton", true)
-					.style("color", colorList[highlightedEventTypes[i]][0].toString())
-					.text(itemShapes[highlightedEventTypes[i]])
-					.on("click", function() {
-						highlightEventTypeRow(thisEventType);
-						setHighlights();
-						timeline.displayData();
-						//d3.event.stopPropagation();
-					})
-				  .append("span")
-					.style("color", "black")
-					.text("\u00A0"+highlightedEventTypes[i]);
 
-				if (i < highlightedEventTypes.length - 1)
-					eventTypeDisplayArea.append("span")
-						.text(" ");
-			}
-		} else {
-			eventTypeDisplayArea.text(highlightedEventTypes.length +" event types");
-		}
-	}
-
-}
-
-var highlightedEventTypes = [];
-
-function highlightEventTypeRow(eType) {
-	// Highlights the row
-	var row = d3.select("#eventTableBody").select("#"+eType);
-	
-	if (row.attr("class") === null) {
-		row.attr("class", "selectedEventTypeRow");
-		// Adds the newly highlighted event type to the list
-		highlightedEventTypes.push(eType);
-		addToHistory("Highlight event type "+eType);
-	} else {
-		if (row.attr("class").indexOf("selectedEventTypeRow") == -1) {// the row isn't already selected
-			row.attr("class", row.attr("class")+" selectedEventTypeRow");
-			// Adds the newly highlighted user to the list
-			highlightedEventTypes.push(eType);
-			addToHistory("Highlight event type "+eType);
-		} else {
-			row.attr("class", row.attr("class").replace("selectedEventTypeRow", ""));
-			// Remove this event type from the list of highlighted event types
-			let eventIdx = highlightedEventTypes.indexOf(eType);
-			highlightedEventTypes.splice(eventIdx, 1);
-			addToHistory("Unhighlight event type "+eType);
-		}
-	
-	}
-}
-
-function highlightUserRow(userName) {
-	// Highlights the user
-	var row = d3.select("#userTableBody").select("#u"+userName);
-	
-	
-	if (row.attr("class") === null) {
-		//console.log("adding from null "+rowId);
-		row.attr("class", "selectedUserRow");
-		// Adds the newly highlighted user to the list
-		highlightedUsers.push(userName);
-		// Updates the displays of the number of selected users
-		d3.select("#showSelectedUserSessionsButton")
-			.text("Selected users ("+highlightedUsers.length+")");
-		addToHistory("Highlight user "+userName);
-	} else {
-		if (row.attr("class").indexOf("selectedUserRow") == -1) {// the row isn't already selected
-			//console.log("adding "+rowId);
-			row.attr("class", row.attr("class")+" selectedUserRow");
-			// Adds the newly highlighted user to the list
-			highlightedUsers.push(userName);
-			// Updates the displays of the number of selected users
-			d3.select("#showSelectedUserSessionsButton")
-				.text("Selected users ("+highlightedUsers.length+")");
-			addToHistory("Highlight user "+userName);
-		} else {
-			row.attr("class", row.attr("class").replace("selectedUserRow", ""));
-			// Remove this user from the list of highlighted users
-			let userIdx = highlightedUsers.indexOf(userName);
-			highlightedUsers.splice(userIdx, 1);
-			// Updates the displays of the number of selected users
-			d3.select("#showSelectedUserSessionsButton")
-				.text("Selected users ("+highlightedUsers.length+")");
-			addToHistory("Unhighlight user "+userName);
-			// If a filter is being applied, removes the row if necessary
-			if (relatedUsers.length == 0) {
-				if (currentUserSearchInput.length > 0)
-					row.remove(); // The filter accepts nothing
-			} else {
-				if (!relatedUsers.includes(userName))
-					row.remove(); // The filter rejects the user
-			}
-		}
-	
-	}
-}
 
 function getNextCategoryColor() {
 	return colorPalet[eventTypeCategories.length -1];
