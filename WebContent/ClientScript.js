@@ -180,8 +180,6 @@ var tlHeight = null;
 // Number of elements fully displayed in the highlight summary.
 // Beyond this value, only the number of highlighted elements is displayed
 var numberOfDetailedHighlights = 5;
-// List of highlighted event type ids
-var highlightedEventTypes = [];
 
 // Current input in the user panel's search field
 let currentUserSearchInput = "";
@@ -223,13 +221,18 @@ var eventTypeCategories = [];
 var eventTypesByCategory = {};
 var eventTypeCategoryColors = {};
 
+// References to the events of the dataset, associated to the relevant user
 var userTraces = {};
 // The names of all users present in the dataset
 var userList = [];
 
+// The raw dataset -- Used to create the Crossfilter
 var rawData = [];
+//
 var dataset = {};
+//
 var dataDimensions = {};
+//
 var userProperties = {};
 
 // Informations about the users
@@ -240,11 +243,34 @@ var userInformations = [];
 // Number of extracted patterns
 var numberOfPattern = 0;
 
+// List of highlighted event type ids
+var highlightedEventTypes = [];
+
+// List of highlighted user names
 var highlightedUsers = [];
 // Duration between two events beyond which a new session is created
 var sessionInactivityLimit = 30*60*1000; // 30 minutes
 // The sessions for every user
 var userSessions = {};
+
+// Number of trace events sent from the server
+var nbEventsReceived = 0;
+// Events in the dataset, ordered by time
+// Each event is the single element of an array, to allow references to them
+var timeOrderedEvents = [];
+// Time of reception of the first event
+var firstEventReceived = null;
+// Time of reception of the last event
+var lastEventReceived = null;
+
+// Index map of the events, with two levels of indexation over the time:
+// First level has keys with year with century + day of the year (in decimal)
+// Second level has keys with hours + minutes
+var eventAccessor = {};
+var formatAccessorFirstLevel = d3.timeFormat("%Y%j"); // year with century as decimal + day of the year as decimal
+var formatAccessorSecondLevel = d3.timeFormat("%H%M"); // hour + minutes
+// Maximum number of events at a same time
+var maxEventAtOneTime = 0;
 
 /*************************************/
 /*			State elements			 */
@@ -268,7 +294,12 @@ var eventDisplayIsDefault = true;
 
 var currentTimeFilter = [];
 
-// Sort order for the list of users. Expected value is one among the following :
+// Whether the description of event types is visible or not
+var showEventTypeDescription = true;
+// Whether the name of event types in a pattern is visible or not
+var showPatternText = true;
+
+// Sort order for the list of users. Expected value is one of the following :
 // nbEventsDown - nbEventsUp
 // nameDown - nameUp
 // durationDown - durationUp
@@ -276,6 +307,12 @@ var currentTimeFilter = [];
 // startDown - startUp
 // endDown - endUp
 var lastUserSort = "";
+
+// Sort order for the list of event types. Expected value is one of the following :
+// nbEventsDown - nbEventsUp
+// nameDown - nameUp
+// categoryDown - categoryUp
+var lastEventTypeSort = "";
 
 /*************************************/
 /*				?????				 */
@@ -1320,6 +1357,77 @@ function receiveUserList(message) {
 	createUserListDisplay();
 }
 
+/**
+ * Receives some events and store them in memory
+ * @param {JSON} eventsCompressed - The events and information about them
+ */
+function receiveEvents(eventsCompressed) {
+	//var dataCompressed = LZString.decompressFromUTF16(eventsCompressed.data);
+	//var events = JSON.parse(dataCompressed);
+	
+	let events = eventsCompressed;//JSON.parse(eventsCompressed.data);
+	
+	let nbEventsInMessage = parseInt(events.numberOfEvents);
+	if (nbEventsReceived == 0)
+		firstEventReceived = new Date();
+	for (let i=0; i < nbEventsInMessage; i++) {
+		let evtParts = events[i.toString()].split(";");
+		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(events[i.toString()].split(";")[1]);
+		let evtObj = {
+			"type": evtParts[0],
+			"start": time.getTime(),
+			"end": evtParts[2],
+			"user": evtParts[3]	
+		};
+		for(let propertyIdx=4; propertyIdx < evtParts.length; propertyIdx++) {
+			evtObj["property"+(propertyIdx-3)] = evtParts[propertyIdx];
+		}
+		let user = evtParts[3];
+		timeOrderedEvents.push([events[i.toString()]]);
+		// Add the event to the array later used to create the crossfilter
+		rawData.push(evtObj);
+		// Adding the event to its user
+		if(typeof(userTraces[user]) == typeof([]))
+			userTraces[user].push(timeOrderedEvents[timeOrderedEvents.length-1]);
+		else
+			userTraces[user] = [timeOrderedEvents[timeOrderedEvents.length-1]];
+		// Setting the accessor if necessary
+		if (!eventAccessor.hasOwnProperty(formatAccessorFirstLevel(time))) {
+			eventAccessor[formatAccessorFirstLevel(time)] = {};
+			eventAccessor[formatAccessorFirstLevel(time)][formatAccessorSecondLevel(time)] = timeOrderedEvents.length-1;
+		} else {
+			if (!eventAccessor[formatAccessorFirstLevel(time)].hasOwnProperty(formatAccessorSecondLevel(time))) {
+				eventAccessor[formatAccessorFirstLevel(time)][formatAccessorSecondLevel(time)] = timeOrderedEvents.length-1;
+			}
+		}
+	}
+	nbEventsReceived += nbEventsInMessage;
+	enableCentralOverlay("Receiving all the events... ("+nbEventsReceived+" out of "+datasetInfo["numberOfEvents"]+")");
+	
+	// All events of the dataset are received
+	if (datasetInfo["numberOfEvents"] == nbEventsReceived) {
+		lastEventReceived = new Date();
+		console.log(nbEventsReceived+" events received between");
+		console.log(firstEventReceived);
+		console.log("and");
+		console.log(lastEventReceived);
+		console.log("Creating crossfilter at "+new Date());
+		dataset = crossfilter(rawData);
+		console.log("Crossfilter created at "+new Date());
+		dataDimensions["user"] = dataset.dimension(function(d) {return d.user;});
+		dataDimensions["time"] = dataset.dimension(function(d) {return d.start;});
+		dataDimensions["type"] = dataset.dimension(function(d) {return d.type;});
+		console.log("Dimensions created at "+new Date());
+		rawData = null;
+		console.log("raw data removed");
+		buildUserSessions();
+		computeMaxEventAtOneTime();
+		disableCentralOverlay();
+		requestRelevantBins(currentDatasetName, timeline.getRelevantDistributionScale());
+		startInitialMining();
+	}
+}
+
 /************************************/
 /*		Data manipulation			*/
 /************************************/
@@ -1508,9 +1616,163 @@ function sortUsersByEndDate(decreasing=false) {
 	}
 }
 
+/**
+ * Sorts the pattern list according to their name
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortPatternsByName(decreasing=false) {
+	patternIdList.sort(function(a, b) {
+		let nameA = patternsInformation[a][0];
+		let nameB = patternsInformation[b][0];
+		
+		if (nameA < nameB)
+			return -1;
+		else if (nameA > nameB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		patternIdList.reverse();
+		lastPatternSort = "nameDown";
+	} else {
+		lastPatternSort = "nameUp";
+	}
+}
+
+/**
+ * Sorts the pattern list according to their size
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortPatternsBySize(decreasing=false) {
+	patternIdList.sort(function(a, b) {
+		var sizeA = patternsInformation[a][1];
+		var sizeB = patternsInformation[b][1];
+		
+		return sizeA - sizeB;
+	});
+	
+	if (decreasing == true) {
+		patternIdList.reverse();
+		lastPatternSort = "sizeDown";
+	} else {
+		lastPatternSort = "sizeUp";
+	}
+}
+
+/**
+ * Sorts the pattern list according to their support
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortPatternsBySupport(decreasing=false) {
+	patternIdList.sort(function(a, b) {
+		var supportA = patternsInformation[a][2];
+		var supportB = patternsInformation[b][2];
+		
+		return supportA - supportB;
+	});
+	
+	if (decreasing == true) {
+		patternIdList.reverse();
+		lastPatternSort = "supportDown";
+	} else {
+		lastPatternSort = "supportUp";
+	}
+}
+
+/**
+ * Sorts the event types list according to their name
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortEventTypesByName(decreasing=false) {
+	eventTypes.sort();
+	
+	if (decreasing == true) {
+		eventTypes.reverse();
+		lastEventTypeSort = "nameDown";
+	} else {
+		lastEventTypeSort = "nameUp";
+	}
+}
+
+/**
+ * Sorts the event types list according to the number of events associated to them
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortEventTypesByNbEvents(decreasing=false) {
+	eventTypes.sort(function(a,b) {
+		return eventTypeInformations[a].nbOccs - eventTypeInformations[b].nbOccs;
+	});
+	
+	if (decreasing == true) {
+		eventTypes.reverse();
+		lastEventTypeSort = "nbEventsDown";
+	} else {
+		lastEventTypeSort = "nbEventsUp";
+	}
+}
+
+/**
+ * Sorts the event types list according to their category
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortEventTypesByCategory(decreasing=false) {
+	eventTypes.sort(function(a,b) {
+		if (eventTypeInformations[a].category <= eventTypeInformations[b].category)
+			return -1;
+		else
+			return 1;
+	});
+	
+	if (decreasing == true) {
+		eventTypes.reverse();
+		lastEventTypeSort = "categoryDown";
+	} else {
+		lastEventTypeSort = "categoryUp";
+	}
+}
+
+/**
+ * Computes the maximum number of event present at a same time in the dataset
+ */
+function computeMaxEventAtOneTime() {
+	maxEventAtOneTime = dataDimensions.time.group().top(1)[0].value;
+}
+
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+/**
+ * Shows or hides the description of event types
+ */
+function switchShowEventTypeDescription() {
+	if (showEventTypeDescription == true) {
+		showEventTypeDescription = false;
+		d3.selectAll(".eventTypeDescription")
+			.style("display", "none");
+	} else {
+		showEventTypeDescription = true;
+		d3.selectAll(".eventTypeDescription")
+			.style("display", "initial");
+	}
+}
+
+/**
+ * Shows or hides the name of event types inside a pattern, besides their symbol
+ */
+function switchShowPatternText() {
+	if (showPatternText == true) {
+		showPatternText = false;
+		d3.selectAll(".patternText")
+			.style("display", "none");
+	} else {
+		showPatternText = true;
+		d3.selectAll(".patternText")
+			.style("display", "initial");
+	}
+}
 
 /**
  * Handles a click on the 'name' header in the user list
@@ -1693,6 +1955,99 @@ function clickOnUserEndHeader() {
 }
 
 /**
+ * Handles a click on the 'name' header in the event types list
+ */
+function clickOnEventTypeNameHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#eventTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Event\u00A0type") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastEventTypeSort == "nameDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortEventTypesByName();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortEventTypesByName(true);
+	}
+	
+	createEventTypesListDisplay();
+	if (timeline.displayMode == "events")
+		timeline.displayData();
+}
+
+/**
+ * Handles a click on the 'nbEvents' header in the event types list
+ */
+function clickOnEventTypeNbEventsHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#eventTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Nb\u00A0events") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastEventTypeSort == "nbEventsDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortEventTypesByNbEvents();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortEventTypesByNbEvents(true);
+	}
+	
+	createEventTypesListDisplay();
+	if (timeline.displayMode == "events")
+		timeline.displayData();
+}
+
+/**
+ * Handles a click on the 'category' header in the event types list
+ */
+function clickOnEventTypeCategoryHeader() {
+	let header = null;
+	let txt = "";
+	// Remove the sorting indicators
+	d3.select("#eventTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Category") {
+				header = this;
+				txt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastEventTypeSort == "categoryDown") {
+		d3.select(header).text(txt + "\u00A0↓");
+		sortEventTypesByCategory();
+	} else {
+		d3.select(header).text(txt + "\u00A0↑");
+		sortEventTypesByCategory(true);
+	}
+	
+	createEventTypesListDisplay();
+	if (timeline.displayMode == "events")
+		timeline.displayData();
+}
+
+/**
  * (Re)creates the display of the highlights summary
  */
 function setHighlights() {
@@ -1843,6 +2198,130 @@ function highlightUserRow(userName) {
 		}
 		row.classed("selectedUserRow", !row.classed("selectedUserRow"));
 	}
+}
+
+/**
+ * Displays the list of users.
+ * Takes into account the current ordering and user highlights
+ */
+function createUserListDisplay() {
+	// removing the old users
+	var userRowsRoot = document.getElementById("userTableBody");
+	while (userRowsRoot.firstChild) {
+		userRowsRoot.removeChild(userRowsRoot.firstChild);
+	}
+	
+	// Adding the new ones
+	for (let u= 0; u < userInformations.length; u++) {
+		let thisUser = userInformations[u];
+		let thisUserName = thisUser[0];
+		
+		// Only add the user if:
+		// - it is selected (always displayed)
+		// - the filter is empty or accepts the user
+		if (highlightedUsers.includes(thisUserName) == false) {
+			if (relatedUsers.length == 0) {
+				if (currentUserSearchInput.length > 0)
+					continue; // The filter accepts nothing
+			} else {
+				if (!relatedUsers.includes(thisUserName))
+					continue; // The filter rejects the user
+			}
+		}
+		
+		let userRow = d3.select("#userTableBody").append("tr")
+			.classed("clickable", true);
+		
+		userRow.append("td").text(thisUser[0]); // name
+		userRow.append("td").text(thisUser[1]); // nbEvents
+		
+		// Display the duration of the trace
+		var minutes = 1000 * 60;
+		var hours = minutes * 60;
+		var days = hours * 24;
+		var years = days * 365;
+		var timeDiff = parseInt(thisUser[2]);
+		
+		var result = "";
+		var tdText = "";
+		var tmpValue = 0;
+		if (Math.floor(timeDiff / years) > 0) {
+			tmpValue = Math.floor(timeDiff / years);
+			result += tmpValue+" year";
+			if (tmpValue > 1)
+				result += "s";
+			timeDiff = timeDiff - tmpValue*years;
+			tdText = "> "+result;
+		}
+		if (result == "") {
+			if (Math.floor(timeDiff / days) > 0) {
+				tmpValue = Math.floor(timeDiff / days);
+				result += tmpValue+" day";
+				if (tmpValue > 1)
+					result += "s";
+				timeDiff = timeDiff - tmpValue*days;
+				tdText = result;
+			} else {
+				tdText = "< 1 day";
+			}
+		}
+		userRow.append("td").text(tdText); // traceDuration
+		
+		 // number of sessions
+		if (userSessions[thisUser[0]]) {
+			userRow.append("td").text(userSessions[thisUser[0]].length);
+		} else {
+			userRow.append("td").text("??");
+		}
+		
+
+		// Date format : yyyy-MM-dd HH:mm:ss
+		let startDate = thisUser[3].split(" ");
+		let part1 = startDate[0].split("-");
+		let part2 = startDate[1].split(":");
+		let d1 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		let endDate = thisUser[4].split(" ");
+		part1 = endDate[0].split("-");
+		part2 = endDate[1].split(":");
+		let d2 = new Date(parseInt(part1[0]),
+				parseInt(part1[1]),
+				parseInt(part1[2]),
+				parseInt(part2[0]),
+				parseInt(part2[1]),
+				parseInt(part2[2]));
+		let endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		
+		userRow.append("td").text(startDateFormated);  // start
+		userRow.append("td").text(endDateFormated); // end
+
+		userRow.attr("id","u"+thisUserName);
+		
+		if (highlightedUsers.includes(thisUser[0])) {
+			userRow.attr("class", "selectedUserRow");
+		}
+		
+		userRow.on("click", function(){
+			if (d3.event.shiftKey) { // Shift + click, steering
+				requestSteeringOnUser(userInfo[0]);
+				d3.event.stopPropagation();
+			} else { // normal click, highlight
+				//console.log(userName);
+				highlightUserRow(thisUserName);
+				setHighlights();
+				timeline.displayData();
+				//d3.event.stopPropagation();
+			}
+		});
+	}
+	
+	// Calling the display of the trace
+	//timeline.drawUsersTraces();  Keep commented until the function really draws the user traces
 }
 
 
@@ -2579,125 +3058,6 @@ function generateColors(nbColors) {
 /*				Data handling functions				*/
 /****************************************************/
 
-function createUserListDisplay() {
-	// removing the old users
-	var userRowsRoot = document.getElementById("userTableBody");
-	while (userRowsRoot.firstChild) {
-		userRowsRoot.removeChild(userRowsRoot.firstChild);
-	}
-	
-	// Adding the new ones
-	for (var u= 0; u < userInformations.length; u++) {
-		let thisUser = userInformations[u];
-		let thisUserName = thisUser[0];
-		
-		// Only add the user if:
-		// - it is selected (always displayed)
-		// - the filter is empty or accepts the user
-		if (highlightedUsers.includes(thisUserName) == false) {
-			if (relatedUsers.length == 0) {
-				if (currentUserSearchInput.length > 0)
-					continue; // The filter accepts nothing
-			} else {
-				if (!relatedUsers.includes(thisUserName))
-					continue; // The filter rejects the user
-			}
-		}
-		
-		let userRow = d3.select("#userTableBody").append("tr")
-			.classed("clickable", true);
-		
-		userRow.append("td").text(thisUser[0]); // name
-		userRow.append("td").text(thisUser[1]); // nbEvents
-		
-		// Display the duration of the trace
-		var minutes = 1000 * 60;
-		var hours = minutes * 60;
-		var days = hours * 24;
-		var years = days * 365;
-		var timeDiff = parseInt(thisUser[2]);
-		
-		var result = "";
-		var tdText = "";
-		var tmpValue = 0;
-		if (Math.floor(timeDiff / years) > 0) {
-			tmpValue = Math.floor(timeDiff / years);
-			result += tmpValue+" year";
-			if (tmpValue > 1)
-				result += "s";
-			timeDiff = timeDiff - tmpValue*years;
-			tdText = "> "+result;
-		}
-		if (result == "") {
-			if (Math.floor(timeDiff / days) > 0) {
-				tmpValue = Math.floor(timeDiff / days);
-				result += tmpValue+" day";
-				if (tmpValue > 1)
-					result += "s";
-				timeDiff = timeDiff - tmpValue*days;
-				tdText = result;
-			} else {
-				tdText = "< 1 day";
-			}
-		}
-		userRow.append("td").text(tdText); // traceDuration
-		
-		 // number of sessions
-		if (userSessions[thisUser[0]]) {
-			userRow.append("td").text(userSessions[thisUser[0]].length);
-		} else {
-			userRow.append("td").text("??");
-		}
-		
-
-		// Date format : yyyy-MM-dd HH:mm:ss
-		var startDate = thisUser[3].split(" ");
-		var part1 = startDate[0].split("-");
-		var part2 = startDate[1].split(":");
-		var d1 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		var startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		var endDate = thisUser[4].split(" ");
-		part1 = endDate[0].split("-");
-		part2 = endDate[1].split(":");
-		var d2 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		var endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		
-		userRow.append("td").text(startDateFormated);  // start
-		userRow.append("td").text(endDateFormated); // end
-
-		userRow.attr("id","u"+thisUserName);
-		
-		if (highlightedUsers.includes(thisUser[0])) {
-			userRow.attr("class", "selectedUserRow");
-		}
-		
-		userRow.on("click", function(){
-			if (d3.event.shiftKey) { // Shift + click, steering
-				requestSteeringOnUser(userInfo[0]);
-				d3.event.stopPropagation();
-			} else { // normal click, highlight
-				//console.log(userName);
-				highlightUserRow(thisUserName);
-				setHighlights();
-				timeline.displayData();
-				//d3.event.stopPropagation();
-			}
-		});
-	}
-	
-	// Calling the display of the trace
-	//timeline.drawUsersTraces();  Keep commented until the function really draws the user traces
-}
 
 // Not used anywhere apparently...
 function sortUsersAccordingToTable() {
@@ -2718,159 +3078,8 @@ function getNextCategoryColor() {
 	return colorPalet[eventTypeCategories.length -1];
 }
 
-var showEventTypeDescription = true;
 
-function switchShowEventTypeDescription() {
-	if (showEventTypeDescription == true) {
-		showEventTypeDescription = false;
-		d3.selectAll(".eventTypeDescription")
-			.style("display", "none");
-	} else {
-		showEventTypeDescription = true;
-		d3.selectAll(".eventTypeDescription")
-			.style("display", "initial");
-	}
-}
 
-var showPatternText = true;
-
-function switchShowPatternText() {
-	if (showPatternText == true) {
-		showPatternText = false;
-		d3.selectAll(".patternText")
-			.style("display", "none");
-	} else {
-		showPatternText = true;
-		d3.selectAll(".patternText")
-			.style("display", "initial");
-	}
-}
-
-var lastEventTypeSort = "";
-
-function sortEventTypesByName(decreasing=false) {
-	eventTypes.sort();
-	
-	if (decreasing == true) {
-		eventTypes.reverse();
-		lastEventTypeSort = "nameDown";
-	} else {
-		lastEventTypeSort = "nameUp";
-	}
-}
-
-function sortEventTypesByNbEvents(decreasing=false) {
-	eventTypes.sort(function(a,b) {
-		return eventTypeInformations[a].nbOccs - eventTypeInformations[b].nbOccs;
-	});
-	
-	if (decreasing == true) {
-		eventTypes.reverse();
-		lastEventTypeSort = "nbEventsDown";
-	} else {
-		lastEventTypeSort = "nbEventsUp";
-	}
-}
-
-function sortEventTypesByCategory(decreasing=false) {
-	eventTypes.sort(function(a,b) {
-		if (eventTypeInformations[a].category <= eventTypeInformations[b].category)
-			return -1;
-		else
-			return 1;
-	});
-	
-	if (decreasing == true) {
-		eventTypes.reverse();
-		lastEventTypeSort = "categoryDown";
-	} else {
-		lastEventTypeSort = "categoryUp";
-	}
-}
-
-function clickOnEventTypeNameHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#eventTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Event\u00A0type") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastEventTypeSort == "nameDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesByName();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesByName(true);
-	}
-	
-	createEventTypesListDisplay();
-	if (timeline.displayMode == "events")
-		timeline.displayData();
-}
-
-function clickOnEventTypeNbEventsHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#eventTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0events") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastEventTypeSort == "nbEventsDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesByNbEvents();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesByNbEvents(true);
-	}
-	
-	createEventTypesListDisplay();
-	if (timeline.displayMode == "events")
-		timeline.displayData();
-}
-
-function clickOnEventTypeCategoryHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#eventTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Category") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastEventTypeSort == "categoryDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesByCategory();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesByCategory(true);
-	}
-	
-	createEventTypesListDisplay();
-	if (timeline.displayMode == "events")
-		timeline.displayData();
-}
 
 var colorList = {};
 var eventTypes = [];
@@ -3464,113 +3673,6 @@ function receiveUserTrace(trace) {
 	}
 }
 
-var nbEventsReceived = 0;
-var timeOrderedEvents = [];
-var firstEventReceived = null;
-var lastEventReceived = null;
-
-var eventAccessor = {};
-var maxEventAtOneTime = 0;
-
-function receiveEvents(eventsCompressed) {
-	
-	//var dataCompressed = LZString.decompressFromUTF16(eventsCompressed.data);
-	//var events = JSON.parse(dataCompressed);
-	
-	let events = eventsCompressed;//JSON.parse(eventsCompressed.data);
-	
-	let nbEventsInMessage = parseInt(events.numberOfEvents);
-	if (nbEventsReceived == 0)
-		firstEventReceived = new Date();
-	let formatFirstLevel = d3.timeFormat("%Y%j");
-	let formatSecondLevel = d3.timeFormat("%H%M");
-	for (var i=0; i < nbEventsInMessage; i++) {
-		let evtParts = events[i.toString()].split(";");
-		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(events[i.toString()].split(";")[1]);
-		let evtObj = {
-			"type": evtParts[0],
-			"start": time.getTime(),
-			"end": evtParts[2],
-			"user": evtParts[3]	
-		};
-		for(let propertyIdx=4; propertyIdx < evtParts.length; propertyIdx++) {
-			evtObj["property"+(propertyIdx-3)] = evtParts[propertyIdx];
-		}
-		let user = evtParts[3];
-		timeOrderedEvents.push([events[i.toString()]]);
-		// Add the event to the array later used to create the crossfilter
-		rawData.push(evtObj);
-		// Adding the event to its user
-		if(typeof(userTraces[user]) == typeof([]))
-			userTraces[user].push(timeOrderedEvents[timeOrderedEvents.length-1]);
-		else
-			userTraces[user] = [timeOrderedEvents[timeOrderedEvents.length-1]];
-		// Setting the accessor if necessary
-		if (!eventAccessor.hasOwnProperty(formatFirstLevel(time))) {
-			eventAccessor[formatFirstLevel(time)] = {};
-			eventAccessor[formatFirstLevel(time)][formatSecondLevel(time)] = timeOrderedEvents.length-1;
-		} else {
-			if (!eventAccessor[formatFirstLevel(time)].hasOwnProperty(formatSecondLevel(time))) {
-				eventAccessor[formatFirstLevel(time)][formatSecondLevel(time)] = timeOrderedEvents.length-1;
-			}
-		}
-	}
-	nbEventsReceived += nbEventsInMessage;
-	enableCentralOverlay("Receiving all the events... ("+nbEventsReceived+" out of "+datasetInfo["numberOfEvents"]+")");
-	
-	// All events of the dataset are received
-	if (datasetInfo["numberOfEvents"] == nbEventsReceived) {
-		lastEventReceived = new Date();
-		console.log(nbEventsReceived+" events received between");
-		console.log(firstEventReceived);
-		console.log("and");
-		console.log(lastEventReceived);
-		console.log("Creating crossfilter at "+new Date());
-		dataset = crossfilter(rawData);
-		console.log("Crossfilter created at "+new Date());
-		dataDimensions["user"] = dataset.dimension(function(d) {return d.user;});
-		dataDimensions["time"] = dataset.dimension(function(d) {return d.start;});
-		dataDimensions["type"] = dataset.dimension(function(d) {return d.type;});
-		console.log("Dimensions created at "+new Date());
-		rawData = null;
-		console.log("raw data removed");
-		buildUserSessions();
-		computeMaxEventAtOneTime();
-		disableCentralOverlay();
-		requestRelevantBins(currentDatasetName, timeline.getRelevantDistributionScale());
-		startInitialMining();
-	}
-	/*nbEventsReceived += 1000;
-	if (nbEventsReceived > datasetInfo["numberOfEvents"]) {
-		lastEventReceived = new Date();
-		console.log(nbEventsReceived+" events received between");
-		console.log(firstEventReceived);
-		console.log("and");
-		console.log(lastEventReceived);
-	}*/
-}
-
-function computeMaxEventAtOneTime() {
-	maxEventAtOneTime = dataDimensions.time.group().top(1)[0].value;
-	//Before Crossfilter
-	/*let previousTime = "";
-	let currentCount = 1;
-	let maxCount = 1;
-	for(let i=0; i < timeOrderedEvents.length; i++) {
-		let thisTime = timeOrderedEvents[i][0].split(";")[1];
-		if (thisTime == previousTime)
-			currentCount++;
-		else {
-			previousTime = thisTime;
-			if(currentCount > maxCount)
-				maxCount = currentCount;
-			currentCount = 1;
-		}
-	}
-	if(currentCount > maxCount)
-		maxCount = currentCount;
-	maxEventAtOneTime = maxCount;*/
-}
 
 /************************************************/
 /*				Display functions				*/
@@ -3703,58 +3805,6 @@ function receiveAllPatterns(message) {
 	// update the metrics tab
 }
 
-function sortPatternsByName(decreasing=false) {
-	patternIdList.sort(function(a, b) {
-		var nameA = patternsInformation[a][0];
-		var nameB = patternsInformation[b][0];
-		
-		if (nameA < nameB)
-			return -1;
-		else if (nameA > nameB)
-			return 1;
-		else
-			return 0;
-	});
-	
-	if (decreasing == true) {
-		patternIdList.reverse();
-		lastPatternSort = "nameDown";
-	} else {
-		lastPatternSort = "nameUp";
-	}
-}
-
-function sortPatternsBySize(decreasing=false) {
-	patternIdList.sort(function(a, b) {
-		var sizeA = patternsInformation[a][1];
-		var sizeB = patternsInformation[b][1];
-		
-		return sizeA - sizeB;
-	});
-	
-	if (decreasing == true) {
-		patternIdList.reverse();
-		lastPatternSort = "sizeDown";
-	} else {
-		lastPatternSort = "sizeUp";
-	}
-}
-
-function sortPatternsBySupport(decreasing=false) {
-	patternIdList.sort(function(a, b) {
-		var supportA = patternsInformation[a][2];
-		var supportB = patternsInformation[b][2];
-		
-		return supportA - supportB;
-	});
-	
-	if (decreasing == true) {
-		patternIdList.reverse();
-		lastPatternSort = "supportDown";
-	} else {
-		lastPatternSort = "supportUp";
-	}
-}
 
 var lastPatternSort = "sizeUp";
 
@@ -4683,12 +4733,10 @@ function displayDatasetLoading() {
 }
 
 function getEventAccessorAtDate(date) {
-	var formatFirstLevel = d3.timeFormat("%Y%j");
-	var formatSecondLevel = d3.timeFormat("%H%M");
-	var result = eventAccessor[formatFirstLevel(date)][formatSecondLevel(date)];
+	var result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
 	while (result === undefined) {
 		date = d3.timeMinute.offset(date,1);
-		result = eventAccessor[formatFirstLevel(date)][formatSecondLevel(date)];
+		result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
 	}
 	return result;
 }
