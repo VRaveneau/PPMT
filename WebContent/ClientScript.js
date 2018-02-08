@@ -923,6 +923,14 @@ function addToHistory(action) {
  */
 function processOpen(message) {
 	console.log("Server connected." + "\n");
+	// Ping the server every 10 minutes to keep the connexion alive
+	runningTaskIndicator = setInterval(function() {
+		console.log("pinging server");
+		let action = {
+				action: "ping"
+		};
+		sendToServer(action);
+	}, 10*60*1000); // every 10 minutes
 }
 
 /**
@@ -950,8 +958,8 @@ function processMessage(message/*Compressed*/) {
 	//console.log("Receive from server => " + message.data + "\n");
 	//var message = LZString.decompressFromUTF16(messageCompressed.data);
 	var msg = JSON.parse(message.data);
-	console.log("Receive message on " + new Date());
-	console.log(msg);
+	//console.log("Receive message on " + new Date());
+	//console.log(msg);
 	
 	if (msg.action === "add") {
 		addPattern(msg);
@@ -1048,7 +1056,7 @@ function processMessage(message/*Compressed*/) {
  * @param {JSON} jsonMessage - the JSON object to be sent
  */
 function sendToServer(jsonMessage) {
-	console.log("Sending to server on " + new Date());
+	//console.log("Sending to server on " + new Date());
 	webSocket.send(JSON.stringify(jsonMessage));
 }
 

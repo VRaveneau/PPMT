@@ -134,6 +134,9 @@ public class ServerEndpointPPMT {
 		if ("steerOnUser".equals(jsonMessage.getString("action"))) {
 	  		sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
 	  	}
+		if ("ping".equals(jsonMessage.getString("action"))) {
+	  		// Just used to keep the connexion alive
+	  	}
 	}
 	
 	@OnClose
