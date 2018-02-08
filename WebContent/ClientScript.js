@@ -7491,11 +7491,13 @@ var Timeline = function(elemId, options) {
 		.attr("value","type");
 	self.eventDisplayStyleForm.append("label")
 		.text("Time")
+		.classed("hidden", true)
 	  .append("input")
 		.attr("type","radio")
 		.attr("name","scale")
 		.attr("value","time")
-		.classed("clickable", true);
+		.classed("clickable", true)
+		.classed("hidden", true);
 	self.eventDisplayStyleForm.selectAll("input").on("change", self.changeEventDisplayStyle);
 	
 	self.switchEventDisplayStyleFormVisibility = function() {
