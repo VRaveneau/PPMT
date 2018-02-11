@@ -182,29 +182,31 @@ var tlHeight = null;
 var numberOfDetailedHighlights = 5;
 
 // Current input in the user panel's search field
-let currentUserSearchInput = "";
+var currentUserSearchInput = "";
 // Index of the currently selected suggestion in the user panel's search field
-let currentUserSearchSuggestionIdx = -1;
+var currentUserSearchSuggestionIdx = -1;
 // Users matching the current filter in the user panel's search field
-let relatedUsers = [];
+var relatedUsers = [];
 // Keyboard key currently down
-let currentKeyDownUser = "";
+var currentKeyDownUser = "";
 // Whether the mouse pointer is above the user panel's suggestion list or not
-let mouseIsOverUserSuggestions = false;
+var mouseIsOverUserSuggestions = false;
 
 // Current input in the pattern search field
-let currentPatternSearchInput = "";
+var currentPatternSearchInput = "";
 // Current fragment of the pattern search field (what follows the last space)
-let currentPatternSearchFragment = "";
+var currentPatternSearchFragment = "";
 // Index of the currently selected suggestion in the pattern search field
-let currentPatternSearchSuggestionIdx = -1;
+var currentPatternSearchSuggestionIdx = -1;
 // Patterns matching the current filter in the pattern search field
-let relatedEventTypes = [];
+var relatedEventTypes = [];
 // Keyboard key currently down
-let currentKeyDown = "";
+var currentKeyDown = "";
 // Whether the mouse pointer is above the pattern suggestion list or not
-let mouseIsOverPatternSuggestions = false;
+var mouseIsOverPatternSuggestions = false;
 
+// Barchart of the number of discovered patterns for each size
+var patternSizesChart = new PatternSizesChart();
 
 /*************************************/
 /*			Data elements			 */
@@ -314,9 +316,74 @@ var lastUserSort = "";
 // categoryDown - categoryUp
 var lastEventTypeSort = "";
 
+// Sort order for the list of patterns. Expected value is one of the following :
+// sizeDown - sizeUp
+// supportDown - supportUp
+// nameDown - nameUp
+var lastPatternSort = "sizeUp";
+
+// The current display mode for the session view. Value is one of the following:
+// all - selected - some
+var showUserSessionOption = "all";
+// When the session wiew is in the "some" mode, index of the first user in the
+//  list of users to display
+var firstUserShown = 0;
+
+// Interval for the animation while the algorithm loads the data
+var loadingAlgorithmDataAnimation;
+// State of the animation (number of dots to be displayed) while the algorithm
+//  loads the data
+var loadingAlgorithmDataAnimationState = 1;
+
+// Interval for the timer of the algorithm's runtime
+var algorithmTimer;
+// Time (in ms) at which the algorithm started
+var algorithmStartTime = -1;
+// Delay (in ms) between the server and the client
+var startDelayFromServer = 0;
+
+/*************************************/
+/*				Tooltip				 */
+/*************************************/
+
+// D3 selection of the tooltip
+var tooltip = d3.select("#tooltip");
+// HTML node of the tooltip
+var tooltipNode = tooltip.node();
+// Distance between the mouse pointer and the tooltip
+var tooltipOffsetFromMouse = 5;
+// X,Y position of the mouse pointer
+var currentMousePos = [];
+// Whether the tooltip has been fixed or moves with the pointer
+var tooltipIsFixed = false;
+// Whether the tooltip has content
+var tooltipHasContent = false;
+// The data contained in the tooltip
+var tooltipData = {};
+// The part of the interface the tooltip's data comes from. Value is one of the
+//  following: general - session
+var tooltipOrigin = "";
+// The data the tooltip should be displaying if it was moving with the pointer
+var tooltipSupposedData = {};
+// The part of the interface the tooltip's supposed data comes from. Value is
+//  one of the following: general - session
+var tooltipSupposedOrigin = "";
+// Whether the tooltip should be emptied
+var tooltipShouldBeCleared = false;
+// Time (in ms) allowed to the pointer to reenter the tooltip after leaving it
+//  before it closes
+var tooltipCloseTimeout;
+
 /*************************************/
 /*				?????				 */
 /*************************************/
+
+// List of month names to display dates
+var monthsNames = [
+	"January", "February", "March",
+	"April", "May", "June",
+	"July", "August", "September",
+	"October", "November", "December"];
 
 var itemColors = {};
 var unselectedColorFading = 5;
@@ -334,6 +401,18 @@ var availableColors = [];
 /*************************************/
 /*				Utility				 */
 /*************************************/
+
+/**
+ * Displays a debug message sent by the server
+ * @param {JSON} message - The message sent by the server
+ */
+function displayServerDebugMessage(message) {
+	let debugSize = parseInt(message.size);
+	console.log("===== Server debug =====");
+	for (let i=0;i<debugSize;i++)
+		console.log(message["msg"+i.toString()]);
+	console.log("========================");
+}
 
 /**
  * Manages keyboard input
@@ -516,6 +595,59 @@ function hsvToRgb(h, s, v) {
 	}
  
 	return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+/**
+ * Formats a given date to a readable format.
+ * If the date is given as a string, assumes the format from Agavue :
+ * Sun Mar 31 01:32:10 CET 2013
+ * @param {string|Date} date The date to format
+ */
+function formatDate(date) {
+	if (typeof date == "string") {
+		let parts = date.split(" ");
+		if (parts.length != 6)
+			return date;
+		let month = "";
+		switch(parts[1]) {
+			case "Jan":
+				return " January "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Feb":
+				return " February "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Mar":
+				return " March "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Apr":
+				return " April "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "May":
+				return " May "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Jun":
+				return " June "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Jul":
+				return " July "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Aug":
+				return " August "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Sep":
+				return " September "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Oct":
+				return " October "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Nov":
+				return " November "+parts[2]+", "+parts[5]+", "+parts[3];
+			case "Dec":
+				return " December "+parts[2]+", "+parts[5]+", "+parts[3];
+			default:
+				return parts[1]+" "+parts[2]+", "+parts[5]+", "+parts[3];
+		}
+	} else {
+		let parts = [
+			"",
+			monthsNames[date.getMonth()],
+			date.getDate()+",",
+			date.getFullYear()+",",
+			date.getHours()+":"+date.getMinutes()+":"+date.getSeconds()
+		];
+		
+		return parts.join(" ");
+	}
 }
 
 /*************************************/
@@ -889,6 +1021,45 @@ function setupAlgorithmSearchField() {
 	});
 }
 
+/**
+ * Setup and displays the barchart representing the pattern sizes
+ */
+function setupPatternSizesChart() {
+	let data = Object.keys(patternMetrics.sizeDistribution);
+	
+	patternSizesChart.x.domain(data.map(function(d) { return d; }));
+	patternSizesChart.y.domain([0, d3.max(data, function(d) {
+		return patternMetrics.sizeDistribution[d];
+	})]);
+
+	patternSizesChart.g.append("g")
+		.attr("class", "axis axis--x")
+		.attr("transform", "translate(0," + patternSizesChart.height + ")")
+		.call(patternSizesChart.xAxis);
+	
+	patternSizesChart.g.append("g")
+		.attr("class", "axis axis--y")
+		.call(patternSizesChart.yAxis)
+		.append("text")
+			.attr("transform", "rotate(-90)")
+			.attr("y", 6)
+			.attr("dy", "0.71em")
+			.attr("text-anchor", "end")
+			.text("Frequency");
+	
+	patternSizesChart.g.selectAll(".bar")
+		.data(data)
+		.enter().append("rect")
+			.attr("class", "bar")
+			.attr("x", (d) => patternSizesChart.x(d))
+			.attr("y", (d) => patternSizesChart.y(patternMetrics.sizeDistribution[d]))
+			.attr("width", patternSizesChart.x.bandwidth())
+			.attr("height", function(d) {
+				return patternSizesChart.height -
+				 patternSizesChart.y(patternMetrics.sizeDistribution[d]);
+				});
+}
+
 /*************************************/
 /*				Logging				 */
 /*************************************/
@@ -911,6 +1082,98 @@ function addToHistory(action) {
 	  .append("span")
 		.classed("timestamp", true)
 		.text(" "+now.toString());
+}
+
+/*************************************/
+/*				Algorithm			 */
+/*************************************/
+
+/**
+ * Starts the algorithm with default values, for the start of the session
+ */
+function startInitialMining() {
+	// TODO Stop using hard coded value depending on the dataset
+
+	let defaultMinSupport = "500";
+	let defaultWindowSize = "60";
+	let defaultMaxSize = "10";
+	let defaultMinGap = "0";
+	let defaultMaxGap = "2";
+	let defaultMaxDuration = "30000";
+	let datasetName = currentDatasetName;
+	
+	switch(currentDatasetName) {
+		case "recsysSamplecategory":
+			defaultMinSupport = "10";
+			defaultWindowSize = "60";
+			defaultMaxSize = "20";
+			defaultMinGap = "0";
+			defaultMaxGap = "2";
+			defaultMaxDuration = "30000";
+			break;
+		case "coconotesPPMT":
+			defaultMinSupport = "150";
+			defaultWindowSize = "60";
+			defaultMaxSize = "20";
+			defaultMinGap = "0";
+			defaultMaxGap = "2";
+			defaultMaxDuration = "30000";
+			break;
+		case "coconotesPPMTLarge":
+			defaultMinSupport = "50";
+			defaultWindowSize = "60";
+			defaultMaxSize = "20";
+			defaultMinGap = "0";
+			defaultMaxGap = "2";
+			defaultMaxDuration = "30000";
+			break;
+		default:
+	}
+	requestAlgorithmStart(defaultMinSupport, defaultWindowSize, defaultMaxSize,
+		 defaultMinGap, defaultMaxGap, defaultMaxDuration, datasetName);
+}
+
+/**
+ * Specifies the parameters to be used by the algorithm, displays them and
+ * sends the request
+ * @param {string} minSupport The minimum absolute support threashold
+ * @param {string} windowSize The size of the window
+ * @param {string} maxSize The maximum pattern size
+ * @param {string} minGap The minimum allowed gap between two events of a pattern
+ * @param {string} maxGap The maximum allowed gap between two events of a pattern
+ * @param {string} maxDuration The maximum duration of a pattern occurrence
+ * @param {string} datasetName The name of the dataset to be used
+ */
+function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
+								maxDuration, datasetName) {
+	console.log("Requesting algorithm start:");
+	console.log("   minSup: "+minSupport+", windowSize: "+windowSize+
+		", maxSize: "+maxSize+", minGap: "+minGap+", maxGap: "+maxGap+
+		", maxDuration: "+maxDuration+", datasetName: "+datasetName);
+	
+	let action = {
+		action: "run",
+		object: "algorithm",
+		minSup: minSupport,
+		windowSize: windowSize,
+		maxSize: maxSize,
+		minGap: minGap,
+		maxGap: maxGap,
+		maxDuration: maxDuration,
+		datasetName: datasetName
+	};
+	sendToServer(action);
+
+	// Start the timer independently from the server
+	//stopAlgorithmRuntime();
+	//startAlgorithmRuntime();
+	
+	// Update the display of the current parameters in the Execution tab
+	d3.select("#currentSupport").text(minSupport+" occs.");
+	d3.select("#currentGap").text(minGap+"-"+maxGap+" events");
+	d3.select("#currentWindow").text(windowSize);
+	d3.select("#currentSize").text(maxSize+" events");
+	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
 }
 
 /*************************************/
@@ -1085,6 +1348,32 @@ function requestDatasetList() {
 }
 
 /**
+ * Requests a dataset and its content to the server
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestDataset(datasetName) {
+	var action = {
+			action: "request",
+			object: "dataset",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests information about a dataset to the server
+ * @param {string} datasetName - Name of the dataset
+ */
+function requestDatasetInfo(datasetName) {
+	var action = {
+			action: "request",
+			object: "datasetInfo",
+			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
  * Asks for the patterns discovered in the given dataset
  * @param {string} datasetName - Name of the dataset
  */
@@ -1093,6 +1382,37 @@ function requestPatterns(datasetName) {
 			action: "request",
 			object: "allPatterns",
 			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests the occurrences of a given pattern in a given dataset
+ * @param {number} patternId - The id of the pattern
+ * @param {string} datasetName - The name of the dataset
+ */
+function requestPatternOccurrences(patternId, datasetName) {
+	var action = {
+			action: "request",
+			object: "patternOccs",
+			dataset: datasetName,
+			patternId: patternId
+	};
+	sendToServer(action);
+}
+
+// Might never be used
+/**
+ * Requests the distribution of a given pattern in a given dataset
+ * @param {number} patternRequested - The pattern
+ * @param {string} datasetName - The name of the dataset
+ */
+function requestPatternDistribution(patternRequested, datasetName) {
+	var action = {
+			action: "request",
+			object: "patternDistribution",
+			dataset: datasetName,
+			pattern: patternRequested
 	};
 	sendToServer(action);
 }
@@ -1268,6 +1588,20 @@ function requestSteeringOnUser(userId) {
 	sendToServer(action);
 }
 
+/**
+ * Requests the distribution of a pattern over the users in the data
+ * @param {JSON} message - The message containing information about the pattern
+ */
+function requestUserDistributionForPattern(message) {
+	var action = {
+			action: "request",
+			object: "userDistributionForPattern",
+			pattern: message.id,
+			dataset: currentDatasetName
+	};
+	sendToServer(action);
+}
+
 /*************************************/
 /*		Communication - receiving	 */
 /*************************************/
@@ -1436,9 +1770,179 @@ function receiveEvents(eventsCompressed) {
 	}
 }
 
+/**
+ * Updates the pattern counts in the users sessions
+ * @param {JSON} message - The information about the pattern distribution
+ */
+function receivePatternDistributionPerUser(message) {
+	let users = message.users.split(";");
+	users.forEach(function(u) {
+		let thisUserSessions = userSessions[u];
+		let theseOccs = message[u].split(";");
+		
+		theseOccs.forEach(function(o) {
+			let idx = 0;
+			for (idx = 0; idx < thisUserSessions.length; idx++) {
+				if (thisUserSessions[idx].start <= Number(o) &&
+					thisUserSessions[idx].end >= Number(o)) {
+					if (thisUserSessions[idx].count.hasOwnProperty(message.patternId)) {
+						thisUserSessions[idx].count[message.patternId] += 1;
+					} else {
+						thisUserSessions[idx].count[message.patternId] = 1;
+					}
+					break;
+				}
+			}
+		});
+	});
+	
+	// Commented because it makes the page freeze or crash when too many patterns arrive
+	// TODO redraw only if visible changes (new patterns in the displayed tooltip)
+	//timeline.drawUsersPatterns();
+}
+
+/**
+ * Displays the list of available datasets
+ * @param {JSON} message - The list of datasets, with information about them
+ */
+function receiveDatasetList(message) {
+	let dsList = d3.select("#datasetList");
+	let datasetNb = parseInt(message.size);
+	
+	for (let i = 0; i < datasetNb; i++) {
+		let dsName = message[i.toString()];
+		let dsParams = JSON.parse(message["param"+i.toString()]);
+
+		// Create the card for the dataset
+		let card = dsList.append("div")
+			.classed("datasetCard", true)
+			.classed("clickable", true);
+		card.on("click",function() {
+			startTool(dsName);
+		});
+		card.append("p")
+			.classed("name", true)
+			.text(dsName);
+		
+		// Add more information to the card if they are available
+		if (dsParams.nbUsers) {
+			card.append("p")
+				.classed("nbUsers", true)
+				.classed("datasetParameter", true)
+				.text("Users : " + dsParams.nbUsers);
+		}
+		if (dsParams.nbEvents) {
+			// Display large numbers with a space every 3 digit
+			let nbE = dsParams.nbEvents
+				.toString().split('').reverse().reduce(function(acc,val) {
+					if (acc.size % 3 == 0) {
+						acc.val.push(" ");
+					}
+					acc.val.push(val);
+					acc.size += 1;
+					return acc;
+				}, {"val":[], "size" :0})
+				.val.reverse().join('').trim();
+			card.append("p")
+				.classed("nbEvents", true)
+				.classed("datasetParameter", true)
+				.text("Events : " + nbE);
+		}
+		if (dsParams.nbEventTypes) {
+			card.append("p")
+				.classed("nbEventTypes", true)
+				.classed("datasetParameter", true)
+				.text("Event types : " + dsParams.nbEventTypes);
+		}
+		if (dsParams.duration) {
+			card.append("p")
+				.classed("duration", true)
+				.classed("datasetParameter", true)
+				.text("Duration : " + dsParams.duration);
+		}
+		
+		// Prioritize the most used datasets
+		switch(dsName) {
+		case "coconotesPPMT":
+			card.style("order","1");
+			break;
+		case "recsysSamplecategory":
+			card.style("order","2");
+			break;
+		default:
+		}
+	}
+}
+
+/**
+ * Receives the message describing the binned events, stores and displays them
+ * @param {JSON} message - The message containing the bins
+ */
+function receiveDataBins(message) {
+	var bins = [];
+	var pBins = [];
+	
+	var binNumber = parseInt(message.number);
+	for (var i = 0; i < binNumber; i++) {
+		let bin = [];
+		let pbin = [];
+		bin.push(message["year"+i]);
+		bin.push(message["start"+i]);
+		bin.push(message["end"+i]);
+		bin.push(message["value"+i]);
+		bin.push(message["users"+i]);
+		bin.push(message["events"+i]);
+		bin.push(message["occs"+i]);
+		
+		pbin.push(message["year"+i]);
+		pbin.push(message["start"+i]);
+		pbin.push(message["end"+i]);
+		pbin.push(message["value"+i]);
+		pbin.push(message["users"+i]);
+		pbin.push(message["events"+i]);
+		pbin.push(message["occs"+i]);
+		
+		bins.push(bin);
+		pBins.push(pbin);
+	}
+	
+	timeline.setBins(bins);
+	timeline.displayData();
+	timeline.binTransformed = false;
+	if (patternsReceived)
+		timeline.drawPatternBins(pBins);
+}
+
+/**
+ * Receives, stores and displays the occurrences of a pattern
+ * @param {JSON} message - The message containing the occurrences
+ */
+function receivePatternOccurrences(message) {
+	var pId = message.patternId;
+	var count = parseInt(message.count);
+	
+	for (var i=0; i < count; i++) {
+		timeline.addPatternOccurrence(pId, message[i.toString()]);
+	}
+	timeline.displayPatternOccurrences(pId);
+}
+
 /************************************/
 /*		Data manipulation			*/
 /************************************/
+
+/**
+ * Returns the first event starting from a given date
+ * @param {string} date The date
+ */
+function getEventAccessorAtDate(date) {
+	let result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
+	while (result === undefined) {
+		date = d3.timeMinute.offset(date,1);
+		result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
+	}
+	return result;
+}
 
 /**
  * Builds the user sessions based on the value of sessionInactivityLimit
@@ -1753,6 +2257,85 @@ function computeMaxEventAtOneTime() {
 /************************************/
 
 /**
+ * Displays that the server is loading the dataset
+ */
+function displayDatasetLoading() {
+	// TODO replace with an animation or an estimate
+	document.getElementById("datasetInfo").textContent = "Dataset loading";
+}
+
+/**
+ * Display information on the dataset in the "Trace" control tab.
+ */
+function displayDatasetInfo() {
+	let infoDiv = d3.select("#datasetInfo")
+		.text("");
+
+	infoDiv.append("p")
+		.text("Number of events: "+datasetInfo["numberOfEvents"]);
+	infoDiv.append("p")
+		.text("Number of event types: "+datasetInfo["numberOfDifferentEvents"]);
+	infoDiv.append("p")
+		.text("Number of users: "+datasetInfo["users"].length);
+	infoDiv.append("p")
+		.text("First event: "+formatDate(datasetInfo["firstEvent"]));
+	infoDiv.append("p")
+		.text("Last event: "+formatDate(datasetInfo["lastEvent"]));
+	
+	datasetInfoIsDefault = false;
+}
+
+/**
+ * Manages the left-side (control) tabs
+ * @param {Event} evt The click event on a tab header
+ * @param {string} tabName The name of the tab that has been clicked
+ */
+function openControlTab(evt, tabName) {
+    let i, tabcontent, tablinks;
+
+    // Hide all elements with class="controlTabContent"
+    tabcontent = document.getElementsByClassName("controlTabContent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    // Remove the "active" class from all elements with class="controlTabLink"
+    tablinks = document.getElementsByClassName("controlTabLink");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    // Show the current tab, and add an "active" class to the link that opened it
+    document.getElementById(tabName).style.display = "flex";
+    evt.currentTarget.className += " active";
+}
+
+/**
+ * Manages the right-side (algorithm) tabs
+ * @param {Event} evt The click event on a tab header
+ * @param {string} tabName The name of the tab that has been clicked
+ */
+function openAlgorithmTab(evt, tabName) {
+	let i, tabcontent, tablinks;
+	
+	// Hide all elements with class="algorithmTabContent"
+	tabcontent = document.getElementsByClassName("algorithmTabContent");
+	for (i = 0; i < tabcontent.length; i++) {
+		tabcontent[i].style.display = "none";
+	}
+	
+	// Remove the "active" class from all elements with class="algorithmTabLink"
+	tablinks = document.getElementsByClassName("algorithmTabLink");
+	for (i = 0; i < tablinks.length; i++) {
+		tablinks[i].className = tablinks[i].className.replace(" active", "");
+	}
+	
+	// Show the current tab, and add an "active" class to the link that opened it
+	document.getElementById(tabName).style.display = "flex";
+	evt.currentTarget.className += " active";
+}
+
+/**
  * Shows or hides the description of event types
  */
 function switchShowEventTypeDescription() {
@@ -2056,6 +2639,87 @@ function clickOnEventTypeCategoryHeader() {
 }
 
 /**
+ * Handles a click on the 'name' header in the pattern list
+ */
+function clickOnPatternNameHeader() {
+	let nameHeader = null;
+	let nameTxt = "";
+	// Remove the sorting indicators
+	d3.select("#patternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/)[0];
+			if (colName == "Name") {
+				nameHeader = this;
+				nameTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastPatternSort == "nameDown") {
+		d3.select(nameHeader).text(nameTxt + "\u00A0↓");
+		sortPatternsByName();
+	} else {
+		d3.select(nameHeader).text(nameTxt + "\u00A0↑");
+		sortPatternsByName(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+/**
+ * Handles a click on the 'size' header in the pattern list
+ */
+function clickOnPatternSizeHeader() {
+	let sizeHeader = null;
+	let sizeTxt = "";
+	// Remove the sorting indicators
+	d3.select("#patternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/)[0];
+			if (colName == "Size") {
+				sizeHeader = this;
+				sizeTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastPatternSort == "sizeDown") {
+		d3.select(sizeHeader).text(sizeTxt + "\u00A0↓");
+		sortPatternsBySize();
+	} else {
+		d3.select(sizeHeader).text(sizeTxt + "\u00A0↑");
+		sortPatternsBySize(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+/**
+ * Handles a click on the 'support' header in the pattern list
+ */
+function clickOnPatternSupportHeader() {
+	let supportHeader = null;
+	let supportTxt = "";
+	// Remove the sorting indicators
+	d3.select("#patternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/)[0];
+			if (colName == "Support") {
+				supportHeader = this;
+				supportTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastPatternSort == "supportDown") {
+		d3.select(supportHeader).text(supportTxt + "\u00A0↓");
+		sortPatternsBySupport();
+	} else {
+		d3.select(supportHeader).text(supportTxt + "\u00A0↑");
+		sortPatternsBySupport(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+/**
  * (Re)creates the display of the highlights summary
  */
 function setHighlights() {
@@ -2209,6 +2873,138 @@ function highlightUserRow(userName) {
 }
 
 /**
+ * Creates the list of event types
+ */
+function createEventTypesListDisplay() {
+	// removing the old event types
+	var eventTypeRowsRoot = document.getElementById("eventTableBody");
+	while (eventTypeRowsRoot.firstChild) {
+		eventTypeRowsRoot.removeChild(eventTypeRowsRoot.firstChild);
+	}
+	
+	// Adding the new ones
+	for(let i=0; i< eventTypes.length; i++) {
+		let eType = eventTypes[i];
+		let eventRow = d3.select("#eventTableBody").append("tr")
+			.attr("id", eType)
+			.classed("clickable", true)
+			.on("click", function() {
+				highlightEventTypeRow(eType);
+				setHighlights();
+				timeline.displayData();
+			});
+		let firstCell = eventRow.append("td")
+			.property("title",eventTypeInformations[eType].description);
+		firstCell.append("span")
+			.style("color",colorList[eType][0].toString())
+			.text(itemShapes[eType]+"  ");
+		firstCell.append("span")
+			.text(eType);
+		firstCell.append("br");
+		firstCell.append("span")
+			.style("color","grey")
+			.classed("eventTypeDescription", true)
+			.style("display", showEventTypeDescription == true ? "initial" : "none")
+			.text(eventTypeInformations[eType].description);
+		eventRow.append("td").text(eventTypeInformations[eType].nbOccs);
+		eventRow.append("td")
+			.style("color",colorList[eType][0].toString())
+			.text(eventTypeInformations[eType].category);
+
+		if (highlightedEventTypes.includes(eType)) {
+			eventRow.classed("selectedEventTypeRow", true);
+		}
+		
+		/* Old symbol cell, using svg
+		var symbolRow = eventRow.append("td")
+		.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
+		.classed("dropdown", true);
+		let symbolRowSvg = symbolRow.append("svg")
+		.attr("width", 20)
+		.attr("height", 20)
+		.classed("dropbtn", true);
+		symbolRowSvg.append("path")
+		.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
+		.attr("transform","translate(10,10)")
+		.attr("stroke", colorList[eType].toString())
+		.attr("fill","none");*/
+		/* New symbol cell, using utf-8 symbols */
+		/*var symbolRow = eventRow.append("td")
+		.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
+		.classed("dropdown", true);
+		let symbolRowSvg = symbolRow.append("span")
+		.style("color",colorList[eType][0].toString())
+		.classed("dropbtn",true)
+		.text(itemShapes[eType]);*/
+		
+		
+		// Create the menu to customize the icon
+		/*var dropMenuDiv = symbolRow.append("div")
+		.classed("dropdown-content", true);
+		let symbolP = dropMenuDiv.append("p")
+		.text("Change symbol :");
+		let symbolSelect = symbolP.append("select")
+		.on("change", function() {
+			if (changeEventTypeSymbol(eType, symbolSelect.property('value'))) {
+				// Update the row id for the new color
+				symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType][0]).h)*100+shapes.indexOf(itemShapes[eType]));
+				// draw the new symbol
+				/* Old symbol, svg
+				symbolRowSvg.selectAll("*").remove();
+				symbolRowSvg.append("path")
+					.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
+					.attr("transform","translate(10,10)")
+					.attr("stroke", colorList[eType].toString())
+					.attr("fill","none"); */
+				/* New symbol, utf-8 char */
+				/*symbolRowSvg.style("color",colorList[eType][0].toString())
+					.text(itemShapes[eType]);
+				// refresh the changed displays
+				timeline.displayData();
+				createPatternListDisplay();
+			}
+		});
+		for (var ishape=0; ishape < shapes.length; ishape++) {
+		symbolSelect.append("option")
+			.property("value",ishape)
+			.text(shapeNames[ishape])
+			.property("selected", function() {
+				if (shapes[ishape] == itemShapes[eType])
+					return true;
+				return false;
+			});
+		}
+		let colorP = dropMenuDiv.append("p")
+		.text("Change color :");
+		let colorInput = colorP.append("input")
+		.style("width","60px");
+		let picker = new jscolor(colorInput.node());
+		picker.fromRGB(Number(colorList[eType][0].r), Number(colorList[eType][0].g), Number(colorList[eType][0].b));
+		
+		colorInput.on("change", function() {
+		if (changeEventTypeColor(eType, picker.hsv[0])) {
+			// Update the row id for the new color
+			symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType][0]).h)*100+shapes.indexOf(itemShapes[eType]));
+			// draw the new symbol
+			/* Old symbol, svg
+			symbolRowSvg.selectAll("*").remove();
+			symbolRowSvg.append("path")
+				.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
+				.attr("transform","translate(10,10)")
+				.attr("stroke",colorList[eType].toString())
+				.attr("fill","none");*/
+			/* New symbol, UTF-8 */
+			/*symbolRowSvg.style("color",colorList[eType][0].toString())
+			// refresh the changed displays
+			timeline.displayData();
+			createPatternListDisplay();
+		/*}
+		});*/
+		
+	}	
+}
+
+/**
  * Displays the list of users.
  * Takes into account the current ordering and user highlights
  */
@@ -2332,303 +3128,13 @@ function createUserListDisplay() {
 	//timeline.drawUsersTraces();  Keep commented until the function really draws the user traces
 }
 
-
-
-
-
-
-
-/************************************/
-/*			To be cleaned			*/
-/************************************/
-
-
-
-function selectDataset(datasetName) {
-	// For test purpose
-	/*var action = {
-			action: "testFileReading"
-	};
-	sendToServer(action);*/
-	
-	currentDatasetName = datasetName;
-	
-	requestDatasetLoad(datasetName);
-	
-	requestDatasetInfo(datasetName); // TODO request the information on the dataset to the server
-	requestEventTypes(datasetName);	// TODO provide info about the event types
-	requestUserList(datasetName);
-	//console.log("requesting the dataset "+datasetName);
-	enableCentralOverlay("The dataset is loading...");
-	requestDataset(datasetName); // TODO request the data to the server
-	
-	
-	/* For Agavue when it was hardcoded
-	
-	requestDatasetInfo("Agavue");	// TODO request the information on the dataset to the server
-	requestEventTypes("Agavue");	// TODO provide info about the event types
-	requestUserList("Agavue");
-	console.log("requesting the dataset");
-	enableCentralOverlay("The dataset is loading...");
-	requestDataset("Agavue");	// TODO request the data to the server
-	requestYearBins("Agavue");
-	*/
-}
-
-
-function handleSteeringStartSignal(type, value) {
-	var displaySpan = d3.select("#focus")
-		.text(type+" starting with: "+value);
-}
-
-function handleSteeringStopSignal() {
-	var displaySpan = d3.select("#focus")
-	.text("");
-}
-
-var userPatternDistrib = {}; // Should probably be removed, never used
-// Duration of a session in ms
-var sessionDuration = 3*60*60*1000; // Should probably be removed, never used
-
 /**
- * Updates the pattern counts in the users sessions
- * @param message
- * @returns
+ * If necessary, changes the display mode for the session view and refreshes it
+ * @param {string} mode - The display mode for the session view
  */
-function receivePatternDistributionPerUser(message) {
-	//console.log("Receiving distrib message")
-	let users = message.users.split(";");
-	users.forEach(function(u) {
-		let thisUserSessions = userSessions[u];
-		let theseOccs = message[u].split(";");
-		
-		theseOccs.forEach(function(o) {
-			let idx = 0;
-			for (idx = 0; idx < thisUserSessions.length; idx++) {
-				if (thisUserSessions[idx].start <= Number(o) && thisUserSessions[idx].end >= Number(o)) {
-					if (thisUserSessions[idx].count.hasOwnProperty(message.patternId)) {
-						thisUserSessions[idx].count[message.patternId] += 1;
-					} else {
-						thisUserSessions[idx].count[message.patternId] = 1;
-					}
-					break;
-				}
-			}
-		});
-		
-	});
-	
-	// Commented because it makes the page freeze or crash when too many patterns arrive
-	// TODO redraw only if visible changes (new patterns in the displayed tooltip)
-	//timeline.drawUsersPatterns();
-}
-
-
-function receiveDatasetList(message) {
-	
-	//console.log("Receiving dataset list of size "+message.size);
-	
-	let dsList = d3.select("#datasetList");
-	let datasetNb = parseInt(message.size);
-	
-	for (let i = 0; i < datasetNb; i++) {
-		let dsName = message[i.toString()];
-		let dsParams = JSON.parse(message["param"+i.toString()]);
-		console.log(dsParams);
-		let card = dsList.append("div")
-			.classed("datasetCard", true)
-			.classed("clickable", true);
-		card.on("click",function() {
-			startTool(dsName);
-		});
-		card.append("p")
-			.classed("name", true)
-			.text(dsName);
-		
-		// Add more information to the card if they are available
-		if (dsParams.nbUsers) {
-			card.append("p")
-				.classed("nbUsers", true)
-				.classed("datasetParameter", true)
-				.text("Users : " + dsParams.nbUsers);
-		}
-		if (dsParams.nbEvents) {
-			// Display large numbers with a space every 3 digit
-			let nbE = dsParams.nbEvents
-				.toString().split('').reverse().reduce(function(acc,val) {
-					if (acc.size % 3 == 0) {
-						acc.val.push(" ");
-					}
-					acc.val.push(val);
-					acc.size += 1;
-					return acc;
-				}, {"val":[], "size" :0})
-				.val.reverse().join('').trim();
-			card.append("p")
-				.classed("nbEvents", true)
-				.classed("datasetParameter", true)
-				.text("Events : " + nbE);
-		}
-		if (dsParams.nbEventTypes) {
-			card.append("p")
-				.classed("nbEventTypes", true)
-				.classed("datasetParameter", true)
-				.text("Event types : " + dsParams.nbEventTypes);
-		}
-		if (dsParams.duration) {
-			card.append("p")
-				.classed("duration", true)
-				.classed("datasetParameter", true)
-				.text("Duration : " + dsParams.duration);
-		}
-		
-		switch(dsName) {
-		case "coconotesPPMT":
-			card.style("order","1");
-			break;
-		case "recsysSamplecategory":
-			card.style("order","2");
-			break;
-		default:
-		}
-	}
-}
-
-function receiveDataBins(message) {
-	//if (message.scale === "year") {
-		var bins = [];
-		var pBins = [];
-		
-		var binNumber = parseInt(message.number);
-		for (var i = 0; i < binNumber; i++) {
-			let bin = [];
-			let pbin = [];
-			bin.push(message["year"+i]);
-			bin.push(message["start"+i]);
-			bin.push(message["end"+i]);
-			bin.push(message["value"+i]);
-			bin.push(message["users"+i]);
-			bin.push(message["events"+i]);
-			bin.push(message["occs"+i]);
-			
-			pbin.push(message["year"+i]);
-			pbin.push(message["start"+i]);
-			pbin.push(message["end"+i]);
-			pbin.push(message["value"+i]);
-			pbin.push(message["users"+i]);
-			pbin.push(message["events"+i]);
-			pbin.push(message["occs"+i]);
-			
-			bins.push(bin);
-			pBins.push(pbin);
-		}
-		
-		timeline.setBins(bins);
-		timeline.displayData();
-		timeline.binTransformed = false;
-		if (patternsReceived)
-			timeline.drawPatternBins(pBins);
-	/*} else
-	if (message.scale === "month") {
-		var bins = [];
-		var pBins = [];
-		
-		var binNumber = parseInt(message.number);
-		for (var i = 0; i < binNumber; i++) {
-			let bin = [];
-			let pbin = [];
-			bin.push(message["year"+i]);
-			bin.push(message["start"+i]);
-			bin.push(message["end"+i]);
-			bin.push(message["value"+i]);
-			
-			pbin.push(message["year"+i]);
-			pbin.push(message["start"+i]);
-			pbin.push(message["end"+i]);
-			pbin.push(message["value"+i]);
-			
-			bins.push(bin);
-			pBins.push(pbin);
-		}
-		
-		timeline.drawBins(bins);
-		timeline.binTransformed = false;
-		if (patternsReceived)
-			timeline.drawPatternBins(pBins);
-	} else
-	if (message.scale === "day") {
-		var bins = [];
-		let pBins = [];
-		
-		var binNumber = parseInt(message.number);
-		for (var i = 0; i < binNumber; i++) {
-			let bin = [];
-			let pbin = [];
-			bin.push(message["year"+i]);
-			bin.push(message["start"+i]);
-			bin.push(message["end"+i]);
-			bin.push(message["value"+i]);
-			
-			pbin.push(message["year"+i]);
-			pbin.push(message["start"+i]);
-			pbin.push(message["end"+i]);
-			pbin.push(message["value"+i]);
-			
-			bins.push(bin);
-			pBins.push(pbin);
-		}
-		
-		timeline.drawBins(bins);
-		timeline.binTransformed = false;
-		if (patternsReceived)
-			timeline.drawPatternBins(pBins);
-	} else
-	if (message.scale === "halfDay") {
-		var bins = [];
-		let pBins = [];
-		
-		var binNumber = parseInt(message.number);
-		for (var i = 0; i < binNumber; i++) {
-			let bin = [];
-			let pbin = [];
-			bin.push(message["year"+i]);
-			bin.push(message["start"+i]);
-			bin.push(message["end"+i]);
-			bin.push(message["value"+i]);
-			
-			pbin.push(message["year"+i]);
-			pbin.push(message["start"+i]);
-			pbin.push(message["end"+i]);
-			pbin.push(message["value"+i]);
-			
-			bins.push(bin);
-			pBins.push(pbin);
-		}
-		
-		timeline.drawBins(bins);
-		timeline.binTransformed = false;
-		if (patternsReceived)
-			timeline.drawPatternBins(pBins);
-	}*/
-}
-
-function receivePatternOccurrences(message) {
-	var pId = message.patternId;
-	var count = parseInt(message.count);
-	
-	for (var i=0; i < count; i++) {
-		timeline.addPatternOccurrence(pId, message[i.toString()]);
-	}
-	//console.log("Received "+count+" occurrences of pattern "+pId);
-	timeline.displayPatternOccurrences(pId);
-}
-
-var showUserSessionOption = "all";
-var firstUserShown = 0;
-
-function showUserSessions(arg) {
+function showUserSessions(mode) {
 	let eventsShown = true;
-	switch (arg) {
+	switch (mode) {
 	case "all":
 		if (showUserSessionOption != "all") {
 			d3.selectAll("#showUserSessionsSwitch button")
@@ -2693,6 +3199,742 @@ function showUserSessions(arg) {
 	timeline.drawUsersPatterns();
 }
 
+/**
+ * Starts the algorithm runtime counter, that will be updated every second
+ * @param {Number} time The time in ms at which the algorithm started
+ *  on the server
+ */
+function startAlgorithmRuntime(time) {
+	let clientTime = new Date();
+	algorithmStartTime = new Date(time);
+	startDelayFromServer = algorithmStartTime - clientTime;
+	algorithmTimer = setInterval(function() {
+		let thisTime = new Date();
+		let elapsedTime = thisTime - algorithmStartTime;
+		// Compensate for the delay between the two clocks
+		elapsedTime += startDelayFromServer;
+		let elapsedMinutes = Math.floor(elapsedTime/60000);
+		elapsedTime = elapsedTime%60000;
+		let elapsedSeconds = Math.floor(elapsedTime/1000);
+		// Update the display of the runtime
+		let text = "";
+		if (elapsedMinutes < 10)
+			text = "0"+elapsedMinutes+":";
+		else
+			text = elapsedMinutes+":";
+		if (elapsedSeconds < 10)
+			text += "0"+elapsedSeconds;
+		else
+			text += elapsedSeconds;
+		d3.select("#runtime")
+			.text(text);
+	},1000);
+}
+
+/**
+ * Stops the algorithm runtime counter
+ * @param {Number} time The time in ms at which the algorithm ended on the server
+ */
+function stopAlgorithmRuntime(time) {
+	if (algorithmStartTime > 0) {
+		clearInterval(algorithmTimer);
+		// checks if the timer is coherent with the server's
+		let thisDate = new Date(time);
+		let elapsedTime = thisDate - algorithmStartTime;
+		let elapsedMinutes = Math.floor(elapsedTime/60000);
+		elapsedTime = elapsedTime%60000;
+		let elapsedSeconds = Math.floor(elapsedTime/1000);
+		// Update the display of the runtime
+		let text = "";
+		if (elapsedMinutes < 10)
+			text = "0"+elapsedMinutes+":";
+		else
+			text = elapsedMinutes+":";
+		if (elapsedSeconds < 10)
+			text += "0"+elapsedSeconds;
+		else
+			text += elapsedSeconds;
+		console.log("Algo server timer: "+text);
+		// Reset the startTime
+		algorithmStartTime = -1;
+	}
+	
+	d3.select("#currentAlgorithmWork")
+		.text("(ended)");
+}
+
+/**
+ * Displays that the algorithm is loading its data
+ */
+function handleLoadingSignal() {
+	loadingAlgorithmDataAnimation = setInterval(function() {
+		let dots;
+		switch(loadingAlgorithmDataAnimationState) {
+		case 1:
+			dots=".";
+			loadingAlgorithmDataAnimationState++;
+			break;
+		case 2:
+			dots="..";
+			loadingAlgorithmDataAnimationState++;
+			break;
+		case 3:
+			dots = "...";
+			loadingAlgorithmDataAnimationState = 1;
+			break;
+		default:
+			dots = "";
+		}
+		d3.select("#currentAlgorithmWork")
+			.text("(loading data"+dots+")");
+		}, 1000);
+}
+
+/**
+ * Displays that the algorithm has loaded its data
+ */
+function handleLoadedSignal() {
+	clearInterval(loadingAlgorithmDataAnimation);
+	loadingAlgorithmDataAnimationState = 1;
+	d3.select("#currentAlgorithmWork")
+		.text("(Data loaded)");
+	console.log("Dataset loaded on server");
+}
+
+/**
+ * Displays the current pattern-size the algorithm is working on
+ * @param {number} level The pattern size
+ */
+function handleNewLevelSignal(level) {
+	d3.select("#currentAlgorithmWork")
+		.text("(working on size "+level+")");
+}
+
+/**
+ * Draws the barchart displaying the number of discovered pattern for each size
+ */
+function drawPatternSizesChart() {
+	let data = Object.keys(patternMetrics.sizeDistribution);
+	
+	patternSizesChart.x.domain(data.map(function(d) { return d; }));
+	patternSizesChart.y.domain([0, d3.max(data, function(d) {
+		return patternMetrics.sizeDistribution[d];
+	})]);
+	
+	patternSizesChart.g.select('.axis--x.axis')
+		.transition()
+		.duration(0)
+		.call(patternSizesChart.xAxis);
+	
+	patternSizesChart.g.select(".axis--y.axis")
+		.transition()
+		.duration(0)
+		.call(patternSizesChart.yAxis);
+	 
+	// second argument of .data() is an ID generator function
+	let bars = patternSizesChart.g.selectAll("rect.bar")
+		.data(data, function(d) { return d; });
+	let texts = patternSizesChart.g.selectAll("text.bar")
+		.data(data, function(d) { return d; });
+
+	bars.exit()
+		.transition()
+		.duration(0)
+		.attr("y", patternSizesChart.y(0))
+		.attr("height", patternSizesChart.height - patternSizesChart.y(0))
+		.style('fill-opacity', 1e-6)
+		.remove();
+	
+	texts.exit()
+		.transition()
+		.duration(0)
+		.attr("y", patternSizesChart.y(0))
+		.attr("height", patternSizesChart.height - patternSizesChart.y(0))
+		.style('fill-opacity', 1e-6)
+		.remove();
+	
+	bars.enter().append("rect")
+		.attr("class", "bar")
+		.attr("y", patternSizesChart.y(0))
+		.attr("height", patternSizesChart.height - patternSizesChart.y(0));
+	
+	texts.enter().append("text")
+		.attr("class", "bar")
+		.attr("text-anchor", "middle")
+		.attr("x", function(d) {
+			return patternSizesChart.x(d) + patternSizesChart.x.bandwidth()/2;
+		})
+		.attr("y", function(d) {
+			return patternSizesChart.y(patternMetrics.sizeDistribution[d]) - 5;
+		})
+		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
+		
+	// the "UPDATE" set:
+	bars.transition().duration(0)
+		.attr("x", function(d) { return patternSizesChart.x(d); })
+		.attr("width", patternSizesChart.x.bandwidth())
+		.attr("y", function(d) {
+			return patternSizesChart.y(patternMetrics.sizeDistribution[d]);
+		})
+		.attr("height", function(d) {
+			return patternSizesChart.height -
+			patternSizesChart.y(patternMetrics.sizeDistribution[d]);
+		});
+	
+	texts.transition()
+		.duration(0)
+		.attr("x", function(d) {
+			return patternSizesChart.x(d) + patternSizesChart.x.bandwidth()/2;
+		})
+		.attr("y", function(d) {
+			return patternSizesChart.y(patternMetrics.sizeDistribution[d]) - 5;
+		})
+		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
+}
+
+/************************************/
+/*				Tooltip				*/
+/************************************/
+
+/**
+ * Changes the tooltip's data
+ * @param {JSON} data The new data 
+ * @param {string} origin The origin of the data. Can be either "general" or
+ *  "session"
+ */
+function changeTooltip(data, origin) {
+	// If the tooltip is fixed, store the data as its' supposed data
+	if (tooltipIsFixed) {
+		tooltipSupposedOrigin = origin;
+		tooltipSupposedData = data;
+		tooltipShouldBeCleared= false;
+	} else {
+		tooltipShouldBeCleared = false;
+		tooltipData = data;
+		tooltipOrigin = origin;
+		let area = d3.select("#tooltip").select(".body");
+		area.html("");
+		
+		switch(origin) {
+		case "general":
+			/* Structure : 
+			 * [year,
+		     * start,
+		     * end,
+		     * nbEventsInBin,
+		     * user1;user2;...,
+		     * type1;type2;...,
+		     * type1:nbOcc;type2:nbOcc;...
+		     * nbEventsInSubBin,
+			 * type1:hslColorValue1;type2:hslColorValue1;...]
+		   	 */
+			switch(timeline.displayMode) {
+			case "distributions":
+				switch(timeline.distributionScale) {
+				case "year":
+					//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
+				case "month":
+				case "halfMonth":
+				case "day":
+				case "halfDay":
+					let nbUsers = data[4].split(";").length;
+					let nbOccs = data[6].split(';');
+					//console.log("pre-sort: "+nbOccs);
+					nbOccs.sort(function(a,b) {
+						let aVal = parseInt(a.split(":")[1]);
+						let bVal = parseInt(b.split(":")[1]);
+						return bVal - aVal;	// sort in descending order
+					});
+					//console.log("post-sort: "+nbOccs);
+					area.append("p")
+						.text("From "+data[1]+" to "+data[2]);
+					area.append("p")
+						.text(data[3]+" events across "+nbUsers+" users");
+					area.append("p")
+						.text(data[7]+" in this subpart:");
+					
+					let ttTable = area.append("table");
+					let ttTableHead = ttTable.append("thead").append("tr");
+					if (nbOccs.length > 1) {
+						ttTableHead.append("th")
+							.text(nbOccs.length + " event types");
+					} else {
+						ttTableHead.append("th")
+							.text(nbOccs.length + " event type");
+					}
+					ttTableHead.append("th")
+						.text("Support");
+					ttTableHead.append("th")
+						.text("% of this bin");
+					let ttTableBody = ttTable.append("tbody");
+					
+					for (let i = 0; i < nbOccs.length; i++) {
+						let ttTableRow = ttTableBody.append("tr");
+						
+						let occ = nbOccs[i].split(":");
+						let percentage = parseInt(occ[1])/parseInt(data[3]);
+						
+						let hslValues = data[8].split(";");
+						let hslValue = 0;
+						for (let idx = 0; idx < hslValues.length; idx++) {
+							if (hslValues[idx].split(":")[0] == occ[0]) {
+								hslValue = parseInt(hslValues[idx].split(":")[1]);
+								break;
+							}
+						}
+						
+						ttTableRow.classed("clickable", true)
+							.style("font-weight", (highlightedEventTypes.includes(occ[0]) ? "bold" : "normal"))
+							.on("click", function() {
+								highlightEventTypeRow(occ[0]);
+								if (highlightedEventTypes.includes(occ[0])) {
+									d3.select(this).style("font-weight", "bold");
+								} else {
+									d3.select(this).style("font-weight", "normal");
+								}
+								setHighlights();
+								timeline.displayData();
+							});
+						
+						let ttFirstCell = ttTableRow.append("td");
+						ttFirstCell.append("span")
+							.style("color",colorList[occ[0]][0].toString())
+							.text(itemShapes[occ[0]]);
+						ttFirstCell.append("span").text(" "+occ[0]);
+						ttTableRow.append("td").text(occ[1]);
+						ttTableRow.append("td").text((percentage*100).toPrecision(3)+"%");
+					}
+				}
+				break;
+			case "events":
+					splitData = data.split(";");
+					
+					let typeLine = area.append("p")
+						.classed("clickable", true)
+						.style("font-weight", (highlightedEventTypes.includes(splitData[0]) ? "bold" : "normal"))
+						.text("Type: ")
+						.on("click", function() {
+							highlightEventTypeRow(splitData[0]);
+							if (highlightedEventTypes.includes(splitData[0])) {
+								d3.select(this).style("font-weight", "bold");
+							} else {
+								d3.select(this).style("font-weight", "normal");
+							}
+							setHighlights();
+							timeline.displayData();
+						});
+					typeLine.append("span")
+						.style("color",colorList[splitData[0]][0])
+						.text(itemShapes[splitData[0]]);
+					typeLine.append("span")
+						.text(" "+splitData[0]);
+					area.append("p")
+						.text("Time: " + splitData[1]);
+					area.append("p")
+						.classed("clickable", true)
+						.style("font-weight", (highlightedUsers.includes(splitData[3]) ? "bold" : "normal"))
+						.text("User: " + splitData[3])
+						.on("click", function() {
+							highlightUserRow(splitData[3]);
+							if (highlightedUsers.includes(splitData[3])) {
+								d3.select(this).style("font-weight", "bold");
+							} else {
+								d3.select(this).style("font-weight", "normal");
+							}
+							setHighlights();
+							timeline.displayData();
+						});;
+					area.append("p")
+						.text("Properties:");
+					for(var i = 4; i < splitData.length; i++)
+						area.append("p")
+							.classed("tooltipEventProperty", true)
+							.text(splitData[i]);
+			}
+			break;
+		case "session":
+			/* Structure of data : 
+			 * ["user",
+			 * 	nbrOfPatternsInSession, (-1 if no session)
+			 * 	sessionStart,
+			 * 	sessionEnd,
+			 * 	"patternId: number"]
+		   	 */
+			
+			area.append("p")
+				.classed("clickable", true)
+				.style("font-weight", (highlightedUsers.includes(data[0]) ? "bold" : "normal"))
+				.text("User " + data[0])
+				.on("click", function() {
+					highlightUserRow(data[0]);
+					if (highlightedUsers.includes(data[0])) {
+						d3.select(this).style("font-weight", "bold");
+					} else {
+						d3.select(this).style("font-weight", "normal");
+					}
+					setHighlights();
+					timeline.displayData();
+				});
+			
+			let dateStart = "";
+			let dateEnd = "";
+			let duration = (data[3] - data[2]) / 1000; // In seconds
+			let dS = duration % 60;
+			let dM = Math.floor(duration / 60);
+			let dH = Math.floor(dM / 60);
+			dM = dM % 60;
+			let durationString = "";
+			if (dH > 0)
+				durationString += dH + "h ";
+			if (dM > 0 || dH > 0)
+				durationString += dM + "m ";
+			durationString += dS + "s";
+			
+			switch(data[1]) {
+			case -1:/*
+				area.append("p")
+					.text("No session");*/
+				break;
+			case 0:
+				dateStart = new Date(data[2]);
+				dateEnd = new Date(data[3]);
+				area.append("p")
+					.text(data[4]+" events");
+				area.append("p")
+					.text("Session duration: "+durationString);
+				area.append("p")
+					.text("Session start: "+formatDate(dateStart));
+				area.append("p")
+					.text("Session end: "+formatDate(dateEnd));
+				area.append("hr");
+				area.append("p")
+					.text("No pattern in this session");
+				break;
+			default:
+				dateStart = new Date(data[2]);
+				dateEnd = new Date(data[3]);
+				area.append("p")
+				.text(data[4]+" events");
+			area.append("p")
+				.text("Session duration: "+durationString);
+				area.append("p")
+					.text("Session start: "+formatDate(dateStart));
+				area.append("p")
+					.text("Session end:  "+formatDate(dateEnd));
+				area.append("hr");
+				area.append("p")
+					.text("Show patterns' text: ")
+				  .append("input")
+				  	.attr("type", "checkbox")
+				  	.property("checked", true)
+				  	.classed("clickable", true)
+				  	.on("change", function() {
+				  		if (d3.select(this).property("checked")) {
+				  			d3.selectAll(".tooltipPatternText")
+				  				.classed("hidden", false);
+				  		} else {
+				  			d3.selectAll(".tooltipPatternText")
+			  					.classed("hidden", true);
+				  		}
+				  	});
+				let ttTable = area.append("table");
+				let ttTableHead = ttTable.append("thead").append("tr");
+				if (data[1] > 1) {
+					ttTableHead.append("th")
+						.text(data[1] + " patterns");
+				} else {
+					ttTableHead.append("th")
+						.text(data[1] + " pattern");
+				}
+				ttTableHead.append("th")
+					.text("Support (here"+String.fromCharCode(160)+"/"+String.fromCharCode(160)+"total)"); // Use non-breaking spaces
+				let ttTableBody = ttTable.append("tbody");
+				for (let pIdx = 5; pIdx < data.length; pIdx++) {
+					let thisData = data[pIdx].split(":");
+					let pId = Number(thisData[0].trim());
+					let evtTypes = patternsInformation[pId][3];
+					let ttTableRow = ttTableBody.append("tr")
+						.classed("clickable", true)
+						.style("font-weight", (selectedPatternIds.includes(pId) ? "bold" : "normal"))
+						.on("click", function() {
+							if (timeline.hasPatternOccurrences(pId) == false)
+								requestPatternOccurrences(pId, currentDatasetName);
+							else
+								timeline.displayPatternOccurrences(pId);
+							if (d3.select(this).style("font-weight") == "normal") {
+								selectedPatternIds.push(pId);
+								d3.select(this).style("font-weight", "bold");
+							} else {
+								let index = selectedPatternIds.indexOf(pId);
+								if (index >= 0)
+									selectedPatternIds.splice(index, 1);
+								d3.select(this).style("font-weight", "normal");
+							}
+							//d3.event.stopPropagation();
+							console.log("click on "+pId);
+							createPatternListDisplay();
+							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+							timeline.drawUsersPatterns();
+							
+							// Update the number of selected patterns display
+							d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+						});
+					let firstCell = ttTableRow.append("td");
+					for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
+						firstCell.append("span")
+							.style("color", colorList[evtTypes[tIdx]][0])
+							.text(itemShapes[evtTypes[tIdx]]);
+					}
+					firstCell.append("span")
+						.classed("tooltipPatternText", true)
+						.text(" " + patternsInformation[pId][0]);
+					ttTableRow.append("td")
+						.text(thisData[1].trim() + " / " + patternsInformation[pId][2]);
+				}
+			}
+			
+			break;
+		default:
+		}
+		
+		tooltipHasContent = true;
+		tooltip.property("scrollTop",0);
+		tooltip.classed("hidden", false);
+	}
+}
+
+/**
+ * Clears the tooltip's content, or marks it to be cleared when possible
+ */
+function clearTooltip() {
+	if (!tooltipIsFixed) {
+		d3.select("#tooltip").select(".body")
+			.html("Hover over the visualizations to get more information");
+		tooltipHasContent = false;
+		//updateTooltipLockMessage();
+		tooltip.classed("hidden", true);
+	} else {
+		tooltipShouldBeCleared = true;
+	}
+}
+
+/**
+ * Updates the instruction to lock or unlock the tooltip
+ */
+function updateTooltipLockMessage() {
+	if (tooltipIsFixed) {
+		tooltip.select(".subtitle")
+			.text("Click somewhere to unlock this tooltip");
+	} else {
+		tooltip.select(".subtitle")
+			.text("Click somewhere to lock this tooltip");
+	}
+}
+
+/**
+ * Moves the tooltip to the position of the mouse
+ */
+function moveTooltip() {
+	let mousePos;
+	try {
+		mousePos = d3.mouse(d3.select("body").node());
+		currentMousePos = mousePos;
+	} catch(e) {
+		mousePos = currentMousePos;
+	}
+	
+	if (tooltipIsFixed == true)
+		return;
+	
+	let mX = mousePos[0];
+	let mY = mousePos[1];
+	let newPosX = mousePos[0] + tooltipOffsetFromMouse;
+	let newPosY = mousePos[1] - tooltipOffsetFromMouse - tooltipNode.offsetHeight;
+	if (newPosY < 0)
+		newPosY = 0;
+	tooltip.style("left", newPosX+"px")
+		.style("top", newPosY+"px");
+}
+
+/**
+ * Locks the tooltip at its current position
+ */
+function lockTooltip() {
+	tooltipIsFixed = true;
+	updateTooltipLockMessage();
+}
+
+/**
+ * Unlocks the tooltip from its position
+ */
+function unlockTooltip() {
+	tooltipIsFixed = false;
+	updateTooltipLockMessage();
+}
+
+/**
+ * Starts the countdown before actually considering that the pointer has 
+ *  left the tooltip
+ */
+function prepareToLeaveTooltip() {
+	tooltipCloseTimeout = setTimeout(leaveTooltip, 500);
+}
+
+/**
+ * Handles the pointer leaving the tooltip
+ */
+function leaveTooltip() {
+	unlockTooltip();
+	clearTooltip();
+	updateTooltip();
+}
+
+/**
+ * Handles the pointer entering the tooltip
+ */
+function enterTooltip() {
+	// Prevent the hiding of the tooltip if it has been planned
+	clearTimeout(tooltipCloseTimeout);
+	
+	tooltip.select(".subtitle")
+		.text("Move the pointer out of this tooltip to close it");
+}
+
+/**
+ * If the mouse pointer is outside the tooltip, switches its locked state
+ */
+function switchTooltipLock() {
+	let mousePos = d3.mouse(d3.select("body").node());
+	// Prevent from unlocking when the mouse is inside the tooltip
+	if (mousePos[0] >= tooltipNode.offsetLeft
+			&& mousePos[1] >= tooltipNode.offsetTop
+			&& mousePos[0] <= tooltipNode.offsetLeft + tooltipNode.offsetWidth
+			&& mousePos[1] <= tooltipNode.offsetTop + tooltipNode.offsetHeight)
+		return;
+	if (tooltipHasContent) {
+		tooltipIsFixed = !tooltipIsFixed;
+		updateTooltipLockMessage();
+		if (!tooltipIsFixed) {
+			updateTooltip();
+		}
+	}
+}
+
+/**
+ * Clears the tooltip or updates its data and position
+ */
+function updateTooltip() {
+	if (tooltipShouldBeCleared)
+		clearTooltip();
+	else {
+		changeTooltip(tooltipSupposedData, tooltipSupposedOrigin);
+		moveTooltip();
+	}
+}
+
+/************************************/
+/*			Miscellaneous			*/
+/************************************/
+
+/**
+ * Selects the given dataset to be used in the tool
+ * @param {string} datasetName - Name of the dataset
+ */
+function selectDataset(datasetName) {
+	currentDatasetName = datasetName;
+	
+	requestDatasetLoad(datasetName);
+	
+	requestDatasetInfo(datasetName);
+	requestEventTypes(datasetName);
+	requestUserList(datasetName);
+	enableCentralOverlay("The dataset is loading...");
+	requestDataset(datasetName);
+}
+
+/**
+ * Clears the selection of patterns and update the HCI accordingly
+ */
+function unselectAllPatterns() {
+	timeline.resetPatternOccurrencesDisplay(selectedPatternIds);
+	selectedPatternIds = [];
+	
+	createPatternListDisplay();
+	timeline.drawUsersPatterns();
+	
+	// Update the number of selected patterns display
+	d3.select("#selectedPatternNumberSpan").text('0');
+}
+
+/************************************/
+/*			Constructors			*/
+/************************************/
+
+/**
+ * Creates a barchart of the number of discovered patterns for each size
+ * @constructor
+ */
+function PatternSizesChart() {
+	this.svg = d3.select(d3.selectAll("#Execution > div").nodes()[1]).append("svg")
+			.attr("width", "100%")
+			.attr("height", "100%")
+			.attr("id","patternSizesSvg");
+	this.margin = {top: 20, right: 0, bottom: 40, left: 30};
+	this.width = this.svg.node().getBoundingClientRect().width -
+				 this.margin.left - this.margin.right;
+	this.height = this.svg.node().getBoundingClientRect().height -
+				 this.margin.top - this.margin.bottom;
+	this.x = d3.scaleBand().rangeRound([0, this.width]).padding(0.1);
+	this.y = d3.scaleLinear().rangeRound([this.height, 0]);
+	this.xAxis = d3.axisBottom(this.x);
+	this.yAxis = d3.axisLeft(this.y).ticks(5);
+	this.g = this.svg.append("g")
+			.attr("transform",
+				 "translate(" + this.margin.left + "," + this.margin.top + ")");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/************************************/
+/*			To be cleaned			*/
+/************************************/
+
+
+
+
+
+
+function handleSteeringStartSignal(type, value) {
+	var displaySpan = d3.select("#focus")
+		.text(type+" starting with: "+value);
+}
+
+function handleSteeringStopSignal() {
+	var displaySpan = d3.select("#focus")
+	.text("");
+}
+
+var userPatternDistrib = {}; // Should probably be removed, never used
+// Duration of a session in ms
+var sessionDuration = 3*60*60*1000; // Should probably be removed, never used
+
+
+
+
+
+
+
+
+
 var helperTooltipVisible = false;
 
 function setupHelpers() {
@@ -2706,40 +3948,10 @@ function setupHelpers() {
 		.attr("title", "Maximum number of event in a pattern");
 }
 
-function requestUserDistributionForPattern(message) {
-	var action = {
-			action: "request",
-			object: "userDistributionForPattern",
-			pattern: message.id,
-			dataset: currentDatasetName
-	};
-	sendToServer(action);
-}
 
-/**
- * Requests a dataset to the server
- */
-function requestDataset(datasetName) {
-	var action = {
-			action: "request",
-			object: "dataset",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
 
-/**
- * Requests information about a dataset to the server
- */
-function requestDatasetInfo(datasetName) {
-	var action = {
-			action: "request",
-			object: "datasetInfo",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
 
+// Maybe never used
 /**
  * Requests the events of the trace of a given user
  * @param user The user 
@@ -2756,6 +3968,7 @@ function requestUserTrace(user, datasetName) {
 	requestUserPatterns(user, datasetName);
 }
 
+// Maybe never used
 /**
  * Requests the patterns of a given user
  * @param user The user 
@@ -2796,7 +4009,6 @@ function createTimeline() {
 
 function addPattern(pattern) {
 	// getting the pattern's items
-	//console.log(pattern.items);
 	var items = JSON.parse(pattern.items);
 	var sequences = pattern.sequences;
 	sequences = sequences.split(' ');
@@ -3189,135 +4401,6 @@ function receiveEventTypes(message) {
 	createEventTypesListDisplay();
 }
 
-function createEventTypesListDisplay() {
-	// removing the old event types
-	var eventTypeRowsRoot = document.getElementById("eventTableBody");
-	while (eventTypeRowsRoot.firstChild) {
-		eventTypeRowsRoot.removeChild(eventTypeRowsRoot.firstChild);
-	}
-	
-	// Adding the new ones
-	for(let i=0; i< eventTypes.length; i++) {
-		let eType = eventTypes[i];
-		let eventRow = d3.select("#eventTableBody").append("tr")
-			.attr("id", eType)
-			.classed("clickable", true)
-			.on("click", function() {
-				highlightEventTypeRow(eType);
-				setHighlights();
-				timeline.displayData();
-				//d3.event.stopPropagation();
-			});
-		let firstCell = eventRow.append("td")
-			.property("title",eventTypeInformations[eType].description);
-		firstCell.append("span")
-			.style("color",colorList[eType][0].toString())
-			.text(itemShapes[eType]+"  ");
-		firstCell.append("span")
-			.text(eType);
-		firstCell.append("br");
-		firstCell.append("span")
-			.style("color","grey")
-			.classed("eventTypeDescription", true)
-			.style("display", showEventTypeDescription == true ? "initial" : "none")
-			.text(eventTypeInformations[eType].description);
-		eventRow.append("td").text(eventTypeInformations[eType].nbOccs);
-		eventRow.append("td")
-			.style("color",colorList[eType][0].toString())
-			.text(eventTypeInformations[eType].category);
-
-		if (highlightedEventTypes.includes(eType)) {
-			eventRow.classed("selectedEventTypeRow", true);
-		}
-		
-		/* Old symbol cell, using svg
-		var symbolRow = eventRow.append("td")
-		.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
-		.classed("dropdown", true);
-		let symbolRowSvg = symbolRow.append("svg")
-		.attr("width", 20)
-		.attr("height", 20)
-		.classed("dropbtn", true);
-		symbolRowSvg.append("path")
-		.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
-		.attr("transform","translate(10,10)")
-		.attr("stroke", colorList[eType].toString())
-		.attr("fill","none");*/
-		/* New symbol cell, using utf-8 symbols */
-		/*var symbolRow = eventRow.append("td")
-		.attr("sorttable_customkey", (eColor)*100+shapes.indexOf(eCode))
-		.classed("dropdown", true);
-		let symbolRowSvg = symbolRow.append("span")
-		.style("color",colorList[eType][0].toString())
-		.classed("dropbtn",true)
-		.text(itemShapes[eType]);*/
-		
-		
-		// Create the menu to customize the icon
-		/*var dropMenuDiv = symbolRow.append("div")
-		.classed("dropdown-content", true);
-		let symbolP = dropMenuDiv.append("p")
-		.text("Change symbol :");
-		let symbolSelect = symbolP.append("select")
-		.on("change", function() {
-			if (changeEventTypeSymbol(eType, symbolSelect.property('value'))) {
-				// Update the row id for the new color
-				symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType][0]).h)*100+shapes.indexOf(itemShapes[eType]));
-				// draw the new symbol
-				/* Old symbol, svg
-				symbolRowSvg.selectAll("*").remove();
-				symbolRowSvg.append("path")
-					.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
-					.attr("transform","translate(10,10)")
-					.attr("stroke", colorList[eType].toString())
-					.attr("fill","none"); */
-				/* New symbol, utf-8 char */
-				/*symbolRowSvg.style("color",colorList[eType][0].toString())
-					.text(itemShapes[eType]);
-				// refresh the changed displays
-				timeline.displayData();
-				createPatternListDisplay();
-			}
-		});
-		for (var ishape=0; ishape < shapes.length; ishape++) {
-		symbolSelect.append("option")
-			.property("value",ishape)
-			.text(shapeNames[ishape])
-			.property("selected", function() {
-				if (shapes[ishape] == itemShapes[eType])
-					return true;
-				return false;
-			});
-		}
-		let colorP = dropMenuDiv.append("p")
-		.text("Change color :");
-		let colorInput = colorP.append("input")
-		.style("width","60px");
-		let picker = new jscolor(colorInput.node());
-		picker.fromRGB(Number(colorList[eType][0].r), Number(colorList[eType][0].g), Number(colorList[eType][0].b));
-		
-		colorInput.on("change", function() {
-		if (changeEventTypeColor(eType, picker.hsv[0])) {
-			// Update the row id for the new color
-			symbolRow.attr("sorttable_customkey", (d3.hsl(colorList[eType][0]).h)*100+shapes.indexOf(itemShapes[eType]));
-			// draw the new symbol
-			/* Old symbol, svg
-			symbolRowSvg.selectAll("*").remove();
-			symbolRowSvg.append("path")
-				.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
-				.attr("transform","translate(10,10)")
-				.attr("stroke",colorList[eType].toString())
-				.attr("fill","none");*/
-			/* New symbol, UTF-8 */
-			/*symbolRowSvg.style("color",colorList[eType][0].toString())
-			// refresh the changed displays
-			timeline.displayData();
-			createPatternListDisplay();
-		/*}
-		});*/
-		
-	}	
-}
 
 function changeEventTypeSymbol(eventType, newShapeIndex) {
 	itemShapes[eventType] = shapes[newShapeIndex];
@@ -3813,81 +4896,6 @@ function receiveAllPatterns(message) {
 	// update the metrics tab
 }
 
-
-var lastPatternSort = "sizeUp";
-
-function clickOnPatternNameHeader() {
-	let nameHeader = null;
-	let nameTxt = "";
-	// Remove the sorting indicators
-	d3.select("#patternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/)[0];
-			if (colName == "Name") {
-				nameHeader = this;
-				nameTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastPatternSort == "nameDown") {
-		d3.select(nameHeader).text(nameTxt + "\u00A0↓");
-		sortPatternsByName();
-	} else {
-		d3.select(nameHeader).text(nameTxt + "\u00A0↑");
-		sortPatternsByName(true);
-	}
-	
-	createPatternListDisplay();
-}
-
-function clickOnPatternSizeHeader() {
-	let sizeHeader = null;
-	let sizeTxt = "";
-	// Remove the sorting indicators
-	d3.select("#patternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/)[0];
-			if (colName == "Size") {
-				sizeHeader = this;
-				sizeTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastPatternSort == "sizeDown") {
-		d3.select(sizeHeader).text(sizeTxt + "\u00A0↓");
-		sortPatternsBySize();
-	} else {
-		d3.select(sizeHeader).text(sizeTxt + "\u00A0↑");
-		sortPatternsBySize(true);
-	}
-	
-	createPatternListDisplay();
-}
-
-function clickOnPatternSupportHeader() {
-	let supportHeader = null;
-	let supportTxt = "";
-	// Remove the sorting indicators
-	d3.select("#patternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/)[0];
-			if (colName == "Support") {
-				supportHeader = this;
-				supportTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastPatternSort == "supportDown") {
-		d3.select(supportHeader).text(supportTxt + "\u00A0↓");
-		sortPatternsBySupport();
-	} else {
-		d3.select(supportHeader).text(supportTxt + "\u00A0↑");
-		sortPatternsBySupport(true);
-	}
-	
-	createPatternListDisplay();
-}
-
 function findNewPatternIndex(patternInfos) {
 	switch(lastPatternSort) {
 	case "nameDown":
@@ -4199,16 +5207,6 @@ function updatePatternPageSize() {
 	createPatternListDisplay();
 }
 
-function unselectAllPatterns() {
-	timeline.resetPatternOccurrencesDisplay(selectedPatternIds);
-	selectedPatternIds = [];
-	
-	createPatternListDisplay();
-	timeline.drawUsersPatterns();
-	
-	// Update the number of selected patterns display
-	d3.select("#selectedPatternNumberSpan").text('0');
-}
 
 /*
  * Finds the first id in the list of a pattern not selected by the user
@@ -4407,25 +5405,6 @@ function createPatternListDisplay() {
 	
 }
 
-function requestPatternOccurrences(patternId, datasetName) {
-	var action = {
-			action: "request",
-			object: "patternOccs",
-			dataset: datasetName,
-			patternId: patternId
-	};
-	sendToServer(action);
-}
-
-function requestPatternDistribution(patternRequested, datasetName) {
-	var action = {
-			action: "request",
-			object: "patternDistribution",
-			dataset: datasetName,
-			pattern: patternRequested
-	};
-	sendToServer(action);
-}
 
 function createPatternMetricsDisplay() {
 	/************ Creating the display of the pattern'sizes distributions ****************/
@@ -4577,177 +5556,11 @@ function resetEvents() {
 	eventDisplayIsDefault = true;
 }
 
-/** Displays a debug message sent by the server
- * 
- */
-function displayServerDebugMessage(message) {
-	var debugSize = parseInt(message.size);
-	console.log("===== Server debug =====");
-	for (var i=0;i<debugSize;i++)
-		console.log(message["msg"+i.toString()]);
-	console.log("========================");
-}
 
-/**
- * Display information on the dataset in the "Trace" control tab. TODO Make it do something
- */
-function displayDatasetInfo() {
-	var infoDiv = document.getElementById("datasetInfo");
-	infoDiv.textContent = "";
-	
-	var pStartSpan = document.createElement("p");
-	var txtStartSpan = document.createTextNode("First event: "+formatDate(datasetInfo["firstEvent"]));
-	var pEndSpan = document.createElement("p");
-	var txtEndSpan = document.createTextNode("Last event: "+formatDate(datasetInfo["lastEvent"]));
-	var pNbEvent = document.createElement("p");
-	var txtNbEvent = document.createTextNode("Number of events: "+datasetInfo["numberOfEvents"]);
-	var pNbEvent = document.createElement("p");
-	var txtNbEvent = document.createTextNode("Number of event types: "+datasetInfo["numberOfDifferentEvents"]);
-	var pNbUsers = document.createElement("p");
-	var txtNbUsers = document.createTextNode("Number of users: "+datasetInfo["users"].length)	
-	
-	//d3.select("#datasetName").text(datasetInfo["name"]);
-	
-	pNbEvent.appendChild(txtNbEvent);
-	infoDiv.appendChild(pNbEvent);
 
-	pNbUsers.appendChild(txtNbUsers);
-	infoDiv.appendChild(pNbUsers);
-	
-	pStartSpan.appendChild(txtStartSpan);
-	infoDiv.appendChild(pStartSpan);
-	pEndSpan.appendChild(txtEndSpan);
-	infoDiv.appendChild(pEndSpan);
-	
-	datasetInfoIsDefault = false;
-	
-	//console.log("Info displayed");
-}
 
-var monthsNames = [
-	"January", "February", "March",
-	"April", "May", "June",
-	"July", "August", "September",
-	"October", "November", "December"];
 
-function formatDate(date) {
-	if (typeof date == "string") {
-		// Create from the format inherited from Agavue
-		// Agavue format : Sun Mar 31 01:32:10 CET 2013
-		let parts = date.split(" ");
-		if (parts.length != 6)
-			return date;
-		let month = "";
-		switch(parts[1]) {
-			case "Jan":
-				return " January "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Feb":
-				return " February "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Mar":
-				return " March "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Apr":
-				return " April "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "May":
-				return " May "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Jun":
-				return " June "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Jul":
-				return " July "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Aug":
-				return " August "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Sep":
-				return " September "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Oct":
-				return " October "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Nov":
-				return " November "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Dec":
-				return " December "+parts[2]+", "+parts[5]+", "+parts[3];
-			default:
-				return parts[1]+" "+parts[2]+", "+parts[5]+", "+parts[3];
-		}
-	} else {
-		let day = date.getDate();
-		let monthIdx = date.getMonth();
-		let year = date.getFullYear();
-		let hour = date.getHours();
-		let minutes = date.getMinutes();
-		let seconds = date.getSeconds();
-		
-		return " "+monthsNames[monthIdx]+" "+day+", "+year+", "+hour+":"+minutes+":"+seconds;
-	}
-}
 
-/************************************************/
-/*				Handling the tabs				*/
-/************************************************/
-
-/**
- * Manage the left-side (control) tabs
- */
-function openControlTab(evt, tabName) {
-    // Declare all variables
-    var i, tabcontent, tablinks;
-
-    // Get all elements with class="controlTabContent" and hide them
-    tabcontent = document.getElementsByClassName("controlTabContent");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
-
-    // Get all elements with class="controlTabLink" and remove the class "active"
-    tablinks = document.getElementsByClassName("controlTabLink");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-
-    // Show the current tab, and add an "active" class to the link that opened the tab
-    document.getElementById(tabName).style.display = "flex";
-    evt.currentTarget.className += " active";
-}
-
-/**
- * Manage the right-side (algorithm) tabs
- */
-function openAlgorithmTab(evt, tabName) {
-	// Declare all variables
-	var i, tabcontent, tablinks;
-	
-	// Get all elements with class="algorithmTabContent" and hide them
-	tabcontent = document.getElementsByClassName("algorithmTabContent");
-	for (i = 0; i < tabcontent.length; i++) {
-		tabcontent[i].style.display = "none";
-	}
-	
-	// Get all elements with class="algorithmTabLink" and remove the class "active"
-	tablinks = document.getElementsByClassName("algorithmTabLink");
-	for (i = 0; i < tablinks.length; i++) {
-		tablinks[i].className = tablinks[i].className.replace(" active", "");
-	}
-	
-	// Show the current tab, and add an "active" class to the link that opened the tab
-	document.getElementById(tabName).style.display = "flex";
-	evt.currentTarget.className += " active";
-}
-
-/**
- * Displays that the server is loading the dataset
- * @returns
- */
-function displayDatasetLoading() {
-	var infoDiv = document.getElementById("datasetInfo");
-	
-	infoDiv.textContent = "Dataset loading"; // TODO replace with an animation or an estimate
-}
-
-function getEventAccessorAtDate(date) {
-	var result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
-	while (result === undefined) {
-		date = d3.timeMinute.offset(date,1);
-		result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
-	}
-	return result;
-}
 
 /***************************************************************
  * 
@@ -4789,354 +5602,9 @@ function stopRunningTaskIndicator() {
 	}
 }
 
-/***************************************************************
- * 
- * 					Running the algorithm
- * 
- **************************************************************/
 
-/**
- * 
- */
-function runAlgoToFile() {
-	var action = {
-			action: "run",
-			object: "algoToFile"
-	};
-	sendToServer(action);
-}
 
-// Not at all using the right version of requestAlgorithmStart
-function runAlgorithm() {
-	// Clears the previously obtained patterns
-	var patternList = d3.select("#List");
-	patternList.selectAll("div").remove();
-	timeline.resetPatterns();
-	
-	// Gather the parameter's values
-	var minSup = document.getElementById("inputMinSup").value;
-	var windowSize = document.getElementById("inputWindowSize").value;
-	var maxSize = document.getElementById("inputMaxSize").value;
-	var maxGap = document.getElementById("inputMaxGap").value;
-	
-	// Update the display of the algorithm's current parameters
-	d3.select("#currentMinSup").text(minSup);
-	d3.select("#currentWindowSize").text(windowSize);
-	d3.select("#currentMaxSize").text(maxSize);
-	d3.select("#currentMaxGap").text(maxGap);
-	
-	// Tell the server to start mining
-	requestAlgorithmStart(minSup, windowSize, maxSize, maxGap);
-	
-	return false; // To stay on the same page
-}
 
-function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName) {
-	console.log("Requesting algorithm start:");
-	console.log("   minSup: "+minSupport+", windowSize: "+windowSize+", maxSize: "+maxSize+", minGap: "+minGap+", maxGap: "+maxGap+", maxDuration: "+maxDuration+", datasetName: "+datasetName);
-	
-	var action = {
-			action: "run",
-			object: "algorithm",
-			minSup: minSupport,
-			windowSize: windowSize,
-			maxSize: maxSize,
-			minGap: minGap,
-			maxGap: maxGap,
-			maxDuration: maxDuration,
-			datasetName: datasetName
-	};
-	sendToServer(action);
-	// Start the timer independently from the server
-	//stopAlgorithmRuntime();
-	//startAlgorithmRuntime();
-	
-	// Update the display of the current parameters in the Execution tab
-	d3.select("#currentSupport").text(minSupport+" occs.");
-	d3.select("#currentGap").text(minGap+"-"+maxGap+" events");
-	d3.select("#currentWindow").text(windowSize);
-	d3.select("#currentSize").text(maxSize+" events");
-	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
-	
-}
-
-/**
- * Starts the algorithm with default values at the start of the session
- * @returns
- */
-function startInitialMining() {
-	// TODO Stop using hard coded value depending on the dataset
-
-	var defaultMinSupport = "500";
-	var defaultWindowSize = "60";
-	var defaultMaxSize = "10";
-	var defaultMinGap = "0";
-	var defaultMaxGap = "2";
-	var defaultMaxDuration = "30000";
-	var datasetName = currentDatasetName;
-	
-	switch(currentDatasetName) {
-		case "recsysSamplecategory":
-			defaultMinSupport = "10";
-			defaultWindowSize = "60";
-			defaultMaxSize = "20";
-			defaultMinGap = "0";
-			defaultMaxGap = "2";
-			defaultMaxDuration = "30000";
-			break;
-		case "coconotesPPMT":
-			defaultMinSupport = "150";
-			defaultWindowSize = "60";
-			defaultMaxSize = "20";
-			defaultMinGap = "0";
-			defaultMaxGap = "2";
-			defaultMaxDuration = "30000";
-			break;
-		case "coconotesPPMTLarge":
-			defaultMinSupport = "100";
-			defaultWindowSize = "60";
-			defaultMaxSize = "20";
-			defaultMinGap = "0";
-			defaultMaxGap = "2";
-			defaultMaxDuration = "30000";
-			break;
-		default:
-	}
-	console.log("defaultMinSupport :"+defaultMinSupport);
-	requestAlgorithmStart(defaultMinSupport, defaultWindowSize, defaultMaxSize, defaultMinGap, defaultMaxGap, defaultMaxDuration, datasetName);
-}
-
-var algorithmTimer;
-var algorithmStartTime = -1;
-var startDelayFromServer = 0;
-
-/**
- * Start the algorithm runtime counter, updates it every second
- * @returns
- */
-function startAlgorithmRuntime(time) {
-	var clientTime = new Date();
-	algorithmStartTime = new Date(time);
-	startDelayFromServer = algorithmStartTime - clientTime;
-	algorithmTimer = setInterval(function() {
-		var thisTime = new Date();
-		var elapsedTime = thisTime - algorithmStartTime;
-		elapsedTime += startDelayFromServer;	// Compensate for the delay between the two clocks
-		var elapsedMinutes = Math.floor(elapsedTime/60000);
-		elapsedTime = elapsedTime%60000;
-		var elapsedSeconds = Math.floor(elapsedTime/1000);
-		// Update the display of the runtime
-		var text = "";
-		if (elapsedMinutes < 10)
-			text = "0"+elapsedMinutes+":";
-		else
-			text = elapsedMinutes+":";
-		if (elapsedSeconds < 10)
-			text += "0"+elapsedSeconds;
-		else
-			text += elapsedSeconds;
-		d3.select("#runtime")
-			.text(text);
-	},1000);
-}
-
-/**
- * Stop the algorithm runtime counter
- * @returns
- */
-function stopAlgorithmRuntime(time) {
-	if (algorithmStartTime > 0) {
-		clearInterval(algorithmTimer);
-		// checks if the timer is coherent with the server's
-		var thisDate = new Date(time);
-		var elapsedTime = thisDate - algorithmStartTime;
-		var elapsedMinutes = Math.floor(elapsedTime/60000);
-		elapsedTime = elapsedTime%60000;
-		var elapsedSeconds = Math.floor(elapsedTime/1000);
-		// Update the display of the runtime
-		var text = "";
-		if (elapsedMinutes < 10)
-			text = "0"+elapsedMinutes+":";
-		else
-			text = elapsedMinutes+":";
-		if (elapsedSeconds < 10)
-			text += "0"+elapsedSeconds;
-		else
-			text += elapsedSeconds;
-		console.log("Algo server timer: "+text);
-		// Reset the startTime
-		algorithmStartTime = -1;
-	}
-	
-	d3.select("#currentAlgorithmWork")
-		.text("(ended)");
-}
-
-/**
- * Displays the current pattern-size the algorithm is working on
- * @param level The pattern size
- * @returns
- */
-function handleNewLevelSignal(level) {
-	d3.select("#currentAlgorithmWork")
-		.text("(working on size "+level+")");
-}
-
-var loadingAlgorithmDataAnimation;
-var loadingAlgorithmDataAnimationState = 1;
-
-/**
- * Displays that the algorithm is loading its data
- * @returns
- */
-function handleLoadingSignal() {
-	loadingAlgorithmDataAnimation = setInterval(function() {
-		var dots;
-		switch(loadingAlgorithmDataAnimationState) {
-		case 1:
-			dots=".";
-			loadingAlgorithmDataAnimationState++;
-			break;
-		case 2:
-			dots="..";
-			loadingAlgorithmDataAnimationState++;
-			break;
-		case 3:
-			dots = "...";
-			loadingAlgorithmDataAnimationState = 1;
-			break;
-		default:
-			dots = "";
-		}
-		d3.select("#currentAlgorithmWork")
-			.text("(loading data"+dots+")");
-		}, 1000);
-}
-
-/**
- * Displays that the algorithm has loaded its data
- * @returns
- */
-function handleLoadedSignal() {
-	clearInterval(loadingAlgorithmDataAnimation);
-	loadingAlgorithmDataAnimationState = 1;
-	d3.select("#currentAlgorithmWork")
-		.text("(Data loaded)");
-	console.log("Dataset loaded on server");
-}
-
-var patternSizesSvg = d3.select(d3.selectAll("#Execution > div").nodes()[1]).append("svg")
-		.attr("width", "100%")
-		.attr("height", "100%")
-		.attr("id","patternSizesSvg");
-//var patternSizesSvg = d3.select("#patternSizesSvg");
-var patternSizesMargin = {top: 20, right: 0, bottom: 40, left: 30};
-var patternSizesWidth = patternSizesSvg.node().getBoundingClientRect().width - patternSizesMargin.left - patternSizesMargin.right;
-var patternSizesHeight = patternSizesSvg.node().getBoundingClientRect().height - patternSizesMargin.top - patternSizesMargin.bottom;
-
-var patternSizesX = d3.scaleBand().rangeRound([0, patternSizesWidth]).padding(0.1);
-var patternSizesY = d3.scaleLinear().rangeRound([patternSizesHeight, 0]);
-var patternSizesXAxis = d3.axisBottom(patternSizesX);
-var patternSizesYAxis = d3.axisLeft(patternSizesY).ticks(5);
-	
-var patternSizesG = patternSizesSvg.append("g")
-		.attr("transform", "translate(" + patternSizesMargin.left + "," + patternSizesMargin.top + ")");
-/**
- * Displays the barchart representing the pattern sizes
- */
-function setupPatternSizesChart() {
-	let data = Object.keys(patternMetrics.sizeDistribution);
-	
-	patternSizesX.domain(data.map(function(d) { return d; }));
-	patternSizesY.domain([0, d3.max(data, function(d) { return patternMetrics.sizeDistribution[d]; })]);
-
-	patternSizesG.append("g")
-		.attr("class", "axis axis--x")
-		.attr("transform", "translate(0," + patternSizesHeight + ")")
-		.call(patternSizesXAxis);
-	
-	patternSizesG.append("g")
-		.attr("class", "axis axis--y")
-		.call(patternSizesYAxis)
-		.append("text")
-			.attr("transform", "rotate(-90)")
-			.attr("y", 6)
-			.attr("dy", "0.71em")
-			.attr("text-anchor", "end")
-			.text("Frequency");
-	
-	patternSizesG.selectAll(".bar")
-		.data(data)
-		.enter().append("rect")
-			.attr("class", "bar")
-			.attr("x", function(d) { return patternSizesX(d); })
-			.attr("y", function(d) { return patternSizesY(patternMetrics.sizeDistribution[d]); })
-			.attr("width", patternSizesX.bandwidth())
-			.attr("height", function(d) { return patternSizesHeight - patternSizesY(patternMetrics.sizeDistribution[d]); });
-}
-
-function drawPatternSizesChart() {
-	let data = Object.keys(patternMetrics.sizeDistribution);
-	
-	// measure the domain (for x, unique letters) (for y [0,maxFrequency])
-	// now the scales are finished and usable
-	patternSizesX.domain(data.map(function(d) { return d; }));
-	patternSizesY.domain([0, d3.max(data, function(d) { return patternMetrics.sizeDistribution[d]; })]);
-	
-	// another g element, this time to move the origin to the bottom of the svg element
-	// someSelection.call(thing) is roughly equivalent to thing(someSelection[i])
-	//   for everything in the selection\
-	// the end result is g populated with text and lines!
-	patternSizesG.select('.axis--x.axis').transition().duration(0).call(patternSizesXAxis);
-	
-	// same for yAxis but with more transform and a title
-	patternSizesG.select(".axis--y.axis").transition().duration(0).call(patternSizesYAxis)
-	
-	// THIS IS THE ACTUAL WORK!
-	let bars = patternSizesG.selectAll("rect.bar").data(data, function(d) { return d; }); // (data) is an array/iterable thing, second argument is an ID generator function
-	let texts = patternSizesG.selectAll("text.bar").data(data, function(d) { return d; });
-
-	bars.exit()
-		.transition()
-		.duration(0)
-		.attr("y", patternSizesY(0))
-		.attr("height", patternSizesHeight - patternSizesY(0))
-		.style('fill-opacity', 1e-6)
-		.remove();
-	
-	texts.exit()
-		.transition()
-		.duration(0)
-		.attr("y", patternSizesY(0))
-		.attr("height", patternSizesHeight - patternSizesY(0))
-		.style('fill-opacity', 1e-6)
-		.remove();
-	
-	// data that needs DOM = enter() (a set/selection, not an event!)
-	bars.enter().append("rect")
-		.attr("class", "bar")
-		.attr("y", patternSizesY(0))
-		.attr("height", patternSizesHeight - patternSizesY(0));
-	
-	texts.enter().append("text")
-		.attr("class", "bar")
-		.attr("text-anchor", "middle")
-		.attr("x", function(d) { return patternSizesX(d) + patternSizesX.bandwidth()/2; })
-		.attr("y", function(d) { return patternSizesY(patternMetrics.sizeDistribution[d]) - 5; })
-		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
-		
-	// the "UPDATE" set:
-	bars.transition().duration(0)
-		.attr("x", function(d) { return patternSizesX(d); }) // (d) is one item from the data array, x is the scale object from above
-		.attr("width", patternSizesX.bandwidth()) // constant, so no callback function(d) here
-		.attr("y", function(d) { return patternSizesY(patternMetrics.sizeDistribution[d]); })
-		.attr("height", function(d) { return patternSizesHeight - patternSizesY(patternMetrics.sizeDistribution[d]); }); // flip the height, because y's domain is bottom up, but SVG renders top down
-	
-	texts.transition().duration(0)
-		.attr("x", function(d) {return patternSizesX(d) + patternSizesX.bandwidth()/2; })
-		.attr("y", function(d) { return patternSizesY(patternMetrics.sizeDistribution[d]) - 5; })
-		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
-}
 
 /**
  * Setup the sliders that control the algorithm
@@ -5300,448 +5768,6 @@ function refreshUserPatterns() {
 	timeline.drawUsersPatterns();
 }
 
-var tooltipIsFixed = false;
-var tooltipHasContent = false;
-var tooltipData = {};
-var tooltipOrigin = "";
-var tooltipSupposedData = {};
-var tooltipSupposedOrigin = "";
-
-/**
- * Origin can be either "general" or "session"
- */
-function changeTooltip(data, origin) {
-	// If using the tooltip.js tooltip :
-	// tooltip.show(message, 400);
-	if (tooltipIsFixed) {
-		tooltipSupposedOrigin = origin;
-		tooltipSupposedData = data;
-		tooltipShouldBeCleared= false;
-	} else {
-		tooltipShouldBeCleared = false;
-		tooltipData = data;
-		tooltipOrigin = origin;
-		let area = d3.select("#tooltip").select(".body");
-		area.html("");
-		
-		switch(origin) {
-		case "general":
-			/* Structure : 
-			 * [year,
-		     * start,
-		     * end,
-		     * nbEventsInBin,
-		     * user1;user2;...,
-		     * type1;type2;...,
-		     * type1:nbOcc;type2:nbOcc;...
-		     * nbEventsInSubBin,
-			 * type1:hslColorValue1;type2:hslColorValue1;...]
-		   	 */
-			switch(timeline.displayMode) {
-			case "distributions":
-				switch(timeline.distributionScale) {
-				case "year":
-					//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
-				case "month":
-				case "halfMonth":
-				case "day":
-				case "halfDay":
-					let nbUsers = data[4].split(";").length;
-					let nbOccs = data[6].split(';');
-					//console.log("pre-sort: "+nbOccs);
-					nbOccs.sort(function(a,b) {
-						let aVal = parseInt(a.split(":")[1]);
-						let bVal = parseInt(b.split(":")[1]);
-						return bVal - aVal;	// sort in descending order
-					});
-					//console.log("post-sort: "+nbOccs);
-					area.append("p")
-						.text("From "+data[1]+" to "+data[2]);
-					area.append("p")
-						.text(data[3]+" events across "+nbUsers+" users");
-					area.append("p")
-						.text(data[7]+" in this subpart:");
-					
-					let ttTable = area.append("table");
-					let ttTableHead = ttTable.append("thead").append("tr");
-					if (nbOccs.length > 1) {
-						ttTableHead.append("th")
-							.text(nbOccs.length + " event types");
-					} else {
-						ttTableHead.append("th")
-							.text(nbOccs.length + " event type");
-					}
-					ttTableHead.append("th")
-						.text("Support");
-					ttTableHead.append("th")
-						.text("% of this bin");
-					let ttTableBody = ttTable.append("tbody");
-					
-					for (let i = 0; i < nbOccs.length; i++) {
-						let ttTableRow = ttTableBody.append("tr");
-						
-						let occ = nbOccs[i].split(":");
-						let percentage = parseInt(occ[1])/parseInt(data[3]);
-						
-						let hslValues = data[8].split(";");
-						let hslValue = 0;
-						for (let idx = 0; idx < hslValues.length; idx++) {
-							if (hslValues[idx].split(":")[0] == occ[0]) {
-								hslValue = parseInt(hslValues[idx].split(":")[1]);
-								break;
-							}
-						}
-						
-						ttTableRow.classed("clickable", true)
-							.style("font-weight", (highlightedEventTypes.includes(occ[0]) ? "bold" : "normal"))
-							.on("click", function() {
-								highlightEventTypeRow(occ[0]);
-								if (highlightedEventTypes.includes(occ[0])) {
-									d3.select(this).style("font-weight", "bold");
-								} else {
-									d3.select(this).style("font-weight", "normal");
-								}
-								setHighlights();
-								timeline.displayData();
-							});
-						
-						let ttFirstCell = ttTableRow.append("td");
-						ttFirstCell.append("span")
-							.style("color",colorList[occ[0]][0].toString())
-							.text(itemShapes[occ[0]]);
-						ttFirstCell.append("span").text(" "+occ[0]);
-						ttTableRow.append("td").text(occ[1]);
-						ttTableRow.append("td").text((percentage*100).toPrecision(3)+"%");
-					}
-				}
-				break;
-			case "events":
-					splitData = data.split(";");
-					
-					let typeLine = area.append("p")
-						.classed("clickable", true)
-						.style("font-weight", (highlightedEventTypes.includes(splitData[0]) ? "bold" : "normal"))
-						.text("Type: ")
-						.on("click", function() {
-							highlightEventTypeRow(splitData[0]);
-							if (highlightedEventTypes.includes(splitData[0])) {
-								d3.select(this).style("font-weight", "bold");
-							} else {
-								d3.select(this).style("font-weight", "normal");
-							}
-							setHighlights();
-							timeline.displayData();
-						});
-					typeLine.append("span")
-						.style("color",colorList[splitData[0]][0])
-						.text(itemShapes[splitData[0]]);
-					typeLine.append("span")
-						.text(" "+splitData[0]);
-					area.append("p")
-						.text("Time: " + splitData[1]);
-					area.append("p")
-						.classed("clickable", true)
-						.style("font-weight", (highlightedUsers.includes(splitData[3]) ? "bold" : "normal"))
-						.text("User: " + splitData[3])
-						.on("click", function() {
-							highlightUserRow(splitData[3]);
-							if (highlightedUsers.includes(splitData[3])) {
-								d3.select(this).style("font-weight", "bold");
-							} else {
-								d3.select(this).style("font-weight", "normal");
-							}
-							setHighlights();
-							timeline.displayData();
-						});;
-					area.append("p")
-						.text("Properties:");
-					for(var i = 4; i < splitData.length; i++)
-						area.append("p")
-							.classed("tooltipEventProperty", true)
-							.text(splitData[i]);
-			}
-			break;
-		case "session":
-			/* Structure of data : 
-			 * ["user",
-			 * 	nbrOfPatternsInSession, (-1 if no session)
-			 * 	sessionStart,
-			 * 	sessionEnd,
-			 * 	"patternId: number"]
-		   	 */
-			
-			area.append("p")
-				.classed("clickable", true)
-				.style("font-weight", (highlightedUsers.includes(data[0]) ? "bold" : "normal"))
-				.text("User " + data[0])
-				.on("click", function() {
-					highlightUserRow(data[0]);
-					if (highlightedUsers.includes(data[0])) {
-						d3.select(this).style("font-weight", "bold");
-					} else {
-						d3.select(this).style("font-weight", "normal");
-					}
-					setHighlights();
-					timeline.displayData();
-				});
-			
-			let dateStart = "";
-			let dateEnd = "";
-			let duration = (data[3] - data[2]) / 1000; // In seconds
-			let dS = duration % 60;
-			let dM = Math.floor(duration / 60);
-			let dH = Math.floor(dM / 60);
-			dM = dM % 60;
-			let durationString = "";
-			if (dH > 0)
-				durationString += dH + "h ";
-			if (dM > 0 || dH > 0)
-				durationString += dM + "m ";
-			durationString += dS + "s";
-			
-			switch(data[1]) {
-			case -1:/*
-				area.append("p")
-					.text("No session");*/
-				break;
-			case 0:
-				dateStart = new Date(data[2]);
-				dateEnd = new Date(data[3]);
-				area.append("p")
-					.text(data[4]+" events");
-				area.append("p")
-					.text("Session duration: "+durationString);
-				area.append("p")
-					.text("Session start: "+formatDate(dateStart));
-				area.append("p")
-					.text("Session end: "+formatDate(dateEnd));
-				area.append("hr");
-				area.append("p")
-					.text("No pattern in this session");
-				break;
-			default:
-				dateStart = new Date(data[2]);
-				dateEnd = new Date(data[3]);
-				area.append("p")
-				.text(data[4]+" events");
-			area.append("p")
-				.text("Session duration: "+durationString);
-				area.append("p")
-					.text("Session start: "+formatDate(dateStart));
-				area.append("p")
-					.text("Session end:  "+formatDate(dateEnd));
-				area.append("hr");
-				area.append("p")
-					.text("Show patterns' text: ")
-				  .append("input")
-				  	.attr("type", "checkbox")
-				  	.property("checked", true)
-				  	.classed("clickable", true)
-				  	.on("change", function() {
-				  		if (d3.select(this).property("checked")) {
-				  			d3.selectAll(".tooltipPatternText")
-				  				.classed("hidden", false);
-				  		} else {
-				  			d3.selectAll(".tooltipPatternText")
-			  					.classed("hidden", true);
-				  		}
-				  	});
-				let ttTable = area.append("table");
-				let ttTableHead = ttTable.append("thead").append("tr");
-				if (data[1] > 1) {
-					ttTableHead.append("th")
-						.text(data[1] + " patterns");
-				} else {
-					ttTableHead.append("th")
-						.text(data[1] + " pattern");
-				}
-				ttTableHead.append("th")
-					.text("Support (here"+String.fromCharCode(160)+"/"+String.fromCharCode(160)+"total)"); // Use non-breaking spaces
-				let ttTableBody = ttTable.append("tbody");
-				for (let pIdx = 5; pIdx < data.length; pIdx++) {
-					let thisData = data[pIdx].split(":");
-					let pId = Number(thisData[0].trim());
-					let evtTypes = patternsInformation[pId][3];
-					let ttTableRow = ttTableBody.append("tr")
-						.classed("clickable", true)
-						.style("font-weight", (selectedPatternIds.includes(pId) ? "bold" : "normal"))
-						.on("click", function() {
-							if (timeline.hasPatternOccurrences(pId) == false)
-								requestPatternOccurrences(pId, currentDatasetName);
-							else
-								timeline.displayPatternOccurrences(pId);
-							if (d3.select(this).style("font-weight") == "normal") {
-								selectedPatternIds.push(pId);
-								d3.select(this).style("font-weight", "bold");
-							} else {
-								let index = selectedPatternIds.indexOf(pId);
-								if (index >= 0)
-									selectedPatternIds.splice(index, 1);
-								d3.select(this).style("font-weight", "normal");
-							}
-							//d3.event.stopPropagation();
-							console.log("click on "+pId);
-							createPatternListDisplay();
-							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-							timeline.drawUsersPatterns();
-							
-							// Update the number of selected patterns display
-							d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-						});
-					let firstCell = ttTableRow.append("td");
-					for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
-						firstCell.append("span")
-							.style("color", colorList[evtTypes[tIdx]][0])
-							.text(itemShapes[evtTypes[tIdx]]);
-					}
-					firstCell.append("span")
-						.classed("tooltipPatternText", true)
-						.text(" " + patternsInformation[pId][0]);
-					ttTableRow.append("td")
-						.text(thisData[1].trim() + " / " + patternsInformation[pId][2]);
-				}
-			}
-			
-			break;
-		default:
-		}
-		
-		tooltipHasContent = true;
-		tooltip.property("scrollTop",0);
-		//updateTooltipLockMessage();
-		tooltip.classed("hidden", false);
-	}
-}
-
-var tooltipShouldBeCleared = false;
-
-function clearTooltip() {
-	// If using the tooltip.js tooltip :
-	// tooltip.hide();
-	if (!tooltipIsFixed) {
-		d3.select("#tooltip").select(".body")
-			.html("Hover over the visualizations to get more information");
-		tooltipHasContent = false;
-		//updateTooltipLockMessage();
-		tooltip.classed("hidden", true);
-	} else {
-		tooltipShouldBeCleared = true;
-	}
-}
-
-function updateTooltipLockMessage() {
-	if (tooltipIsFixed) {
-		tooltip.select(".subtitle")
-			.text("Click somewhere to unlock this tooltip");
-	} else {
-		tooltip.select(".subtitle")
-			.text("Click somewhere to lock this tooltip");
-	}
-	/*// Only used if the tooltip is used as inspector (fixed in the UI)
-	let tt = d3.select("#tooltip");
-	if (tooltipHasContent) {
-		if (tooltipIsFixed) {
-			tt.select(".subtitle").text("Press f to unlock this content");
-			tt.select(".title").text("Inspector 🔒");
-		} else {
-			tt.select(".subtitle").text("Press f to lock this content");
-			tt.select(".title").text("Inspector 🔓");
-		}
-	} else {
-		tt.select(".subtitle").text("");
-		tt.select(".title").text("Inspector");
-	}*/
-}
-
-var tooltip = d3.select("#tooltip");
-var tooltipNode = tooltip.node();
-var tooltipOffsetFromMouse = 5;
-
-var currentMousePos = [];
-//var tooltipCornerX = 0;
-//var tooltipCornerY = 0;
-
-function moveTooltip() {
-	let mousePosition;
-	try {
-		mousePosition = d3.mouse(d3.select("body").node());
-		currentMousePos = mousePosition;
-	} catch(e) {
-		mousePosition = currentMousePos;
-	}
-	
-	if (tooltipIsFixed == true)
-		return;
-	
-	let mX = mousePosition[0];
-	let mY = mousePosition[1];
-	//let xDistance = Math.max(tooltipCornerX - mX, mX - tooltipCornerX);
-	//let yDistance = Math.max(tooltipCornerY - mY, mY - tooltipCornerY);
-	let newPosX = mousePosition[0] + tooltipOffsetFromMouse;
-	let newPosY = mousePosition[1] - tooltipOffsetFromMouse - tooltipNode.offsetHeight;
-	if (newPosY < 0)
-		newPosY = 0;
-	tooltip.style("left", newPosX+"px")
-		.style("top", newPosY+"px");
-	//tooltipCornerX = newPosX;
-	//tooltipCornerY = newPosY + tooltipNode.offsetHeight;
-}
-
-function lockTooltip() {
-	tooltipIsFixed = true;
-	updateTooltipLockMessage();
-}
-
-function unlockTooltip() {
-	tooltipIsFixed = false;
-	updateTooltipLockMessage();
-}
-
-var tooltipCloseTimeout;
-
-function prepareToLeaveTooltip() {
-	tooltipCloseTimeout = setTimeout(leaveTooltip, 500);
-}
-
-function leaveTooltip() {
-	unlockTooltip();
-	clearTooltip();
-	updateTooltip();
-}
-
-function enterTooltip() {
-	// Prevent the hiding of the tooltip if it has been planned
-	clearTimeout(tooltipCloseTimeout);
-	
-	tooltip.select(".subtitle")
-		.text("Move the pointer out of this tooltip to close it");
-}
-
-function switchTooltipLock() {
-	let mousePos = d3.mouse(d3.select("body").node());
-	// Prevent from unlocking when the mouse is inside the tooltip
-	if (mousePos[0] >= tooltipNode.offsetLeft
-			&& mousePos[1] >= tooltipNode.offsetTop
-			&& mousePos[0] <= tooltipNode.offsetLeft + tooltipNode.offsetWidth
-			&& mousePos[1] <= tooltipNode.offsetTop + tooltipNode.offsetHeight)
-		return;
-	if (tooltipHasContent) {
-		tooltipIsFixed = !tooltipIsFixed;
-		updateTooltipLockMessage();
-		if (!tooltipIsFixed) {
-			updateTooltip();
-		}
-	}
-}
-
-function updateTooltip() {
-	if (tooltipShouldBeCleared)
-		clearTooltip();
-	else {
-		changeTooltip(tooltipSupposedData, tooltipSupposedOrigin);
-		moveTooltip();
-	}
-}
 
 /************************************************************************************************************/
 /*
