@@ -2135,6 +2135,8 @@ function getEventAccessorAtDate(date) {
  * - an event count
  */
 function buildUserSessions() {
+	let nbOfSession = 0;
+
 	for (let userIdx = 0; userIdx < userList.length; userIdx++) {
 		let timeParser = d3.timeParse('%Y-%m-%d %H:%M:%S');
 		let u = userList[userIdx];
@@ -2167,8 +2169,13 @@ function buildUserSessions() {
 			}
 			lastEventDate = thisEventDate;
 		}
+
+		nbOfSession += userSessions[u].length;
 	}
-	
+	// Add the number of sessions as an information about the dataset
+	datasetInfo.nbSessions = nbOfSession;
+	// Refresh the display of dataset infos
+	displayDatasetInfo();
 	// Refresh the user list display
 	createUserListDisplay();
 }
@@ -2451,7 +2458,7 @@ function displayDatasetLoading() {
  */
 function displayDatasetInfo() {
 	let infoDiv = d3.select("#datasetInfo")
-		.text("");
+		.html("");
 
 	infoDiv.append("p")
 		.text("Number of events: "+datasetInfo["numberOfEvents"]);
@@ -2460,10 +2467,16 @@ function displayDatasetInfo() {
 	infoDiv.append("p")
 		.text("Number of users: "+datasetInfo["users"].length);
 	infoDiv.append("p")
+		.text(datasetInfo["nbSessions"] ?
+			"Number of sessions: "+ datasetInfo["nbSessions"] :
+			"Number of sessions: Not known yet"
+		);
+	infoDiv.append("p")
 		.text("First event: "+formatDate(datasetInfo["firstEvent"]));
 	infoDiv.append("p")
 		.text("Last event: "+formatDate(datasetInfo["lastEvent"]));
 	
+
 	datasetInfoIsDefault = false;
 }
 
