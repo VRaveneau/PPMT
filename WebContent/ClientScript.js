@@ -899,15 +899,17 @@ function setupAlgorithmSearchField() {
 	});
 	
 	searchField.on("input", function() {
+		suggestionDiv.style("display", "block");
 		let currentValue = searchField.property("value");
 		currentPatternSearchInput = currentValue;
 		currentPatternSearchFragment = currentValue.split(" ").pop();
 		
 		if(currentPatternSearchFragment.length > 0) {
-			let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+			let baseLength = currentPatternSearchInput.length -
+							 currentPatternSearchFragment.length;
 			let baseValue = currentPatternSearchInput.substr(0, baseLength);
 			relatedEventTypes = eventTypes.filter(function(d, i) {
-				return d.includes(currentPatternSearchFragment);
+				return d.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
 			});
 			relatedEventTypes.sort();
 			
@@ -920,14 +922,15 @@ function setupAlgorithmSearchField() {
 						.classed("clickable", true)
 						.text(baseValue + d)
 						.on("click", function() {
-							let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+							let baseLength = currentPatternSearchInput.length - 
+											currentPatternSearchFragment.length;
 							let baseValue = currentPatternSearchInput.substr(0, baseLength);
 							currentPatternSearchInput = baseValue + relatedEventTypes[i];
 							currentPatternSearchFragment = relatedEventTypes[i];
 							searchField.property("value", currentPatternSearchInput);
 							// Updates the suggestion list
 							relatedEventTypes = eventTypes.filter(function(e, j) {
-								return e.includes(currentPatternSearchFragment);
+								return e.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
 							});
 							relatedEventTypes.sort();
 
@@ -972,12 +975,13 @@ function setupAlgorithmSearchField() {
 		case "Escape":
 			suggestionDiv.style("display", "none");
 			break;
-		case "ArrowRight":
 		case "Enter":
 			if (currentPatternSearchSuggestionIdx >= 0) {
-				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+				let baseLength = currentPatternSearchInput.length -
+								currentPatternSearchFragment.length;
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
-				currentPatternSearchInput = baseValue + relatedEventTypes[currentPatternSearchSuggestionIdx];
+				currentPatternSearchInput = baseValue +
+						relatedEventTypes[currentPatternSearchSuggestionIdx];
 				currentPatternSearchFragment = relatedEventTypes[currentPatternSearchSuggestionIdx];
 				searchField.property("value", currentPatternSearchInput);
 				// Updates the suggestion list
@@ -998,13 +1002,16 @@ function setupAlgorithmSearchField() {
 					currentPatternSearchSuggestionIdx = -1;
 					suggestionDiv.html("");
 				}
-				
+				// Hide the suggestion list
+				suggestionDiv.style("display", "none");
+
 				createPatternListDisplay();
 			}
 			break;
 		case "ArrowUp":
 			if (currentPatternSearchSuggestionIdx > 0) {
-				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+				let baseLength = currentPatternSearchInput.length -
+								currentPatternSearchFragment.length;
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx--;
 				suggestionDiv.selectAll("p").each(function(d,i) {
@@ -1014,7 +1021,8 @@ function setupAlgorithmSearchField() {
 			break;
 		case "ArrowDown":
 			if (currentPatternSearchSuggestionIdx < relatedEventTypes.length - 1) {
-				let baseLength = currentPatternSearchInput.length - currentPatternSearchFragment.length;
+				let baseLength = currentPatternSearchInput.length -
+								currentPatternSearchFragment.length;
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx++;
 				suggestionDiv.selectAll("p").each(function(d,i) {
@@ -5385,7 +5393,7 @@ function createPatternListDisplay() {
 		// - it is selected (always displayed)
 		// - the filter is empty or accepts the pattern
 		if (selectedPatternIds.includes(pId) == false) {
-			if (pString.includes(properPatternSearchInput) == false) {
+			if (pString.toLowerCase().includes(properPatternSearchInput.toLowerCase()) == false) {
 				continue; // The filter rejects the pattern
 			}
 		}
