@@ -6278,8 +6278,8 @@ var Timeline = function(elemId, options) {
 							let y = self.yPatterns(idsToDraw[i]);
 							self.canvasContext.beginPath();
 							if (x1 == x2) {
-								self.canvasContext.fillStyle = "blue";
-								self.canvasContext.arc(x1,y,3,0,2*Math.PI, false);
+								self.canvasContext.fillStyle = "black";
+								self.canvasContext.arc(x1,y,1.5,0,2*Math.PI, false);
 								self.canvasContext.fill();
 								//self.canvasContext.closePath();
 							} else {
