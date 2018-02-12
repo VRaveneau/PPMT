@@ -208,15 +208,22 @@ var mouseIsOverPatternSuggestions = false;
 // Barchart of the number of discovered patterns for each size
 var patternSizesChart = new PatternSizesChart();
 
+// Slider controling the support parameter of the algorithm
+var supportSlider = null;
+// Slider controling the window size parameter of the algorithm
+var windowSlider = null;
+// Slider controling the size parameter of the algorithm
+var sizeSlider = null;
+// Slider controling the gap parameter of the algorithm
+var gapSlider = null;
+
 /*************************************/
 /*			Data elements			 */
 /*************************************/
 // Name of the selected dataset
 var currentDatasetName = "";
 
-var patterns = {};
 var occurrences = {}
-var patternProbabilities = {};
 var datasetInfo = {};
 
 var eventTypeCategories = [];
@@ -698,7 +705,7 @@ function setupTool() {
 	d3.select("#nbUserShownValue")
 		.text(nbUserShown);
 	
-	createTimeline();	// TODO Initialize the timeline
+	timeline = new Timeline("timeline",{});
 	setupHelpers();
 	
 	setupAlgorithmSliders();
@@ -1060,6 +1067,163 @@ function setupPatternSizesChart() {
 				});
 }
 
+/**
+ * Setup the sliders that control the algorithm
+ */
+function setupAlgorithmSliders() {
+	setupAlgorithmSupportSlider();
+	setupAlgorithmWindowSizeSlider();
+	setupAlgorithmMaximumSizeSlider();
+	setupAlgorithmGapSlider();
+}
+
+/**
+ * Setup the slider controling the 'support' parameter of the algorithm
+ */
+function setupAlgorithmSupportSlider() {
+	// Using the custom made slider
+	//supportSlider = new SupportSlider("sliderSupportArea");
+	
+	// Using noUiSlider
+	supportSlider = document.getElementById("sliderSupport");
+	noUiSlider.create(supportSlider, {
+		range: {
+			'min': 0,
+			'max': 1000
+		},
+		orientation: 'horizontal',
+		start: [200],
+		pips: {
+			mode: 'positions',
+			values: [0, 25, 50, 75, 100],
+			stepped: true,
+			density: 3
+		},
+		tooltips: true,
+		step: 1,
+		format: {
+			to: function (value ) {
+				return value;
+			},
+			from: function ( value ) {
+				return value.replace('.-', '');
+			}
+		}
+	});
+}
+
+/**
+ * Setup the slider controling the 'window size' parameter of the algorithm
+ * TODO replace with the maximum duration
+ */
+function setupAlgorithmWindowSizeSlider() {
+	windowSlider = document.getElementById("sliderWindow");
+	noUiSlider.create(windowSlider, {
+		range: {
+			'min': 0,
+			'max': 1000
+		},
+		orientation: 'horizontal',
+		start: [200],
+		pips: {
+			mode: 'positions',
+			values: [0, 25, 50, 75, 100],
+			stepped: true,
+			density: 3
+		},
+		tooltips: true,
+		step: 1,
+		format: {
+			to: function (value ) {
+				return value;
+			},
+			from: function ( value ) {
+				return value.replace('.-', '');
+			}
+		}
+	});
+}
+
+/**
+ * Setup the slider controling the 'max size' parameter of the algorithm
+ */
+function setupAlgorithmMaximumSizeSlider() {
+	sizeSlider = document.getElementById("sliderSize");
+	noUiSlider.create(sizeSlider, {
+		range: {
+			'min': 0,
+			'max': 1000
+		},
+		orientation: 'horizontal',
+		start: [200],
+		pips: {
+			mode: 'positions',
+			values: [0, 25, 50, 75, 100],
+			stepped: true,
+			density: 3
+		},
+		tooltips: true,
+		step: 1,
+		format: {
+			to: function (value ) {
+				return value;
+			},
+			from: function ( value ) {
+				return value.replace('.-', '');
+			}
+		}
+	});
+}
+
+/**
+ * Setup the slider controling the 'gap' parameter of the algorithm
+ */
+function setupAlgorithmGapSlider() {
+	// Using the custom made slider
+	//gapSlider = new GapSlider("sliderGap");
+	
+	// Using noUiSlider
+	gapSlider = document.getElementById("sliderGap");
+	noUiSlider.create(gapSlider, {
+		range: {
+			'min': 0,
+			'max': 10
+		},
+		orientation: 'horizontal',
+		start: [0, 2],
+		connect: true,
+		pips: {
+			mode: 'steps',
+			stepped: true,
+			density: 3
+		},
+		tooltips: true,
+		step: 1,
+		format: {
+			to: function (value ) {
+				return value;
+			},
+			from: function ( value ) {
+				return value.replace('.-', '');
+			}
+		}
+	});
+}
+
+/**
+ * Setup the help messages for the algorithm parameters' sliders
+ */
+function setupHelpers() {
+	d3.select("#helpSupport")
+		.attr("title", "Minimim number of occurrences to be considered frequent");
+	/*d3.select("#helpGap")
+		.attr("title", "Number of events in the pattern that don't belong to it");*/
+	d3.select("#helpWindow")
+		.attr("title", "The minimal support for a pattern to be frequent");
+	d3.select("#helpSize")
+		.attr("title", "Maximum number of event in a pattern");
+}
+
 /*************************************/
 /*				Logging				 */
 /*************************************/
@@ -1225,7 +1389,6 @@ function processMessage(message/*Compressed*/) {
 	//console.log(msg);
 	
 	if (msg.action === "add") {
-		addPattern(msg);
 		addPatternToList(msg);
 	}
 	if (msg.action === "remove") {
@@ -1637,11 +1800,6 @@ function receiveDatasetInfo(message) {
 	/*updateTimelineBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);
 	updateTimelineOverviewBounds(datasetInfo["firstEvent"], datasetInfo["lastEvent"]);*/
 	
-	// Old content
-	/*
-	// generate a color for each event
-	availableColors = generateColors(datasetInfo["numberOfDifferentEvents"]);
-	console.log("color: "+availableColors[0]);*/
 }
 
 /**
@@ -3392,6 +3550,22 @@ function drawPatternSizesChart() {
 		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
 }
 
+/**
+ * Displays the new focus of the algorithm after a steering has started
+ * @param {string} type The type of steering that is occurring
+ * @param {string} value The focus of the steering, according to its type
+ */
+function handleSteeringStartSignal(type, value) {
+	d3.select("#focus").text(type+" starting with: "+value);
+}
+
+/**
+ * Clears the display of the algorithm's steering after it has ended
+ */
+function handleSteeringStopSignal() {
+	d3.select("#focus").text("");
+}
+
 /************************************/
 /*				Tooltip				*/
 /************************************/
@@ -3893,6 +4067,280 @@ function PatternSizesChart() {
 				 "translate(" + this.margin.left + "," + this.margin.top + ")");
 }
 
+/**
+ * Creates a slider controling the 'support' parameter of the algorithm
+ * @constructor
+ * @param {string} elemId Id of the HTML node where the slider will be created
+ */
+function SupportSlider(elemId) {
+	let self = this;
+	self.parentNodeId = elemId;
+	
+	self.svg = d3.select("#"+self.parentNodeId).append("svg")
+		.attr("class","slider")
+		.attr("width","256")//TODO change hardcoding of the width
+		.attr("height","50");
+	
+	self.margin = {right: 10, left: 10};
+	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
+	self.height = +self.svg.attr("height");	
+	
+	self.domain = [1,10000];
+	self.currentMinValue = self.domain[0];
+	self.currentMaxValue = self.domain[1];
+	self.currentHandleMinValue = self.currentMinValue;
+	self.currentHandleMaxValue = self.currentMaxValue;
+	
+	self.axis = d3.scaleLinear()
+		.domain(self.domain)
+		.range([0,self.width])
+		.clamp(true);
+	
+	self.slider = self.svg.append("g")
+		.attr("class","slider")
+		.attr("transform","translate("+self.margin.left+","+ self.height / 2 +")");
+	
+	self.line = self.slider.append("line")
+		.attr("class","track")
+		.attr("x1",self.axis.range()[0])
+		.attr("x2",self.axis.range()[1])
+		.attr("stroke", "black");
+	
+	self.blueLine = self.slider.append("line")
+		.attr("class","bluetrack")
+		.attr("x1",self.axis(self.currentHandleMinValue))
+		.attr("x2",self.axis(self.currentHandleMaxValue))
+		.attr("stroke", "lightblue");
+	
+	self.slider.insert("g",".track-overlay")
+		.attr("class","ticks")
+		.attr("transform", "translate(0,"+18+")")
+		.selectAll("text")
+		.data(self.axis.ticks((self.domain[1]-self.domain[0])/1000))
+		.enter().append("text")
+			.attr("x",self.axis)
+			.attr("text-anchor","middle")
+			.text(function(d) { return d; });
+	
+	self.currentMin = self.slider.insert("rect", ".track-overlay")
+		.attr("class","boundary")
+		.attr("x",self.axis(self.currentMinValue))
+		.attr("y",-5)
+		.attr("width",2)
+		.attr("height",10);
+	
+	self.currentMax = self.slider.insert("rect", ".track-overlay")
+		.attr("class","boundary")
+		.attr("x",self.axis(self.currentMaxValue))
+		.attr("y",-5)
+		.attr("width",2)
+		.attr("height",10);
+	
+	self.handle1 = self.slider.insert("circle", ".track-overlay")
+		.attr("class","handleSlider")
+		.attr("r",5)
+		.attr("cx",self.axis(self.currentMinValue))
+		.call(d3.drag()
+				.on("start.interrupt", function() { self.slider.interrupt(); })
+				.on("start drag", function() {
+					var roundedPos = Math.round(self.axis.invert(d3.event.x));
+					self.moveHandle1To(roundedPos);
+					}));
+	
+	self.handle2 = self.slider.insert("circle", ".track-overlay")
+		.attr("class","handleSlider")
+		.attr("r",5)
+		.attr("cx",self.axis(self.currentMaxValue))
+		.call(d3.drag()
+				.on("start.interrupt", function() { self.slider.interrupt(); })
+				.on("start drag", function() {
+					var roundedPos = Math.round(self.axis.invert(d3.event.x));
+					self.moveHandle2To(roundedPos);
+					}));
+	
+	self.updateCurrentValues = function(min, max) {
+		self.currentMinValue = min;
+		self.currentMaxValue = max;
+		self.handle1.attr("cx",self.axis(self.current))
+	};
+	
+	self.moveCurrentMinTo = function(value) {
+		if (value >= self.currentMinValue)
+			self.currentMin.attr("x",self.axis(Math.round(value)));
+	};
+	
+	self.moveCurrentMaxTo = function(value) {
+		if (value <= self.currentMaxValue)
+			self.currentMax.attr("x",self.axis(Math.round(value)));
+	};
+	
+	self.moveHandle1To = function(value) {
+		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
+			self.handle1.attr("cx",self.axis(Math.round(value)));
+			var otherValue = self.axis.invert(self.handle2.attr("cx"));	
+			self.currentHandleMinValue = Math.min(value, otherValue);
+			self.currentHandleMaxValue = Math.max(value, otherValue);
+	
+			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
+				.attr("x2",self.axis(self.currentHandleMaxValue));
+		}
+			
+		/*self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
+			.attr("x2",self.handle2.attr("cx"));*/
+	};
+	
+	self.moveHandle2To = function(value) {
+		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
+			self.handle2.attr("cx",self.axis(Math.round(value)));
+			self.currentHandleMinValue = Math.min(value, otherValue);
+			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
+			self.currentHandleMaxValue = Math.max(value, otherValue);
+	
+			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
+				.attr("x2",self.axis(self.currentHandleMaxValue));
+		}
+		/*self.blueLine.attr("x1",)
+			.attr("x2",self.axis(Math.round(value)));*/
+	};
+}
+
+/**
+ * Creates a slider controling the 'gap' parameter of the algorithm
+ * @constructor
+ * @param {string} elemId Id of the HTML node where the slider will be created
+ */
+function GapSlider(elemId) {
+	var self = this;
+	self.parentNodeId = elemId;
+	
+	self.svg = d3.select("#"+self.parentNodeId).append("svg")
+		.attr("class","slider")
+		.attr("width","256")//TODO change hardcoding of the width
+		.attr("height","50");
+	
+	self.margin = {right: 10, left: 10};
+	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
+	self.height = +self.svg.attr("height");	
+	
+	self.domain = [0,20];
+	self.currentMinValue = self.domain[0];
+	self.currentMaxValue = self.domain[1];
+	self.currentHandleMinValue = self.currentMinValue;
+	self.currentHandleMaxValue = self.currentMaxValue;
+	
+	self.axis = d3.scaleLinear()
+		.domain(self.domain)
+		.range([0,self.width])
+		.clamp(true);
+	self.slider = self.svg.append("g")
+		.attr("class","slider")
+		.attr("transform","translate("+self.margin.left+","+ self.height / 2 +")");
+	
+	self.line = self.slider.append("line")
+		.attr("class","track")
+		.attr("x1",self.axis.range()[0])
+		.attr("x2",self.axis.range()[1])
+		.attr("stroke", "black");
+	
+	self.blueLine = self.slider.append("line")
+		.attr("class","bluetrack")
+		.attr("x1",self.axis(self.currentHandleMinValue))
+		.attr("x2",self.axis(self.currentHandleMaxValue))
+		.attr("stroke", "lightblue");
+	
+	self.slider.insert("g",".track-overlay")
+		.attr("class","ticks")
+		.attr("transform", "translate(0,"+18+")")
+		.selectAll("text")
+		.data(self.axis.ticks(self.domain[1]-self.domain[0]))
+		.enter().append("text")
+			.attr("x",self.axis)
+			.attr("text-anchor","middle")
+			.text(function(d) { return d; });
+	
+	self.currentMin = self.slider.insert("rect", ".track-overlay")
+		.attr("class","boundary")
+		.attr("x",self.axis(self.currentMinValue))
+		.attr("y",-5)
+		.attr("width",2)
+		.attr("height",10);
+	
+	self.currentMax = self.slider.insert("rect", ".track-overlay")
+		.attr("class","boundary")
+		.attr("x",self.axis(self.currentMaxValue))
+		.attr("y",-5)
+		.attr("width",2)
+		.attr("height",10);
+	
+	self.handle1 = self.slider.insert("circle", ".track-overlay")
+		.attr("class","handleSlider")
+		.attr("r",5)
+		.attr("cx",self.axis(self.currentMinValue))
+		.call(d3.drag()
+				.on("start.interrupt", function() { self.slider.interrupt(); })
+				.on("start drag", function() {
+					var roundedPos = Math.round(self.axis.invert(d3.event.x));
+					self.moveHandle1To(roundedPos);
+					}));
+	
+	self.handle2 = self.slider.insert("circle", ".track-overlay")
+		.attr("class","handleSlider")
+		.attr("r",5)
+		.attr("cx",self.axis(self.currentMaxValue))
+		.call(d3.drag()
+				.on("start.interrupt", function() { self.slider.interrupt(); })
+				.on("start drag", function() {
+					var roundedPos = Math.round(self.axis.invert(d3.event.x));
+					self.moveHandle2To(roundedPos);
+					}));
+	
+	self.updateCurrentValues = function(min, max) {
+		self.currentMinValue = min;
+		self.currentMaxValue = max;
+		self.handle1.attr("cx",self.axis(self.current))
+	};
+	
+	self.moveCurrentMinTo = function(value) {
+		if (value >= self.currentMinValue)
+			self.currentMin.attr("x",self.axis(Math.round(value)));
+	};
+	
+	self.moveCurrentMaxTo = function(value) {
+		if (value <= self.currentMaxValue)
+			self.currentMax.attr("x",self.axis(Math.round(value)));
+	};
+	
+	self.moveHandle1To = function(value) {
+		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
+			self.handle1.attr("cx",self.axis(Math.round(value)));
+			var otherValue = self.axis.invert(self.handle2.attr("cx"));	
+			self.currentHandleMinValue = Math.min(value, otherValue);
+			self.currentHandleMaxValue = Math.max(value, otherValue);
+
+			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
+				.attr("x2",self.axis(self.currentHandleMaxValue));
+		}
+			
+		/*self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
+			.attr("x2",self.handle2.attr("cx"));*/
+	};
+	
+	self.moveHandle2To = function(value) {
+		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
+			self.handle2.attr("cx",self.axis(Math.round(value)));
+			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
+			self.currentHandleMinValue = Math.min(value, otherValue);
+			self.currentHandleMaxValue = Math.max(value, otherValue);
+
+			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
+				.attr("x2",self.axis(self.currentHandleMaxValue));
+		}
+		/*self.blueLine.attr("x1",)
+			.attr("x2",self.axis(Math.round(value)));*/
+	};
+}
+
+
 
 
 
@@ -3908,376 +4356,15 @@ function PatternSizesChart() {
 /*			To be cleaned			*/
 /************************************/
 
-
-
-
-
-
-function handleSteeringStartSignal(type, value) {
-	var displaySpan = d3.select("#focus")
-		.text(type+" starting with: "+value);
-}
-
-function handleSteeringStopSignal() {
-	var displaySpan = d3.select("#focus")
-	.text("");
-}
-
-var userPatternDistrib = {}; // Should probably be removed, never used
-// Duration of a session in ms
-var sessionDuration = 3*60*60*1000; // Should probably be removed, never used
-
-
-
-
-
-
-
-
-
-var helperTooltipVisible = false;
-
-function setupHelpers() {
-	d3.select("#helpSupport")
-		.attr("title", "Minimim number of occurrences to be considered frequent");
-	/*d3.select("#helpGap")
-		.attr("title", "Number of events in the pattern that don't belong to it");*/
-	d3.select("#helpWindow")
-		.attr("title", "The minimal support for a pattern to be frequent");
-	d3.select("#helpSize")
-		.attr("title", "Maximum number of event in a pattern");
-}
-
-
-
-
-// Maybe never used
-/**
- * Requests the events of the trace of a given user
- * @param user The user 
- * @returns
- */
-function requestUserTrace(user, datasetName) {
-	var action = {
-			action: "request",
-			object: "trace",
-			user: user,
-			dataset: datasetName
-	};
-	sendToServer(action);
-	requestUserPatterns(user, datasetName);
-}
-
-// Maybe never used
-/**
- * Requests the patterns of a given user
- * @param user The user 
- * @returns
- */
-function requestUserPatterns(user, datasetName) {
-	var action = {
-			action: "request",
-			object: "patterns",
-			user: user,
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-
-
-/************************************/
-/*				Pending				*/
-/************************************/
-
-// Probably still from the pre-vis proto
-function resetPatternsData() {
-	var node = document.getElementById("patterns");
-	while (node.lastChild) {
-		node.removeChild(node.lastChild);
-	}
-	
-	patterns = {};
-	patternProbabilities = {};
-}
-
-function createTimeline() {
-	var container = document.getElementById('timeline');
-	timeline = new Timeline("timeline",{});
-	
-}
-
-function addPattern(pattern) {
-	// getting the pattern's items
-	var items = JSON.parse(pattern.items);
-	var sequences = pattern.sequences;
-	sequences = sequences.split(' ');
-	
-	// checking if the pattern is already known
-	var items_str = JSON.parse(pattern.items) + "";
-	var array = items_str.split(',');
-	var str = "";
-	for (var i = 0 ; i < pattern.size ; i++) {
-		str += array[i] + " ";
-	}
-	str = str.trim();
-	
-	var potentialNode = document.getElementById("pattern_"+str);
-	if (potentialNode == null) {
-	//console.log("items : " + items);
-	//console.log("seqs : " + sequences);
-	//if (Object.keys(patterns).indexOf(items) == -1) {
-		patterns[items] = sequences;
-		patternProbabilities[items] = sequences.length / datasetInfo["numberOfSequences"];
-		
-		// affects the first available color to the item
-		if (array.length == 1 && itemColors[items] == null) {
-			var color = availableColors.shift();
-			itemColors[items] = 'rgb('+color+')';
-			//console.log(items + " : " + itemColors[items]);
-			
-			// look for the occurrences
-			/*var occs = pattern.occs.split(';');
-			occurrences[items] = []
-			for (var i=0;i<occs.length;i++) {
-				occurrences[items].push(occs.split('-'));
-			}*/
-			//console.log(items + " : " +occurrences[items][0][0] + "-" + occurrences[items][0][1]);
-		}
-		
-		updatePatternInfos(items[0]);
-		
-	//} else {
-		//console.log("pattern "+items+" already known");
-	//}
-	}
-}
-
-function updatePatternInfos(firstItem) {
-	var node = document.getElementById("nb"+firstItem);
-	
-	if (node == null) {
-		var liste = document.getElementById("listNbPatternsStartingBy");
-		var li = document.createElement("li");
-		var spanNb = document.createElement("span");
-		spanNb.setAttribute("id","nb"+firstItem);
-		spanNb.appendChild(document.createTextNode("1"));
-		var spanItem = document.createElement("span");
-		spanItem.onclick = function(event) {
-			switchSelectedLi(spanItem, firstItem, event);
-		};
-		spanItem.appendChild(document.createTextNode(firstItem));
-		//console.log(firstItem + " - " + itemColors[firstItem]);
-		spanItem.style.backgroundColor = itemColors[firstItem];
-		li.appendChild(document.createTextNode("Starting by "));
-		li.appendChild(spanItem);
-		li.appendChild(document.createTextNode(" : "));
-		li.appendChild(spanNb);
-		liste.appendChild(li);
-		
-	} else {
-		
-		var text = node.textContent;
-		node.textContent = Number(text) + 1;
-	}
-	node = document.getElementById("nbTotal");
-	text = node.textContent;
-	if (text == "") {
-		node.textContent = "1";
-	} else {
-		node.textContent = Number(text) + 1;
-	}
-}
-
-function switchSelectedLi(li, pattern, ev) {
-
-	if (ev.ctrlKey)
-		requestSteeringOnPattern(pattern);
-	//console.log("selecting "+pattern);
-	/*if (li.style.backgroundColor === "rgb(255,255,255)") {
-		li.style.backgroundColor = "rgb(255,255,51)";
-	} else {
-		//li.style.backgroundColor = "rgb(255,255,255)";
-	}*/
-}
-
-function getParentNode(pattern, size) {
-	if (size == 1) {
-		return document.getElementById("patterns");
-	} else {
-		var candidate = null;
-		var lastSpace = pattern.lastIndexOf(" ");
-		var prefix = pattern.substring(0,lastSpace);
-		candidate = document.getElementById("pattern_"+prefix);
-		if (candidate == null) {
-			return getParentNode(prefix, size-1);
-		} else {
-			return candidate;
-		}
-	}
-}
-
+// Used once in processMessage, but probably to be removed...
+// Probably dates back to the pre-viz code
 function removePatternFromList(id) {
 	document.getElementById("pattern"+id).remove();
 }
 
-function getProbabilityOfIntersection(A, B) {	
-	var seqs = [patterns[A], patterns[B]];
-	// get the intersection of the arrays
-	var intersection = seqs.shift().filter(function(v) {
-		return seqs.every(function(a) {
-			return a.indexOf(v) !== -1;
-		});
-	});
-	
-	return intersection.length / datasetInfo["numberOfSequences"];
-}
-
-function getLift(A, B) {
-	var lift = getProbabilityOfIntersection(A, B) / (patternProbabilities[A] * patternProbabilities[B])
-	return lift;
-}
-
-//function getColorGradiant(v, min, max) {
-//	var step = 255.0 / (max - min);
-//	return v*step;
-//}
-function getColorGradiant(v) {
-	var step = 255.0;
-	return Math.round(255-(v-1)*step);
-}
-
-function drawLift() {
-	var div = document.getElementById("chart-lift");
-	while (div.firstChild) {
-		div.removeChild(div.firstChild);
-	}
-	var orderedPatterns = Object.keys(patterns).sort(function(a,b) {
-		return a < b;
-	});
-	
-	// Creating the top header row
-	var headerDiv = document.createElement("div");
-	headerDiv.setAttribute("class","liftCell");
-	headerDiv.style.backgroundColor = "white";
-	div.appendChild(headerDiv);
-	orderedPatterns.forEach(function(p) {
-		if (p.split(',').length == 1) {
-			var headerDiv = document.createElement("div");
-			headerDiv.setAttribute("class","liftCell");
-			headerDiv.style.backgroundColor = itemColors[p.split(',')[0]];
-			headerDiv.setAttribute("title",p.split(',')[0]);
-			div.appendChild(headerDiv);
-		}
-	})
-	// Creating the matrix and the header column
-	orderedPatterns.forEach(function(p) {
-		if (p.split(',').length == 1) {
-			fantomDiv = document.createElement("div");
-			div.appendChild(fantomDiv);
-			var headerDiv = document.createElement("div");
-			headerDiv.setAttribute("class","liftCell");
-			headerDiv.style.backgroundColor = itemColors[p.split(',')[0]];
-			headerDiv.setAttribute("title",p.split(',')[0]);
-			div.appendChild(headerDiv);
-			orderedPatterns.forEach(function(p2) {
-				if (p2.split(',').length == 1) {
-					var divCell = document.createElement("div");
-					var lift = getLift(p,p2);
-					var color = getColorGradiant(lift);
-					divCell.setAttribute("title","lift( "+p+" ; "+p2+" ) = "+lift.toFixed(2));
-					//console.log("bg : "+ "rgb("+color.toString()+","+color.toString()+","+color.toString()+")");
-					divCell.style.backgroundColor = "rgb("+color.toString()+","+color.toString()+","+color.toString()+")";
-					divCell.setAttribute("class", "liftCell");
-					div.appendChild(divCell);
-				}
-			})
-		}
-	})
-	
-	
-}
-
-// partie D3, pour la matrice de lift
-function drawLiftD3() {
-	var div = document.getElementById("chart-lift");
-	while (div.firstChild) {
-		div.removeChild(div.firstChild);
-	}
-	
-	var width = Object.keys(patterns).length*12,
-		height = width,
-		div = d3.select('#chart-lift'),
-		svg = div.append('svg')
-		    .attr('width', width)
-		    .attr('height', height),
-		rw = 10,
-		rh = 10;
-	var data = [];
-//	var orderedPatterns = Object.keys(patterns).sort(function(a,b) {
-//		return a < b;
-//	});
-//	orderedPatterns.forEach(function(p) {
-//		orderedPatterns.forEach(function(p2) {
-//			data.push(getLift(p,p2));
-//		})
-//	})
-	
-	for (var k = 0; k < Object.keys(patterns).length; k += 1) {
-		data.push(d3.range(Object.keys(patterns).length));
-	}
-	
-	//Create a group for each row in the data matrix and
-	//translate the group vertically
-	var grp = svg.selectAll('g')
-		.data(data)
-		.enter()
-		.append('g')
-		.attr('transform', function(d, i) {
-		    return 'translate(0, ' + (rh + 2) * i + ')';
-		});
-	
-	//For each group, create a set of rectangles and bind 
-	//them to the inner array (the inner array is already
-	//binded to the group)
-	grp.selectAll('rect')
-		.data(function(d) { return d; })
-		.enter()
-		.append('rect')
-	    .attr('x', function(d, i) { return (rw + 2) * i; })
-	    .attr('width', rw)
-	    .attr('height', rh);
-	
-//	var xAxis = d3.svg.axis()
-//		.scale()
-//		.orient("top");
-	
-}
-
-// Generates nbColors different RGB colors
-function generateColors(nbColors) {
-    var i = 360 / (nbColors - 1); // distribute the colors evenly on the hue range
-    var r = []; // hold the generated colors
-    for (var x=0; x<nbColors; x++)
-    {
-        r.push(hsvToRgb(i * x, 100, 100)); // Todo? : alternate the saturation and value for even more contrast between the colors
-    }
-    return r;
-}
-
-
-
-/************************************************************/
-/*															*/
-/*						New functions						*/
-/*															*/
-/************************************************************/
-
-
 /****************************************************/
 /*				Data handling functions				*/
 /****************************************************/
-
 
 // Not used anywhere apparently...
 function sortUsersAccordingToTable() {
@@ -4290,16 +4377,9 @@ function sortUsersAccordingToTable() {
 	userList = newUserList;
 }
 
-
-
-
-
 function getNextCategoryColor() {
 	return colorPalet[eventTypeCategories.length -1];
 }
-
-
-
 
 var colorList = {};
 var eventTypes = [];
@@ -4400,7 +4480,6 @@ function receiveEventTypes(message) {
 	
 	createEventTypesListDisplay();
 }
-
 
 function changeEventTypeSymbol(eventType, newShapeIndex) {
 	itemShapes[eventType] = shapes[newShapeIndex];
@@ -4763,7 +4842,6 @@ function receiveUserTrace(trace) {
 		//console.log("sending the data to the timeline");
 	}
 }
-
 
 /************************************************/
 /*				Display functions				*/
@@ -5207,7 +5285,6 @@ function updatePatternPageSize() {
 	createPatternListDisplay();
 }
 
-
 /*
  * Finds the first id in the list of a pattern not selected by the user
  * 	starting at a given index
@@ -5405,7 +5482,6 @@ function createPatternListDisplay() {
 	
 }
 
-
 function createPatternMetricsDisplay() {
 	/************ Creating the display of the pattern'sizes distributions ****************/
 	// removing the old patterns
@@ -5556,12 +5632,6 @@ function resetEvents() {
 	eventDisplayIsDefault = true;
 }
 
-
-
-
-
-
-
 /***************************************************************
  * 
  * 					Displaying that a task is running
@@ -5602,159 +5672,6 @@ function stopRunningTaskIndicator() {
 	}
 }
 
-
-
-
-
-/**
- * Setup the sliders that control the algorithm
- */
-function setupAlgorithmSliders() {
-	setupAlgorithmSupportSlider();
-	setupAlgorithmWindowSizeSlider();
-	setupAlgorithmMaximumSizeSlider();
-	setupAlgorithmGapSlider();
-}
-
-var supportSlider = null;
-
-/**
- * Slider dedicated to the support
- */
-function setupAlgorithmSupportSlider() {
-	//supportSlider = new SupportSlider("sliderSupportArea");
-	supportSlider = document.getElementById("sliderSupport");
-	noUiSlider.create(supportSlider, {
-		range: {
-			'min': 0,
-			'max': 1000
-		},
-		orientation: 'horizontal',
-		start: [200],
-		pips: {
-			mode: 'positions',
-			values: [0, 25, 50, 75, 100],
-			stepped: true,
-			density: 3
-		},
-		tooltips: true,
-		step: 1,
-		format: {
-			to: function (value ) {
-				return value;
-			},
-			from: function ( value ) {
-				return value.replace('.-', '');
-			}
-		}
-	});
-}
-
-var windowSlider = null;
-
-/**
- * Slider dedicated to the window size
- * TODO replace with the maximum duration
- */
-function setupAlgorithmWindowSizeSlider() {
-	windowSlider = document.getElementById("sliderWindow");
-	noUiSlider.create(windowSlider, {
-		range: {
-			'min': 0,
-			'max': 1000
-		},
-		orientation: 'horizontal',
-		start: [200],
-		pips: {
-			mode: 'positions',
-			values: [0, 25, 50, 75, 100],
-			stepped: true,
-			density: 3
-		},
-		tooltips: true,
-		step: 1,
-		format: {
-			to: function (value ) {
-				return value;
-			},
-			from: function ( value ) {
-				return value.replace('.-', '');
-			}
-		}
-	});
-}
-
-var sizeSlider = null;
-
-/**
- * Slider dedicated to the maximum size
- */
-function setupAlgorithmMaximumSizeSlider() {
-	sizeSlider = document.getElementById("sliderSize");
-	noUiSlider.create(sizeSlider, {
-		range: {
-			'min': 0,
-			'max': 1000
-		},
-		orientation: 'horizontal',
-		start: [200],
-		pips: {
-			mode: 'positions',
-			values: [0, 25, 50, 75, 100],
-			stepped: true,
-			density: 3
-		},
-		tooltips: true,
-		step: 1,
-		format: {
-			to: function (value ) {
-				return value;
-			},
-			from: function ( value ) {
-				return value.replace('.-', '');
-			}
-		}
-	});
-}
-
-var gapSlider = null;
-
-/**
- * Slider dedicated to the gap
- */
-function setupAlgorithmGapSlider() {
-	//gapSlider = new GapSlider("sliderGap");
-	gapSlider = document.getElementById("sliderGap");
-	noUiSlider.create(gapSlider, {
-		range: {
-			'min': 0,
-			'max': 10
-		},
-		orientation: 'horizontal',
-		start: [0, 2],
-		connect: true,
-		pips: {
-			mode: 'steps',
-			stepped: true,
-			density: 3
-		},
-		tooltips: true,
-		step: 1,
-		format: {
-			to: function (value ) {
-				return value;
-			},
-			from: function ( value ) {
-				return value.replace('.-', '');
-			}
-		}
-	});
-}
-
-function updateAlgorithmGapSlider() {
-	
-}
-
 function changeDrawIndividualEventsOnSessions() {
 	let checked = d3.select("#drawIndividualEventsInput").property("checked");
 	if (checked == true)
@@ -5766,282 +5683,6 @@ function changeDrawIndividualEventsOnSessions() {
 
 function refreshUserPatterns() {
 	timeline.drawUsersPatterns();
-}
-
-
-/************************************************************************************************************/
-/*
-												Support slider
-																											*/
-/************************************************************************************************************/
-
-var SupportSlider = function(elemId) {
-	let self = this;
-	self.parentNodeId = elemId;
-	
-	self.svg = d3.select("#"+self.parentNodeId).append("svg")
-		.attr("class","slider")
-		.attr("width","256")//TODO change hardcoding of the width
-		.attr("height","50");
-	
-	self.margin = {right: 10, left: 10};
-	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
-	self.height = +self.svg.attr("height");	
-	
-	self.domain = [1,10000];
-	self.currentMinValue = self.domain[0];
-	self.currentMaxValue = self.domain[1];
-	self.currentHandleMinValue = self.currentMinValue;
-	self.currentHandleMaxValue = self.currentMaxValue;
-	
-	self.axis = d3.scaleLinear()
-		.domain(self.domain)
-		.range([0,self.width])
-		.clamp(true);
-	
-	self.slider = self.svg.append("g")
-		.attr("class","slider")
-		.attr("transform","translate("+self.margin.left+","+ self.height / 2 +")");
-	
-	self.line = self.slider.append("line")
-		.attr("class","track")
-		.attr("x1",self.axis.range()[0])
-		.attr("x2",self.axis.range()[1])
-		.attr("stroke", "black");
-	
-	self.blueLine = self.slider.append("line")
-		.attr("class","bluetrack")
-		.attr("x1",self.axis(self.currentHandleMinValue))
-		.attr("x2",self.axis(self.currentHandleMaxValue))
-		.attr("stroke", "lightblue");
-	
-	self.slider.insert("g",".track-overlay")
-		.attr("class","ticks")
-		.attr("transform", "translate(0,"+18+")")
-		.selectAll("text")
-		.data(self.axis.ticks((self.domain[1]-self.domain[0])/1000))
-		.enter().append("text")
-			.attr("x",self.axis)
-			.attr("text-anchor","middle")
-			.text(function(d) { return d; });
-	
-	self.currentMin = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMinValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
-	self.currentMax = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMaxValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
-	self.handle1 = self.slider.insert("circle", ".track-overlay")
-		.attr("class","handleSlider")
-		.attr("r",5)
-		.attr("cx",self.axis(self.currentMinValue))
-		.call(d3.drag()
-				.on("start.interrupt", function() { self.slider.interrupt(); })
-				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
-					self.moveHandle1To(roundedPos);
-					}));
-	
-	self.handle2 = self.slider.insert("circle", ".track-overlay")
-		.attr("class","handleSlider")
-		.attr("r",5)
-		.attr("cx",self.axis(self.currentMaxValue))
-		.call(d3.drag()
-				.on("start.interrupt", function() { self.slider.interrupt(); })
-				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
-					self.moveHandle2To(roundedPos);
-					}));
-	
-	self.updateCurrentValues = function(min, max) {
-		self.currentMinValue = min;
-		self.currentMaxValue = max;
-		self.handle1.attr("cx",self.axis(self.current))
-	};
-	
-	self.moveCurrentMinTo = function(value) {
-		if (value >= self.currentMinValue)
-			self.currentMin.attr("x",self.axis(Math.round(value)));
-	};
-	
-	self.moveCurrentMaxTo = function(value) {
-		if (value <= self.currentMaxValue)
-			self.currentMax.attr("x",self.axis(Math.round(value)));
-	};
-	
-	self.moveHandle1To = function(value) {
-		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle1.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle2.attr("cx"));	
-			self.currentHandleMinValue = Math.min(value, otherValue);
-			self.currentHandleMaxValue = Math.max(value, otherValue);
-	
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-		}
-			
-		/*self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-			.attr("x2",self.handle2.attr("cx"));*/
-	};
-	
-	self.moveHandle2To = function(value) {
-		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle2.attr("cx",self.axis(Math.round(value)));
-			self.currentHandleMinValue = Math.min(value, otherValue);
-			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
-			self.currentHandleMaxValue = Math.max(value, otherValue);
-	
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-		}
-		/*self.blueLine.attr("x1",)
-			.attr("x2",self.axis(Math.round(value)));*/
-	};
-}
-
-/************************************************************************************************************/
-/*
-												Gap slider
-																											*/
-/************************************************************************************************************/
-
-var GapSlider = function(elemId) {
-	var self = this;
-	self.parentNodeId = elemId;
-	
-	self.svg = d3.select("#"+self.parentNodeId).append("svg")
-		.attr("class","slider")
-		.attr("width","256")//TODO change hardcoding of the width
-		.attr("height","50");
-	
-	self.margin = {right: 10, left: 10};
-	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
-	self.height = +self.svg.attr("height");	
-	
-	self.domain = [0,20];
-	self.currentMinValue = self.domain[0];
-	self.currentMaxValue = self.domain[1];
-	self.currentHandleMinValue = self.currentMinValue;
-	self.currentHandleMaxValue = self.currentMaxValue;
-	
-	self.axis = d3.scaleLinear()
-		.domain(self.domain)
-		.range([0,self.width])
-		.clamp(true);
-	self.slider = self.svg.append("g")
-		.attr("class","slider")
-		.attr("transform","translate("+self.margin.left+","+ self.height / 2 +")");
-	
-	self.line = self.slider.append("line")
-		.attr("class","track")
-		.attr("x1",self.axis.range()[0])
-		.attr("x2",self.axis.range()[1])
-		.attr("stroke", "black");
-	
-	self.blueLine = self.slider.append("line")
-		.attr("class","bluetrack")
-		.attr("x1",self.axis(self.currentHandleMinValue))
-		.attr("x2",self.axis(self.currentHandleMaxValue))
-		.attr("stroke", "lightblue");
-	
-	self.slider.insert("g",".track-overlay")
-		.attr("class","ticks")
-		.attr("transform", "translate(0,"+18+")")
-		.selectAll("text")
-		.data(self.axis.ticks(self.domain[1]-self.domain[0]))
-		.enter().append("text")
-			.attr("x",self.axis)
-			.attr("text-anchor","middle")
-			.text(function(d) { return d; });
-	
-	self.currentMin = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMinValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
-	self.currentMax = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMaxValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
-	self.handle1 = self.slider.insert("circle", ".track-overlay")
-		.attr("class","handleSlider")
-		.attr("r",5)
-		.attr("cx",self.axis(self.currentMinValue))
-		.call(d3.drag()
-				.on("start.interrupt", function() { self.slider.interrupt(); })
-				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
-					self.moveHandle1To(roundedPos);
-					}));
-	
-	self.handle2 = self.slider.insert("circle", ".track-overlay")
-		.attr("class","handleSlider")
-		.attr("r",5)
-		.attr("cx",self.axis(self.currentMaxValue))
-		.call(d3.drag()
-				.on("start.interrupt", function() { self.slider.interrupt(); })
-				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
-					self.moveHandle2To(roundedPos);
-					}));
-	
-	self.updateCurrentValues = function(min, max) {
-		self.currentMinValue = min;
-		self.currentMaxValue = max;
-		self.handle1.attr("cx",self.axis(self.current))
-	};
-	
-	self.moveCurrentMinTo = function(value) {
-		if (value >= self.currentMinValue)
-			self.currentMin.attr("x",self.axis(Math.round(value)));
-	};
-	
-	self.moveCurrentMaxTo = function(value) {
-		if (value <= self.currentMaxValue)
-			self.currentMax.attr("x",self.axis(Math.round(value)));
-	};
-	
-	self.moveHandle1To = function(value) {
-		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle1.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle2.attr("cx"));	
-			self.currentHandleMinValue = Math.min(value, otherValue);
-			self.currentHandleMaxValue = Math.max(value, otherValue);
-
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-		}
-			
-		/*self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-			.attr("x2",self.handle2.attr("cx"));*/
-	};
-	
-	self.moveHandle2To = function(value) {
-		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle2.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
-			self.currentHandleMinValue = Math.min(value, otherValue);
-			self.currentHandleMaxValue = Math.max(value, otherValue);
-
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-		}
-		/*self.blueLine.attr("x1",)
-			.attr("x2",self.axis(Math.round(value)));*/
-	};
 }
 
 /************************************************************************************************************/
