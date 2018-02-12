@@ -33,6 +33,29 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	display: none;
 }
 
+#debugConnexion {
+	display: none;
+	flex-direction: column;
+	flex-wrap: wrap;
+	
+	position: absolute;
+	top: 8px;
+	right: 5px;
+	
+	background-color: white;
+	color: black;
+	
+	max-height: 50px;
+	max-width: 620px;
+	padding: 0px 2px;
+
+	font-weight: bold;
+}
+
+#debugConnexion span {
+	font-weight: normal;
+}
+
 .kbShort {
 	font-weight: bold;
 }

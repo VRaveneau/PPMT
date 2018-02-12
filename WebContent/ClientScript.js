@@ -468,12 +468,14 @@ function debug() {
 	if (debugMode) {
 		console.log("Exiting debug mode");
 		d3.select("#debugHelp").style("display", "none");
+		d3.select("#debugConnexion").style("display", "none");
 		if (showPointerTarget == true) {
 			switchPointerTarget();
 		}
 	} else {
 		console.log("Entering debug mode");
 		d3.select("#debugHelp").style("display", "flex");
+		d3.select("#debugConnexion").style("display", "flex");
 		if (showPointerTarget == false) {
 			switchPointerTarget();
 		}
@@ -1358,6 +1360,10 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
  */
 function processOpen(message) {
 	console.log("Server connected." + "\n");
+	// Update the connexion date display
+	d3.select("#connexionTimeDisplay span")
+		.text(formatDate(new Date()));
+
 	// Ping the server every 10 minutes to keep the connexion alive
 	runningTaskIndicator = setInterval(function() {
 		console.log("pinging server");
@@ -1373,6 +1379,9 @@ function processOpen(message) {
  * @param {string} message - the JSON message sent by the server
  */
 function processClose(message) {
+	// Update the disconnexion date display
+	d3.select("#disconnexionTimeDisplay span")
+		.text(formatDate(new Date()));
 	console.log("Server disconnected on " + new Date());
 }
 
@@ -1390,6 +1399,9 @@ function processError(message) {
  * Should at least contain the "action" property
  */
 function processMessage(message/*Compressed*/) {
+	// Update the last received date display
+	d3.select("#lastReceivedTimeDisplay span")
+		.text(formatDate(new Date()));
 	//console.log("Receive from server => " + message.data + "\n");
 	//var message = LZString.decompressFromUTF16(messageCompressed.data);
 	var msg = JSON.parse(message.data);
@@ -1492,6 +1504,10 @@ function processMessage(message/*Compressed*/) {
 function sendToServer(jsonMessage) {
 	//console.log("Sending to server on " + new Date());
 	webSocket.send(JSON.stringify(jsonMessage));
+
+	// Update the last sent date display
+	d3.select("#lastSentTimeDisplay span")
+		.text(formatDate(new Date()));
 }
 
 /**
