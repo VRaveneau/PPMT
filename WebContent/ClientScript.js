@@ -2468,6 +2468,25 @@ function computeMaxEventAtOneTime() {
 	maxEventAtOneTime = dataDimensions.time.group().top(1)[0].value;
 }
 
+/**
+ * Highlights all the users where selected patterns are found
+ */
+function selectUsersBasedOnPatternSelection() {
+	let userList = new Set();
+
+	selectedPatternIds.forEach( function(d,i) {
+		patternsInformation[d][4].forEach( function(e,j) {
+			userList.add(e);
+		});
+	});
+
+	userList.forEach( function(d,i) {
+		highlightUserRow(d);
+	});
+
+	setHighlights();
+}
+
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
