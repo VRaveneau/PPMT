@@ -47,6 +47,7 @@ public class SessionHandler {
 	private final Map<Pattern, List<String>> patterns = new HashMap<>();
 	private DatasetManager datasetManager = DatasetManager.getInstance();
 	private final Map<Session, EventListenerList> listeners = new HashMap<>();
+	private final Map<Session, String> currentlyUsedDatasets = new HashMap<>();
 	//private Map<Session, GspThread> gspHandlers = new HashMap<>();
 	private Map<Session, AlgorithmHandler> algorithmHandlers = new HashMap<>();
 	
@@ -89,6 +90,9 @@ public class SessionHandler {
     			.add("action", "startLoading")
     			.build();	// Add informations on the dataset (size ...)
     	sendToSession(session, startLoading);
+    	
+    	// Stores that the session is using this dataset
+    	currentlyUsedDatasets.put(session, datasetName);
     	
 		datasetManager.loadDataset(datasetName);
 	}
@@ -735,6 +739,29 @@ public class SessionHandler {
 			count++;
 		}
 		
+		// Add the distribution per user, the same way that it's done in providePatternDistributionPerUser(...)
+		List<String> users = datasetManager.getDataset(currentlyUsedDatasets.get(session)).getUsers();
+		
+		JsonObjectBuilder distributionMessage = provider.createObjectBuilder();
+    	
+    	String relevantUsers = "";
+    	
+    	for (String u: users) {
+    		List<long[]> occs = p.buildOccurrencesBinForUser(u);
+    		if (!occs.isEmpty()) {
+    			relevantUsers += u+";";
+    			String theseOccs = "";
+    			for (long[] ts: occs) {
+    				theseOccs += String.valueOf(ts[0]+(ts[1]-ts[0])/2)+";";
+    			}
+    			distributionMessage.add(u, theseOccs.substring(0, theseOccs.length()-1));
+    		}
+    	}
+    	distributionMessage.add("users", relevantUsers.substring(0, relevantUsers.length()-1))
+			.add("patternId", p.getId());
+	
+    	// Add the distribution to the final message and send it
+    	dataMessage.add("userDistribution", distributionMessage.build());    	
 		sendToSession(session, dataMessage.build());
 	}
 
@@ -826,6 +853,7 @@ public class SessionHandler {
 		sendToSession(session, dataMessage.build());
 	}
 
+	// Probably not used, since it was merged into alertOfNewPattern(...)
 	public void providePatternDistributionPerUser(Integer patternId, String datasetName, Session session) {
 		JsonProvider provider = JsonProvider.provider();
     	

@@ -327,6 +327,7 @@ var lastEventTypeSort = "";
 // sizeDown - sizeUp
 // supportDown - supportUp
 // nameDown - nameUp
+// nbUsersDown - nbUsersUp
 var lastPatternSort = "sizeUp";
 
 // The current display mode for the session view. Value is one of the following:
@@ -1468,7 +1469,6 @@ function processMessage(message/*Compressed*/) {
 			if (updateUI) {
 				addPatternToList(msg);
 				drawPatternSizesChart();
-				requestUserDistributionForPattern(msg);
 			}
 		}
 	}
@@ -1777,6 +1777,8 @@ function requestSteeringOnUser(userId) {
 
 /**
  * Requests the distribution of a pattern over the users in the data
+ * @deprecated Should no longer be used since the distribution is sent at the
+ * 	same time as the pattern
  * @param {JSON} message - The message containing information about the pattern
  */
 function requestUserDistributionForPattern(message) {
@@ -2343,6 +2345,31 @@ function sortPatternsByName(decreasing=false) {
 }
 
 /**
+ * Sorts the pattern list according to their number of users
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortPatternsByNbUsers(decreasing=false) {
+	patternIdList.sort(function(a, b) {
+		let nbUsersA = patternsInformation[a][4].length;
+		let nbUsersB = patternsInformation[b][4].length;
+		
+		if (nbUsersA < nbUsersB)
+			return -1;
+		else if (nbUsersA > nbUsersB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		patternIdList.reverse();
+		lastPatternSort = "nbUsersDown";
+	} else {
+		lastPatternSort = "nbUsersUp";
+	}
+}
+
+/**
  * Sorts the pattern list according to their size
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
@@ -2842,7 +2869,9 @@ function clickOnPatternNameHeader() {
 	// Remove the sorting indicators
 	d3.select("#patternTable").selectAll("th")
 		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/)[0];
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
 			if (colName == "Name") {
 				nameHeader = this;
 				nameTxt = colName;
@@ -2869,7 +2898,9 @@ function clickOnPatternSizeHeader() {
 	// Remove the sorting indicators
 	d3.select("#patternTable").selectAll("th")
 		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/)[0];
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
 			if (colName == "Size") {
 				sizeHeader = this;
 				sizeTxt = colName;
@@ -2888,6 +2919,35 @@ function clickOnPatternSizeHeader() {
 }
 
 /**
+ * Handles a click on the 'nb users' header in the pattern list
+ */
+function clickOnPatternNbUsersHeader() {
+	let nbUsersHeader = null;
+	let nbUsersTxt = "";
+	// Remove the sorting indicators
+	d3.select("#patternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Nb\u00A0users") {
+				nbUsersHeader = this;
+				nbUsersTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastPatternSort == "nbUsersDown") {
+		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↓");
+		sortPatternsByNbUsers();
+	} else {
+		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↑");
+		sortPatternsByNbUsers(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+/**
  * Handles a click on the 'support' header in the pattern list
  */
 function clickOnPatternSupportHeader() {
@@ -2896,7 +2956,9 @@ function clickOnPatternSupportHeader() {
 	// Remove the sorting indicators
 	d3.select("#patternTable").selectAll("th")
 		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/)[0];
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
 			if (colName == "Support") {
 				supportHeader = this;
 				supportTxt = colName;
@@ -5029,6 +5091,14 @@ function findNewPatternIndex(patternInfos) {
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][1] > patternInfos[1];
 		});
+	case "nbUsersDown":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][4].length < patternInfos[4].length;
+		});
+	case "nbUsersUp":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][4].length > patternInfos[4].length;
+		});
 	case "supportDown":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][2] < patternInfos[2];
@@ -5050,6 +5120,12 @@ function addPatternToList(message) {
 	let pSize = parseInt(message.size);
 	let pSupport = parseInt(message.support);
 	let pId = message.id;
+
+	let pUsers = message.userDistribution.users.split(";");
+	
+	// TODO Rename the function or move its behavior here
+	receivePatternDistributionPerUser(message.userDistribution);
+	
 	let pItems = [];
 	for (let k = 0; k < pSize; k++) {
 		pItems.push(message[k]);
@@ -5064,7 +5140,7 @@ function addPatternToList(message) {
 			pString += " ";
 	}*/
 
-	patternsInformation[pId] = [pString, pSize, pSupport, pItems];
+	patternsInformation[pId] = [pString, pSize, pSupport, pItems, pUsers];
 	
 	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
 	
@@ -5158,6 +5234,8 @@ function addPatternToList(message) {
 			thisRow.append("td")
 				.text(pSupport);
 			thisRow.append("td")
+				.text(pUsers.length);
+			thisRow.append("td")
 				.text(pSize);
 		} else { // append at the right position in the list
 			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
@@ -5226,6 +5304,8 @@ function addPatternToList(message) {
 			
 			thisRow.append("td")
 				.text(pSupport);
+			thisRow.append("td")
+				.text(pUsers.length);
 			thisRow.append("td")
 				.text(pSize);
 			
@@ -5415,6 +5495,7 @@ function createPatternListDisplay() {
 		let pId = patternIdList[i];
 		let pString = patternsInformation[patternIdList[i]][0];
 		let pItems = patternsInformation[patternIdList[i]][3];
+		let pUsers = patternsInformation[patternIdList[i]][4];
 		
 		let index = selectedPatternIds.indexOf(pId);
 		
@@ -5503,6 +5584,8 @@ function createPatternListDisplay() {
 		
 		thisRow.append("td")
 			.text(pSupport);
+		thisRow.append("td")
+			.text(pUsers.length);
 		thisRow.append("td")
 			.text(pSize);
 		/*

@@ -75,7 +75,7 @@ public class Pattern {
 		return str.trim();
 	}
 
-	public JsonObject itemsToJson() {
+	public javax.json.JsonObject itemsToJson() {
 		
 		JsonObjectBuilder job = Json.createObjectBuilder();
 		JsonArrayBuilder jab = Json.createArrayBuilder();
