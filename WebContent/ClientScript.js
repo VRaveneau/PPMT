@@ -5228,14 +5228,12 @@ function addPatternToList(message) {
 							requestPatternOccurrences(pId, currentDatasetName);
 						else
 							timeline.displayPatternOccurrences(pId);
-						if (thisRow.style("font-weight") == "normal") {
-							selectedPatternIds.push(pId);
-							//thisRow.style("font-weight","bold");
-						} else {
-							var index = selectedPatternIds.indexOf(pId);
+						if (selectedPatternIds.includes(pId)) {
+							let index = selectedPatternIds.indexOf(pId);
 							if (index >= 0)
 								selectedPatternIds.splice(index, 1);
-							//thisRow.style("font-weight","normal");
+						} else {
+							selectedPatternIds.push(pId);
 						}
 						//d3.event.stopPropagation();
 						console.log("click on "+pId);
@@ -5301,14 +5299,12 @@ function addPatternToList(message) {
 							requestPatternOccurrences(pId, currentDatasetName);
 						else
 							timeline.displayPatternOccurrences(pId);
-						if (thisRow.style("font-weight") == "normal") {
-							selectedPatternIds.push(pId);
-							//thisRow.style("font-weight","bold");
-						} else {
-							var index = selectedPatternIds.indexOf(pId);
+						if (selectedPatternIds.includes(pId)) {
+							let index = selectedPatternIds.indexOf(pId);
 							if (index >= 0)
 								selectedPatternIds.splice(index, 1);
-							//thisRow.style("font-weight","normal");
+						} else {
+							selectedPatternIds.push(pId);
 						}
 						//d3.event.stopPropagation();
 						console.log("click on "+pId);
@@ -5581,14 +5577,12 @@ function createPatternListDisplay() {
 						requestPatternOccurrences(pId, currentDatasetName);
 					else
 						timeline.displayPatternOccurrences(pId);
-					if (thisRow.style("font-weight") == "normal") {
-						selectedPatternIds.push(pId);
-						//thisRow.style("font-weight","bold");
-					} else {
+					if (selectedPatternIds.includes(pId)) {
 						let index = selectedPatternIds.indexOf(pId);
 						if (index >= 0)
 							selectedPatternIds.splice(index, 1);
-						//thisRow.style("font-weight","normal");
+					} else {
+						selectedPatternIds.push(pId);
 					}
 					//d3.event.stopPropagation();
 					console.log("click on "+pId);
