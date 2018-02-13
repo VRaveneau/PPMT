@@ -2487,6 +2487,32 @@ function selectUsersBasedOnPatternSelection() {
 	setHighlights();
 }
 
+/**
+ * Dehighlights all the users
+ */
+function clearUserSelection() {
+	let tmpUsers = new Set(highlightedUsers);
+	tmpUsers.forEach( function(d,i) {
+		highlightUserRow(d);
+	});
+
+	setHighlights();
+	timeline.displayData();
+}
+
+/**
+ * Dehighlights all the event types
+ */
+function clearEventTypeSelection() {
+	let tmpEventTypes = new Set(highlightedEventTypes);
+	tmpEventTypes.forEach( function(d,i) {
+		highlightEventTypeRow(d);
+	});
+
+	setHighlights();
+	timeline.displayData();
+}
+
 /************************************/
 /*			HCI manipulation		*/
 /************************************/

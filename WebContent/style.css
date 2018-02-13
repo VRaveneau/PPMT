@@ -266,6 +266,15 @@ body {
     text-decoration: none;
 }
 
+#highlightResetButtons {
+	position: absolute;
+	top: 8px;
+	right: 5px;
+
+	display: flex;
+	flex-direction: row;
+}
+
 #timeline-view {
 	width: 100%;
 	/*min-height: 600px;
