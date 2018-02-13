@@ -5500,7 +5500,7 @@ function addPatternListItemBeforeId(id, information, idx ) {
 }
 
 var selectedPatternIds = [];
-var patternPageSize = 2000;
+var patternPageSize = 200000;
 var patternPageNumber = 1;
 var currentPatternPage = 1;
 
