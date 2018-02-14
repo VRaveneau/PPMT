@@ -1,4 +1,4 @@
-@CHARSET "UTF-8";
+@charset "UTF-8";
 
 /* color scheme
 #006992
@@ -354,10 +354,6 @@ body {
 	/*margin-bottom: 20px;*/
 }
 
-#timeline > div:first-of-type {
-	/*margin-top: 10px;*/
-}
-
 #tl_focus {
 	position: relative;
 }
@@ -489,10 +485,6 @@ body {
 	float: left;
 }
 
-.vis-item {
-	
-}
-
 .trace-action-button {
 	max-width: 25%;
 	float: left;
@@ -513,14 +505,6 @@ thead {
 /* Deal with the event panel, where a button is above the table */
 #Events thead {
 	top: -7px;
-}
-
-table.sortable tbody tr:nth-child(2n) td {
-  /*background: #e3e2e2;*/
-}
-
-table.sortable tbody tr:nth-child(2n+1) td {
- /* background: #c3c3c3;*/
 }
 
 /* Display the sorting arrows permanently in sortable tables */
@@ -816,22 +800,6 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	margin-bottom: 0px;
 }
 
-#datasetList .datasetCard .nbUsers {
-	
-}
-
-#datasetList .datasetCard .nbEvents {
-	
-}
-
-#datasetList .datasetCard .nbEventTypes {
-	
-}
-
-#datasetList .datasetCard .duration {
-	
-}
-
 /********************************/
 /* 			Control tabs 		*/
 /********************************/
@@ -933,16 +901,8 @@ table {
 	width: 100%;
 }
 
-.searchBarArea {
-    /*overflow: hidden;*/
-}
-
 .searchBarArea input.searchButton {
 	float: right;
-}
-
-.searchBarArea div {
-    /*overflow: hidden;*/
 }
 
 .searchFieldArea {
@@ -1371,10 +1331,6 @@ overflow:hidden;
 /********************/
 /*	Helper icon		*/
 /********************/
-
-.float-left {
-	
-}
 
 .iconHelper {
 	color: grey;
