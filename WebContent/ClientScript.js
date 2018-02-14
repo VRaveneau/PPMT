@@ -5253,7 +5253,6 @@ function addPatternToList(message) {
 		if (correctPositionInList == -1) { // append at the end of the list
 			let patternList = d3.select("#patternTableBody");
 			let thisRow = patternList.append("tr")
-				.style("font-weight", "normal")
 				.attr("id","pattern"+pId)
 				.classed("clickable", true)
 				.on("click", function() {
@@ -5324,7 +5323,6 @@ function addPatternToList(message) {
 			let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
 			
 			let thisRow = d3.select(document.createElement("tr"))
-				.style("font-weight","normal")
 				.attr("id","pattern"+pId)
 				.classed("clickable", true)
 				.on("click", function() {
@@ -5588,11 +5586,9 @@ function createPatternListDisplay() {
 		
 		filteredPatterns++;
 		
-		let fontWeight = "normal";
 		patternList = d3.select("#patternTableBody");
 		
 		if (index >= 0) {
-			fontWeight = "bold";
 			patternList = d3.select("#selectedPatternTableBody");
 		} else {
 			if ((i < (currentPatternPage - 1)*patternPageSize) // before the current page
@@ -5602,7 +5598,6 @@ function createPatternListDisplay() {
 		}
 		
 		let thisRow = patternList.append("tr")
-			.style("font-weight",fontWeight)
 			.attr("id","pattern"+pId)
 			.classed("clickable",true)
 			.on("click", function() {

@@ -50,6 +50,10 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	padding: 0px 2px;
 
 	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 }
 
 #debugConnexion span {
@@ -58,6 +62,10 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 
 .kbShort {
 	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 }
 
 #nbUserShownInput {
@@ -74,6 +82,18 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	flex-direction: column;
 	
 	flex: 1;
+}
+
+#selectedPatternTableBody {
+	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
+}
+
+#patternTableBody {
+	font-weight: normal;
 }
 
 .section {
@@ -111,6 +131,10 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 .section > .title {
 	font-size: 120%;
 	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 	/*text-align: center;*/
 	font-variant: small-caps;
 	/*margin-bottom: 3px;*/
@@ -139,6 +163,10 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 .subsection > .title {
 	font-size: 120%;
 	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 	/*text-align: center;*/
 	font-variant: small-caps;
 	padding-top: 5px;
@@ -160,6 +188,14 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 .subsection > .body {
 	position: relative;
 	/*left: 0px;*/
+}
+
+thead {
+	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 }
 
 html {
@@ -759,6 +795,10 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	margin-bottom: 20px;
 	
 	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 }
 
 #datasetList .datasetCard .datasetParameter {
@@ -831,6 +871,10 @@ ul.controlTabs li a:hover {
 /* Create an active/current tablink class */
 ul.controlTabs li a:focus, ul.controlTabs li .active {
 	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 	padding-bottom: 13px;
 }
 
@@ -964,6 +1008,10 @@ table {
 
 .currentPatternPageButton {
 	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 }
 
 .textButton {
@@ -1023,6 +1071,10 @@ ul.algorithmTabs li a:hover {
 /* Create an active/current tablink class */
 ul.algorithmTabs li a:focus, ul.algorithmTabs li .active {
 	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 	padding-bottom: 13px;
 }
 
@@ -1083,6 +1135,10 @@ ul.algorithmTabs li :not(.active):hover {
 .algoParameterRecap {
 	margin: 0px;
 	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
 }
 
 .algoParameterRecap span{
@@ -1124,6 +1180,10 @@ ul.algorithmTabs li :not(.active):hover {
 #eventTableBody tr.selectedEventTypeRow {
   /*background: #5C9FB9;*/
   font-weight: bold;
+  /* Make the text look bold when using Chrome.
+	This may be a MacOS exclusive issue.
+  */
+  -webkit-font-smoothing: antialiased;
 }
 
 #eventTableBody tr:not(.selectedEventTypeRow) {
@@ -1163,6 +1223,10 @@ ul.algorithmTabs li :not(.active):hover {
 #userTableBody tr.selectedUserRow {
   /*background: #5C9FB9;*/
   font-weight: bold;
+  /* Make the text look bold when using Chrome.
+	This may be a MacOS exclusive issue.
+  */
+  -webkit-font-smoothing: antialiased;
 }
 
 #userTableBody tr:not(.selectedUserRow) {
