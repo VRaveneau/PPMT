@@ -281,6 +281,23 @@ var formatAccessorSecondLevel = d3.timeFormat("%H%M"); // hour + minutes
 // Maximum number of events at a same time
 var maxEventAtOneTime = 0;
 
+/**
+ * The color associated with each event type
+ */
+var colorList = {};
+/**
+ * The list of event types
+ */
+var eventTypes = [];
+/**
+ * Information about each event type.
+ * @property {string} category - The category of the event type
+ * @property {string} description - The description of the event type
+ * @property {string} nbOccs - The number of occurrences of the event type
+ * @property {string} code - The code of the shape associated to the event type
+ */
+var eventTypeInformations = {};
+
 /*************************************/
 /*			State elements			 */
 /*************************************/
@@ -658,6 +675,50 @@ function formatDate(date) {
 		
 		return parts.join(" ");
 	}
+}
+
+/**
+ * Returns the first unused category color
+ * 
+ * TODO Prevent it from accessing an out of bound index
+ */
+function getNextCategoryColor() {
+	return colorPalet[eventTypeCategories.length -1];
+}
+
+/**
+ * Assign a new symbol to an event type.
+ * 
+ * @param {string} eventType The event type
+ * @param {number} newShapeIndex The index of the new symbol in the list of
+ *  symbols
+ * 
+ * @deprecated Only used if the dropdown menus in the event type list are kept
+ * 
+ * TODO Update or delete/replace
+ */
+function changeEventTypeSymbol(eventType, newShapeIndex) {
+	itemShapes[eventType] = shapes[newShapeIndex];
+	return true;
+}
+
+/**
+ * Assign a new color to an event type.
+ * 
+ * @param {string} eventType The event type
+ * @param {number} newColor The H value of a color in the HSV space
+ * 
+ * @deprecated Only used if the dropdown menus in the event type list are kept.
+ * Also, uses an old version of the colorList (only using 1 color instead of 2)
+ * 
+ * TODO Update or delete/replace
+ */
+function changeEventTypeColor(eventType, newColor) {
+	if (newColor != colorList[eventType][0]) {
+		colorList[eventType][0] = newColor;
+		return true;
+	}
+	return false;
 }
 
 /*************************************/
@@ -2109,6 +2170,97 @@ function receivePatternOccurrences(message) {
 		timeline.addPatternOccurrence(pId, message[i.toString()]);
 	}
 	timeline.displayPatternOccurrences(pId);
+}
+
+/**
+ * Handles the reception of the list of event types. Assign colors and symbols
+ * to the types, while creating the event type categories.
+ * @param {JSON} message The message containing the event types
+ */
+function receiveEventTypes(message) {
+	let nbEvents = parseInt(message.size);
+	// Hide the message saying that there is no event
+	if (nbEvents > 0)
+		d3.select("#noEvent").classed("hidden", true);
+
+	for (let i = 0; i < nbEvents; i++) {
+		let eventInfo = message[i.toString()].split(";");
+		let eType = "";
+		let eCode = "";
+		let eNbOccs = "";
+		let eCategory = "";
+		let eDescription = "";
+		let eColor;
+		
+		for (let j=0; j < eventInfo.length;j++) {
+			let info = eventInfo[j].split(":");
+			switch(info[0]) {
+			case "code":
+				// Use a temporary code in case we don't have the category yet
+				eCode = shapes[i%shapes.length];
+				break;
+			case "type":
+				eType = info[1];
+				if (!eventTypes.includes(eType))
+					eventTypes.push(eType);
+				break;
+			case "nbOccs":
+				eNbOccs = info[1];
+				break;
+			case "category":
+				eCategory = info[1];
+				// Setup the category if it is a new one
+				if (eventTypeCategories.includes(eCategory) == false) {
+					eventTypesByCategory[eCategory] = [];
+					eventTypeCategories.push(eCategory);
+					let catColor = getNextCategoryColor();
+					eventTypeCategoryColors[eCategory] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
+					
+					let categoryRow = d3.select("#categoryTableBody").append("tr");
+					categoryRow.append("td").text(eCategory);
+					let categorySvg = categoryRow.append("td")
+						.append("svg")
+						.attr("width",60)
+						.attr("height", 20);
+					categorySvg.append("rect")
+						.attr("width", 30)
+						.attr("height", 20)
+						.attr("fill",eventTypeCategoryColors[eCategory][0].toString());
+					categorySvg.append("rect")
+						.attr("width", 30)
+						.attr("height", 20)
+						.attr("x",30)
+						.attr("fill",eventTypeCategoryColors[eCategory][1].toString());
+				}
+				break;
+			case "description":
+				eDescription = info[1];
+				break;
+			default:
+			}
+		}
+		
+		eventTypesByCategory[eCategory].push(eType);
+
+		// Correct the event code now that we have the category
+		// Take the first available shape in this category
+		eCode = shapes[(eventTypesByCategory[eCategory].length - 1)%shapes.length];
+		
+		eColor = eventTypeCategoryColors[eCategory];
+		colorList[eType] = eColor;
+		itemShapes[eType] = eCode;
+		
+		eventTypeInformations[eType] = {
+				"category":eCategory,
+				"description":eDescription,
+				"nbOccs":eNbOccs,
+				"code":eCode
+		};
+	}
+	
+	sortEventTypesByNbEvents(true);
+	
+	createEventTypesListDisplay();
 }
 
 /************************************/
@@ -4521,122 +4673,7 @@ function sortUsersAccordingToTable() {
 	userList = newUserList;
 }
 
-function getNextCategoryColor() {
-	return colorPalet[eventTypeCategories.length -1];
-}
 
-var colorList = {};
-var eventTypes = [];
-var eventTypeInformations = {};
-
-function receiveEventTypes(message) {
-	//var typeList = message.types.split(";");
-	var nbEvents = parseInt(message.size);
-	//console.log("Receiving "+nbEvents+" event types");
-	// Starting to generate the symbols and colors associated to the event types
-	/*if (message.dataset == "Agavue") {
-		associateColorAndShapeToEventForAgavue(message);
-	} else {
-		
-	}*/
-	var nbColors = Math.ceil(nbEvents/shapes.length);
-	var colors = [];
-	for (let i = 1; i <= nbColors; i++)
-		colors.push(selectColor(i, nbColors));
-	// Symbols and colors are generated
-	if (nbEvents > 0)
-		d3.select("#noEvent").classed("hidden", true);
-
-	for (let i = 0; i < nbEvents; i++) {
-		let eventInfo = message[i.toString()].split(";");
-		console.log(eventInfo);
-		let eType = "";
-		let eCode = "";
-		var eNbOccs = "";
-		let eCategory = "";
-		let eDescription = "";
-		let eColor;
-		
-		for (var j=0; j < eventInfo.length;j++) {
-			let info = eventInfo[j].split(":");
-			switch(info[0]) {
-			case "code":
-				eCode = shapes[i%shapes.length];
-				break;
-			case "type":
-				eType = info[1];
-				if (!eventTypes.includes(eType))
-					eventTypes.push(eType);
-				break;
-			case "nbOccs":
-				eNbOccs = info[1];
-				break;
-			case "category":
-				eCategory = info[1];
-				// Setup the category if it is a new one
-				if (eventTypeCategories.includes(eCategory) == false) {
-					eventTypesByCategory[eCategory] = [];
-					eventTypeCategories.push(eCategory);
-					let catColor = getNextCategoryColor();
-					eventTypeCategoryColors[eCategory] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
-					
-					let categoryRow = d3.select("#categoryTableBody").append("tr");
-					categoryRow.append("td").text(eCategory);
-					let categorySvg = categoryRow.append("td")
-						.append("svg")
-						.attr("width",60)
-						.attr("height", 20);
-					categorySvg.append("rect")
-						.attr("width", 30)
-						.attr("height", 20)
-						.attr("fill",eventTypeCategoryColors[eCategory][0].toString());
-					categorySvg.append("rect")
-						.attr("width", 30)
-						.attr("height", 20)
-						.attr("x",30)
-						.attr("fill",eventTypeCategoryColors[eCategory][1].toString());
-				}
-				break;
-			case "description":
-				eDescription = info[1];
-				break;
-			default:
-			}
-		}
-		
-		// Correct the event code now that we have the category
-		eventTypesByCategory[eCategory].push(eType);
-		eCode = shapes[(eventTypesByCategory[eCategory].length - 1)%shapes.length];
-		
-		eColor = eventTypeCategoryColors[eCategory];
-		colorList[eType] = eColor;
-		itemShapes[eType] = eCode;
-		
-		eventTypeInformations[eType] = {
-				"category":eCategory,
-				"description":eDescription,
-				"nbOccs":eNbOccs,
-				"code":eCode
-		};
-	}
-	
-	sortEventTypesByNbEvents(true);
-	
-	createEventTypesListDisplay();
-}
-
-function changeEventTypeSymbol(eventType, newShapeIndex) {
-	itemShapes[eventType] = shapes[newShapeIndex];
-	return true;
-}
-
-function changeEventTypeColor(eventType, newColor) {
-	if (newColor != colorList[eventType][0]) {
-		colorList[eventType][0] = newColor;
-		return true;
-	}
-	return false;
-}
 
 /**
  * Returns a color specific color contained in a list of distinct colors
