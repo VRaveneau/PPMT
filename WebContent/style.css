@@ -284,6 +284,14 @@ body {
 	cursor: pointer;
 }
 
+.bold {
+	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
+}
+
 .highlightButton {
     color: black;
     background-color: #dddee0;

@@ -3954,14 +3954,11 @@ function changeTooltip(data, origin) {
 						}
 						
 						ttTableRow.classed("clickable", true)
-							.style("font-weight", (highlightedEventTypes.includes(occ[0]) ? "bold" : "normal"))
+							.classed("bold", highlightedEventTypes.includes(occ[0]))
 							.on("click", function() {
 								highlightEventTypeRow(occ[0]);
-								if (highlightedEventTypes.includes(occ[0])) {
-									d3.select(this).style("font-weight", "bold");
-								} else {
-									d3.select(this).style("font-weight", "normal");
-								}
+								d3.select(this)
+									.classed("bold", highlightedEventTypes.includes(occ[0]));
 								setHighlights();
 								timeline.displayData();
 							});
@@ -3981,15 +3978,12 @@ function changeTooltip(data, origin) {
 					
 					let typeLine = area.append("p")
 						.classed("clickable", true)
-						.style("font-weight", (highlightedEventTypes.includes(splitData[0]) ? "bold" : "normal"))
+						.classed("bold", highlightedEventTypes.includes(splitData[0]))
 						.text("Type: ")
 						.on("click", function() {
 							highlightEventTypeRow(splitData[0]);
-							if (highlightedEventTypes.includes(splitData[0])) {
-								d3.select(this).style("font-weight", "bold");
-							} else {
-								d3.select(this).style("font-weight", "normal");
-							}
+							d3.select(this)
+								.classed("bold", highlightedEventTypes.includes(splitData[0]));
 							setHighlights();
 							timeline.displayData();
 						});
@@ -4002,18 +3996,15 @@ function changeTooltip(data, origin) {
 						.text("Time: " + splitData[1]);
 					area.append("p")
 						.classed("clickable", true)
-						.style("font-weight", (highlightedUsers.includes(splitData[3]) ? "bold" : "normal"))
+						.classed("bold", highlightedUsers.includes(splitData[3]))
 						.text("User: " + splitData[3])
 						.on("click", function() {
 							highlightUserRow(splitData[3]);
-							if (highlightedUsers.includes(splitData[3])) {
-								d3.select(this).style("font-weight", "bold");
-							} else {
-								d3.select(this).style("font-weight", "normal");
-							}
+							d3.select(this)
+								.classed("bold", highlightedUsers.includes(splitData[3]));
 							setHighlights();
 							timeline.displayData();
-						});;
+						});
 					area.append("p")
 						.text("Properties:");
 					for(var i = 4; i < splitData.length; i++)
@@ -4033,15 +4024,12 @@ function changeTooltip(data, origin) {
 			
 			area.append("p")
 				.classed("clickable", true)
-				.style("font-weight", (highlightedUsers.includes(data[0]) ? "bold" : "normal"))
+				.classed("bold", highlightedUsers.includes(data[0]))
 				.text("User " + data[0])
 				.on("click", function() {
 					highlightUserRow(data[0]);
-					if (highlightedUsers.includes(data[0])) {
-						d3.select(this).style("font-weight", "bold");
-					} else {
-						d3.select(this).style("font-weight", "normal");
-					}
+					d3.select(this)
+						.classed("bold", highlightedUsers.includes(data[0]));
 					setHighlights();
 					timeline.displayData();
 				});
@@ -4125,20 +4113,20 @@ function changeTooltip(data, origin) {
 					let evtTypes = patternsInformation[pId][3];
 					let ttTableRow = ttTableBody.append("tr")
 						.classed("clickable", true)
-						.style("font-weight", (selectedPatternIds.includes(pId) ? "bold" : "normal"))
+						.classed("bold", selectedPatternIds.includes(pId))
 						.on("click", function() {
 							if (timeline.hasPatternOccurrences(pId) == false)
 								requestPatternOccurrences(pId, currentDatasetName);
 							else
 								timeline.displayPatternOccurrences(pId);
-							if (d3.select(this).style("font-weight") == "normal") {
-								selectedPatternIds.push(pId);
-								d3.select(this).style("font-weight", "bold");
-							} else {
+							if (selectedPatternIds.includes(pId)) {
 								let index = selectedPatternIds.indexOf(pId);
 								if (index >= 0)
 									selectedPatternIds.splice(index, 1);
-								d3.select(this).style("font-weight", "normal");
+								d3.select(this).classed("bold", false);
+							} else {
+								selectedPatternIds.push(pId);
+								d3.select(this).classed("bold", true);
 							}
 							//d3.event.stopPropagation();
 							console.log("click on "+pId);
