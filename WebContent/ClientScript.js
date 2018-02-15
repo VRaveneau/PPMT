@@ -251,9 +251,18 @@ var userInformations = [];
 
 // Number of extracted patterns
 var numberOfPattern = 0;
+// Information about the patterns
+var patternsInformation = {};
+// The list of ids for all the discovered patterns
+var patternIdList = [];
+// Known metrics on the patterns
+var patternMetrics = {"sizeDistribution":{}};
 
 // List of highlighted event type ids
 var highlightedEventTypes = [];
+
+// List of ids of all the patterns selected by the user
+var selectedPatternIds = [];
 
 // List of highlighted user names
 var highlightedUsers = [];
@@ -719,6 +728,85 @@ function changeEventTypeColor(eventType, newColor) {
 		return true;
 	}
 	return false;
+}
+
+/**
+ * Returns the current color associated with an event type, depending on the
+ *  current highlights.
+ * If 'user' is omitted, the current user selection is not taken into account 
+ * @param {string} eventType The event type we want the color
+ * @param {string} user The user attached to the event. Optional parameter.
+ * @returns An RGB object describing a color
+ */
+function getCurrentEventColor(eventType, user) {
+	let typeHighlight = true;
+	let userHighlight = true;
+	if (highlightedEventTypes.length > 0 &&
+		 !highlightedEventTypes.includes(eventType)) {
+		typeHighlight = false;
+	}
+	if (user != null) {
+		if (highlightedUsers.length > 0 && !highlightedUsers.includes(user))
+			userHighlight = false;
+	}
+	
+	if (userHighlight && typeHighlight)
+		return colorList[eventType][0];
+	else
+		return colorList[eventType][1];
+}
+
+/**
+ * Returns the color associated with an event type. Both values of the colors
+ *  are returned. To only get one, use getCurrentEventColor(eventType, user).
+ * @param {string} eventType The event type we want the color
+ * @returns {array} The array containing both colors associated with an event type
+ */
+function getEventColor(eventType) {
+	return colorList[eventType];
+}
+
+/**
+ * Returns the correct index in the list of pattern for a new pattern
+ * @param {array} patternInfos Informations about the pattern, to be able to
+ * handle all sorting possible.
+ * @returns {number} The index for the new pattern
+ */
+function findNewPatternIndex(patternInfos) {
+	switch(lastPatternSort) {
+	case "nameDown":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][0] < patternInfos[0];
+		});
+	case "nameUp":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][0] > patternInfos[0];
+		});
+	case "sizeDown":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][1] < patternInfos[1];
+		});
+	case "sizeUp":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][1] > patternInfos[1];
+		});
+	case "nbUsersDown":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][4].length < patternInfos[4].length;
+		});
+	case "nbUsersUp":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][4].length > patternInfos[4].length;
+		});
+	case "supportDown":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][2] < patternInfos[2];
+		});
+	case "supportUp":
+		return patternIdList.findIndex(function(elt, idx) {
+			return patternsInformation[elt][2] > patternInfos[2];
+		});
+	}
 }
 
 /*************************************/
@@ -1496,7 +1584,7 @@ function processMessage(message/*Compressed*/) {
 		if (msg.type === "userList")
 			receiveUserList(msg);
 		if (msg.type === "userTrace")
-			receiveUserTrace(msg);
+			receiveUserTrace(msg); // No longer used, function deleted, to be removed
 		if (msg.type === "bin") {
 			console.log("receiving bins");
 			receiveDataBins(msg);
@@ -2663,6 +2751,204 @@ function clearEventTypeSelection() {
 
 	setHighlights();
 	timeline.displayData();
+}
+
+/**
+ * Handles the reception of a new pattern.
+ * @param {JSON} message The message containing the new pattern and information
+ * about it.
+ * 
+ * TODO Detail the behavior of the function and the structure of 'message'
+ * 
+ * TODO Optimize it
+ */
+function addPatternToList(message) {
+	
+	let pSize = parseInt(message.size);
+	let pSupport = parseInt(message.support);
+	let pId = message.id;
+
+	let pUsers = message.userDistribution.users.split(";");
+	
+	// TODO Rename the function or move its behavior here
+	receivePatternDistributionPerUser(message.userDistribution);
+	
+	let pItems = [];
+	for (let k = 0; k < pSize; k++) {
+		pItems.push(message[k]);
+	}
+	let pString = pItems.join(" ");
+
+	patternsInformation[pId] = [pString, pSize, pSupport, pItems, pUsers];
+	
+	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
+	
+	if (correctPositionInList == -1)
+		patternIdList.push(pId);
+	else
+		patternIdList.splice(correctPositionInList, 0, pId);
+	
+	numberOfPattern++;
+	
+	// Update the number of patterns display
+	d3.select("#patternNumberSpan").text(numberOfPattern);
+	
+	// Only add the pattern to the list if:
+	// - No filter is applied
+	// - The applied filter accepts the pattern
+	let properPatternSearchInput = currentPatternSearchInput.split(" ")
+		.filter(function(d,i) {
+			return d.length > 0;
+		}).join(" ");
+	if (pString.includes(properPatternSearchInput) == true) {
+		if (correctPositionInList == -1) { // append at the end of the list
+			let patternList = d3.select("#patternTableBody");
+			let thisRow = patternList.append("tr")
+				.attr("id","pattern"+pId)
+				.classed("clickable", true)
+				.on("click", function() {
+					if (d3.event.shiftKey) { // Shift + click, steering
+						requestSteeringOnPattern(pId);
+						d3.event.stopPropagation();
+					} else { // Normal click, displays the occurrences
+						if (timeline.hasPatternOccurrences(pId) == false)
+							requestPatternOccurrences(pId, currentDatasetName);
+						else
+							timeline.displayPatternOccurrences(pId);
+						if (selectedPatternIds.includes(pId)) {
+							let index = selectedPatternIds.indexOf(pId);
+							if (index >= 0)
+								selectedPatternIds.splice(index, 1);
+						} else {
+							selectedPatternIds.push(pId);
+						}
+						//d3.event.stopPropagation();
+						console.log("click on "+pId);
+						createPatternListDisplay();
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+						timeline.drawUsersPatterns();
+						
+						// Update the number of selected patterns display
+						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+					}
+				});
+			var thisNameCell = thisRow.append("td");
+			
+			for (var k=0; k < pSize; k++) {
+				thisNameCell.append("span")
+					.style("color",colorList[pItems[k]][0].toString())
+					.text(itemShapes[pItems[k]]);
+			}
+			thisNameCell.append("span")
+				.text(" "+pString)
+				.attr("patternId",pId)
+				.classed("patternText", true)
+				.style("display", showPatternText ? "initial" : "none");
+				//.classed("dropdown", true);
+			/*var pSvg = thisNameCell.append("svg")
+				.attr("width", 20*pSize)
+				.attr("height", 20);*/
+	
+			// Create the menu
+			/*
+			var dropMenuDiv = thisNameCell.append("div")
+				.classed("dropdown-content", true)
+				.style("left","0");
+			let steeringP = dropMenuDiv.append("p")
+				.text("Steer on this pattern")
+				.on("click", function() {
+					requestSteeringOnPattern(pId);
+					d3.event.stopPropagation();
+				});*/
+			
+			thisRow.append("td")
+				.text(pSupport);
+			thisRow.append("td")
+				.text(pUsers.length);
+			thisRow.append("td")
+				.text(pSize);
+		} else { // append at the right position in the list
+			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
+			//console.log("First unselectedId: "+firstUnselectedId);
+			let patternList = d3.select("#patternTableBody");
+			let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
+			
+			let thisRow = d3.select(document.createElement("tr"))
+				.attr("id","pattern"+pId)
+				.classed("clickable", true)
+				.on("click", function() {
+					if (d3.event.shiftKey) { // Shift + click, steering
+						requestSteeringOnPattern(pId);
+						d3.event.stopPropagation();
+					} else { // Normal click, displays the occurrences
+						if (timeline.hasPatternOccurrences(pId) == false)
+							requestPatternOccurrences(pId, currentDatasetName);
+						else
+							timeline.displayPatternOccurrences(pId);
+						if (selectedPatternIds.includes(pId)) {
+							let index = selectedPatternIds.indexOf(pId);
+							if (index >= 0)
+								selectedPatternIds.splice(index, 1);
+						} else {
+							selectedPatternIds.push(pId);
+						}
+						//d3.event.stopPropagation();
+						console.log("click on "+pId);
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+						createPatternListDisplay();
+						timeline.drawUsersPatterns();
+	
+						// Update the number of selected patterns display
+						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+					}
+				});
+			let thisNameCell = thisRow.append("td");
+			for (var k=0; k < pSize; k++) {
+				thisNameCell.append("span")
+					.style("color",colorList[pItems[k]][0].toString())
+					.text(itemShapes[pItems[k]]);
+			}
+			thisNameCell.append("span")
+				.text(" "+pString)
+				.attr("patternId",pId)
+				.classed("patternText", true)
+				.style("display", showPatternText ? "initial" : "none");
+				//.classed("dropdown", true);
+			/*var pSvg = thisNameCell.append("svg")
+				.attr("width", 20*pSize)
+				.attr("height", 20);*/
+	
+			// Create the menu
+			/*let dropMenuDiv = thisNameCell.append("div")
+				.classed("dropdown-content", true)
+				.style("left","0");
+			let steeringP = dropMenuDiv.append("p")
+				.text("Steer on this pattern")
+				.on("click", function() {
+					requestSteeringOnPattern(pId);
+					d3.event.stopPropagation();
+				});*/
+			
+			thisRow.append("td")
+				.text(pSupport);
+			thisRow.append("td")
+				.text(pUsers.length);
+			thisRow.append("td")
+				.text(pSize);
+			
+			firstUnselectedNode.parentNode.insertBefore(thisRow.node(), firstUnselectedNode);
+		}
+	}
+	// Update the number of filtered patterns if necessary
+	
+	// Update the relevant metrics
+	if (patternMetrics["sizeDistribution"][pSize])
+		patternMetrics["sizeDistribution"][pSize] = patternMetrics["sizeDistribution"][pSize] + 1;
+	else
+		patternMetrics["sizeDistribution"][pSize] = 1;
+	
+	// Display the new metrics
+	//createPatternMetricsDisplay();  Removed since the barchart displays the same information
 }
 
 /************************************/
@@ -4672,7 +4958,9 @@ function sortUsersAccordingToTable() {
  * 
  * @param colorNum The index of the color we want in the list (starts at 1)
  * @param colors The size of the color list
- * @returns the first parameter for generating an HSL color (second and third are respectively supposed to be 100% and 50%)
+ * @returns the first parameter for generating an HSL color (second and third
+ *  are respectively supposed to be 100% and 50%)
+ * @deprecated Probably never used
  */
 function selectColor(colorNum, colors){
 	var presetList = [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
@@ -4687,337 +4975,15 @@ function selectColor(colorNum, colors){
 	}
 }
 
-/**
- * Returns a set of colors tailored for the Agavue dataset
- * @returns
- */
-function getAgavueColors() {
-	return [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
-}
-
-/**
- * Returns the current color associated with an event type, depending on the current highlights
- * If 'user' is omitted, the current user selection is not taken into account 
- * @param eventType
- * @param user
- * @returns
- */
-function getCurrentEventColor(eventType, user) {
-	let typeHighlight = true;
-	let userHighlight = true;
-	if (highlightedEventTypes.length > 0 && !highlightedEventTypes.includes(eventType)) {
-		typeHighlight = false;
-	}
-	if (user != null) {
-		if (highlightedUsers.length > 0 && !highlightedUsers.includes(user))
-			userHighlight = false;
-	}
-	
-	if (userHighlight && typeHighlight)
-		return colorList[eventType][0];
-	else
-		return colorList[eventType][1];
-}
-
-function getEventColor(eventType) {
-	return colorList[eventType];
-}
-
-function getEventColorForAgavue(eventType) {
-	//console.log("Getting event Colors for agavue");
-	var colors = getAgavueColors();
-	switch(eventType.trim()) {
-	// App related events
-	case "appInit" :
-	case "error" :
-	case "warning" :
-	case "bindFromPrompt" : // (?)
-		return colors[0];
-		break;
-	// Data related events
-	case "readBoundData" :
-	case "load" :
-	case "setData" :
-	case "treeStats" :
-	case "writeSampleData" :
-	case "writeSampleData2"	:
-		return colors[1];
-		break;
-	// IHM related events
-	case "resize" :
-	case "toolTip" :
-	case "toolBarToggle" :
-	case "btSetData" :
-	case "slider" :
-	case "btColor" :
-	case "closeColorPicker" :
-	case "hasColumnHeadersToggle" :
-		return colors[2];
-		break;
-	// IHM/Error related events
-	case "closeErrorBox" :
-	case "aboutBox" :
-	case "closeAboutBox" :
-		return colors[3];
-		break;
-	// Dataviz related events (à scinder ?)
-	case "create" :
-	case "setTitle" :
-	case "pickedColor" :
-	case "setStackType" :
-	case "cbCategory" :
-	case "xCbCategory" :
-	case "yCbCategory" :
-	case "cbPercent" :
-	case "xSlider" :
-	case "ySlider" :
-	case "tbBins" :
-	case "xTbBins" :
-	case "yTbBins" :
-		return colors[4];
-		break;
-	default:
-		return colors[5];
-	}
-}
-
-function getEventShapeForAgavue(eventType) {
-	var index = -1;
-	switch(eventType.trim()) {
-	// 1st in category
-	case "appInit" :
-	case "readBoundData" :
-	case "resize" :
-	case "closeErrorBox" :
-	case "create" :
-		index = 0;
-		break;
-	// 2nd in category
-	case "error" :
-	case "load" :
-	case "toolTip" :
-	case "aboutBox" :
-	case "setTitle" :
-		index = 1;
-		break;
-	// 3rd in category
-	case "warning" :
-	case "setData" :
-	case "toolBarToggle" :
-	case "closeAboutBox" :
-	case "pickedColor" :
-		index = 2;
-		break;
-	// 4th in category
-	case "bindFromPrompt" : // (?)
-	case "treeStats" :
-	case "btSetData" :
-	case "setStackType" :
-		index = 3;
-		break;
-	// 5th in category
-	case "writeSampleData" :
-	case "slider" :
-	case "cbCategory" :
-		index = 4;
-		break;
-	// 6th in category
-	case "writeSampleData2"	:
-	case "btColor" :
-	case "xCbCategory" :
-		index = 5;
-		break;
-	// 7th in category
-	case "closeColorPicker" :
-	case "yCbCategory" :
-		index = 6;
-		break;
-	// 8th in category
-	case "hasColumnHeadersToggle" :
-	case "cbPercent" :
-		index = 7;
-		break;
-	// 9th in category
-	case "xSlider" :
-		index = 8;
-		break;
-	// 10th in category
-	case "ySlider" :
-		index = 9;
-		break;
-	// 11th in category
-	case "tbBins" :
-		index = 10;
-		break;
-	// 12th in category
-	case "xTbBins" :
-		index = 11;
-		break;
-	// 13th in category
-	case "yTbBins" :
-		index = 12;
-		break;
-	default :
-		index = 13;
-	}
-	if (index >= 0)
-		return shapes[index%shapes.length]; // %shapes.length to ensure that we do not go out of bounds
-	return null;
-}
-
-/**
- * Associate a color and a symbol to each event type
- */
-function associateColorAndShapeToEventForAgavue(message) {
-	var colors = [0,38,191,241,297];		// red - orange - lightBlue - darkBlue - purple
-	/*
-	 * APP
-		appInit
-		error
-		warning
-		bindFromPrompt (?)
-		
-		DATA
-		readBoundData
-		load	
-		setData	
-		writeSampleData
-		writeSampleData2	
-		
-		IHM 
-		resize
-		toolTip
-		toolBarToggle
-		btSetData
-		slider
-		btColor
-		closeColorPicker
-		hasColumnHeadersToggle
-		
-		IHM / ERROR
-		closeErrorBox
-		aboutBox
-		closeAboutBox
-		
-		DATAVIZ (à scinder ?)
-		create
-		setTitle
-		treeStats
-		pickedColor
-		setStackType	
-		cbCategory
-		xCbCategory	
-		yCbCategory
-		cbPercent
-		xSlider		
-		ySlider
-		tbBins
-		xTbBins
-		yTbBins
-	 */
-	
-	
-	var nbEvents = parseInt(message.size);
-	// Symbols and colors are generated
-	if (nbEvents > 0)
-		document.getElementById("noEvent").textContent = "";
-	for (var i = 0; i< nbEvents; i++) {
-		var eventRow = d3.select("#eventTableBody").append("tr");
-		var eventInfo = message[i.toString()].split(";");
-		var eType = "";
-		var eCode = "";
-		var eNbOccs = "";
-		for (var j=0; j < eventInfo.length;j++) {
-			var info = eventInfo[j].split(":");
-			if (info[0] === "code")
-				eCode = shapes[i%shapes.length];
-				//eCode = info[1];
-			else if (info[0] === "type")
-				eType = info[1];
-			else if (info[0] === "nbOccs")
-				eNbOccs = info[1];
-		}
-		colorList[eType] = colors[i%colors.length];
-		itemShapes[eType] = shapes[i%shapes.length];
-		eventDisplayHeight[eType] = i+1;
-		var eColor = colors[i%colors.length];
-		eventRow.append("td").text(eType);
-		eventRow.append("td").text(eNbOccs);
-		var symbolRow = eventRow.append("td")
-					.attr("sorttable_customkey", (i%shapes.length)*100+i%colors.length);
-		var symbolRowSvg = symbolRow.append("svg")
-			.attr("width", 20)
-			.attr("height", 20);
-		/*switch (itemShapes[eType]) {
-			case "circle":
-				symbolRowSvg.append("circle")
-				.attr("cx",Math.floor(10))
-				.attr("cy",Math.floor(10))
-				.attr("transform","translate(20,0)")
-				.attr("r", 5)
-				.style("stroke", d3.hsl(parseFloat(eColor),100,50))
-				.
-				.style("fill","none");
-				break;
-			case "square":
-				symbolRowSvg.append("rect")
-				.attr("x",Math.floor(5))
-				.attr("y",Math.floor(5))
-				.attr("transform","translate(20,0)")
-				.attr("width", 10)
-				.attr("height",10)
-				.style("stroke", d3.hsl(parseFloat(eColor),100,50))
-				.style("fill","none");
-				break;
-			case "triangle":*/
-				symbolRowSvg.append("path")
-				.attr("d",d3.symbol().type(itemShapes[eType]).size(function(d) {return 100;}))
-				.attr("transform","translate(10,10)")
-				.attr("stroke", "hsl("+colorList[eType]+",100%,50%)"/*d3.hsl(parseFloat(eColor),100,50).rgb()*/)
-				.attr("fill","none");
-		//};
-	}
-}
-
-var userTracesNb = 0;
-var firstTraceReceived = null;
-var lastTraceReceived = null;
-var allEvents = []
-/**
- * Receives the trace of a user
- * @param trace
- * @returns
- */
-function receiveUserTrace(trace) {
-	var traceSize = parseInt(trace.numberOfEvents);
-	if (userTracesNb == 0)
-		firstTraceReceived = new Date();
-	userTracesNb = userTracesNb + 1;
-	var user = trace.user;
-	userTraces[user] = [];
-	for(var i=0; i < traceSize; i++) {
-		allEvents.push([trace[i.toString()]]);
-		userTraces[user].push(allEvents[allEvents.length-1]);
-	}
-	//userTraces[trace.user] = data;
-	//console.log("Trace received : "+new Date());
-	if (userTracesNb == 31575) {
-		lastTraceReceived = new Date();
-		console.log("31575 traces received between");
-		console.log(firstTraceReceived);
-		console.log("and");
-		console.log(lastTraceReceived);
-		userTracesNb = 0;
-		//console.log("sending the data to the timeline");
-	}
-}
-
 /************************************************/
 /*				Display functions				*/
 /************************************************/
 
 /**
  * Requests the trace of a user and display it
+ * @deprecated Probably no longer used
+ * 
+ * TODO Make sure that it needs to be deleted (probably)
  */
 function displayUserTrace(trace) {
 	var traceSize = parseInt(trace.numberOfEvents);
@@ -5054,6 +5020,11 @@ function displayUserTrace(trace) {
 	      .attr("d", area);
 }
 
+/**
+ * @deprecated Probably no longer used
+ * 
+ * TODO Make sure that it needs to be deleted (probably)
+ */
 function displayUserPatterns(patterns) {
 	var size = parseInt(patterns.numberOfPatterns);
 	//console.log(size+" patterns obtenus");
@@ -5092,378 +5063,6 @@ function displayUserPatterns(patterns) {
 			}
 		}
 	}
-}
-
-function receiveAllPatterns(message) {
-	var size = parseInt(message.number);
-	var patternList = d3.select("#List");
-	var patternSizes = {};
-	
-	for (var i=0; i<size; i++) {
-		var p = message[i.toString()];
-		p = p.replace(/,/g,"");
-		p = p.replace(/\[/g,"");
-		p = p.replace(/\]/g,"");
-		var pSize = parseInt(message[i.toString()+"size"]);
-		
-		if (!patternSizes.hasOwnProperty(pSize))
-			patternSizes[pSize] = [];
-		patternSizes[pSize].push(p);
-	}
-	
-	for (var i=2; i<=Object.keys(patternSizes).sort()[Object.keys(patternSizes).length-1]; i++) {
-		var patterns = patternSizes[i];
-		for (var j = 0; j < patterns.length; j++) {
-			let p = patterns[j];
-			var pItems = p.split(" ");
-			var pDiv = patternList.append("div");
-			var pSvg = pDiv.append("svg")
-				.attr("width", 20*pItems.length)
-				.attr("height", 20);
-			pDiv.append("span")
-				.text(p);
-			for (var k = 0; k < pItems.length; k++) {
-				pSvg.append("path")
-					.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
-					.attr("transform","translate("+(10+20*k)+",10)")
-					.attr("stroke", colorList[pItems[k]][0].toString())
-					.attr("fill","none");
-			}
-			/*patternList.append("div")
-				.text("- "+p)
-				.on("click", function() {
-					requestPatternDistribution(p, "Agavue");
-					d3.event.stopPropagation();
-				});*/
-		}
-	}
-	patternsReceived = true;
-	
-	timeline.drawPatternBinsFromData();
-	// update the metrics tab
-}
-
-function findNewPatternIndex(patternInfos) {
-	switch(lastPatternSort) {
-	case "nameDown":
-		return patternIdList.findIndex(function(elt, idx) {
-			return patternsInformation[elt][0] < patternInfos[0];
-		});
-	case "nameUp":
-		return patternIdList.findIndex(function(elt, idx) {
-			return patternsInformation[elt][0] > patternInfos[0];
-		});
-	case "sizeDown":
-		return patternIdList.findIndex(function(elt, idx) {
-			return patternsInformation[elt][1] < patternInfos[1];
-		});
-	case "sizeUp":
-		return patternIdList.findIndex(function(elt, idx) {
-			return patternsInformation[elt][1] > patternInfos[1];
-		});
-	case "nbUsersDown":
-		return patternIdList.findIndex(function(elt, idx) {
-			return patternsInformation[elt][4].length < patternInfos[4].length;
-		});
-	case "nbUsersUp":
-		return patternIdList.findIndex(function(elt, idx) {
-			return patternsInformation[elt][4].length > patternInfos[4].length;
-		});
-	case "supportDown":
-		return patternIdList.findIndex(function(elt, idx) {
-			return patternsInformation[elt][2] < patternInfos[2];
-		});
-	case "supportUp":
-		return patternIdList.findIndex(function(elt, idx) {
-			return patternsInformation[elt][2] > patternInfos[2];
-		});
-	}
-}
-
-var patternsInformation = {};
-var patternIdList = [];
-
-var patternMetrics = {"sizeDistribution":{}};
-
-function addPatternToList(message) {
-	
-	let pSize = parseInt(message.size);
-	let pSupport = parseInt(message.support);
-	let pId = message.id;
-
-	let pUsers = message.userDistribution.users.split(";");
-	
-	// TODO Rename the function or move its behavior here
-	receivePatternDistributionPerUser(message.userDistribution);
-	
-	let pItems = [];
-	for (let k = 0; k < pSize; k++) {
-		pItems.push(message[k]);
-	}
-	let pString = pItems.join(" ");
-	
-	//console.log("receiving Pattern "+pString);
-	/*
-	for (var i = 0; i < pSize; i++) {
-		pString += message[i];
-		if (i <= (pSize-1))
-			pString += " ";
-	}*/
-
-	patternsInformation[pId] = [pString, pSize, pSupport, pItems, pUsers];
-	
-	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
-	
-	if (correctPositionInList == -1)
-		patternIdList.push(pId);
-	else
-		patternIdList.splice(correctPositionInList, 0, pId);
-	
-	numberOfPattern++;
-	// Update the number of pattern pages
-	let newPatternPageNumber = Math.ceil(numberOfPattern*1.0 / patternPageSize);
-	if (newPatternPageNumber != patternPageNumber || numberOfPattern == 1) {
-		patternPageNumber = newPatternPageNumber;
-		updatePatternPageNumberDisplay();
-	}
-	
-	// Update the number of patterns display
-	d3.select("#patternNumberSpan").text(numberOfPattern);
-	
-	// Only add the pattern to the list if:
-	// - No filter is applied
-	// - The applied filter accepts the pattern
-	let properPatternSearchInput = currentPatternSearchInput.split(" ")
-		.filter(function(d,i) {
-			return d.length > 0;
-		}).join(" ");
-	if (pString.includes(properPatternSearchInput) == true) {
-		if (correctPositionInList == -1) { // append at the end of the list
-			let patternList = d3.select("#patternTableBody");
-			let thisRow = patternList.append("tr")
-				.attr("id","pattern"+pId)
-				.classed("clickable", true)
-				.on("click", function() {
-					if (d3.event.shiftKey) { // Shift + click, steering
-						requestSteeringOnPattern(pId);
-						d3.event.stopPropagation();
-					} else { // Normal click, displays the occurrences
-						if (timeline.hasPatternOccurrences(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayPatternOccurrences(pId);
-						if (selectedPatternIds.includes(pId)) {
-							let index = selectedPatternIds.indexOf(pId);
-							if (index >= 0)
-								selectedPatternIds.splice(index, 1);
-						} else {
-							selectedPatternIds.push(pId);
-						}
-						//d3.event.stopPropagation();
-						console.log("click on "+pId);
-						createPatternListDisplay();
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						timeline.drawUsersPatterns();
-						
-						// Update the number of selected patterns display
-						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-					}
-				});
-			var thisNameCell = thisRow.append("td");
-			
-			for (var k=0; k < pSize; k++) {
-				thisNameCell.append("span")
-					.style("color",colorList[pItems[k]][0].toString())
-					.text(itemShapes[pItems[k]]);
-			}
-			thisNameCell.append("span")
-				.text(" "+pString)
-				.attr("patternId",pId)
-				.classed("patternText", true)
-				.style("display", showPatternText ? "initial" : "none");
-				//.classed("dropdown", true);
-			/*var pSvg = thisNameCell.append("svg")
-				.attr("width", 20*pSize)
-				.attr("height", 20);*/
-	
-			// Create the menu
-			/*
-			var dropMenuDiv = thisNameCell.append("div")
-				.classed("dropdown-content", true)
-				.style("left","0");
-			let steeringP = dropMenuDiv.append("p")
-				.text("Steer on this pattern")
-				.on("click", function() {
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				});*/
-			
-			thisRow.append("td")
-				.text(pSupport);
-			thisRow.append("td")
-				.text(pUsers.length);
-			thisRow.append("td")
-				.text(pSize);
-		} else { // append at the right position in the list
-			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
-			//console.log("First unselectedId: "+firstUnselectedId);
-			let patternList = d3.select("#patternTableBody");
-			let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
-			
-			let thisRow = d3.select(document.createElement("tr"))
-				.attr("id","pattern"+pId)
-				.classed("clickable", true)
-				.on("click", function() {
-					if (d3.event.shiftKey) { // Shift + click, steering
-						requestSteeringOnPattern(pId);
-						d3.event.stopPropagation();
-					} else { // Normal click, displays the occurrences
-						if (timeline.hasPatternOccurrences(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayPatternOccurrences(pId);
-						if (selectedPatternIds.includes(pId)) {
-							let index = selectedPatternIds.indexOf(pId);
-							if (index >= 0)
-								selectedPatternIds.splice(index, 1);
-						} else {
-							selectedPatternIds.push(pId);
-						}
-						//d3.event.stopPropagation();
-						console.log("click on "+pId);
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						createPatternListDisplay();
-						timeline.drawUsersPatterns();
-	
-						// Update the number of selected patterns display
-						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-					}
-				});
-			let thisNameCell = thisRow.append("td");
-			for (var k=0; k < pSize; k++) {
-				thisNameCell.append("span")
-					.style("color",colorList[pItems[k]][0].toString())
-					.text(itemShapes[pItems[k]]);
-			}
-			thisNameCell.append("span")
-				.text(" "+pString)
-				.attr("patternId",pId)
-				.classed("patternText", true)
-				.style("display", showPatternText ? "initial" : "none");
-				//.classed("dropdown", true);
-			/*var pSvg = thisNameCell.append("svg")
-				.attr("width", 20*pSize)
-				.attr("height", 20);*/
-	
-			// Create the menu
-			/*let dropMenuDiv = thisNameCell.append("div")
-				.classed("dropdown-content", true)
-				.style("left","0");
-			let steeringP = dropMenuDiv.append("p")
-				.text("Steer on this pattern")
-				.on("click", function() {
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				});*/
-			
-			thisRow.append("td")
-				.text(pSupport);
-			thisRow.append("td")
-				.text(pUsers.length);
-			thisRow.append("td")
-				.text(pSize);
-			
-			firstUnselectedNode.parentNode.insertBefore(thisRow.node(), firstUnselectedNode);
-		}
-	}
-	// Update the number of filtered patterns if necessary
-	
-	// Update the relevant metrics
-	if (patternMetrics["sizeDistribution"][pSize])
-		patternMetrics["sizeDistribution"][pSize] = patternMetrics["sizeDistribution"][pSize] + 1;
-	else
-		patternMetrics["sizeDistribution"][pSize] = 1;
-	
-	// Display the new metrics
-	//createPatternMetricsDisplay();  Removed since the barchart displays the same information
-}
-
-function updatePatternPageNumberDisplay() {
-	let displayDiv = d3.select("#patternPageNumbers");
-	displayDiv.html("");
-	let firstShawnNumber = Math.max(1, currentPatternPage-4);
-	let lastShawnNumber = Math.min(patternPageNumber, currentPatternPage+4);
-	
-	if (firstShawnNumber > 1) {
-		displayDiv.append("span").text(" ...");
-	}
-	
-	for(let i=firstShawnNumber; i<=lastShawnNumber; i++) {
-		let currentSpan = displayDiv.append("button")
-			.classed("textButton", true)
-			.text(" "+i)
-			.on("click", function() {
-				displayPatternPage(i);
-			});
-		if (i == currentPatternPage) {
-			currentSpan.classed("currentPatternPageButton", true)
-				.property("disabled", true)
-				.on("click", null);
-		}
-	}
-	
-	if (lastShawnNumber < patternPageNumber) {
-		displayDiv.append("span").text(" ... ");
-	}
-	
-	updatePatternPageNavigationButtons();
-}
-
-function updatePatternPageNavigationButtons() {
-	d3.select("#previousPatternPage").property("disabled", false);
-	d3.select("#firstPatternPage").property("disabled", false);
-	d3.select("#nextPatternPage").property("disabled", false);
-	d3.select("#lastPatternPage").property("disabled", false);
-	
-	if (currentPatternPage == 1) {
-		d3.select("#previousPatternPage").property("disabled", true);
-		d3.select("#firstPatternPage").property("disabled", true);
-	}
-	if (currentPatternPage == patternPageNumber) {
-		d3.select("#nextPatternPage").property("disabled", true);
-		d3.select("#lastPatternPage").property("disabled", true);
-	}
-}
-
-function displayPatternPage(pageNumber) {
-	currentPatternPage = pageNumber;
-	updatePatternPageNumberDisplay();
-	createPatternListDisplay();
-}
-
-function displayFirstPatternPage() {
-	displayPatternPage(1);
-}
-
-function displayPreviousPatternPage() {
-	displayPatternPage(currentPatternPage - 1);
-}
-
-function displayNextPatternPage() {
-	displayPatternPage(currentPatternPage + 1);
-}
-
-function displayLastPatternPage() {
-	displayPatternPage(patternPageNumber);
-}
-
-function updatePatternPageSize() {
-	patternPageSize = Number(d3.select("#patternPageSizeInput")
-							.property("value"));
-	currentPatternPage = 1;
-	patternPageNumber = Math.ceil(numberOfPattern*1.0 / patternPageSize);
-	updatePatternPageNumberDisplay();
-	createPatternListDisplay();
 }
 
 /*
@@ -5518,11 +5117,6 @@ function addPatternListItemBeforeId(id, information, idx ) {
 	
 }
 
-var selectedPatternIds = [];
-var patternPageSize = 200000;
-var patternPageNumber = 1;
-var currentPatternPage = 1;
-
 function createPatternListDisplay() {
 	// removing the old patterns
 	var patternRowsRoot = document.getElementById("patternTableBody");
@@ -5574,15 +5168,10 @@ function createPatternListDisplay() {
 		
 		filteredPatterns++;
 		
-		patternList = d3.select("#patternTableBody");
-		
 		if (index >= 0) {
 			patternList = d3.select("#selectedPatternTableBody");
 		} else {
-			if ((i < (currentPatternPage - 1)*patternPageSize) // before the current page
-				|| (i >= (currentPatternPage)*patternPageSize)) { // after the current page
-				continue;
-			}
+			patternList = d3.select("#patternTableBody");
 		}
 		
 		let thisRow = patternList.append("tr")
