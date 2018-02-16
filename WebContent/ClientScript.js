@@ -152,31 +152,12 @@ var shapeNames = shapeNamesWrite;
 /*************************************/
 /*			HCI elements			 */
 /*************************************/
-//
+// The timeline object managing the visualizations
 var timeline = null;
-//
-var timelineXAxis = null;
-//
-var timelineOverview = null;
-//
-var timelineOverviewXAxis = null;
 // Default number of users shown in the session view
 var defaultNbUserShown = 15;
 // Number of users shown in the session view
 var nbUserShown = defaultNbUserShown;
-
-// Timeline brushing
-var brush = null;
-var zoom = null;
-var x = null;
-var xOverview = null;
-var xAxis = null;
-var xAxisOverview = null;
-var y = null;
-var yOverview = null;
-var area = null;
-var area2 = null;
-var tlHeight = null;
 
 // Number of elements fully displayed in the highlight summary.
 // Beyond this value, only the number of highlighted elements is displayed
@@ -227,11 +208,18 @@ var runningTaskIndicatorSvg = d3.select("#top").select("svg").select("circle");
 // Name of the selected dataset
 var currentDatasetName = "";
 
-var occurrences = {}
+/**
+ * Information about the dataset
+ * 
+ * TODO detail the structure
+ */
 var datasetInfo = {};
 
+// The categories of event types
 var eventTypeCategories = [];
+// For each category, the list of event types that belong to it
 var eventTypesByCategory = {};
+// For each category, the two colors associated with it
 var eventTypeCategoryColors = {};
 
 // References to the events of the dataset, associated to the relevant user
@@ -241,11 +229,15 @@ var userList = [];
 
 // The raw dataset -- Used to create the Crossfilter
 var rawData = [];
-//
+// The Crossfilter containing all the dataset
 var dataset = {};
-//
+/**
+ * The dimensions created from the Crossfilter stored in dataset.
+ * 
+ * TODO document the dimensions (for now : time - user - time)
+ */
 var dataDimensions = {};
-//
+// Information about each user (start - end - duration)
 var userProperties = {};
 
 // Informations about the users
@@ -328,12 +320,15 @@ var showPointerTarget = false;
 // Whether future patterns will be processed or not
 var updateUI = true;
 
-var history = [];
-
+// Whether information about the dataset is displayed (false) or not (true)
 var datasetInfoIsDefault = true;
+// Whether actions are displayed in the history (false) or not (true)
 var historyDisplayIsDefault = true;
-var eventDisplayIsDefault = true;
 
+/**
+ * The time period covered by the overview's brush.
+ * Contains two values : start and end (in ms)
+ */
 var currentTimeFilter = [];
 
 // Whether the description of event types is visible or not
@@ -430,12 +425,8 @@ var monthsNames = [
 	"April", "May", "June",
 	"July", "August", "September",
 	"October", "November", "December"];
-
-var itemColors = {};
-var unselectedColorFading = 5;
 // TODO request a list of shapes from the server to populate this list
 var itemShapes = {};
-var availableColors = [];
 
 
 /******************************************************************************/
