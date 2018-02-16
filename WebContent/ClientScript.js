@@ -395,6 +395,8 @@ var tooltipNode = tooltip.node();
 var tooltipOffsetFromMouse = 5;
 // X,Y position of the mouse pointer
 var currentMousePos = [];
+// Whether the mouse pointer is inside the tooltip or not
+var mouseIsInsideTooltip = false;
 // Whether the tooltip has been fixed or moves with the pointer
 var tooltipIsFixed = false;
 // Whether the tooltip has content
@@ -4826,6 +4828,8 @@ function prepareToLeaveTooltip() {
  * Handles the pointer leaving the tooltip
  */
 function leaveTooltip() {
+	mouseIsInsideTooltip = false;
+
 	unlockTooltip();
 	clearTooltip();
 	updateTooltip();
@@ -4838,6 +4842,8 @@ function enterTooltip() {
 	// Prevent the hiding of the tooltip if it has been planned
 	clearTimeout(tooltipCloseTimeout);
 	
+	mouseIsInsideTooltip = true;
+
 	tooltip.select(".subtitle")
 		.text("Move the pointer out of this tooltip to close it");
 }
@@ -4846,12 +4852,8 @@ function enterTooltip() {
  * If the mouse pointer is outside the tooltip, switches its locked state
  */
 function switchTooltipLock() {
-	let mousePos = d3.mouse(d3.select("body").node());
 	// Prevent from unlocking when the mouse is inside the tooltip
-	if (mousePos[0] >= tooltipNode.offsetLeft
-			&& mousePos[1] >= tooltipNode.offsetTop
-			&& mousePos[0] <= tooltipNode.offsetLeft + tooltipNode.offsetWidth
-			&& mousePos[1] <= tooltipNode.offsetTop + tooltipNode.offsetHeight)
+	if (mouseIsInsideTooltip)
 		return;
 	if (tooltipHasContent) {
 		tooltipIsFixed = !tooltipIsFixed;
