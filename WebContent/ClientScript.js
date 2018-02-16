@@ -15,6 +15,7 @@ var isLive = false;	// Switch between live and dev socket adress
 var __websocketAdress__ = isLive ?
 							"ppmt.univ-nantes.fr/ppmt/wsppmt" :
 							"localhost:8080/ppmt/wsppmt";
+// The actual websocket
 var webSocket = null;
 
 /*************************************/
@@ -905,6 +906,32 @@ function stopRunningTaskIndicator() {
 			runningTaskIndicatorState = false;
 			console.log("Running task indicator stopped");
 		}
+	}
+}
+
+/**
+ * Returns a color specific color contained in a list of distinct colors
+ * If the list has less items in it than the presetList, the preset list is used
+ * otherwise, the color is computed
+ * 
+ * PresetList : red - orange - lightBlue - darkBlue - purple
+ * 
+ * @param colorNum The index of the color we want in the list (starts at 1)
+ * @param colors The size of the color list
+ * @returns the first parameter for generating an HSL color (second and third
+ *  are respectively supposed to be 100% and 50%)
+ * @deprecated Probably never used
+ */
+function selectColor(colorNum, colors){
+	var presetList = [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
+	if (colors <= presetList.length) {
+		//console.log("Selecting number "+colorNum+" out of 6 preset colors");
+		return presetList[colorNum-1];
+	} else {
+		//console.log("Selecting number "+colorNum+" out of "+colors+" generated colors");
+	    if (colors < 1) colors = 1; // defaults to one color - avoid divide by zero
+	    return colorNum * (360 / colors) % 360;
+	    //return "hsl(" + (colorNum * (360 / colors) % 360) + ",100%,50%)";
 	}
 }
 
@@ -4274,6 +4301,160 @@ function refreshUserPatterns() {
 	timeline.drawUsersPatterns();
 }
 
+/**
+ * Removes a pattern row from the document. Used once in processMessage, but
+ *  probably needs to be removed.
+ * Probably dates back to the pre-viz code.
+ * 
+ * @param id The id of the pattern to remove
+ * 
+ * @deprecated Check if the message calling it can still be sent by the server
+ * 
+ * TODO Decide if it is te be kept or not
+ */
+function removePatternFromList(id) {
+	document.getElementById("pattern"+id).remove();
+}
+
+/**
+ * Removes the content of the current pattern list (selected and unselected) and
+ * recreates it from scratch, according to the current selections and filters
+ * 
+ * TODO Optimize the way it is doing it and clean the code
+ */
+function createPatternListDisplay() {
+	// removing the old patterns
+	var patternRowsRoot = document.getElementById("patternTableBody");
+	while (patternRowsRoot.firstChild) {
+		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
+	}
+	// removing the old selected patterns
+	patternRowsRoot = document.getElementById("selectedPatternTableBody");
+	while (patternRowsRoot.firstChild) {
+		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
+	}
+
+	// display the separator only if needed
+	if (selectedPatternIds.length > 0) {
+		d3.select("#patternListSeparator")
+			.style("visibility","initial");
+	} else {
+		d3.select("#patternListSeparator")
+		.style("visibility","hidden");
+	}
+	
+	var patternList = d3.select("#patternTableBody");
+	let properPatternSearchInput = currentPatternSearchInput.split(" ")
+		.filter(function(d,i) {
+			return d.length > 0;
+		}).join(" ");
+	let filteredPatterns = 0;
+	
+	// display the new ones
+	for (var i=0; i < patternIdList.length; i++) {
+		
+		let pSize = patternsInformation[patternIdList[i]][1]
+		let pSupport = patternsInformation[patternIdList[i]][2]
+		let pId = patternIdList[i];
+		let pString = patternsInformation[patternIdList[i]][0];
+		let pItems = patternsInformation[patternIdList[i]][3];
+		let pUsers = patternsInformation[patternIdList[i]][4];
+		
+		let index = selectedPatternIds.indexOf(pId);
+		
+		// Only add the pattern if:
+		// - it is selected (always displayed)
+		// - the filter is empty or accepts the pattern
+		if (selectedPatternIds.includes(pId) == false) {
+			if (pString.toLowerCase().includes(properPatternSearchInput.toLowerCase()) == false) {
+				continue; // The filter rejects the pattern
+			}
+		}
+		
+		filteredPatterns++;
+		
+		if (index >= 0) {
+			patternList = d3.select("#selectedPatternTableBody");
+		} else {
+			patternList = d3.select("#patternTableBody");
+		}
+		
+		let thisRow = patternList.append("tr")
+			.attr("id","pattern"+pId)
+			.classed("clickable",true)
+			.on("click", function() {
+				if (d3.event.shiftKey) { // Shift + click, steering
+					requestSteeringOnPattern(pId);
+					d3.event.stopPropagation();
+				} else { // Normal click, displays the occurrences
+					if (timeline.hasPatternOccurrences(pId) == false)
+						requestPatternOccurrences(pId, currentDatasetName);
+					else
+						timeline.displayPatternOccurrences(pId);
+					if (selectedPatternIds.includes(pId)) {
+						let index = selectedPatternIds.indexOf(pId);
+						if (index >= 0)
+							selectedPatternIds.splice(index, 1);
+					} else {
+						selectedPatternIds.push(pId);
+					}
+					//d3.event.stopPropagation();
+					console.log("click on "+pId);
+					createPatternListDisplay();
+					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+					timeline.drawUsersPatterns();
+					
+					// Update the number of selected patterns display
+					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+				}
+			});
+		var thisNameCell = thisRow.append("td");
+			//.classed("dropdown", true);
+		/*var pSvg = thisNameCell.append("svg")
+			.attr("width", 20*pSize)
+			.attr("height", 20);*/
+		for (var k=0; k < pSize; k++) {
+			thisNameCell.append("span")
+				.style("color",colorList[pItems[k]][0].toString())
+				.text(itemShapes[pItems[k]]);
+		}
+		thisNameCell.append("span")
+			.text(" "+pString)
+			.attr("patternId",pId)
+			.classed("patternText", true)
+			.style("display", showPatternText ? "initial" : "none");
+
+		// Create the menu
+		/*var dropMenuDiv = thisNameCell.append("div")
+			.classed("dropdown-content", true)
+			.style("left","0");
+		let steeringP = dropMenuDiv.append("p")
+			.text("Steer on this pattern")
+			.on("click", function() {
+				requestSteeringOnPattern(pId);
+				d3.event.stopPropagation();
+			});*/
+		
+		thisRow.append("td")
+			.text(pSupport);
+		thisRow.append("td")
+			.text(pUsers.length);
+		thisRow.append("td")
+			.text(pSize);
+		/*
+		for (var k = 0; k < pSize; k++) {
+			pSvg.append("path")
+				.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
+				.attr("transform","translate("+(10+20*k)+",10)")
+				.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)")//d3.hsl(parseFloat(eColor),100,50).rgb())
+				.attr("fill","none");
+		}*/
+	}
+	
+	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
+	
+}
+
 /************************************/
 /*				Tooltip				*/
 /************************************/
@@ -5056,186 +5237,6 @@ function GapSlider(elemId) {
 
 
 
-
-
-
-
-
-/************************************/
-/*			To be cleaned			*/
-/************************************/
-
-// Used once in processMessage, but probably to be removed...
-// Probably dates back to the pre-viz code
-function removePatternFromList(id) {
-	document.getElementById("pattern"+id).remove();
-}
-
-/**
- * Returns a color specific color contained in a list of distinct colors
- * If the list has less items in it than the presetList, the preset list is used
- * otherwise, the color is computed
- * 
- * PresetList : red - orange - lightBlue - darkBlue - purple
- * 
- * @param colorNum The index of the color we want in the list (starts at 1)
- * @param colors The size of the color list
- * @returns the first parameter for generating an HSL color (second and third
- *  are respectively supposed to be 100% and 50%)
- * @deprecated Probably never used
- */
-function selectColor(colorNum, colors){
-	var presetList = [0,124,168,204,241,297];		// red - orange - lightBlue - darkBlue - purple
-	if (colors <= presetList.length) {
-		//console.log("Selecting number "+colorNum+" out of 6 preset colors");
-		return presetList[colorNum-1];
-	} else {
-		//console.log("Selecting number "+colorNum+" out of "+colors+" generated colors");
-	    if (colors < 1) colors = 1; // defaults to one color - avoid divide by zero
-	    return colorNum * (360 / colors) % 360;
-	    //return "hsl(" + (colorNum * (360 / colors) % 360) + ",100%,50%)";
-	}
-}
-
-function createPatternListDisplay() {
-	// removing the old patterns
-	var patternRowsRoot = document.getElementById("patternTableBody");
-	while (patternRowsRoot.firstChild) {
-		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
-	}
-	// removing the old selected patterns
-	patternRowsRoot = document.getElementById("selectedPatternTableBody");
-	while (patternRowsRoot.firstChild) {
-		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
-	}
-
-	// display the separator only if needed
-	if (selectedPatternIds.length > 0) {
-		d3.select("#patternListSeparator")
-			.style("visibility","initial");
-	} else {
-		d3.select("#patternListSeparator")
-		.style("visibility","hidden");
-	}
-	
-	var patternList = d3.select("#patternTableBody");
-	let properPatternSearchInput = currentPatternSearchInput.split(" ")
-		.filter(function(d,i) {
-			return d.length > 0;
-		}).join(" ");
-	let filteredPatterns = 0;
-	
-	// display the new ones
-	for (var i=0; i < patternIdList.length; i++) {
-		
-		let pSize = patternsInformation[patternIdList[i]][1]
-		let pSupport = patternsInformation[patternIdList[i]][2]
-		let pId = patternIdList[i];
-		let pString = patternsInformation[patternIdList[i]][0];
-		let pItems = patternsInformation[patternIdList[i]][3];
-		let pUsers = patternsInformation[patternIdList[i]][4];
-		
-		let index = selectedPatternIds.indexOf(pId);
-		
-		// Only add the pattern if:
-		// - it is selected (always displayed)
-		// - the filter is empty or accepts the pattern
-		if (selectedPatternIds.includes(pId) == false) {
-			if (pString.toLowerCase().includes(properPatternSearchInput.toLowerCase()) == false) {
-				continue; // The filter rejects the pattern
-			}
-		}
-		
-		filteredPatterns++;
-		
-		if (index >= 0) {
-			patternList = d3.select("#selectedPatternTableBody");
-		} else {
-			patternList = d3.select("#patternTableBody");
-		}
-		
-		let thisRow = patternList.append("tr")
-			.attr("id","pattern"+pId)
-			.classed("clickable",true)
-			.on("click", function() {
-				if (d3.event.shiftKey) { // Shift + click, steering
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				} else { // Normal click, displays the occurrences
-					if (timeline.hasPatternOccurrences(pId) == false)
-						requestPatternOccurrences(pId, currentDatasetName);
-					else
-						timeline.displayPatternOccurrences(pId);
-					if (selectedPatternIds.includes(pId)) {
-						let index = selectedPatternIds.indexOf(pId);
-						if (index >= 0)
-							selectedPatternIds.splice(index, 1);
-					} else {
-						selectedPatternIds.push(pId);
-					}
-					//d3.event.stopPropagation();
-					console.log("click on "+pId);
-					createPatternListDisplay();
-					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-					timeline.drawUsersPatterns();
-					
-					// Update the number of selected patterns display
-					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-				}
-			});
-		var thisNameCell = thisRow.append("td");
-			//.classed("dropdown", true);
-		/*var pSvg = thisNameCell.append("svg")
-			.attr("width", 20*pSize)
-			.attr("height", 20);*/
-		for (var k=0; k < pSize; k++) {
-			thisNameCell.append("span")
-				.style("color",colorList[pItems[k]][0].toString())
-				.text(itemShapes[pItems[k]]);
-		}
-		thisNameCell.append("span")
-			.text(" "+pString)
-			.attr("patternId",pId)
-			.classed("patternText", true)
-			.style("display", showPatternText ? "initial" : "none");
-
-		// Create the menu
-		/*var dropMenuDiv = thisNameCell.append("div")
-			.classed("dropdown-content", true)
-			.style("left","0");
-		let steeringP = dropMenuDiv.append("p")
-			.text("Steer on this pattern")
-			.on("click", function() {
-				requestSteeringOnPattern(pId);
-				d3.event.stopPropagation();
-			});*/
-		
-		thisRow.append("td")
-			.text(pSupport);
-		thisRow.append("td")
-			.text(pUsers.length);
-		thisRow.append("td")
-			.text(pSize);
-		/*
-		for (var k = 0; k < pSize; k++) {
-			pSvg.append("path")
-				.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
-				.attr("transform","translate("+(10+20*k)+",10)")
-				.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)")//d3.hsl(parseFloat(eColor),100,50).rgb())
-				.attr("fill","none");
-		}*/
-	}
-	
-	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
-	
-}
-
-
-/************************************************************************************************************/
-/*
-												Timeline
-																											*/
-/************************************************************************************************************/
 
 var Timeline = function(elemId, options) {
 	var self = this;
