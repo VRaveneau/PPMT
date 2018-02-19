@@ -1,6 +1,5 @@
 package com.raveneau.ppmt.server;
 
-import java.io.IOException;
 import java.io.StringReader;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -36,77 +35,107 @@ public class ServerEndpointPPMT {
 		JsonReader reader = Json.createReader(new StringReader(message));
 		JsonObject jsonMessage = reader.readObject();
 		
-		if ("run".equals(jsonMessage.getString("action"))) {
-			if ("algorithm".equals(jsonMessage.getString("object"))) {
-				int minSup = Integer.parseInt(jsonMessage.getString("minSup"));
-				int windowSize = Integer.parseInt(jsonMessage.getString("windowSize"));
-				int maxSize = Integer.parseInt(jsonMessage.getString("maxSize"));
-				int minGap = Integer.parseInt(jsonMessage.getString("minGap"));
-				int maxGap = Integer.parseInt(jsonMessage.getString("maxGap"));
-				int maxDuration = Integer.parseInt(jsonMessage.getString("maxDuration"));
-				String datasetName = jsonMessage.getString("datasetName");
-				sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName, session);
-			}
+		switch(jsonMessage.getString("action")) {
+			case "run":
+				if ("algorithm".equals(jsonMessage.getString("object"))) {
+					int minSup = Integer.parseInt(jsonMessage.getString("minSup"));
+					int windowSize = Integer.parseInt(jsonMessage.getString("windowSize"));
+					int maxSize = Integer.parseInt(jsonMessage.getString("maxSize"));
+					int minGap = Integer.parseInt(jsonMessage.getString("minGap"));
+					int maxGap = Integer.parseInt(jsonMessage.getString("maxGap"));
+					int maxDuration = Integer.parseInt(jsonMessage.getString("maxDuration"));
+					String datasetName = jsonMessage.getString("datasetName");
+					sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName, session);
+				}
+				break;
+				
+			case "load":
+				if ("dataset".equals(jsonMessage.getString("object")))
+					sessionHandler.loadDataset(session, jsonMessage.getString("dataset"));
+				break;
+				
+			case "request":
+				switch(jsonMessage.getString("object")) {
+					case "dataset":
+						System.out.println("user requests data on the "+jsonMessage.getString("dataset")+" dataset");
+			  			sessionHandler.provideData(jsonMessage.getString("dataset"),session);
+						break;
+						
+					case "datasetInfo":
+						System.out.println("user requests information on the "+jsonMessage.getString("dataset")+" dataset");
+			  			sessionHandler.provideDatasetInfo(jsonMessage.getString("dataset"),session);
+						break;
+						
+					case "datasetList":
+						System.out.println("user requests the list of datasets");
+			  			sessionHandler.provideDatasetList(session);
+						break;
+						
+					case "eventTypes":
+						System.out.println("user requests event types on the "+jsonMessage.getString("dataset")+" dataset");
+			  			sessionHandler.provideEventTypesInfo(jsonMessage.getString("dataset"),session);
+						break;
+						
+					case "userList":
+						System.out.println("user requests user list on the "+jsonMessage.getString("dataset")+" dataset");
+			  			sessionHandler.provideUserList(jsonMessage.getString("dataset"),session);
+						break;
+						
+					case "patternOccs":
+						System.out.println("user requests the occurrences of pattern "+jsonMessage.getInt("patternId")+" in dataset "+jsonMessage.getString("dataset"));
+			  			sessionHandler.providePatternOccurrences(Integer.toString(jsonMessage.getInt("patternId")), jsonMessage.getString("dataset"),session);
+						break;
+						
+					case "data":
+						if ("bin".equals(jsonMessage.getString("shape"))) {
+							switch(jsonMessage.getString("scale")) {
+								case "year":
+									sessionHandler.provideYearBins(jsonMessage.getString("dataset"),session);
+									break;
+									
+								case "month":
+									sessionHandler.provideMonthBins(jsonMessage.getString("dataset"),session);
+									break;
+									
+								case "halfMonth":
+									sessionHandler.provideHalfMonthBins(jsonMessage.getString("dataset"),session);
+									break;
+									
+								case "day":
+									sessionHandler.provideDayBins(jsonMessage.getString("dataset"),session);
+									break;
+									
+								case "halfDay":
+									sessionHandler.provideHalfDayBins(jsonMessage.getString("dataset"),session);
+									break;
+									
+								default:
+									System.out.println("User requests an incorrect scale of bin: " + jsonMessage.getString("scale"));
+							}
+			  			}
+						break;
+						
+					default:
+						System.out.println("User requests an incorrect object: " + jsonMessage.getString("object"));
+				}
+				break;
+				
+			case "steerOnPattern":
+				System.out.println("ServerEndpoint : receive steering request on pattern id "+jsonMessage.getInt("patternId"));
+		  		sessionHandler.requestSteeringOnPattern(jsonMessage.getInt("patternId"),session);
+				break;
+				
+			case "steerOnUser":
+				sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
+				break;
+				
+			case "ping":
+				// Just used to keep the connection alive
+				break;
+				
+			default:
+				System.out.println("User requests an incorrect action: " + jsonMessage.getString("action"));
 		}
-		if ("load".equals(jsonMessage.getString("action"))) {
-			if ("dataset".equals(jsonMessage.getString("object")))
-				sessionHandler.loadDataset(session, jsonMessage.getString("dataset"));
-	  	}
-		if ("request".equals(jsonMessage.getString("action"))) {
-	  		if ("dataset".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests data on the "+jsonMessage.getString("dataset")+" dataset");
-	  			sessionHandler.provideData(jsonMessage.getString("dataset"),session);
-	  		} else
-	  		if ("datasetInfo".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests information on the "+jsonMessage.getString("dataset")+" dataset");
-	  			sessionHandler.provideDatasetInfo(jsonMessage.getString("dataset"),session);
-	  		} else
-	  		if ("eventTypes".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests event types on the "+jsonMessage.getString("dataset")+" dataset");
-	  			sessionHandler.provideEventTypesInfo(jsonMessage.getString("dataset"),session);
-	  		} else
-	  		if ("userList".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests user list on the "+jsonMessage.getString("dataset")+" dataset");
-	  			sessionHandler.provideUserList(jsonMessage.getString("dataset"),session);
-	  		} else
-	  		if ("patternOccs".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests the occurrences of pattern "+jsonMessage.getInt("patternId")+" in dataset "+jsonMessage.getString("dataset"));
-	  			sessionHandler.providePatternOccurrences(Integer.toString(jsonMessage.getInt("patternId")), jsonMessage.getString("dataset"),session);
-	  		} else
-  			if ("datasetList".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests the list of datasets");
-	  			sessionHandler.provideDatasetList(session);
-	  		} else
-	  		if ("data".equals(jsonMessage.getString("object"))) {
-	  			if ("bin".equals(jsonMessage.getString("shape"))) {
-	  				if ("year".equals(jsonMessage.getString("scale"))) {
-	  					sessionHandler.provideYearBins(jsonMessage.getString("dataset"),session);
-	  				} else
-	  				if ("month".equals(jsonMessage.getString("scale"))) {
-	  					sessionHandler.provideMonthBins(jsonMessage.getString("dataset"),session);
-	  				} else
-	  				if ("halfMonth".equals(jsonMessage.getString("scale"))) {
-	  					sessionHandler.provideHalfMonthBins(jsonMessage.getString("dataset"),session);
-	  				} else
-	  				if ("day".equals(jsonMessage.getString("scale"))) {
-	  					sessionHandler.provideDayBins(jsonMessage.getString("dataset"),session);
-	  				} else
-	  				if ("halfDay".equals(jsonMessage.getString("scale"))) {
-	  					sessionHandler.provideHalfDayBins(jsonMessage.getString("dataset"),session);
-	  				}
-	  			}
-	  		}
-	  	}
-		if ("steerOnPattern".equals(jsonMessage.getString("action"))) {
-			System.out.println("ServerEndpoint : receive steering request on pattern id "+jsonMessage.getInt("patternId"));
-	  		sessionHandler.requestSteeringOnPattern(jsonMessage.getInt("patternId"),session);
-	  	}
-		if ("steerOnUser".equals(jsonMessage.getString("action"))) {
-	  		sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
-	  	}
-		if ("ping".equals(jsonMessage.getString("action"))) {
-	  		// Just used to keep the connection alive
-	  	}
 	}
 	
 	@OnClose
@@ -120,10 +149,5 @@ public class ServerEndpointPPMT {
 	@OnError
 	public void handleError(Throwable error) {
 		error.printStackTrace();
-	}
-	
-	
-	public String listDatasets() {
-		return "Agavue";
 	}
 }
