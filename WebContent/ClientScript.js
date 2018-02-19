@@ -5249,24 +5249,38 @@ var Timeline = function(elemId, options) {
 	self.patternOccs = {};
 	self.displayPatternOccs = {};
 	
+	/**
+	 * Checks if the timeline has already received the occurrences for the given
+	 * pattern.
+	 * 
+	 * @param {number} id The id of the pattern
+	 * @returns {boolean} Whether the timeline has the occurrences (true) or not
+	 *  (false) 
+	 */
 	self.hasPatternOccurrences = function(id) {
 		return self.patternOccs.hasOwnProperty(id);
 	}
 	
+	/**
+	 * Switches whether a pattern's occurrences should be displayed or not, then
+	 * updates the display.
+	 * 
+	 * @param {number} id The id of the pattern
+	 * TODO Only redraw the pattern's occurrences, not the whole visualizations
+	 */
 	self.displayPatternOccurrences = function(id) {
-		if (self.displayPatternOccs[id] == true) {
-			self.displayPatternOccs[id] = false;
-		} else {
-			self.displayPatternOccs[id] = true;
-		}
+		self.displayPatternOccs[id] = !self.displayPatternOccs[id];
 		//self.drawPatternOccurrences();  Prefered to displaying the old data, only when the patterns will always be drawn on their specific layer
 		self.displayData(); // TODO optimize by just displaying the pattern occurrences
 	}
 	
-	// Stop displaying any pattern
-	// Essentially serves as a replacement for several calls to self.displayPatternOccurrences
-	//   avoiding multiple displayData() calls
-	// The expected argument is an array of pattern id
+	/**
+	 * Stops displaying multiple patterns. Essentially serves as a more efficient
+	 * alternative to several calls to Timeline.displayPatternOccurrences, due to
+	 * only redrawing once.
+	 * 
+	 * @param {number[]} ids The ids of patterns that will stop being displayed
+	 */
 	self.resetPatternOccurrencesDisplay = function(ids) {
 		ids.forEach(function(d,i) {
 			self.displayPatternOccs[d] = false;
