@@ -37,8 +37,6 @@ public class ServerEndpointPPMT {
 		JsonObject jsonMessage = reader.readObject();
 		
 		if ("run".equals(jsonMessage.getString("action"))) {
-			if ("algoToFile".equals(jsonMessage.getString("object")))
-				sessionHandler.runAlgoToFile();
 			if ("algorithm".equals(jsonMessage.getString("object"))) {
 				int minSup = Integer.parseInt(jsonMessage.getString("minSup"));
 				int windowSize = Integer.parseInt(jsonMessage.getString("windowSize"));
@@ -53,12 +51,6 @@ public class ServerEndpointPPMT {
 		if ("load".equals(jsonMessage.getString("action"))) {
 			if ("dataset".equals(jsonMessage.getString("object")))
 				sessionHandler.loadDataset(session, jsonMessage.getString("dataset"));
-	  	}
-		if ("startMining".equals(jsonMessage.getString("action"))) {   // Now unused
-	  		sessionHandler.startMining(session);
-	  	}
-		if ("stopMining".equals(jsonMessage.getString("action"))) { // Now unused
-	  		sessionHandler.stopMining(session);
 	  	}
 		if ("request".equals(jsonMessage.getString("action"))) {
 	  		if ("dataset".equals(jsonMessage.getString("object"))) {
@@ -76,22 +68,6 @@ public class ServerEndpointPPMT {
 	  		if ("userList".equals(jsonMessage.getString("object"))) {
 	  			System.out.println("user requests user list on the "+jsonMessage.getString("dataset")+" dataset");
 	  			sessionHandler.provideUserList(jsonMessage.getString("dataset"),session);
-	  		} else
-	  		if ("trace".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests the trace of user "+jsonMessage.getString("user")+" in dataset "+jsonMessage.getString("dataset"));
-	  			sessionHandler.provideTrace(jsonMessage.getString("user"), jsonMessage.getString("dataset"),session);
-	  		} else
-	  		if ("patterns".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests the patterns of user "+jsonMessage.getString("user")+" in dataset "+jsonMessage.getString("dataset"));
-	  			sessionHandler.providePatterns(jsonMessage.getString("user"), jsonMessage.getString("dataset"),session);
-	  		} else
-	  		if ("allPatterns".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests all the patterns in dataset "+jsonMessage.getString("dataset"));
-	  			sessionHandler.provideAllPatterns(jsonMessage.getString("dataset"),session);
-	  		} else
-	  		if ("patternDistribution".equals(jsonMessage.getString("object"))) {
-	  			System.out.println("user requests the distribution of pattern "+jsonMessage.getString("pattern")+" in dataset "+jsonMessage.getString("dataset"));
-	  			sessionHandler.providePatternDistribution(jsonMessage.getString("pattern"), jsonMessage.getString("dataset"),session);
 	  		} else
 	  		if ("patternOccs".equals(jsonMessage.getString("object"))) {
 	  			System.out.println("user requests the occurrences of pattern "+jsonMessage.getInt("patternId")+" in dataset "+jsonMessage.getString("dataset"));
@@ -118,14 +94,8 @@ public class ServerEndpointPPMT {
 	  				if ("halfDay".equals(jsonMessage.getString("scale"))) {
 	  					sessionHandler.provideHalfDayBins(jsonMessage.getString("dataset"),session);
 	  				}
-	  			} else {
-	  			System.out.println("user requests the patterns of user "+jsonMessage.getString("user")+" in dataset "+jsonMessage.getString("dataset"));
-	  			sessionHandler.providePatterns(jsonMessage.getString("user"), jsonMessage.getString("dataset"),session);
 	  			}
-	  		} else
-		  		if ("userDistributionForPattern".equals(jsonMessage.getString("object"))) {
-		  			sessionHandler.providePatternDistributionPerUser(jsonMessage.getInt("pattern"), jsonMessage.getString("dataset"),session);
-		  		}
+	  		}
 	  	}
 		if ("steerOnPattern".equals(jsonMessage.getString("action"))) {
 			System.out.println("ServerEndpoint : receive steering request on pattern id "+jsonMessage.getInt("patternId"));
@@ -135,7 +105,7 @@ public class ServerEndpointPPMT {
 	  		sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
 	  	}
 		if ("ping".equals(jsonMessage.getString("action"))) {
-	  		// Just used to keep the connexion alive
+	  		// Just used to keep the connection alive
 	  	}
 	}
 	

@@ -1829,19 +1829,6 @@ function requestDatasetInfo(datasetName) {
 }
 
 /**
- * Asks for the patterns discovered in the given dataset
- * @param {string} datasetName - Name of the dataset
- */
-function requestPatterns(datasetName) {
-	var action = {
-			action: "request",
-			object: "allPatterns",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-/**
  * Requests the occurrences of a given pattern in a given dataset
  * @param {number} patternId - The id of the pattern
  * @param {string} datasetName - The name of the dataset
@@ -1852,22 +1839,6 @@ function requestPatternOccurrences(patternId, datasetName) {
 			object: "patternOccs",
 			dataset: datasetName,
 			patternId: patternId
-	};
-	sendToServer(action);
-}
-
-// Might never be used
-/**
- * Requests the distribution of a given pattern in a given dataset
- * @param {number} patternRequested - The pattern
- * @param {string} datasetName - The name of the dataset
- */
-function requestPatternDistribution(patternRequested, datasetName) {
-	var action = {
-			action: "request",
-			object: "patternDistribution",
-			dataset: datasetName,
-			pattern: patternRequested
 	};
 	sendToServer(action);
 }
@@ -1980,17 +1951,6 @@ function requestHalfDayBins(datasetName) {
 	sendToServer(action);
 }
 
-/*
-function requestUsersPatternOccurrences(userList) {
-	var action = {
-			action: "request",
-			object: "occurrences",
-			shape: "bin",
-			scale: "halfDay",
-			dataset: datasetName
-	}
-}*/
-
 /**
  * Requests information about the event types of a dataset
  * @param {string} datasetName - Name of the dataset
@@ -2039,22 +1999,6 @@ function requestSteeringOnUser(userId) {
 	let action = {
 			action: "steerOnuser",
 			userId: userId
-	};
-	sendToServer(action);
-}
-
-/**
- * Requests the distribution of a pattern over the users in the data
- * @deprecated Should no longer be used since the distribution is sent at the
- * 	same time as the pattern
- * @param {JSON} message - The message containing information about the pattern
- */
-function requestUserDistributionForPattern(message) {
-	var action = {
-			action: "request",
-			object: "userDistributionForPattern",
-			pattern: message.id,
-			dataset: currentDatasetName
 	};
 	sendToServer(action);
 }
@@ -5396,7 +5340,6 @@ var Timeline = function(elemId, options) {
 		
 		//console.log("User List updated on the timeline");
 		
-		//requestUsersPatternOccurrences(userInformations.slice(0,nbUserShown));
 	}
 	
 	self.drawUsersTraces = function() {
