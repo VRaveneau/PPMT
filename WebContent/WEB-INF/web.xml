@@ -7,4 +7,16 @@
 	<session-config>
 		<session-timeout>20</session-timeout>
 	</session-config>
+	
+	<servlet>
+		<servlet-name>Servlet</servlet-name>
+		<servlet-class>com.raveneau.ppmt.server.Servlet</servlet-class>
+		
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	
+	<servlet-mapping>
+		<servlet-name>Servlet</servlet-name>
+		<url-pattern>/datasetProvider</url-pattern>
+	</servlet-mapping>
 </web-app>
