@@ -53,6 +53,12 @@ public class ServerEndpointPPMT {
 				if ("dataset".equals(jsonMessage.getString("object")))
 					sessionHandler.loadDataset(session, jsonMessage.getString("dataset"));
 				break;
+			
+			case "validate":
+				if ("dataset".equals(jsonMessage.getString("object"))) {
+					sessionHandler.validateDataset(jsonMessage.getString("dataset"), session);
+				}
+				break;
 				
 			case "request":
 				switch(jsonMessage.getString("object")) {

@@ -588,4 +588,19 @@ public class SessionHandler {
 		dataMessage.add("users", relevantUsers.substring(0, relevantUsers.length()-1));
     	sendToSession(session, dataMessage.build());
 	}
+
+	public void validateDataset(String datasetName, Session session) {
+		String answer = "valid";
+		if (datasetManager.getDataset(datasetName) == null) {
+			answer = "invalid";
+		}
+		
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "validation")
+				.add("object", "dataset")
+				.add("dataset", datasetName)
+				.add("answer", answer);
+		sendToSession(session, dataMessage.build());
+	}
 }

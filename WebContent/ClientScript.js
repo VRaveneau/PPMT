@@ -949,8 +949,6 @@ function init() {
 											unescape(parts[1]) :
 											"";
 		}
-	} else {
-		// TODO Deal with the fact that no parameter has been put in the URL
 	}
 
 	// If a dataset is given as parameters, open the websocket to ask for it
@@ -1650,8 +1648,8 @@ function processOpen(message) {
 		sendToServer(action);
 	}, 10*60*1000); // every 10 minutes
 
-	// Ask for the selected dataset
-	selectDataset(pageParameters.ds);
+	// Ask if the target dataset is available
+	requestDatasetValidation(pageParameters.ds);
 }
 
 /**
@@ -1709,6 +1707,10 @@ function processMessage(message/*Compressed*/) {
 	}
 	if (msg.action === "datasetInfo") {	// Reception of information about the dataset
 		receiveDatasetInfo(msg);
+	}
+	if (msg.action === "validation") {
+		if (msg.object === "dataset")
+			handleDatasetValidation(msg);
 	}
 	if (msg.action === "data") {	// Reception of data
 		if (msg.type === "userList")
@@ -1822,6 +1824,20 @@ function requestDataset(datasetName) {
 			action: "request",
 			object: "dataset",
 			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Asks the server to confirm that the given dataset is available
+ * 
+ * @param {string} datasetName The name of the dataset to be checked
+ */
+function requestDatasetValidation(datasetName) {
+	let action = {
+		action: "validate",
+		object: "dataset",
+		dataset: datasetName
 	};
 	sendToServer(action);
 }
@@ -2017,6 +2033,23 @@ function requestSteeringOnUser(userId) {
 /*************************************/
 /*		Communication - receiving	 */
 /*************************************/
+
+/**
+ * Handles the server's response to a dataset validation request.
+ * If the dataset is valid, start using it. Otherwise, go to the dataset
+ * selection page.
+ * 
+ * @param {JSON} msg The message containing the answer
+ */
+function handleDatasetValidation(msg) {
+	if (msg.answer === "valid") {
+		// Ask for the selected dataset
+		selectDataset(msg.dataset);
+	} else {
+		// If the dataset is not available, go to the dataset selection
+		location.href = "/ppmt";
+	}
+}
 
 /**
  * Receives information about a dataset from the server
