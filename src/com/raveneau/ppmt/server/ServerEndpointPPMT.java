@@ -27,7 +27,7 @@ public class ServerEndpointPPMT {
 		System.out.println("		Client"+session.getId()+" connected					");
 		System.out.println("====================================================================");
 		sessionHandler.addSession(session);
-		sessionHandler.provideDatasetList(session);
+		//sessionHandler.provideDatasetList(session);
 	}
 	
 	@OnMessage

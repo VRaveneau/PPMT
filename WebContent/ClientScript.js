@@ -18,6 +18,9 @@ var __websocketAdress__ = isLive ?
 // The actual websocket
 var webSocket = null;
 
+// The parameters passed in the URL
+var pageParameters = {};
+
 /*************************************/
 /*			Display elements		 */
 /*************************************/
@@ -936,15 +939,34 @@ function selectColor(colorNum, colors){
  * Initializes the system at the start
  */
 function init() {
-	// Hide the tool until a dataset is selected
-	d3.select("#tool").style("display","none");
-	// Try to establish the websocket connection
-	webSocket = new WebSocket("ws://"+__websocketAdress__);
-	// Handle the future communication through the socket
-	webSocket.onopen = processOpen;
-	webSocket.onmessage = processMessage;
-	webSocket.onclose = processClose;
-	webSocket.onerror = processError;
+	// Store all the parameters, after removing the leading '?'
+	let urlParameters = window.location.search.substr(1).split('&');
+	// Gather the parameters in the URL
+	if (window.location.search.length > 1) {
+		for(let i = 0; i < urlParameters.length; i++) {
+			let parts = urlParameters[i].split('=');
+			pageParameters[unescape(parts[0])] = parts.length > 1 ?
+											unescape(parts[1]) :
+											"";
+		}
+	} else {
+		// TODO Deal with the fact that no parameter has been put in the URL
+	}
+
+	// If a dataset is given as parameters, open the websocket to ask for it
+	if (pageParameters.ds) {
+		// Try to establish the websocket connection
+		webSocket = new WebSocket("ws://"+__websocketAdress__);
+		// Handle the future communication through the socket
+		webSocket.onopen = processOpen;
+		webSocket.onmessage = processMessage;
+		webSocket.onclose = processClose;
+		webSocket.onerror = processError;
+
+		setupTool();
+	} else { // Otherwise, redirect to the dataset selection page
+		location.href = "/ppmt";
+	}
 }
 
 /**
@@ -990,20 +1012,6 @@ function setupTool() {
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
-}
-
-/**
- * Starts the tool after selecting a dataset
- * @param {string} datasetName - Name of the dataset
- */
-function startTool(datasetName) {
-	// Hide the dataset selection panel
-	d3.select("#datasetSelection").style("display","none");
-	// Show the tool
-	d3.select("#tool").style("display","flex");
-	
-	setupTool();
-	selectDataset(datasetName);
 }
 
 /**
@@ -1641,6 +1649,9 @@ function processOpen(message) {
 		};
 		sendToServer(action);
 	}, 10*60*1000); // every 10 minutes
+
+	// Ask for the selected dataset
+	selectDataset(pageParameters.ds);
 }
 
 /**
@@ -2191,79 +2202,6 @@ function receivePatternDistributionPerUser(message) {
 	// Commented because it makes the page freeze or crash when too many patterns arrive
 	// TODO redraw only if visible changes (new patterns in the displayed tooltip)
 	//timeline.drawUsersPatterns();
-}
-
-/**
- * Displays the list of available datasets
- * @param {JSON} message - The list of datasets, with information about them
- */
-function receiveDatasetList(message) {
-	let dsList = d3.select("#datasetList");
-	let datasetNb = parseInt(message.size);
-	
-	for (let i = 0; i < datasetNb; i++) {
-		let dsName = message[i.toString()];
-		let dsParams = JSON.parse(message["param"+i.toString()]);
-
-		// Create the card for the dataset
-		let card = dsList.append("div")
-			.classed("datasetCard", true)
-			.classed("clickable", true);
-		card.on("click",function() {
-			startTool(dsName);
-		});
-		card.append("p")
-			.classed("name", true)
-			.text(dsName);
-		
-		// Add more information to the card if they are available
-		if (dsParams.nbUsers) {
-			card.append("p")
-				.classed("nbUsers", true)
-				.classed("datasetParameter", true)
-				.text("Users : " + dsParams.nbUsers);
-		}
-		if (dsParams.nbEvents) {
-			// Display large numbers with a space every 3 digit
-			let nbE = dsParams.nbEvents
-				.toString().split('').reverse().reduce(function(acc,val) {
-					if (acc.size % 3 == 0) {
-						acc.val.push(" ");
-					}
-					acc.val.push(val);
-					acc.size += 1;
-					return acc;
-				}, {"val":[], "size" :0})
-				.val.reverse().join('').trim();
-			card.append("p")
-				.classed("nbEvents", true)
-				.classed("datasetParameter", true)
-				.text("Events : " + nbE);
-		}
-		if (dsParams.nbEventTypes) {
-			card.append("p")
-				.classed("nbEventTypes", true)
-				.classed("datasetParameter", true)
-				.text("Event types : " + dsParams.nbEventTypes);
-		}
-		if (dsParams.duration) {
-			card.append("p")
-				.classed("duration", true)
-				.classed("datasetParameter", true)
-				.text("Duration : " + dsParams.duration);
-		}
-		
-		// Prioritize the most used datasets
-		switch(dsName) {
-		case "coconotesPPMT":
-			card.style("order","1");
-			break;
-		case "recsysSamplecategory":
-			card.style("order","2");
-			break;
-		default:
-		}
-	}
 }
 
 /**
