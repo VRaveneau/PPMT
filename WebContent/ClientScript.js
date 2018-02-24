@@ -2,9 +2,6 @@ window.addEventListener ?
 		window.addEventListener("load", init, false) : 
 		window.attachEvent && window.attachEvent("onload", init);
 
-var isLive = false;	// Switch between live and dev socket adress
-//isLive = true;	// Uncomment for the live version
-
 /******************************************************************************/
 /*																			  */
 /*									Variables								  */
@@ -12,9 +9,7 @@ var isLive = false;	// Switch between live and dev socket adress
 /******************************************************************************/
 
 // Adress of the websocket that we want to connect to
-var __websocketAdress__ = isLive ?
-							"ppmt.univ-nantes.fr/ppmt/wsppmt" :
-							"localhost:8080/ppmt/wsppmt";
+var __websocketAdress__ = config.websocketAdress;
 // The actual websocket
 var webSocket = null;
 

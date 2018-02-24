@@ -2,12 +2,7 @@ window.addEventListener ?
 		window.addEventListener("load", init, false) : 
 		window.attachEvent && window.attachEvent("onload", init);
 
-var isLive = false;	// Switch between live and dev socket adress
-//isLive = true;	// Uncomment for the live version
-
-var servletAdress = isLive ?
-		"http://ppmt.univ-nantes.fr/ppmt/datasetProvider" :
-		"http://localhost:8080/ppmt/datasetProvider";
+var servletAdress = config.servletAdress;
 
 /**
  * Initializes the system at the start
