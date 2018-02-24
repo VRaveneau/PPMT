@@ -1569,7 +1569,7 @@ function startInitialMining() {
 			defaultMaxDuration = "30000";
 			break;
 		case "coconotesPPMTLarge":
-			defaultMinSupport = "50";
+			defaultMinSupport = "100";
 			defaultWindowSize = "60";
 			defaultMaxSize = "20";
 			defaultMinGap = "0";
