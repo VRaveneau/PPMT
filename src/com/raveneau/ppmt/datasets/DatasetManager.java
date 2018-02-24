@@ -16,10 +16,7 @@ public class DatasetManager {
 	private static DatasetManager instance = new DatasetManager();
 	private List<Dataset> datasets = null;
 	private List<String> datasetNames = null;
-	// Local version
-	private String datasetFolderPath = "/Users/vincent/Documents/datasets/";
-	// Live version
-	//private String datasetFolderPath = "/home/raveneau/data/";
+	private String datasetFolderPath = Messages.getString("DatasetManager.datasetFolderPath"); //$NON-NLS-1$
 	private File datasetFolder = null;
 
 	private DatasetManager() {
@@ -45,15 +42,15 @@ public class DatasetManager {
 	
 	public void addDataset(String name, String path, boolean startLoading) {
 		if (datasetNames.contains(name)) {
-			System.out.println("Dataset "+name+" already known, not adding it again.");
-			System.out.println("Reloading parameters for dataset "+name+".");
+			System.out.println("Dataset "+name+" already known, not adding it again."); //$NON-NLS-1$ //$NON-NLS-2$
+			System.out.println("Reloading parameters for dataset "+name+"."); //$NON-NLS-1$ //$NON-NLS-2$
 			getDataset(name).loadParameters();
 		} else {
-			System.out.println("Adding dataset "+name+" located at: "+path);
+			System.out.println("Adding dataset "+name+" located at: "+path); //$NON-NLS-1$ //$NON-NLS-2$
 			if (startLoading)
-				System.out.println("Loading the dataset now");
+				System.out.println("Loading the dataset now"); //$NON-NLS-1$
 			else
-				System.out.println("Loading the dataset later");
+				System.out.println("Loading the dataset later"); //$NON-NLS-1$
 			
 			datasetNames.add(name);
 			datasets.add(new Dataset(name,path,startLoading));
@@ -61,13 +58,13 @@ public class DatasetManager {
 	}
 	
 	public void loadDataset(String name) {
-		System.out.println("Loading dataset '"+name.trim()+"' if known");
+		System.out.println("Loading dataset '"+name.trim()+"' if known"); //$NON-NLS-1$ //$NON-NLS-2$
 		for (Dataset d : datasets) {
 			if (d.getName().trim().equals(name.trim()) && !d.isLoaded() && !d.isLoading()) {
-				System.out.println("datasetManager requesting to load '"+d.getName().trim()+"' : "+this.hashCode());
+				System.out.println("datasetManager requesting to load '"+d.getName().trim()+"' : "+this.hashCode()); //$NON-NLS-1$ //$NON-NLS-2$
 				d.loadData();
 			} else {
-				System.out.println("datasetManager not loading '"+d.getName().trim()+"' (isLoaded="+d.isLoaded()+" isLoading="+d.isLoading()+" : "+this.hashCode());
+				System.out.println("datasetManager not loading '"+d.getName().trim()+"' (isLoaded="+d.isLoaded()+" isLoading="+d.isLoading()+" : "+this.hashCode()); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
 			}
 		}
 	}
@@ -104,9 +101,9 @@ public class DatasetManager {
 		Map<String, Map<String, String>> infos = getDataset(datasetName).getEventTypeInfo();
 		List<String> result = new ArrayList<>();
 		for (String e : infos.keySet()) {
-			String s = "type:"+e+";";
+			String s = "type:"+e+";"; //$NON-NLS-1$ //$NON-NLS-2$
 			for (String info : infos.get(e).keySet()) {
-				s+=info+":"+infos.get(e).get(info)+";";
+				s+=info+":"+infos.get(e).get(info)+";"; //$NON-NLS-1$ //$NON-NLS-2$
 			}
 			s = s.substring(0, s.length()-1);
 			result.add(s);
@@ -136,13 +133,13 @@ public class DatasetManager {
 	}
 	
 	private void updateDatasetList(File folder) {
-		System.out.println("searchign for datasets in "+folder.getAbsolutePath());
+		System.out.println("searchign for datasets in "+folder.getAbsolutePath()); //$NON-NLS-1$
 		for (File fileEntry : folder.listFiles()) {
 	        if (fileEntry.isDirectory()) {
 	        	updateDatasetList(fileEntry);
 	        } else
-	        if (fileEntry.isFile() && fileEntry.getName().endsWith(".csv")) {
-	        	System.out.println(fileEntry.getName()+" is a valid dataset");
+	        if (fileEntry.isFile() && fileEntry.getName().endsWith(".csv")) { //$NON-NLS-1$
+	        	System.out.println(fileEntry.getName()+" is a valid dataset"); //$NON-NLS-1$
 	        	String name = fileEntry.getName();
 	        	name = name.substring(0, name.length()-4);
 	        	
@@ -178,30 +175,30 @@ public class DatasetManager {
 				res.add(Integer.toString(i));	// the year
 				res.add(thisYear.get(0).get(0));	// lower bin limit
 				res.add(thisYear.get(0).get(1));	// upper bin limit
-				res.add(thisYear.get(1).get(0).split(";")[2]);		// the first event
-				res.add(thisYear.get(1).get(thisYear.get(1).size()-1).split(";")[2]);		// the last event
+				res.add(thisYear.get(1).get(0).split(";")[2]);		// the first event //$NON-NLS-1$
+				res.add(thisYear.get(1).get(thisYear.get(1).size()-1).split(";")[2]);		// the last event //$NON-NLS-1$
 				res.add(Integer.toString(thisYear.get(1).size()));		// the size of the bin
 				// Compute a String with the userNames in the bin
-				String users = "";
+				String users = ""; //$NON-NLS-1$
 				for (String u : thisYear.get(2)) {
 					if (users.length() > 0)
-						users += ";";
+						users += ";"; //$NON-NLS-1$
 					users += u;
 				}
 				res.add(users);
 				// Compute a String with the eventTypes in the bin
-				String types = "";
+				String types = ""; //$NON-NLS-1$
 				for (String t : thisYear.get(3)) {
 					if (types.length() > 0)
-						types += ";";
+						types += ";"; //$NON-NLS-1$
 					types += t;
 				}
 				res.add(types);
 				// Compute a String with the occurrences of eventTypes in the bin
-				String occs = "";
+				String occs = ""; //$NON-NLS-1$
 				for (String o : thisYear.get(4)) {
 					if (occs.length() > 0)
-						occs += ";";
+						occs += ";"; //$NON-NLS-1$
 					occs += o;
 				}
 				res.add(occs);
@@ -240,30 +237,30 @@ public class DatasetManager {
 					res.add(thisMonth.get(0).get(1));	// upper bin limit
 					//System.out.println("y: "+i+"; m: "+j);
 					//System.out.println(thisMonth.get(1).get(0));
-					res.add(thisMonth.get(1).get(0).split(";")[2]);
-					res.add(thisMonth.get(1).get(thisMonth.get(1).size()-1).split(";")[2]);
+					res.add(thisMonth.get(1).get(0).split(";")[2]); //$NON-NLS-1$
+					res.add(thisMonth.get(1).get(thisMonth.get(1).size()-1).split(";")[2]); //$NON-NLS-1$
 					res.add(Integer.toString(thisMonth.get(1).size()));
 					// Compute a String with the userNames in the bin
-					String users = "";
+					String users = ""; //$NON-NLS-1$
 					for (String u : thisMonth.get(2)) {
 						if (users.length() > 0)
-							users += ";";
+							users += ";"; //$NON-NLS-1$
 						users += u;
 					}
 					res.add(users);
 					// Compute a String with the eventTypes in the bin
-					String types = "";
+					String types = ""; //$NON-NLS-1$
 					for (String t : thisMonth.get(3)) {
 						if (types.length() > 0)
-							types += ";";
+							types += ";"; //$NON-NLS-1$
 						types += t;
 					}
 					res.add(types);
 					// Compute a String with the occurrences of eventTypes in the bin
-					String occs = "";
+					String occs = ""; //$NON-NLS-1$
 					for (String o : thisMonth.get(4)) {
 						if (occs.length() > 0)
-							occs += ";";
+							occs += ";"; //$NON-NLS-1$
 						occs += o;
 					}
 					res.add(occs);
@@ -300,34 +297,34 @@ public class DatasetManager {
 					if (!thisHalfMonth.isEmpty() && thisHalfMonth.size() == 5 && !thisHalfMonth.get(1).isEmpty()) {
 						ArrayList<String> res = new ArrayList<>();
 						res.add(Integer.toString(i));
-						System.out.println("y: "+i+"; m: "+j);
+						System.out.println("y: "+i+"; m: "+j); //$NON-NLS-1$ //$NON-NLS-2$
 						System.out.println(thisHalfMonth.get(1).get(0));
 						res.add(thisHalfMonth.get(0).get(0));	// lower bin limit
 						res.add(thisHalfMonth.get(0).get(1));	// upper bin limit
-						res.add(thisHalfMonth.get(1).get(0).split(";")[2]);
-						res.add(thisHalfMonth.get(1).get(thisHalfMonth.get(1).size()-1).split(";")[2]);
+						res.add(thisHalfMonth.get(1).get(0).split(";")[2]); //$NON-NLS-1$
+						res.add(thisHalfMonth.get(1).get(thisHalfMonth.get(1).size()-1).split(";")[2]); //$NON-NLS-1$
 						res.add(Integer.toString(thisHalfMonth.get(1).size()));
 						// Compute a String with the userNames in the bin
-						String users = "";
+						String users = ""; //$NON-NLS-1$
 						for (String u : thisHalfMonth.get(2)) {
 							if (users.length() > 0)
-								users += ";";
+								users += ";"; //$NON-NLS-1$
 							users += u;
 						}
 						res.add(users);
 						// Compute a String with the eventTypes in the bin
-						String types = "";
+						String types = ""; //$NON-NLS-1$
 						for (String t : thisHalfMonth.get(3)) {
 							if (types.length() > 0)
-								types += ";";
+								types += ";"; //$NON-NLS-1$
 							types += t;
 						}
 						res.add(types);
 						// Compute a String with the occurrences of eventTypes in the bin
-						String occs = "";
+						String occs = ""; //$NON-NLS-1$
 						for (String o : thisHalfMonth.get(4)) {
 							if (occs.length() > 0)
-								occs += ";";
+								occs += ";"; //$NON-NLS-1$
 							occs += o;
 						}
 						res.add(occs);
@@ -360,30 +357,30 @@ public class DatasetManager {
 						res.add(Integer.toString(i));
 						res.add(thisDay.get(0).get(0));	// lower bin limit
 						res.add(thisDay.get(0).get(1));	// upper bin limit
-						res.add(thisDay.get(1).get(0).split(";")[2]);
-						res.add(thisDay.get(1).get(thisDay.get(1).size()-1).split(";")[2]);
+						res.add(thisDay.get(1).get(0).split(";")[2]); //$NON-NLS-1$
+						res.add(thisDay.get(1).get(thisDay.get(1).size()-1).split(";")[2]); //$NON-NLS-1$
 						res.add(Integer.toString(thisDay.get(1).size()));
 						// Compute a String with the userNames in the bin
-						String users = "";
+						String users = ""; //$NON-NLS-1$
 						for (String u : thisDay.get(2)) {
 							if (users.length() > 0)
-								users += ";";
+								users += ";"; //$NON-NLS-1$
 							users += u;
 						}
 						res.add(users);
 						// Compute a String with the eventTypes in the bin
-						String types = "";
+						String types = ""; //$NON-NLS-1$
 						for (String t : thisDay.get(3)) {
 							if (types.length() > 0)
-								types += ";";
+								types += ";"; //$NON-NLS-1$
 							types += t;
 						}
 						res.add(types);
 						// Compute a String with the occurrences of eventTypes in the bin
-						String occs = "";
+						String occs = ""; //$NON-NLS-1$
 						for (String o : thisDay.get(4)) {
 							if (occs.length() > 0)
-								occs += ";";
+								occs += ";"; //$NON-NLS-1$
 							occs += o;
 						}
 						res.add(occs);
@@ -417,30 +414,30 @@ public class DatasetManager {
 							res.add(Integer.toString(i));
 							res.add(thisHalfDay.get(0).get(0));	// lower bin limit
 							res.add(thisHalfDay.get(0).get(1));	// upper bin limit
-							res.add(thisHalfDay.get(1).get(0).split(";")[2]);
-							res.add(thisHalfDay.get(1).get(thisHalfDay.get(1).size()-1).split(";")[2]);
+							res.add(thisHalfDay.get(1).get(0).split(";")[2]); //$NON-NLS-1$
+							res.add(thisHalfDay.get(1).get(thisHalfDay.get(1).size()-1).split(";")[2]); //$NON-NLS-1$
 							res.add(Integer.toString(thisHalfDay.get(1).size()));
 							// Compute a String with the userNames in the bin
-							String users = "";
+							String users = ""; //$NON-NLS-1$
 							for (String u : thisHalfDay.get(2)) {
 								if (users.length() > 0)
-									users += ";";
+									users += ";"; //$NON-NLS-1$
 								users += u;
 							}
 							res.add(users);
 							// Compute a String with the eventTypes in the bin
-							String types = "";
+							String types = ""; //$NON-NLS-1$
 							for (String t : thisHalfDay.get(3)) {
 								if (types.length() > 0)
-									types += ";";
+									types += ";"; //$NON-NLS-1$
 								types += t;
 							}
 							res.add(types);
 							// Compute a String with the occurrences of eventTypes in the bin
-							String occs = "";
+							String occs = ""; //$NON-NLS-1$
 							for (String o : thisHalfDay.get(4)) {
 								if (occs.length() > 0)
-									occs += ";";
+									occs += ";"; //$NON-NLS-1$
 								occs += o;
 							}
 							res.add(occs);
