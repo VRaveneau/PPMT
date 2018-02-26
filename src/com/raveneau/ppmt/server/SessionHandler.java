@@ -26,7 +26,6 @@ import ca.pfv.spmf.test.MainTestGSP_saveToMemory;
 @ApplicationScoped
 public class SessionHandler {
 	
-	private int patternId = 0;
 	private final Set<Session> sessions = new HashSet<>();
 	private DatasetManager datasetManager = DatasetManager.getInstance();
 	private final Map<Session, EventListenerList> listeners = new HashMap<>();

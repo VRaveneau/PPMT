@@ -1,21 +1,8 @@
 package com.raveneau.ppmt.patterns;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-
 import javax.websocket.Session;
 
 import com.raveneau.ppmt.algorithms.SteeringTypes;
@@ -32,7 +19,6 @@ public class PatternManager {
 	private Map<String, String> userRenaming = new HashMap<>();
 	private Map<String, String> eventsCoded = new HashMap<>();
 	private Map<String, String> eventsReadable = new HashMap<>();
-	private String inputPath = "/home/raveneau/data/Agavue/ReadablePatterns/";
 	private Map<Integer, List<String>> patternIdToUser = new HashMap<>();
 	
 	private Map<Integer, ExtractionState> patternExtractionState = new HashMap<>();
@@ -49,7 +35,6 @@ public class PatternManager {
 		System.out.println("creating the PatternManager");
 		for (String k : userRenamingInverted.keySet()) {
 			this.userRenaming.put(userRenamingInverted.get(k), k);
-			//loadPatternsFromFile(userRenamingInverted.get(k));
 		}
 		this.session = session;
 		this.dataset = dataset;
@@ -58,14 +43,6 @@ public class PatternManager {
 		this.eventsReadable = eventsReadable;
 		
 		System.out.println("PatternManager created");
-	}
-	
-	public Map<String, Integer> getAllPatternsPlusSupport() {
-		Map<String, Integer> result = new HashMap<>();
-		for (String p : patternItemsToId.keySet()) {
-			//result.put(p, value) // Finish to return the support + the pattern
-		}
-		return result;
 	}
 	
 	public List<String> getAllPatterns() {
@@ -97,50 +74,6 @@ public class PatternManager {
 				return p;
 		}
 		return null;
-	}
-	
-	/**
-	 * Loads a file of patterns
-	 * Syntax no longer matching the pattern output of GSP
-	 * @param user
-	 */
-	public void loadPatternsFromFile(String user) {
-		Date loadStart = new Date();
-		// read the file
-		/*FileInputStream in = null;
-		BufferedReader reader = null;
-		
-		String filePath = inputPath+"readable-patterns_trace_"+userRenaming.get(user);
-
-		int lineCount = 0;
-		try {
-			in = new FileInputStream(new File(filePath));
-			reader = new BufferedReader(new InputStreamReader(in));
-			String line;
-			// for each line (event)
-			while ((line = reader.readLine()) != null) {
-				String[] parts = line.split("#SID:");
-				String[] sIdsString = parts[1].trim().split(" ");
-				List<Integer> sIds = new ArrayList<>();
-				for (String s : sIdsString) {
-					sIds.add(Integer.parseInt(s));
-				}
-				parts = parts[0].trim().split("#SUP:");
-				Integer support = Integer.parseInt(parts[1].trim());
-				List<String> items = new ArrayList<String>(Arrays.asList(parts[0].trim().split(" ")));
-				
-				addPattern(items,support,sIds,user);
-				lineCount++;
-			}
-			
-			reader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}*/
-		Date loadEnd = new Date();
-		long loadTime = loadEnd.getTime() - loadStart.getTime();
-		
-		//System.out.println(lineCount+" patterns loaded in "+loadTime+"ms.");
 	}
 	
 	public void addPattern(List<String> items, Integer support, List<Integer> sIds, List<String> users, List<long[]> timestamps, boolean hasAllOccurrences) {
