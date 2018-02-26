@@ -26,12 +26,6 @@ public class DummyPatternManager extends PatternManager {
 	}
 
 	@Override
-	public Map<String, Integer> getAllPatternsPlusSupport() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public List<String> getAllPatterns() {
 		// TODO Auto-generated method stub
 		return null;
@@ -41,12 +35,6 @@ public class DummyPatternManager extends PatternManager {
 	public List<Map<String, List<Integer>>> getPatternDistribution(String pattern) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public void loadPatternsFromFile(String user) {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
