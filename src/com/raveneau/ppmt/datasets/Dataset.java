@@ -6,7 +6,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,13 +21,11 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
-import javax.json.JsonValue;
 import javax.json.spi.JsonProvider;
 import javax.websocket.Session;
 
 import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.patterns.PatternManager;
-import com.raveneau.ppmt.server.Messages;
 import com.raveneau.ppmt.server.SessionHandler;
 
 public class Dataset {
