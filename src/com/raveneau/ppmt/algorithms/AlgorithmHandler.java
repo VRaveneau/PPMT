@@ -1,33 +1,11 @@
 package com.raveneau.ppmt.algorithms;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.Thread.State;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import javax.inject.Inject;
-import javax.swing.event.EventListenerList;
 import javax.websocket.Session;
 
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.events.SteeringListener;
-import com.raveneau.ppmt.events.ThreadListener;
-import com.raveneau.ppmt.patterns.Pattern;
 import com.raveneau.ppmt.server.SessionHandler;
-
-import ca.pfv.spmf.algorithms.sequentialpatterns.spam.AlgoSPAM;
 
 public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 
