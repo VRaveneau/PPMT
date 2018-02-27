@@ -2285,7 +2285,7 @@ function receivePatternOccurrences(message) {
 	for (var i=0; i < count; i++) {
 		addPatternOccurrence(pId, message[i.toString()]);
 	}
-	timeline.displayPatternOccurrences(pId);
+	timeline.displayData(); //TODO only redraw the pattern occs and session view
 }
 
 /**
@@ -2839,10 +2839,6 @@ function addPatternToList(message) {
 						requestSteeringOnPattern(pId);
 						d3.event.stopPropagation();
 					} else { // Normal click, displays the occurrences
-						if (occurrencesAreKnown(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayPatternOccurrences(pId);
 						if (selectedPatternIds.includes(pId)) {
 							let index = selectedPatternIds.indexOf(pId);
 							if (index >= 0)
@@ -2850,11 +2846,13 @@ function addPatternToList(message) {
 						} else {
 							selectedPatternIds.push(pId);
 						}
+						if (occurrencesAreKnown(pId) == false)
+							requestPatternOccurrences(pId, currentDatasetName);
+						else
+							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 						//d3.event.stopPropagation();
 						console.log("click on "+pId);
 						createPatternListDisplay();
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						timeline.drawUsersPatterns();
 						
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
@@ -2909,10 +2907,6 @@ function addPatternToList(message) {
 						requestSteeringOnPattern(pId);
 						d3.event.stopPropagation();
 					} else { // Normal click, displays the occurrences
-						if (occurrencesAreKnown(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayPatternOccurrences(pId);
 						if (selectedPatternIds.includes(pId)) {
 							let index = selectedPatternIds.indexOf(pId);
 							if (index >= 0)
@@ -2920,11 +2914,14 @@ function addPatternToList(message) {
 						} else {
 							selectedPatternIds.push(pId);
 						}
+						
+						if (occurrencesAreKnown(pId) == false)
+							requestPatternOccurrences(pId, currentDatasetName);
+						else
+							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 						//d3.event.stopPropagation();
 						console.log("click on "+pId);
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 						createPatternListDisplay();
-						timeline.drawUsersPatterns();
 	
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
@@ -2995,7 +2992,6 @@ function occurrencesAreKnown(patternId) {
 function addPatternOccurrence(patternId, occ) {
 	if (occurrencesAreKnown(patternId) == false) {
 		patternOccurrences[patternId] = [];
-		timeline.displayPatternOccs[patternId] = false;
 	}
 	patternOccurrences[patternId].push(occ);
 }
@@ -4317,10 +4313,6 @@ function createPatternListDisplay() {
 					requestSteeringOnPattern(pId);
 					d3.event.stopPropagation();
 				} else { // Normal click, displays the occurrences
-					if (occurrencesAreKnown(pId) == false)
-						requestPatternOccurrences(pId, currentDatasetName);
-					else
-						timeline.displayPatternOccurrences(pId);
 					if (selectedPatternIds.includes(pId)) {
 						let index = selectedPatternIds.indexOf(pId);
 						if (index >= 0)
@@ -4328,11 +4320,14 @@ function createPatternListDisplay() {
 					} else {
 						selectedPatternIds.push(pId);
 					}
+					
+					if (occurrencesAreKnown(pId) == false)
+						requestPatternOccurrences(pId, currentDatasetName);
+					else
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 					//d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
-					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-					timeline.drawUsersPatterns();
 					
 					// Update the number of selected patterns display
 					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
@@ -4638,10 +4633,6 @@ function changeTooltip(data, origin) {
 						.classed("clickable", true)
 						.classed("bold", selectedPatternIds.includes(pId))
 						.on("click", function() {
-							if (occurrencesAreKnown(pId) == false)
-								requestPatternOccurrences(pId, currentDatasetName);
-							else
-								timeline.displayPatternOccurrences(pId);
 							if (selectedPatternIds.includes(pId)) {
 								let index = selectedPatternIds.indexOf(pId);
 								if (index >= 0)
@@ -4651,11 +4642,13 @@ function changeTooltip(data, origin) {
 								selectedPatternIds.push(pId);
 								d3.select(this).classed("bold", true);
 							}
+							if (occurrencesAreKnown(pId) == false)
+								requestPatternOccurrences(pId, currentDatasetName);
+							else
+								timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 							//d3.event.stopPropagation();
 							console.log("click on "+pId);
 							createPatternListDisplay();
-							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-							timeline.drawUsersPatterns();
 							
 							// Update the number of selected patterns display
 							d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
@@ -4837,11 +4830,11 @@ function selectDataset(datasetName) {
  * Clears the selection of patterns and update the HCI accordingly
  */
 function unselectAllPatterns() {
-	timeline.resetPatternOccurrencesDisplay(selectedPatternIds);
 	selectedPatternIds = [];
 	
 	createPatternListDisplay();
-	timeline.drawUsersPatterns();
+	timeline.displayData(); // TODO only redraw the pattern occurrences
+	//timeline.drawUsersPatterns(); // TODO uncomment when the above line's TODO will be done
 	
 	// Update the number of selected patterns display
 	d3.select("#selectedPatternNumberSpan").text('0');
@@ -5183,39 +5176,9 @@ var Timeline = function(elemId, options) {
 	self.bins = [];
 	self.patternBins = [];
 	
-	self.displayPatternOccs = {};
-	
-	/**
-	 * Switches whether a pattern's occurrences should be displayed or not, then
-	 * updates the display.
-	 * 
-	 * @param {number} id The id of the pattern
-	 * TODO Only redraw the pattern's occurrences, not the whole visualizations
-	 */
-	self.displayPatternOccurrences = function(id) {
-		self.displayPatternOccs[id] = !self.displayPatternOccs[id];
-		//self.drawPatternOccurrences();  Prefered to displaying the old data, only when the patterns will always be drawn on their specific layer
-		self.displayData(); // TODO optimize by just displaying the pattern occurrences
-	}
-	
-	/**
-	 * Stops displaying multiple patterns. Essentially serves as a more efficient
-	 * alternative to several calls to Timeline.displayPatternOccurrences, due to
-	 * only redrawing once.
-	 * 
-	 * @param {number[]} ids The ids of patterns that will stop being displayed
-	 */
-	self.resetPatternOccurrencesDisplay = function(ids) {
-		ids.forEach(function(d,i) {
-			self.displayPatternOccs[d] = false;
-		});
-		
-		self.displayData(); // TODO optimize by just displaying the pattern occurrences
-	}
-	
 	self.resetPatterns = function() {
 		patternOccurrences = {};
-		self.displayPatternOccs = {};
+		selectedPatternIds = [];
 	}
 	
 	self.drawEvents = function() {
@@ -5656,14 +5619,7 @@ var Timeline = function(elemId, options) {
 	self.drawPatternOccurrences = function() {
 		
 		//console.log("Starting to draw pattern occurrences");
-		var idsToDraw = [];
-		
-		for (let key in self.displayPatternOccs) {
-		  if (self.displayPatternOccs.hasOwnProperty(key)) {
-		    if (self.displayPatternOccs[key] == true)
-		    	idsToDraw.push(key);
-		  }
-		}
+		let idsToDraw = selectedPatternIds;
 		
 		//console.log("patterns to draw: "+listOfPatternsToDraw);
 		
@@ -5701,9 +5657,9 @@ var Timeline = function(elemId, options) {
 		        				let index = selectedPatternIds.indexOf(pId);
 								if (index >= 0) {
 									selectedPatternIds.splice(index, 1);
-									self.displayPatternOccurrences(pId);
 									createPatternListDisplay();
 									d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+									self.displayData(); // TODO Only redraw the pattern occurrences
 								}
 		        			});
 		        		
