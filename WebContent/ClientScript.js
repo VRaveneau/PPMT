@@ -147,6 +147,15 @@ var shapeNamesWrite = [
 // Selected names
 var shapeNames = shapeNamesWrite;
 
+/**
+ * The default color for user sessions
+ */
+var sessionColor = "#01668C";
+// The faded color for user sessions
+var sessionColorFaded = "#7DCAE7";
+// The highlighted color for user sessions
+var sessionColorHighlighted = "#9B0000";
+
 /*************************************/
 /*			HCI elements			 */
 /*************************************/
@@ -2996,6 +3005,18 @@ function addPatternOccurrence(patternId, occ) {
 	patternOccurrences[patternId].push(occ);
 }
 
+/**
+ * Deletes every pattern, and the information related to them
+ */
+function resetPatterns() {
+	numberOfPattern = 0;
+	patternsInformation = {};
+	patternIdList = [];
+	patternOccurrences = {};
+	selectedPatternIds = [];
+	// TODO Deal with the pattern metrics in patternMetrics
+}
+
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
@@ -3932,9 +3953,6 @@ function createUserListDisplay() {
 			}
 		});
 	}
-	
-	// Calling the display of the trace
-	//timeline.drawUsersTraces();  Keep commented until the function really draws the user traces
 }
 
 /**
@@ -5176,11 +5194,6 @@ var Timeline = function(elemId, options) {
 	self.bins = [];
 	self.patternBins = [];
 	
-	self.resetPatterns = function() {
-		patternOccurrences = {};
-		selectedPatternIds = [];
-	}
-	
 	self.drawEvents = function() {
 		console.log("Calling temporary draw events");
 	}
@@ -5242,96 +5255,13 @@ var Timeline = function(elemId, options) {
 		self.zoomRect.property("__zoom", t);  // Manually save the transform to clear the saved old transform
 	};
 	
-	// Probably to be deleted, only called from drawUsersTraces, which should not be used
-	self.updateUserList = function() {
-		
-		let shownUsersNames = []; 
-		
-		if (showUserSessionOption == "all") {
-			shownUsersNames = userInformations.map(function(uI) {
-				return uI[0]; // Only get the userName
-			});
-		} else {
-			shownUsersNames = userInformations.slice(firstUserShown, firstUserShown + nbUserShown)
-				.map(function(uI) {
-					return uI[0]; // Only get the userName
-				});
-		}
-		
-		self.yUsers.domain(shownUsersNames);
-		
-		self.yAxisUsers = d3.axisLeft(self.yUsers)
-	        .tickValues(self.yUsers.domain().filter(function(d, i) {
-	        	// Ensures a readable size of tick label
-	        	if (self.yUsers.bandwidth() >= 9)
-	        		return true;
-	        	else
-	        		return false;
-	        }));
-	        /*.tickFormat(function(d, i) {
-	        	return d;
-	        });*/
-		self.users.select(".axis--y").call(self.yAxisUsers);
-		
-		//console.log("User List updated on the timeline");
-		
-	}
-	
-	self.drawUsersTraces = function() {
-		console.log("Starting to draw users traces");
-		
-		self.updateUserList();
-		
-		// get the 10 first users in the list
-		//console.log("UI size : "+userInformations.length);
-		var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
-			return x[0];
-		});
-		//console.log("UI size after : "+userInformations.length);
-		
-		self.canvasUsersContext.fillStyle = "#fff";
-		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
-		self.canvasUsersContext.fill();
-		
-		for (var i=0; i < shownUsers.length; i++) {
-			let userName = shownUsers[i];
-			//console.log("drawing user "+userName);
-			for (var j = 0; j < userTraces[userName].length; j++) {
-				var event = userTraces[userName][j];
-				var eventData = event[0].split(";");
-				
-				var x = self.xUsers(new Date(eventData[1].replace(" ","T")+"Z"));
-				var y = self.yUsers(userName);
-				self.canvasUsersContext.beginPath();
-				self.canvasUsersContext.fillStyle = "blue";
-				self.canvasUsersContext.arc(x,y,3,0,2*Math.PI, false)
-				self.canvasUsersContext.fill();
-				self.canvasUsersContext.closePath();
-			}
-		}
-		
-		//console.log("User traces drawn");
-	}
-	
 	self.colorToDataUserPatterns = {};
-
-	self.sessionColor = "#01668C";//04B7FB
-	self.sessionColorFaded = "#7DCAE7";//c8daea
-	self.sessionColorHighlighted = "#9B0000";//red
 	
 	self.drawUsersPatterns = function() {
 		//console.log("Starting to draw users patterns");
 		
-		
 		self.colorToDataUserPatterns = {};
 		let nextColor = 1;
-		
-		// get the 10 first users in the list
-		//console.log("UI size : "+userInformations.length);
-		/*var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
-			return x[0];
-		});*/
-		
 		
 		//console.log("UI size after : "+userInformations.length);
 		
@@ -5429,13 +5359,13 @@ var Timeline = function(elemId, options) {
 			let userName = shownUsers[i];
 			
 			userSessions[userName].forEach(function(ses, sesIdx) {
-				let color = self.sessionColor;
+				let color = sessionColor;
 				if (hasSelected == true) {
-					color = self.sessionColorFaded; // lighter blue
+					color = sessionColorFaded; // lighter blue
 					Object.keys(ses.count).forEach(function(id, idx) {
 						if (selectedPatternIds.includes(Number(id))) {
 							//console.log(id+" selected");
-							color = self.sessionColorHighlighted;
+							color = sessionColorHighlighted;
 						}
 					});
 				}
