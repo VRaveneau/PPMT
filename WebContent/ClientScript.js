@@ -5255,15 +5255,9 @@ var Timeline = function(elemId, options) {
 		self.zoomRect.property("__zoom", t);  // Manually save the transform to clear the saved old transform
 	};
 	
-	self.colorToDataUserPatterns = {};
-	
 	self.drawUsersPatterns = function() {
 		//console.log("Starting to draw users patterns");
-		
-		self.colorToDataUserPatterns = {};
 		let nextColor = 1;
-		
-		//console.log("UI size after : "+userInformations.length);
 		
 		self.canvasUsersContext.clearRect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
 		
@@ -5398,47 +5392,6 @@ var Timeline = function(elemId, options) {
 				self.canvasUsersContext.lineCap = "butt";
 				self.canvasUsersContext.stroke();
 			    self.canvasUsersContext.closePath();
-			    
-			    // Attributing a color to data link for the hidden canvas
-			    //var hiddenColor = [];
-			    // via http://stackoverflow.com/a/15804183
-			    /*if(nextColor < 16777215){
-			    	hiddenColor.push(nextColor & 0xff); // R
-			    	hiddenColor.push((nextColor & 0xff00) >> 8); // G 
-			    	hiddenColor.push((nextColor & 0xff0000) >> 16); // B
-
-			    	nextColor += 1;
-			    } else {
-			    	console.log('Warning : too may colors needed for the user patterns hidden canvas');
-			    }*/
-			    
-			    /* Create the info we want in the tooltip
-			    * Structure : [year,
-			    * start,
-			    * end,
-			    * nbEventsInBin,
-			    * user1;user2;...,
-			    * type1;type2;...,
-			    * type1:nbOcc;type2:nbOcc;...
-			    * nbEventsInSubBin,
-			    * hslColorValue1]
-			   	*/
-			    /*
-			    let ttInfo = [];
-			    
-			    for (var id in Object.keys(ses.count)) {
-			    	ttInfo.push(patternsInformation[id][0]+": "+ses.count[id]);
-			    }
-			    self.colorToDataUserPatterns["rgb("+hiddenColor.join(',')+")"] = ttInfo;
-			    */
-			    // Drawing on the hidden canvas for the tooltip
-			    /*self.hiddenCanvasUsersContext.lineWidth = 1.5;
-				self.hiddenCanvasUsersContext.strokeStyle = "rgb("+hiddenColor.join(',')+")";
-				self.hiddenCanvasUsersContext.moveTo(x1,y);
-				self.hiddenCanvasUsersContext.lineTo(x2,y);
-				self.hiddenCanvasUsersContext.lineCap = "round";
-				self.hiddenCanvasUsersContext.stroke();
-			    self.hiddenCanvasUsersContext.closePath();*/
 			});
 		}
 		
@@ -5477,20 +5430,6 @@ var Timeline = function(elemId, options) {
 							}
 						}
 						drawCount++;
-						
-						// Attributing a color to data link
-					    /*let color = [];
-					    // via http://stackoverflow.com/a/15804183
-					    if(nextColor < 16777215){
-					    	let nextR = Math.max(0, Math.floor(Math.floor(nextColor / 255) / 255));
-					    	let nextG = Math.max(0, Math.floor(nextColor / 255) % 255);
-					    	let nextB = nextColor % 255;
-					    	color = [nextR, nextG, nextB];
-
-					    	nextColor += 1;
-					    }
-					    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];*/
-					    //console.log("event at index "+firstIndex+" gets color "+color.join(','));
 					    
 						let x = self.xUsers(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
 						let y = self.yUsers(info[3]) + self.yUsers.bandwidth()/2;
@@ -6159,11 +6098,6 @@ var Timeline = function(elemId, options) {
 		self.canvasContext.clearRect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.hiddenCanvasContext.clearRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
 		self.canvasPatternContext.clearRect(0,0,self.canvasPattern.attr("width"),self.canvasPattern.attr("height"));
-		/*self.canvasContext.fillStyle = "#fff";
-		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
-		self.canvasContext.fill();
-		self.hiddenCanvasContext.fillStyle = "#fff";
-		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));*/
 		
 		switch(self.displayMode) {
 		case "distributions":
@@ -6554,7 +6488,8 @@ var Timeline = function(elemId, options) {
 	self.showOnlyHighlightedInFocusForm.selectAll("input").on("change", self.changeEventDisplayStyle);
 	
 	self.displayToolTipGeneral = function(data) {
-		/* Structure : 
+		/* WARNING : MAY NOT BE TRUE ANYMORE
+		 * Structure : 
 		 * [year,
 	     * start,
 	     * end,
@@ -6565,76 +6500,6 @@ var Timeline = function(elemId, options) {
 	     * nbEventsInSubBin,
 		 * type1:hslColorValue1;type2:hslColorValue1;...]
 	   	 */
-		/*var message = "";
-		
-		switch(self.displayMode) {
-		case "distributions":
-			switch(self.distributionScale) {
-			case "year":
-				//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
-			case "month":
-			case "halfMonth":
-			case "day":
-			case "halfDay":
-				var nbUsers = data[4].split(";").length;
-				var nbOccs = data[6].split(';');
-				//console.log("pre-sort: "+nbOccs);
-				nbOccs.sort(function(a,b) {
-					var aVal = parseInt(a.split(":")[1]);
-					var bVal = parseInt(b.split(":")[1]);
-					return bVal - aVal;	// sort in descending order
-				});
-				//console.log("post-sort: "+nbOccs);
-				message = "From "+data[1]+" to "+data[2]+"<br>";
-				message += data[3]+" events across "+nbUsers+" users<br>";
-				message += data[7]+" in this subpart:";
-				for (var i = 0; i < nbOccs.length; i++) {
-					var occ = nbOccs[i].split(":");
-					var percentage = parseInt(occ[1])/parseInt(data[3]);
-					
-					let hslValues = data[8].split(";");
-					let hslValue = 0;
-					for (let idx = 0; idx < hslValues.length; idx++) {
-						if (hslValues[idx].split(":")[0] == occ[0]) {
-							hslValue = parseInt(hslValues[idx].split(":")[1]);
-							break;
-						}
-					}
-					
-					
-					
-					//Create an svg node outside of the DOM to get its inner HTML
-					var divOutsideOfDom = document.createElementNS("http://www.w3.org/1999/xhtml","div");
-					divOutsideOfDom.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-					
-					var div = d3.select(divOutsideOfDom);*/
-					/* Create an event type line with svg for the event symbols
-					var svg = div.append("svg")
-						.attr("width", 16)
-						.attr("height", 16);
-					svg.append("path")
-						.attr("d",d3.symbol().type(itemShapes[occ[0]]).size(60))
-						.attr("transform","translate(8,8)")
-						.attr("stroke", colorList[occ[0]].toString())
-						.attr("fill","none");*/
-					/* create an event type line with utf-8 for the event symbols */
-					/*div.append("span")
-						.style("color",colorList[occ[0]][0].toString())
-						.text(itemShapes[occ[0]]);
-					message += "<br>"+div.html()+"&nbsp;"+occ[0]+" : "+occ[1]+" ("+(percentage*100).toPrecision(3)+"%)";
-					div.remove(); 
-				}
-			}
-			break;
-		case "events":
-				splitData = data.split(";");
-				message = "Type: " + splitData[0] + "<br>";
-				message += "Time: " + splitData[1] + "<br>";
-				message += "User: " + splitData[3] + "<br>";
-				message += "Properties:";
-				for(var i = 4; i < splitData.length; i++)
-					message += "<br>&nbsp;&nbsp;&nbsp;&nbsp;"+splitData[i];
-		}*/
 		changeTooltip(data, "general");
 	}
 	
@@ -6723,20 +6588,6 @@ var Timeline = function(elemId, options) {
 	}
 	
 	self.displayToolTipSessionPatterns = function(data) {
-		/* Structure : 
-		 * ["id: number"]
-	   	 */
-		/*var message = "";
-		
-		if (data.length == 0)
-			message = "No pattern in this session";
-		else {
-			for (let pIdx = 0; pIdx < data.length; pIdx++) {
-				message += data[pIdx];
-				if (pIdx + 1 < data.length)
-					message += "<br>"
-			}
-		}*/
 		changeTooltip(data, "session");
 	}
 	
@@ -6835,7 +6686,6 @@ var Timeline = function(elemId, options) {
 	self.svgFocus = d3.select(self.nodeFocus).append("svg")
 		.attr("width",self.parentNode.clientWidth)
 		.attr("height",self.heightFocus)
-		/*.attr("height",self.parentNode.clientHeight-15)*/
 		.style("position","absolute")
 		.style("top","0")
 		.style("left","0");	
@@ -6843,7 +6693,6 @@ var Timeline = function(elemId, options) {
 	self.svgOverview = d3.select(self.nodeOverview).append("svg")
 		.attr("width",self.parentNode.clientWidth)
 		.attr("height",self.heightContext)
-		/*.attr("height",self.parentNode.clientHeight-15)*/
 		.style("position","absolute")
 		.style("top","0")
 		.style("left","0");
@@ -6851,7 +6700,6 @@ var Timeline = function(elemId, options) {
 	self.svgUsers = d3.select(self.nodeUsers).append("svg")
 		.attr("width",self.parentNode.clientWidth)
 		.attr("height",self.heightUsers)
-		/*.attr("height",self.parentNode.clientHeight-15)*/
 		.style("position","absolute")
 		.style("top","0")
 		.style("left","0");
@@ -7173,20 +7021,6 @@ var Timeline = function(elemId, options) {
 					clearTooltip();
 				}
 			}
-			
-			 // Old version, with the pixel colors
-			/*var pixelColor = self.hiddenCanvasUsersContext.getImageData(coords[0], coords[1],1,1).data;
-			if (pixelColor[0] != 255 && pixelColor[1] != 255 && pixelColor[2] != 255) {
-				var colorString = "rgb("+pixelColor[0]+","+pixelColor[1]+","+pixelColor[2]+")";
-				var data = self.colorToDataUserPatterns[colorString];
-				if (typeof data !== 'undefined') {
-					self.displayToolTip(data);
-				}
-				self.userTooltipCreated = true;
-			} else {
-				if (self.userTooltipCreated == true)
-					tooltip.hide();
-			}*/
 		})
 		.on("mouseout", function(){
 			if (self.userTooltipCreated == true) {
@@ -7203,10 +7037,6 @@ var Timeline = function(elemId, options) {
 		.attr("stroke","black")
 		.attr("stroke-width","1")
 		.attr("fill-opacity","0.2");
-	
-	/****************************/
-	/*			Methods			*/
-	/****************************/
 	
 	self.focusOnSession = function(start, end) {
 		//self.context.select(".brush")
@@ -7259,224 +7089,6 @@ var Timeline = function(elemId, options) {
 		self.users.select(".axis--x").call(self.xAxisUsers);
 		self.users.select(".axis--y").call(self.yAxisUsers);
 	}
-	
-	self.addDataset = function(data) {
-		
-		self.displayData();
-		/*
-		for (var user in data) {
-			if (data.hasOwnProperty(user)) {
-				self.displayData();
-				//self.addToDataBinding(data[user]);
-			}
-		}*/
-	};
-	
-	self.addToDataBinding = function(data) {
-		//var csvData = data.map(self.prepareEvent);
-		
-		var customClass = "custom."+data.user;
-		
-		var dataBinding = self.dataContainer.selectAll(customClass)
-			.data(data, function(d) {return d.data.split(";");})
-			.enter()
-			.append("custom")
-			.classed(function(d) {return data.user;}, true)
-			.classed("rect",true)
-			.attr("x", function(d) {
-				var timeFormat = d3.timeParse('%Y-%m-%d %H:%M:%S');
-				return self.xFocus(timeFormat(d[1]));
-				})
-			.attr("y", function(d) {
-				if(!self.typeHeight.hasOwnProperty(d[1]))
-					self.typeHeight[d[1]] = 0.01;
-				else
-					self.typeHeight[d[1]] = self.typeHeight[d[1]]+0.01;
-				return self.yFocus(self.typeHeight[d[1]])})
-			.attr("size", 5)
-			.attr("fillStyle","green");
-		
-		self.userData = self.userData + 1;
-		//console.log("Custom object built : "+new Date());
-		if (self.userData == 31575)
-			self.displayData();
-		else if (self.userData % 10000 == 0)
-			console.log(self.userData);
-	};
-	
-	self.addData = function(data) {
-		//console.log("data received");
-		var csvData = data.map(self.prepareEvent);
-		//console.log("data mapped");
-
-		//console.log(csvData);
-		
-		// Adjust the focus part of the timeline to the new data
-		//self.xFocus.domain(d3.extent(csvData, function(d) { return d.time; }));
-		//self.yFocus.domain([0.0, 20.0]);
-		
-		var customClass = "custom."+csvData.user;
-		
-		//var dataBinding = self.dataContainer.selectAll("custom.rect")
-		var dataBinding = self.dataContainer.selectAll(customClass)
-			.data(csvData/*, function(d) {return d;}*/);
-		/*console.log(dataBinding);*/
-		dataBinding.enter()
-			.append("custom")
-			//.classed("rect", true)
-			.classed(function(d) {return d.user;}, true)
-			.classed("rect",true)
-			.attr("x", function(d) {return self.xFocus(d.time)})
-			.attr("y", function(d) {return self.yFocus(d.height)})
-			.attr("size", 5)
-			.attr("fillStyle","green");
-		
-		dataBinding.exit()
-			.attr("size",5)
-			.attr("fillStyle","red");
-		//console.log("data bound");
-		
-		/*self.focus.selectAll(".dot").remove()
-			.data(csvData)
-			.enter().append("path")
-			.attr("d",d3.symbol().type(function(d) {return itemShapes[d.type];d3.symbol().type(d.shape);d3.symbolStar;d3.symbol().type(d.shape);d3.symbolStar;d.shape;})
-								.size(function(d) {return 50;}))
-			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
-			.attr("stroke", function(d) {return d3.hsl(d.color,100,50)})
-			.attr("fill","none")
-			.attr("class","dot");*/
-		
-		/*self.focus.append("path")			ALREADY COMMENTED OUT
-	      .datum(csvData)
-	      .attr("class", "area")
-	      .attr("d", self.areaFocus);*/
-
-		self.focus.select(".axis--x")/*
-	      .attr("transform", "translate(0," + height + ")")*/
-	      .call(self.xAxisFocus);
-
-		self.focus.select(".axis--y")
-	      .call(self.yAxisFocus);
-			//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
-
-		/*self.context.append("path")			ALREADY COMMENTED OUT
-	      .datum(csvData)
-	      .attr("class", "area")
-	      .attr("d", self.areaContext);*/
-
-		self.context.select(".axis--x");/*
-	      .attr("transform", "translate(0," + this.heightContext + ")")
-	      .call(this.xAxisContext);*/
-
-		// Moving the brush on the data
-		var dataExtent = d3.extent(csvData, function(d) { return d.time; });
-		self.context.select(".brush")
-	      .call(self.brush)
-	      //.call(self.brush.move, [self.xFocus(dataExtent[0]), self.xFocus(dataExtent[1])]);
-	      .call(self.brush.move, self.xFocus.range());
-
-		// Focusing on the data
-		/*self.svg.select(".zoom")/*
-	      .attr("width", this.width)
-	      .attr("height", this.heightFocus)
-	      .attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
-	      .call(self.zoom);*/
-	/*self.svg.append("rect")
-		.attr("class", "zoom")
-		.attr("width", self.width)
-		.attr("height", self.heightFocus)
-		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
-		.call(self.zoom);*/
-		//self.drawCanvas();
-		self.userData = self.userData + 1;
-		//console.log("Custom object built : "+new Date());
-		if (self.userData == 31575)
-			self.displayData();
-		else if (self.userData % 10000 == 0)
-			console.log(self.userData);
-		//self.drawCanvas();
-	};
-	
-	self.addDataToSVG = function(data) {
-		var csvData = data.map(self.prepareEvent);
-		//console.log(csvData);
-		
-		// Adjust the focus part of the timeline to the new data
-		/*self.xFocus.domain(d3.extent(csvData, function(d) { return d.time; }));
-		self.yFocus.domain([0.0, 20.0]);*/
-
-		self.focus.selectAll(".dot").remove()
-			.data(csvData)
-			.enter().append("path")
-			.attr("d",d3.symbol().type(function(d) {return itemShapes[d.type];d3.symbol().type(d.shape);d3.symbolStar;d3.symbol().type(d.shape);d3.symbolStar;d.shape;})
-								.size(function(d) {return 50;}))
-			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
-			.attr("stroke", function(d) {return d3.hsl(d.color,100,50)})
-			.attr("fill","none")
-			.attr("class","dot");
-		
-		/*self.focus.append("path")
-	      .datum(csvData)
-	      .attr("class", "area")
-	      .attr("d", self.areaFocus);*/
-
-		self.focus.select(".axis--x")/*
-	      .attr("transform", "translate(0," + height + ")")*/
-	      .call(this.xAxisFocus);
-
-		self.focus.select(".axis--y")
-	      .call(self.yAxisFocus);
-			//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
-
-		/*self.context.append("path")
-	      .datum(csvData)
-	      .attr("class", "area")
-	      .attr("d", self.areaContext);*/
-
-		self.context.select(".axis--x");/*
-	      .attr("transform", "translate(0," + this.heightContext + ")")
-	      .call(this.xAxisContext);*/
-
-		// Moving the brush on the data
-		var dataExtent = d3.extent(csvData, function(d) { return d.time; });
-		self.context.select(".brush")
-	      .call(self.brush)
-	      //.call(self.brush.move, [self.xFocus(dataExtent[0]), self.xFocus(dataExtent[1])]);
-	      .call(self.brush.move, self.xFocus.range());
-
-		// Focusing on the data
-		/*self.svg.select(".zoom")/*
-	      .attr("width", this.width)
-	      .attr("height", this.heightFocus)
-	      .attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
-	      .call(self.zoom);*/
-	/*self.svg.append("rect")
-		.attr("class", "zoom")
-		.attr("width", self.width)
-		.attr("height", self.heightFocus)
-		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
-		.call(self.zoom);*/
-		//self.drawCanvas();
-	};
-
-	// Prepare data that arrives as a list of pairs [eventType,time]
-	// to be displayed
-	self.prepareEvent = function(e) {
-		var splitted = e.data.split(";");
-		if(!self.typeHeight.hasOwnProperty(splitted[1]))
-  			self.typeHeight[splitted[1]] = 0.01;
-		else
-			self.typeHeight[splitted[1]] = self.typeHeight[splitted[1]]+0.01;
-		var shapeHeight = self.typeHeight[splitted[1]];
-  		var timeFormat = d3.timeParse('%Y-%m-%d %H:%M:%S');
-  		//console.log("prep:\n"+"time: "+splitted[1]+"\nparsed: "+timeFormat(splitted[1]));
-		return {"type":splitted[0],
-				"time":timeFormat(splitted[1]),
-				"height": shapeHeight,
-				"color":parseFloat(splitted[2]),
-				"shape":e.shape,
-				"user":e.user};
-	};
 		
 	self.displayDistributions = function() {
 		//console.log("Display distributions");
