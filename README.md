@@ -33,7 +33,7 @@ This file is optional. When it is provided, no attribute is mandatory, and attri
 
 - `eventDescription`, used to provide a description of what the event types present in the dataset represent. It is an object that takes event types as keys and strings as values. 
 - `eventCategory`, grouping event types into categories. It is an object that takes categories names as keys and arrays of event types as values.
-- `timeFormat`, describing the format used for dates in the dataset. It is a string describing a valid [Java date format](http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html).
+- **Not yet implemented** `timeFormat`, describing the format used for dates in the dataset. It is a string describing a valid [Java date format](http://docs.oracle.com/javase/7/docs/api/java/text/SimpleDateFormat.html).
 
 Information about the data can also be added, that will be presented in the dataset selection part of the tool. However, once the dataset has been selected, the values for these are recalculated from the actual data:
 
