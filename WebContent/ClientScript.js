@@ -252,6 +252,9 @@ var patternIdList = [];
 // Known metrics on the patterns
 var patternMetrics = {"sizeDistribution":{}};
 
+// The occurrences for each pattern
+var patternOccurrences = {};
+
 // List of highlighted event type ids
 var highlightedEventTypes = [];
 
@@ -2280,7 +2283,7 @@ function receivePatternOccurrences(message) {
 	var count = parseInt(message.count);
 	
 	for (var i=0; i < count; i++) {
-		timeline.addPatternOccurrence(pId, message[i.toString()]);
+		addPatternOccurrence(pId, message[i.toString()]);
 	}
 	timeline.displayPatternOccurrences(pId);
 }
@@ -2836,7 +2839,7 @@ function addPatternToList(message) {
 						requestSteeringOnPattern(pId);
 						d3.event.stopPropagation();
 					} else { // Normal click, displays the occurrences
-						if (timeline.hasPatternOccurrences(pId) == false)
+						if (occurrencesAreKnown(pId) == false)
 							requestPatternOccurrences(pId, currentDatasetName);
 						else
 							timeline.displayPatternOccurrences(pId);
@@ -2906,7 +2909,7 @@ function addPatternToList(message) {
 						requestSteeringOnPattern(pId);
 						d3.event.stopPropagation();
 					} else { // Normal click, displays the occurrences
-						if (timeline.hasPatternOccurrences(pId) == false)
+						if (occurrencesAreKnown(pId) == false)
 							requestPatternOccurrences(pId, currentDatasetName);
 						else
 							timeline.displayPatternOccurrences(pId);
@@ -2971,6 +2974,30 @@ function addPatternToList(message) {
 		patternMetrics["sizeDistribution"][pSize] = patternMetrics["sizeDistribution"][pSize] + 1;
 	else
 		patternMetrics["sizeDistribution"][pSize] = 1;
+}
+
+/**
+ * Whether or not the occurrences of a pattern have already been sent by the
+ * server.
+ * @param {number} patternId The id of the pattern
+ */
+function occurrencesAreKnown(patternId) {
+	return patternOccurrences.hasOwnProperty(patternId);
+}
+
+/**
+ * Adds a pattern occurrence to the known occurrences
+ * @param {number} patternId The id of the pattern
+ * @param {*} occ The occurrence
+ * 
+ * TODO What is the type of 'occ' ?
+ */
+function addPatternOccurrence(patternId, occ) {
+	if (occurrencesAreKnown(patternId) == false) {
+		patternOccurrences[patternId] = [];
+		timeline.displayPatternOccs[patternId] = false;
+	}
+	patternOccurrences[patternId].push(occ);
 }
 
 /************************************/
@@ -4290,7 +4317,7 @@ function createPatternListDisplay() {
 					requestSteeringOnPattern(pId);
 					d3.event.stopPropagation();
 				} else { // Normal click, displays the occurrences
-					if (timeline.hasPatternOccurrences(pId) == false)
+					if (occurrencesAreKnown(pId) == false)
 						requestPatternOccurrences(pId, currentDatasetName);
 					else
 						timeline.displayPatternOccurrences(pId);
@@ -4611,7 +4638,7 @@ function changeTooltip(data, origin) {
 						.classed("clickable", true)
 						.classed("bold", selectedPatternIds.includes(pId))
 						.on("click", function() {
-							if (timeline.hasPatternOccurrences(pId) == false)
+							if (occurrencesAreKnown(pId) == false)
 								requestPatternOccurrences(pId, currentDatasetName);
 							else
 								timeline.displayPatternOccurrences(pId);
@@ -5156,20 +5183,7 @@ var Timeline = function(elemId, options) {
 	self.bins = [];
 	self.patternBins = [];
 	
-	self.patternOccs = {};
 	self.displayPatternOccs = {};
-	
-	/**
-	 * Checks if the timeline has already received the occurrences for the given
-	 * pattern.
-	 * 
-	 * @param {number} id The id of the pattern
-	 * @returns {boolean} Whether the timeline has the occurrences (true) or not
-	 *  (false) 
-	 */
-	self.hasPatternOccurrences = function(id) {
-		return self.patternOccs.hasOwnProperty(id);
-	}
 	
 	/**
 	 * Switches whether a pattern's occurrences should be displayed or not, then
@@ -5199,16 +5213,8 @@ var Timeline = function(elemId, options) {
 		self.displayData(); // TODO optimize by just displaying the pattern occurrences
 	}
 	
-	self.addPatternOccurrence = function(id, occ) {
-		if (self.patternOccs.hasOwnProperty(id) == false) {
-			self.patternOccs[id] = [];
-			self.displayPatternOccs[id] = false;
-		}
-		self.patternOccs[id].push(occ);
-	}
-	
 	self.resetPatterns = function() {
-		self.patternOccs = {};
+		patternOccurrences = {};
 		self.displayPatternOccs = {};
 	}
 	
@@ -5721,10 +5727,10 @@ var Timeline = function(elemId, options) {
 		switch(self.displayMode) {
 		case "distributions": // Displays all occurrences of a pattern on a line
 			for (let i = 0; i < idsToDraw.length; i++) {// Draw each pattern
-				for (let j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
+				for (let j=0; j < patternOccurrences[idsToDraw[i]].length; j++) {// Draw each occurrence
 					console.log("Ids to draw: "+idsToDraw);
-					if (self.patternOccs[idsToDraw[i]][j]) {
-						let occ = self.patternOccs[idsToDraw[i]][j].split(";");
+					if (patternOccurrences[idsToDraw[i]][j]) {
+						let occ = patternOccurrences[idsToDraw[i]][j].split(";");
 						// Only draw the occurrence if it belongs to a selected user
 						// To uncomment when "only show highlighted" will impact the bin view
 						//if (highlightedUsers.length == 0 || highlightedUsers.includes(occ[0])) {
@@ -5753,10 +5759,10 @@ var Timeline = function(elemId, options) {
 		case "events": // Displays occurrences by connecting their events
 			for (let i = 0; i < idsToDraw.length; i++) {// Draw each pattern
 				let patternItems = patternsInformation[idsToDraw[i]][3];
-				for (let j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
+				for (let j=0; j < patternOccurrences[idsToDraw[i]].length; j++) {// Draw each occurrence
 					console.log("Ids to draw: "+idsToDraw);
-					if (self.patternOccs[idsToDraw[i]][j]) {
-						let occ = self.patternOccs[idsToDraw[i]][j].split(";");
+					if (patternOccurrences[idsToDraw[i]][j]) {
+						let occ = patternOccurrences[idsToDraw[i]][j].split(";");
 						// Only draw the occurrence if it belongs to a selected user
 						// 	and if "only show highlighted" is true
 						if (!self.showOnlyHighlightedInFocus || (highlightedUsers.length == 0 || highlightedUsers.includes(occ[0]))) {
