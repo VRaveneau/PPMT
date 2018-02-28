@@ -2220,6 +2220,7 @@ function receiveEvents(eventsCompressed) {
 		computeMaxEventAtOneTime();
 		disableCentralOverlay();
 		requestRelevantBins(currentDatasetName, timeline.getRelevantDistributionScale());
+		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
 		startInitialMining();
 	}
 }
