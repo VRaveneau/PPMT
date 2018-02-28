@@ -209,6 +209,17 @@ var gapSlider = null;
 // Svg component displaying the activity indicator
 var runningTaskIndicatorSvg = d3.select("#top").select("svg").select("circle");
 
+// Minimum time span (in s) to use the 'year' distribution scale
+var distributionYearThreshold = 60*60*24*365*3;	// 3 years
+// Minimum time span (in s) to use the 'month' distribution scale
+var distributionMonthThreshold = 60*60*24*365;	// 1 year
+// Minimum time span (in s) to use the 'half month' distribution scale
+var distributionHalfMonthThreshold = 60*60*24*31*3;	// 3 months
+// Minimum time span (in s) to use the 'day' distribution scale
+var distributionDayThreshold = 60*60*24*7*3; // 3 weeks
+// Minimum time span (in s) to use the 'half day' distribution scale
+var distributionHalfDayThreshold = 60*60*24*3; // 3 days
+
 /*************************************/
 /*			Data elements			 */
 /*************************************/
@@ -4398,6 +4409,100 @@ function createPatternListDisplay() {
 	
 }
 
+/**
+ * Moves the overview brush over a specific time period (clamped to the period
+ * covered by the dataset)
+ * @param {number} startTime The lower bound of the period (in ms)
+ * @param {number} endTime The upper bound if the period (in ms)
+ */
+function focusOnTimePeriod(startTime, endTime) {
+	let contextTimeRange = timeline.xContext.range().map(timeline.xContext.invert);
+	let start = Math.max(startTime, contextTimeRange[0]);
+	let end = Math.min(endTime, contextTimeRange[1]);
+
+	timeline.gBrush.call(timeline.brush.move, 
+		[timeline.xContext(start), timeline.xContext(end)]);
+}
+
+/**
+ * Moves the overview brush so that a specific bin size is used. If possible,
+ * the brush extends both ends to keep the current middle point unchanged.
+ */
+function goToDistribution(distributionThreshold) {
+	let currentPeriod = currentTimeFilter[1] - currentTimeFilter[0];
+	let center = currentTimeFilter[0] + Math.round(currentPeriod/2);
+
+	let newPeriod = distributionThreshold*1000-1; // Convert from s to ms
+	let start = center - Math.floor(newPeriod/2);
+	let end = center + Math.ceil(newPeriod/2);
+
+	let contextRange = timeline.xContext.range();
+	let overflowStart = contextRange[0] - timeline.xContext(start);
+	let overflowEnd = timeline.xContext(end) - contextRange[1];
+
+	if (overflowStart > 0 && overflowEnd > 0) {
+		// Both end overflow, view the entire dataset
+		timeline.gBrush.call(timeline.brush.move, 
+			contextRange);
+	} else {
+		if (overflowStart > 0) {
+			start = timeline.xContext.invert(contextRange[0]);
+			// The -0 is used to cast start to a number of milliseconds from a string
+			end = Math.min(start -0 +newPeriod, timeline.xContext.invert(contextRange[1]));
+		} else if (overflowEnd > 0) {
+			end = timeline.xContext.invert(contextRange[1]);
+			start = Math.max(end -newPeriod, timeline.xContext.invert(contextRange[0]));
+		}
+		timeline.gBrush.call(timeline.brush.move, 
+			[timeline.xContext(start), timeline.xContext(end)]);
+	}
+}
+
+/**
+ * Moves the overview brush over the full dataset, to use the biggest event
+ * bin size (one bin per year)
+ */
+function goToYearDistribution() {
+	let contextTimeRange = timeline.xContext.range().map(timeline.xContext.invert);
+	focusOnTimePeriod(contextTimeRange[0], contextTimeRange[1]);
+}
+
+/**
+ * Moves the overview brush to use the month bin size (one bin per month)
+ */
+function goToMonthDistribution() {
+	goToDistribution(distributionYearThreshold);
+}
+
+/**
+ * Moves the overview brush to use the half month bin size (one bin per half 
+ * month)
+ */
+function goToHalfMonthDistribution() {
+	goToDistribution(distributionMonthThreshold);
+}
+
+/**
+ * Moves the overview brush to use the day bin size (one bin per day)
+ */
+function goToDayDistribution() {
+	goToDistribution(distributionHalfMonthThreshold);
+}
+
+/**
+ * Moves the overview brush to use the half day bin size (one bin per 12h)
+ */
+function goToHalfDayDistribution() {
+	goToDistribution(distributionDayThreshold);
+}
+
+/**
+ * Moves the overview brush to view the individual events
+ */
+function goToEvents() {
+	goToDistribution(distributionHalfDayThreshold);
+}
+
 /************************************/
 /*				Tooltip				*/
 /************************************/
@@ -6024,15 +6129,19 @@ var Timeline = function(elemId, options) {
 	self.getRelevantDistributionScale = function() {
 		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
 		if (self.getRelevantDisplayMode() == "distributions") {
-			if (displaySeconds > 60*60*24*365*3 )	// more than 3 years
+			if (displaySeconds >= distributionYearThreshold )
 				return "year";
-			if (displaySeconds < 60*60*24*365*3 && displaySeconds > 60*60*24*365)	// between 1 year and 3 years
+			if (displaySeconds < distributionYearThreshold &&
+				 displaySeconds >= distributionMonthThreshold)
 				return "month";
-			if (displaySeconds < 60*60*24*365 && displaySeconds > 60*60*24*31*3)	// between 3 months and 1 year
+			if (displaySeconds < distributionMonthThreshold &&
+				 displaySeconds >= distributionHalfMonthThreshold)
 				return "halfMonth";
-			if (displaySeconds < 60*60*24*31*3 && displaySeconds > 60*60*24*7*3)	// between 3 months and 3 weeks
+			if (displaySeconds < distributionHalfMonthThreshold &&
+				 displaySeconds >= distributionDayThreshold)
 				return "day";
-			if (displaySeconds < 60*60*24*7*3 && displaySeconds > 60*60*24*3)	// between 3 weeks and 3 days
+			if (displaySeconds < distributionDayThreshold &&
+				 displaySeconds >= distributionHalfDayThreshold)
 				return "halfDay";
 			// If no other condition is met
 			console.log("Trying to scale distributions in an unknown way. distributionScale = "+self.distributionScale);
@@ -6198,15 +6307,58 @@ var Timeline = function(elemId, options) {
 	// Adding the zoom's granularity information
 	self.zoomInfo = self.controls.append("div")
 		.attr("style","float:left;")
-		.html("Data grouped by: <span>" +
-				"<span id='zoomInfoYear'>year<span> \> " +
-				"<span id='zoomInfoMonth'>month</span> \> " +
-				"<span id='zoomInfoHalfMonth'>half month</span> \> " +
-				"<span id='zoomInfoDay'>day</span> \> " +
-				"<span id='zoomInfoHalfDay'>half day</span> \> " +
-				"<span id='zoomInfoEvent'>event</span>" +
-				"</span>");
-	self.zoomInfo.selectAll("span").attr("class","zoomInfoSpan");
+		.text("Data grouped by: ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoYear")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("year")
+		.on("click", goToYearDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoMonth")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("month")
+		.on("click", goToMonthDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoHalfMonth")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("half month")
+		.on("click", goToHalfMonthDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoDay")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("day")
+		.on("click", goToDayDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoHalfDay")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("half day")
+		.on("click", goToHalfDayDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoEvent")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("event")
+		.on("click", goToEvents);
 	
 	// Adding the display options (bins / discrete)
 	/*self.controlForm = self.controls.append("form")
