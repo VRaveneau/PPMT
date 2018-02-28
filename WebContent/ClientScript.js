@@ -147,6 +147,15 @@ var shapeNamesWrite = [
 // Selected names
 var shapeNames = shapeNamesWrite;
 
+/**
+ * The default color for user sessions
+ */
+var sessionColor = "#01668C";
+// The faded color for user sessions
+var sessionColorFaded = "#7DCAE7";
+// The highlighted color for user sessions
+var sessionColorHighlighted = "#9B0000";
+
 /*************************************/
 /*			HCI elements			 */
 /*************************************/
@@ -200,6 +209,17 @@ var gapSlider = null;
 // Svg component displaying the activity indicator
 var runningTaskIndicatorSvg = d3.select("#top").select("svg").select("circle");
 
+// Minimum time span (in s) to use the 'year' distribution scale
+var distributionYearThreshold = 60*60*24*365*3;	// 3 years
+// Minimum time span (in s) to use the 'month' distribution scale
+var distributionMonthThreshold = 60*60*24*365;	// 1 year
+// Minimum time span (in s) to use the 'half month' distribution scale
+var distributionHalfMonthThreshold = 60*60*24*31*3;	// 3 months
+// Minimum time span (in s) to use the 'day' distribution scale
+var distributionDayThreshold = 60*60*24*7*3; // 3 weeks
+// Minimum time span (in s) to use the 'half day' distribution scale
+var distributionHalfDayThreshold = 60*60*24*3; // 3 days
+
 /*************************************/
 /*			Data elements			 */
 /*************************************/
@@ -251,6 +271,9 @@ var patternsInformation = {};
 var patternIdList = [];
 // Known metrics on the patterns
 var patternMetrics = {"sizeDistribution":{}};
+
+// The occurrences for each pattern
+var patternOccurrences = {};
 
 // List of highlighted event type ids
 var highlightedEventTypes = [];
@@ -2197,6 +2220,7 @@ function receiveEvents(eventsCompressed) {
 		computeMaxEventAtOneTime();
 		disableCentralOverlay();
 		requestRelevantBins(currentDatasetName, timeline.getRelevantDistributionScale());
+		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
 		startInitialMining();
 	}
 }
@@ -2280,9 +2304,9 @@ function receivePatternOccurrences(message) {
 	var count = parseInt(message.count);
 	
 	for (var i=0; i < count; i++) {
-		timeline.addPatternOccurrence(pId, message[i.toString()]);
+		addPatternOccurrence(pId, message[i.toString()]);
 	}
-	timeline.displayPatternOccurrences(pId);
+	timeline.displayData(); //TODO only redraw the pattern occs and session view
 }
 
 /**
@@ -2836,10 +2860,6 @@ function addPatternToList(message) {
 						requestSteeringOnPattern(pId);
 						d3.event.stopPropagation();
 					} else { // Normal click, displays the occurrences
-						if (timeline.hasPatternOccurrences(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayPatternOccurrences(pId);
 						if (selectedPatternIds.includes(pId)) {
 							let index = selectedPatternIds.indexOf(pId);
 							if (index >= 0)
@@ -2847,11 +2867,13 @@ function addPatternToList(message) {
 						} else {
 							selectedPatternIds.push(pId);
 						}
+						if (occurrencesAreKnown(pId) == false)
+							requestPatternOccurrences(pId, currentDatasetName);
+						else
+							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 						//d3.event.stopPropagation();
 						console.log("click on "+pId);
 						createPatternListDisplay();
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						timeline.drawUsersPatterns();
 						
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
@@ -2906,10 +2928,6 @@ function addPatternToList(message) {
 						requestSteeringOnPattern(pId);
 						d3.event.stopPropagation();
 					} else { // Normal click, displays the occurrences
-						if (timeline.hasPatternOccurrences(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayPatternOccurrences(pId);
 						if (selectedPatternIds.includes(pId)) {
 							let index = selectedPatternIds.indexOf(pId);
 							if (index >= 0)
@@ -2917,11 +2935,14 @@ function addPatternToList(message) {
 						} else {
 							selectedPatternIds.push(pId);
 						}
+						
+						if (occurrencesAreKnown(pId) == false)
+							requestPatternOccurrences(pId, currentDatasetName);
+						else
+							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 						//d3.event.stopPropagation();
 						console.log("click on "+pId);
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 						createPatternListDisplay();
-						timeline.drawUsersPatterns();
 	
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
@@ -2971,6 +2992,41 @@ function addPatternToList(message) {
 		patternMetrics["sizeDistribution"][pSize] = patternMetrics["sizeDistribution"][pSize] + 1;
 	else
 		patternMetrics["sizeDistribution"][pSize] = 1;
+}
+
+/**
+ * Whether or not the occurrences of a pattern have already been sent by the
+ * server.
+ * @param {number} patternId The id of the pattern
+ */
+function occurrencesAreKnown(patternId) {
+	return patternOccurrences.hasOwnProperty(patternId);
+}
+
+/**
+ * Adds a pattern occurrence to the known occurrences
+ * @param {number} patternId The id of the pattern
+ * @param {*} occ The occurrence
+ * 
+ * TODO What is the type of 'occ' ?
+ */
+function addPatternOccurrence(patternId, occ) {
+	if (occurrencesAreKnown(patternId) == false) {
+		patternOccurrences[patternId] = [];
+	}
+	patternOccurrences[patternId].push(occ);
+}
+
+/**
+ * Deletes every pattern, and the information related to them
+ */
+function resetPatterns() {
+	numberOfPattern = 0;
+	patternsInformation = {};
+	patternIdList = [];
+	patternOccurrences = {};
+	selectedPatternIds = [];
+	// TODO Deal with the pattern metrics in patternMetrics
 }
 
 /************************************/
@@ -3909,9 +3965,6 @@ function createUserListDisplay() {
 			}
 		});
 	}
-	
-	// Calling the display of the trace
-	//timeline.drawUsersTraces();  Keep commented until the function really draws the user traces
 }
 
 /**
@@ -4290,10 +4343,6 @@ function createPatternListDisplay() {
 					requestSteeringOnPattern(pId);
 					d3.event.stopPropagation();
 				} else { // Normal click, displays the occurrences
-					if (timeline.hasPatternOccurrences(pId) == false)
-						requestPatternOccurrences(pId, currentDatasetName);
-					else
-						timeline.displayPatternOccurrences(pId);
 					if (selectedPatternIds.includes(pId)) {
 						let index = selectedPatternIds.indexOf(pId);
 						if (index >= 0)
@@ -4301,11 +4350,14 @@ function createPatternListDisplay() {
 					} else {
 						selectedPatternIds.push(pId);
 					}
+					
+					if (occurrencesAreKnown(pId) == false)
+						requestPatternOccurrences(pId, currentDatasetName);
+					else
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 					//d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
-					timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-					timeline.drawUsersPatterns();
 					
 					// Update the number of selected patterns display
 					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
@@ -4356,6 +4408,100 @@ function createPatternListDisplay() {
 	
 	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
 	
+}
+
+/**
+ * Moves the overview brush over a specific time period (clamped to the period
+ * covered by the dataset)
+ * @param {number} startTime The lower bound of the period (in ms)
+ * @param {number} endTime The upper bound if the period (in ms)
+ */
+function focusOnTimePeriod(startTime, endTime) {
+	let contextTimeRange = timeline.xContext.range().map(timeline.xContext.invert);
+	let start = Math.max(startTime, contextTimeRange[0]);
+	let end = Math.min(endTime, contextTimeRange[1]);
+
+	timeline.gBrush.call(timeline.brush.move, 
+		[timeline.xContext(start), timeline.xContext(end)]);
+}
+
+/**
+ * Moves the overview brush so that a specific bin size is used. If possible,
+ * the brush extends both ends to keep the current middle point unchanged.
+ */
+function goToDistribution(distributionThreshold) {
+	let currentPeriod = currentTimeFilter[1] - currentTimeFilter[0];
+	let center = currentTimeFilter[0] + Math.round(currentPeriod/2);
+
+	let newPeriod = distributionThreshold*1000-1; // Convert from s to ms
+	let start = center - Math.floor(newPeriod/2);
+	let end = center + Math.ceil(newPeriod/2);
+
+	let contextRange = timeline.xContext.range();
+	let overflowStart = contextRange[0] - timeline.xContext(start);
+	let overflowEnd = timeline.xContext(end) - contextRange[1];
+
+	if (overflowStart > 0 && overflowEnd > 0) {
+		// Both end overflow, view the entire dataset
+		timeline.gBrush.call(timeline.brush.move, 
+			contextRange);
+	} else {
+		if (overflowStart > 0) {
+			start = timeline.xContext.invert(contextRange[0]);
+			// The -0 is used to cast start to a number of milliseconds from a string
+			end = Math.min(start -0 +newPeriod, timeline.xContext.invert(contextRange[1]));
+		} else if (overflowEnd > 0) {
+			end = timeline.xContext.invert(contextRange[1]);
+			start = Math.max(end -newPeriod, timeline.xContext.invert(contextRange[0]));
+		}
+		timeline.gBrush.call(timeline.brush.move, 
+			[timeline.xContext(start), timeline.xContext(end)]);
+	}
+}
+
+/**
+ * Moves the overview brush over the full dataset, to use the biggest event
+ * bin size (one bin per year)
+ */
+function goToYearDistribution() {
+	let contextTimeRange = timeline.xContext.range().map(timeline.xContext.invert);
+	focusOnTimePeriod(contextTimeRange[0], contextTimeRange[1]);
+}
+
+/**
+ * Moves the overview brush to use the month bin size (one bin per month)
+ */
+function goToMonthDistribution() {
+	goToDistribution(distributionYearThreshold);
+}
+
+/**
+ * Moves the overview brush to use the half month bin size (one bin per half 
+ * month)
+ */
+function goToHalfMonthDistribution() {
+	goToDistribution(distributionMonthThreshold);
+}
+
+/**
+ * Moves the overview brush to use the day bin size (one bin per day)
+ */
+function goToDayDistribution() {
+	goToDistribution(distributionHalfMonthThreshold);
+}
+
+/**
+ * Moves the overview brush to use the half day bin size (one bin per 12h)
+ */
+function goToHalfDayDistribution() {
+	goToDistribution(distributionDayThreshold);
+}
+
+/**
+ * Moves the overview brush to view the individual events
+ */
+function goToEvents() {
+	goToDistribution(distributionHalfDayThreshold);
 }
 
 /************************************/
@@ -4611,10 +4757,6 @@ function changeTooltip(data, origin) {
 						.classed("clickable", true)
 						.classed("bold", selectedPatternIds.includes(pId))
 						.on("click", function() {
-							if (timeline.hasPatternOccurrences(pId) == false)
-								requestPatternOccurrences(pId, currentDatasetName);
-							else
-								timeline.displayPatternOccurrences(pId);
 							if (selectedPatternIds.includes(pId)) {
 								let index = selectedPatternIds.indexOf(pId);
 								if (index >= 0)
@@ -4624,11 +4766,13 @@ function changeTooltip(data, origin) {
 								selectedPatternIds.push(pId);
 								d3.select(this).classed("bold", true);
 							}
+							if (occurrencesAreKnown(pId) == false)
+								requestPatternOccurrences(pId, currentDatasetName);
+							else
+								timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
 							//d3.event.stopPropagation();
 							console.log("click on "+pId);
 							createPatternListDisplay();
-							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-							timeline.drawUsersPatterns();
 							
 							// Update the number of selected patterns display
 							d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
@@ -4810,11 +4954,11 @@ function selectDataset(datasetName) {
  * Clears the selection of patterns and update the HCI accordingly
  */
 function unselectAllPatterns() {
-	timeline.resetPatternOccurrencesDisplay(selectedPatternIds);
 	selectedPatternIds = [];
 	
 	createPatternListDisplay();
-	timeline.drawUsersPatterns();
+	timeline.displayData(); // TODO only redraw the pattern occurrences
+	//timeline.drawUsersPatterns(); // TODO uncomment when the above line's TODO will be done
 	
 	// Update the number of selected patterns display
 	d3.select("#selectedPatternNumberSpan").text('0');
@@ -5156,62 +5300,6 @@ var Timeline = function(elemId, options) {
 	self.bins = [];
 	self.patternBins = [];
 	
-	self.patternOccs = {};
-	self.displayPatternOccs = {};
-	
-	/**
-	 * Checks if the timeline has already received the occurrences for the given
-	 * pattern.
-	 * 
-	 * @param {number} id The id of the pattern
-	 * @returns {boolean} Whether the timeline has the occurrences (true) or not
-	 *  (false) 
-	 */
-	self.hasPatternOccurrences = function(id) {
-		return self.patternOccs.hasOwnProperty(id);
-	}
-	
-	/**
-	 * Switches whether a pattern's occurrences should be displayed or not, then
-	 * updates the display.
-	 * 
-	 * @param {number} id The id of the pattern
-	 * TODO Only redraw the pattern's occurrences, not the whole visualizations
-	 */
-	self.displayPatternOccurrences = function(id) {
-		self.displayPatternOccs[id] = !self.displayPatternOccs[id];
-		//self.drawPatternOccurrences();  Prefered to displaying the old data, only when the patterns will always be drawn on their specific layer
-		self.displayData(); // TODO optimize by just displaying the pattern occurrences
-	}
-	
-	/**
-	 * Stops displaying multiple patterns. Essentially serves as a more efficient
-	 * alternative to several calls to Timeline.displayPatternOccurrences, due to
-	 * only redrawing once.
-	 * 
-	 * @param {number[]} ids The ids of patterns that will stop being displayed
-	 */
-	self.resetPatternOccurrencesDisplay = function(ids) {
-		ids.forEach(function(d,i) {
-			self.displayPatternOccs[d] = false;
-		});
-		
-		self.displayData(); // TODO optimize by just displaying the pattern occurrences
-	}
-	
-	self.addPatternOccurrence = function(id, occ) {
-		if (self.patternOccs.hasOwnProperty(id) == false) {
-			self.patternOccs[id] = [];
-			self.displayPatternOccs[id] = false;
-		}
-		self.patternOccs[id].push(occ);
-	}
-	
-	self.resetPatterns = function() {
-		self.patternOccs = {};
-		self.displayPatternOccs = {};
-	}
-	
 	self.drawEvents = function() {
 		console.log("Calling temporary draw events");
 	}
@@ -5273,98 +5361,9 @@ var Timeline = function(elemId, options) {
 		self.zoomRect.property("__zoom", t);  // Manually save the transform to clear the saved old transform
 	};
 	
-	// Probably to be deleted, only called from drawUsersTraces, which should not be used
-	self.updateUserList = function() {
-		
-		let shownUsersNames = []; 
-		
-		if (showUserSessionOption == "all") {
-			shownUsersNames = userInformations.map(function(uI) {
-				return uI[0]; // Only get the userName
-			});
-		} else {
-			shownUsersNames = userInformations.slice(firstUserShown, firstUserShown + nbUserShown)
-				.map(function(uI) {
-					return uI[0]; // Only get the userName
-				});
-		}
-		
-		self.yUsers.domain(shownUsersNames);
-		
-		self.yAxisUsers = d3.axisLeft(self.yUsers)
-	        .tickValues(self.yUsers.domain().filter(function(d, i) {
-	        	// Ensures a readable size of tick label
-	        	if (self.yUsers.bandwidth() >= 9)
-	        		return true;
-	        	else
-	        		return false;
-	        }));
-	        /*.tickFormat(function(d, i) {
-	        	return d;
-	        });*/
-		self.users.select(".axis--y").call(self.yAxisUsers);
-		
-		//console.log("User List updated on the timeline");
-		
-	}
-	
-	self.drawUsersTraces = function() {
-		console.log("Starting to draw users traces");
-		
-		self.updateUserList();
-		
-		// get the 10 first users in the list
-		//console.log("UI size : "+userInformations.length);
-		var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
-			return x[0];
-		});
-		//console.log("UI size after : "+userInformations.length);
-		
-		self.canvasUsersContext.fillStyle = "#fff";
-		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
-		self.canvasUsersContext.fill();
-		
-		for (var i=0; i < shownUsers.length; i++) {
-			let userName = shownUsers[i];
-			//console.log("drawing user "+userName);
-			for (var j = 0; j < userTraces[userName].length; j++) {
-				var event = userTraces[userName][j];
-				var eventData = event[0].split(";");
-				
-				var x = self.xUsers(new Date(eventData[1].replace(" ","T")+"Z"));
-				var y = self.yUsers(userName);
-				self.canvasUsersContext.beginPath();
-				self.canvasUsersContext.fillStyle = "blue";
-				self.canvasUsersContext.arc(x,y,3,0,2*Math.PI, false)
-				self.canvasUsersContext.fill();
-				self.canvasUsersContext.closePath();
-			}
-		}
-		
-		//console.log("User traces drawn");
-	}
-	
-	self.colorToDataUserPatterns = {};
-
-	self.sessionColor = "#01668C";//04B7FB
-	self.sessionColorFaded = "#7DCAE7";//c8daea
-	self.sessionColorHighlighted = "#9B0000";//red
-	
 	self.drawUsersPatterns = function() {
 		//console.log("Starting to draw users patterns");
-		
-		
-		self.colorToDataUserPatterns = {};
 		let nextColor = 1;
-		
-		// get the 10 first users in the list
-		//console.log("UI size : "+userInformations.length);
-		/*var shownUsers = userInformations.slice(0).splice(0, 10).map(function(x) {
-			return x[0];
-		});*/
-		
-		
-		//console.log("UI size after : "+userInformations.length);
 		
 		self.canvasUsersContext.clearRect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
 		
@@ -5460,13 +5459,13 @@ var Timeline = function(elemId, options) {
 			let userName = shownUsers[i];
 			
 			userSessions[userName].forEach(function(ses, sesIdx) {
-				let color = self.sessionColor;
+				let color = sessionColor;
 				if (hasSelected == true) {
-					color = self.sessionColorFaded; // lighter blue
+					color = sessionColorFaded; // lighter blue
 					Object.keys(ses.count).forEach(function(id, idx) {
 						if (selectedPatternIds.includes(Number(id))) {
 							//console.log(id+" selected");
-							color = self.sessionColorHighlighted;
+							color = sessionColorHighlighted;
 						}
 					});
 				}
@@ -5499,47 +5498,6 @@ var Timeline = function(elemId, options) {
 				self.canvasUsersContext.lineCap = "butt";
 				self.canvasUsersContext.stroke();
 			    self.canvasUsersContext.closePath();
-			    
-			    // Attributing a color to data link for the hidden canvas
-			    //var hiddenColor = [];
-			    // via http://stackoverflow.com/a/15804183
-			    /*if(nextColor < 16777215){
-			    	hiddenColor.push(nextColor & 0xff); // R
-			    	hiddenColor.push((nextColor & 0xff00) >> 8); // G 
-			    	hiddenColor.push((nextColor & 0xff0000) >> 16); // B
-
-			    	nextColor += 1;
-			    } else {
-			    	console.log('Warning : too may colors needed for the user patterns hidden canvas');
-			    }*/
-			    
-			    /* Create the info we want in the tooltip
-			    * Structure : [year,
-			    * start,
-			    * end,
-			    * nbEventsInBin,
-			    * user1;user2;...,
-			    * type1;type2;...,
-			    * type1:nbOcc;type2:nbOcc;...
-			    * nbEventsInSubBin,
-			    * hslColorValue1]
-			   	*/
-			    /*
-			    let ttInfo = [];
-			    
-			    for (var id in Object.keys(ses.count)) {
-			    	ttInfo.push(patternsInformation[id][0]+": "+ses.count[id]);
-			    }
-			    self.colorToDataUserPatterns["rgb("+hiddenColor.join(',')+")"] = ttInfo;
-			    */
-			    // Drawing on the hidden canvas for the tooltip
-			    /*self.hiddenCanvasUsersContext.lineWidth = 1.5;
-				self.hiddenCanvasUsersContext.strokeStyle = "rgb("+hiddenColor.join(',')+")";
-				self.hiddenCanvasUsersContext.moveTo(x1,y);
-				self.hiddenCanvasUsersContext.lineTo(x2,y);
-				self.hiddenCanvasUsersContext.lineCap = "round";
-				self.hiddenCanvasUsersContext.stroke();
-			    self.hiddenCanvasUsersContext.closePath();*/
 			});
 		}
 		
@@ -5578,20 +5536,6 @@ var Timeline = function(elemId, options) {
 							}
 						}
 						drawCount++;
-						
-						// Attributing a color to data link
-					    /*let color = [];
-					    // via http://stackoverflow.com/a/15804183
-					    if(nextColor < 16777215){
-					    	let nextR = Math.max(0, Math.floor(Math.floor(nextColor / 255) / 255));
-					    	let nextG = Math.max(0, Math.floor(nextColor / 255) % 255);
-					    	let nextB = nextColor % 255;
-					    	color = [nextR, nextG, nextB];
-
-					    	nextColor += 1;
-					    }
-					    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];*/
-					    //console.log("event at index "+firstIndex+" gets color "+color.join(','));
 					    
 						let x = self.xUsers(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
 						let y = self.yUsers(info[3]) + self.yUsers.bandwidth()/2;
@@ -5650,14 +5594,7 @@ var Timeline = function(elemId, options) {
 	self.drawPatternOccurrences = function() {
 		
 		//console.log("Starting to draw pattern occurrences");
-		var idsToDraw = [];
-		
-		for (let key in self.displayPatternOccs) {
-		  if (self.displayPatternOccs.hasOwnProperty(key)) {
-		    if (self.displayPatternOccs[key] == true)
-		    	idsToDraw.push(key);
-		  }
-		}
+		let idsToDraw = selectedPatternIds;
 		
 		//console.log("patterns to draw: "+listOfPatternsToDraw);
 		
@@ -5695,9 +5632,9 @@ var Timeline = function(elemId, options) {
 		        				let index = selectedPatternIds.indexOf(pId);
 								if (index >= 0) {
 									selectedPatternIds.splice(index, 1);
-									self.displayPatternOccurrences(pId);
 									createPatternListDisplay();
 									d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+									self.displayData(); // TODO Only redraw the pattern occurrences
 								}
 		        			});
 		        		
@@ -5721,10 +5658,10 @@ var Timeline = function(elemId, options) {
 		switch(self.displayMode) {
 		case "distributions": // Displays all occurrences of a pattern on a line
 			for (let i = 0; i < idsToDraw.length; i++) {// Draw each pattern
-				for (let j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
+				for (let j=0; j < patternOccurrences[idsToDraw[i]].length; j++) {// Draw each occurrence
 					console.log("Ids to draw: "+idsToDraw);
-					if (self.patternOccs[idsToDraw[i]][j]) {
-						let occ = self.patternOccs[idsToDraw[i]][j].split(";");
+					if (patternOccurrences[idsToDraw[i]][j]) {
+						let occ = patternOccurrences[idsToDraw[i]][j].split(";");
 						// Only draw the occurrence if it belongs to a selected user
 						// To uncomment when "only show highlighted" will impact the bin view
 						//if (highlightedUsers.length == 0 || highlightedUsers.includes(occ[0])) {
@@ -5753,10 +5690,10 @@ var Timeline = function(elemId, options) {
 		case "events": // Displays occurrences by connecting their events
 			for (let i = 0; i < idsToDraw.length; i++) {// Draw each pattern
 				let patternItems = patternsInformation[idsToDraw[i]][3];
-				for (let j=0; j < self.patternOccs[idsToDraw[i]].length; j++) {// Draw each occurrence
+				for (let j=0; j < patternOccurrences[idsToDraw[i]].length; j++) {// Draw each occurrence
 					console.log("Ids to draw: "+idsToDraw);
-					if (self.patternOccs[idsToDraw[i]][j]) {
-						let occ = self.patternOccs[idsToDraw[i]][j].split(";");
+					if (patternOccurrences[idsToDraw[i]][j]) {
+						let occ = patternOccurrences[idsToDraw[i]][j].split(";");
 						// Only draw the occurrence if it belongs to a selected user
 						// 	and if "only show highlighted" is true
 						if (!self.showOnlyHighlightedInFocus || (highlightedUsers.length == 0 || highlightedUsers.includes(occ[0]))) {
@@ -6193,15 +6130,19 @@ var Timeline = function(elemId, options) {
 	self.getRelevantDistributionScale = function() {
 		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
 		if (self.getRelevantDisplayMode() == "distributions") {
-			if (displaySeconds > 60*60*24*365*3 )	// more than 3 years
+			if (displaySeconds >= distributionYearThreshold )
 				return "year";
-			if (displaySeconds < 60*60*24*365*3 && displaySeconds > 60*60*24*365)	// between 1 year and 3 years
+			if (displaySeconds < distributionYearThreshold &&
+				 displaySeconds >= distributionMonthThreshold)
 				return "month";
-			if (displaySeconds < 60*60*24*365 && displaySeconds > 60*60*24*31*3)	// between 3 months and 1 year
+			if (displaySeconds < distributionMonthThreshold &&
+				 displaySeconds >= distributionHalfMonthThreshold)
 				return "halfMonth";
-			if (displaySeconds < 60*60*24*31*3 && displaySeconds > 60*60*24*7*3)	// between 3 months and 3 weeks
+			if (displaySeconds < distributionHalfMonthThreshold &&
+				 displaySeconds >= distributionDayThreshold)
 				return "day";
-			if (displaySeconds < 60*60*24*7*3 && displaySeconds > 60*60*24*3)	// between 3 weeks and 3 days
+			if (displaySeconds < distributionDayThreshold &&
+				 displaySeconds >= distributionHalfDayThreshold)
 				return "halfDay";
 			// If no other condition is met
 			console.log("Trying to scale distributions in an unknown way. distributionScale = "+self.distributionScale);
@@ -6267,11 +6208,6 @@ var Timeline = function(elemId, options) {
 		self.canvasContext.clearRect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.hiddenCanvasContext.clearRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
 		self.canvasPatternContext.clearRect(0,0,self.canvasPattern.attr("width"),self.canvasPattern.attr("height"));
-		/*self.canvasContext.fillStyle = "#fff";
-		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
-		self.canvasContext.fill();
-		self.hiddenCanvasContext.fillStyle = "#fff";
-		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));*/
 		
 		switch(self.displayMode) {
 		case "distributions":
@@ -6372,15 +6308,58 @@ var Timeline = function(elemId, options) {
 	// Adding the zoom's granularity information
 	self.zoomInfo = self.controls.append("div")
 		.attr("style","float:left;")
-		.html("Data grouped by: <span>" +
-				"<span id='zoomInfoYear'>year<span> \> " +
-				"<span id='zoomInfoMonth'>month</span> \> " +
-				"<span id='zoomInfoHalfMonth'>half month</span> \> " +
-				"<span id='zoomInfoDay'>day</span> \> " +
-				"<span id='zoomInfoHalfDay'>half day</span> \> " +
-				"<span id='zoomInfoEvent'>event</span>" +
-				"</span>");
-	self.zoomInfo.selectAll("span").attr("class","zoomInfoSpan");
+		.text("Data grouped by: ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoYear")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("year")
+		.on("click", goToYearDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoMonth")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("month")
+		.on("click", goToMonthDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoHalfMonth")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("half month")
+		.on("click", goToHalfMonthDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoDay")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("day")
+		.on("click", goToDayDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoHalfDay")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("half day")
+		.on("click", goToHalfDayDistribution);
+	self.zoomInfo.append("span")
+		.classed("zoomInfoSpan", true)
+		.text(" > ");
+	self.zoomInfo.append("span")
+		.attr("id", "zoomInfoEvent")
+		.classed("zoomInfoSpan", true)
+		.classed("clickable", true)
+		.text("event")
+		.on("click", goToEvents);
 	
 	// Adding the display options (bins / discrete)
 	/*self.controlForm = self.controls.append("form")
@@ -6662,7 +6641,8 @@ var Timeline = function(elemId, options) {
 	self.showOnlyHighlightedInFocusForm.selectAll("input").on("change", self.changeEventDisplayStyle);
 	
 	self.displayToolTipGeneral = function(data) {
-		/* Structure : 
+		/* WARNING : MAY NOT BE TRUE ANYMORE
+		 * Structure : 
 		 * [year,
 	     * start,
 	     * end,
@@ -6673,76 +6653,6 @@ var Timeline = function(elemId, options) {
 	     * nbEventsInSubBin,
 		 * type1:hslColorValue1;type2:hslColorValue1;...]
 	   	 */
-		/*var message = "";
-		
-		switch(self.displayMode) {
-		case "distributions":
-			switch(self.distributionScale) {
-			case "year":
-				//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
-			case "month":
-			case "halfMonth":
-			case "day":
-			case "halfDay":
-				var nbUsers = data[4].split(";").length;
-				var nbOccs = data[6].split(';');
-				//console.log("pre-sort: "+nbOccs);
-				nbOccs.sort(function(a,b) {
-					var aVal = parseInt(a.split(":")[1]);
-					var bVal = parseInt(b.split(":")[1]);
-					return bVal - aVal;	// sort in descending order
-				});
-				//console.log("post-sort: "+nbOccs);
-				message = "From "+data[1]+" to "+data[2]+"<br>";
-				message += data[3]+" events across "+nbUsers+" users<br>";
-				message += data[7]+" in this subpart:";
-				for (var i = 0; i < nbOccs.length; i++) {
-					var occ = nbOccs[i].split(":");
-					var percentage = parseInt(occ[1])/parseInt(data[3]);
-					
-					let hslValues = data[8].split(";");
-					let hslValue = 0;
-					for (let idx = 0; idx < hslValues.length; idx++) {
-						if (hslValues[idx].split(":")[0] == occ[0]) {
-							hslValue = parseInt(hslValues[idx].split(":")[1]);
-							break;
-						}
-					}
-					
-					
-					
-					//Create an svg node outside of the DOM to get its inner HTML
-					var divOutsideOfDom = document.createElementNS("http://www.w3.org/1999/xhtml","div");
-					divOutsideOfDom.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-					
-					var div = d3.select(divOutsideOfDom);*/
-					/* Create an event type line with svg for the event symbols
-					var svg = div.append("svg")
-						.attr("width", 16)
-						.attr("height", 16);
-					svg.append("path")
-						.attr("d",d3.symbol().type(itemShapes[occ[0]]).size(60))
-						.attr("transform","translate(8,8)")
-						.attr("stroke", colorList[occ[0]].toString())
-						.attr("fill","none");*/
-					/* create an event type line with utf-8 for the event symbols */
-					/*div.append("span")
-						.style("color",colorList[occ[0]][0].toString())
-						.text(itemShapes[occ[0]]);
-					message += "<br>"+div.html()+"&nbsp;"+occ[0]+" : "+occ[1]+" ("+(percentage*100).toPrecision(3)+"%)";
-					div.remove(); 
-				}
-			}
-			break;
-		case "events":
-				splitData = data.split(";");
-				message = "Type: " + splitData[0] + "<br>";
-				message += "Time: " + splitData[1] + "<br>";
-				message += "User: " + splitData[3] + "<br>";
-				message += "Properties:";
-				for(var i = 4; i < splitData.length; i++)
-					message += "<br>&nbsp;&nbsp;&nbsp;&nbsp;"+splitData[i];
-		}*/
 		changeTooltip(data, "general");
 	}
 	
@@ -6831,20 +6741,6 @@ var Timeline = function(elemId, options) {
 	}
 	
 	self.displayToolTipSessionPatterns = function(data) {
-		/* Structure : 
-		 * ["id: number"]
-	   	 */
-		/*var message = "";
-		
-		if (data.length == 0)
-			message = "No pattern in this session";
-		else {
-			for (let pIdx = 0; pIdx < data.length; pIdx++) {
-				message += data[pIdx];
-				if (pIdx + 1 < data.length)
-					message += "<br>"
-			}
-		}*/
 		changeTooltip(data, "session");
 	}
 	
@@ -6943,7 +6839,6 @@ var Timeline = function(elemId, options) {
 	self.svgFocus = d3.select(self.nodeFocus).append("svg")
 		.attr("width",self.parentNode.clientWidth)
 		.attr("height",self.heightFocus)
-		/*.attr("height",self.parentNode.clientHeight-15)*/
 		.style("position","absolute")
 		.style("top","0")
 		.style("left","0");	
@@ -6951,7 +6846,6 @@ var Timeline = function(elemId, options) {
 	self.svgOverview = d3.select(self.nodeOverview).append("svg")
 		.attr("width",self.parentNode.clientWidth)
 		.attr("height",self.heightContext)
-		/*.attr("height",self.parentNode.clientHeight-15)*/
 		.style("position","absolute")
 		.style("top","0")
 		.style("left","0");
@@ -6959,7 +6853,6 @@ var Timeline = function(elemId, options) {
 	self.svgUsers = d3.select(self.nodeUsers).append("svg")
 		.attr("width",self.parentNode.clientWidth)
 		.attr("height",self.heightUsers)
-		/*.attr("height",self.parentNode.clientHeight-15)*/
 		.style("position","absolute")
 		.style("top","0")
 		.style("left","0");
@@ -7281,20 +7174,6 @@ var Timeline = function(elemId, options) {
 					clearTooltip();
 				}
 			}
-			
-			 // Old version, with the pixel colors
-			/*var pixelColor = self.hiddenCanvasUsersContext.getImageData(coords[0], coords[1],1,1).data;
-			if (pixelColor[0] != 255 && pixelColor[1] != 255 && pixelColor[2] != 255) {
-				var colorString = "rgb("+pixelColor[0]+","+pixelColor[1]+","+pixelColor[2]+")";
-				var data = self.colorToDataUserPatterns[colorString];
-				if (typeof data !== 'undefined') {
-					self.displayToolTip(data);
-				}
-				self.userTooltipCreated = true;
-			} else {
-				if (self.userTooltipCreated == true)
-					tooltip.hide();
-			}*/
 		})
 		.on("mouseout", function(){
 			if (self.userTooltipCreated == true) {
@@ -7311,10 +7190,6 @@ var Timeline = function(elemId, options) {
 		.attr("stroke","black")
 		.attr("stroke-width","1")
 		.attr("fill-opacity","0.2");
-	
-	/****************************/
-	/*			Methods			*/
-	/****************************/
 	
 	self.focusOnSession = function(start, end) {
 		//self.context.select(".brush")
@@ -7367,224 +7242,6 @@ var Timeline = function(elemId, options) {
 		self.users.select(".axis--x").call(self.xAxisUsers);
 		self.users.select(".axis--y").call(self.yAxisUsers);
 	}
-	
-	self.addDataset = function(data) {
-		
-		self.displayData();
-		/*
-		for (var user in data) {
-			if (data.hasOwnProperty(user)) {
-				self.displayData();
-				//self.addToDataBinding(data[user]);
-			}
-		}*/
-	};
-	
-	self.addToDataBinding = function(data) {
-		//var csvData = data.map(self.prepareEvent);
-		
-		var customClass = "custom."+data.user;
-		
-		var dataBinding = self.dataContainer.selectAll(customClass)
-			.data(data, function(d) {return d.data.split(";");})
-			.enter()
-			.append("custom")
-			.classed(function(d) {return data.user;}, true)
-			.classed("rect",true)
-			.attr("x", function(d) {
-				var timeFormat = d3.timeParse('%Y-%m-%d %H:%M:%S');
-				return self.xFocus(timeFormat(d[1]));
-				})
-			.attr("y", function(d) {
-				if(!self.typeHeight.hasOwnProperty(d[1]))
-					self.typeHeight[d[1]] = 0.01;
-				else
-					self.typeHeight[d[1]] = self.typeHeight[d[1]]+0.01;
-				return self.yFocus(self.typeHeight[d[1]])})
-			.attr("size", 5)
-			.attr("fillStyle","green");
-		
-		self.userData = self.userData + 1;
-		//console.log("Custom object built : "+new Date());
-		if (self.userData == 31575)
-			self.displayData();
-		else if (self.userData % 10000 == 0)
-			console.log(self.userData);
-	};
-	
-	self.addData = function(data) {
-		//console.log("data received");
-		var csvData = data.map(self.prepareEvent);
-		//console.log("data mapped");
-
-		//console.log(csvData);
-		
-		// Adjust the focus part of the timeline to the new data
-		//self.xFocus.domain(d3.extent(csvData, function(d) { return d.time; }));
-		//self.yFocus.domain([0.0, 20.0]);
-		
-		var customClass = "custom."+csvData.user;
-		
-		//var dataBinding = self.dataContainer.selectAll("custom.rect")
-		var dataBinding = self.dataContainer.selectAll(customClass)
-			.data(csvData/*, function(d) {return d;}*/);
-		/*console.log(dataBinding);*/
-		dataBinding.enter()
-			.append("custom")
-			//.classed("rect", true)
-			.classed(function(d) {return d.user;}, true)
-			.classed("rect",true)
-			.attr("x", function(d) {return self.xFocus(d.time)})
-			.attr("y", function(d) {return self.yFocus(d.height)})
-			.attr("size", 5)
-			.attr("fillStyle","green");
-		
-		dataBinding.exit()
-			.attr("size",5)
-			.attr("fillStyle","red");
-		//console.log("data bound");
-		
-		/*self.focus.selectAll(".dot").remove()
-			.data(csvData)
-			.enter().append("path")
-			.attr("d",d3.symbol().type(function(d) {return itemShapes[d.type];d3.symbol().type(d.shape);d3.symbolStar;d3.symbol().type(d.shape);d3.symbolStar;d.shape;})
-								.size(function(d) {return 50;}))
-			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
-			.attr("stroke", function(d) {return d3.hsl(d.color,100,50)})
-			.attr("fill","none")
-			.attr("class","dot");*/
-		
-		/*self.focus.append("path")			ALREADY COMMENTED OUT
-	      .datum(csvData)
-	      .attr("class", "area")
-	      .attr("d", self.areaFocus);*/
-
-		self.focus.select(".axis--x")/*
-	      .attr("transform", "translate(0," + height + ")")*/
-	      .call(self.xAxisFocus);
-
-		self.focus.select(".axis--y")
-	      .call(self.yAxisFocus);
-			//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
-
-		/*self.context.append("path")			ALREADY COMMENTED OUT
-	      .datum(csvData)
-	      .attr("class", "area")
-	      .attr("d", self.areaContext);*/
-
-		self.context.select(".axis--x");/*
-	      .attr("transform", "translate(0," + this.heightContext + ")")
-	      .call(this.xAxisContext);*/
-
-		// Moving the brush on the data
-		var dataExtent = d3.extent(csvData, function(d) { return d.time; });
-		self.context.select(".brush")
-	      .call(self.brush)
-	      //.call(self.brush.move, [self.xFocus(dataExtent[0]), self.xFocus(dataExtent[1])]);
-	      .call(self.brush.move, self.xFocus.range());
-
-		// Focusing on the data
-		/*self.svg.select(".zoom")/*
-	      .attr("width", this.width)
-	      .attr("height", this.heightFocus)
-	      .attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
-	      .call(self.zoom);*/
-	/*self.svg.append("rect")
-		.attr("class", "zoom")
-		.attr("width", self.width)
-		.attr("height", self.heightFocus)
-		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
-		.call(self.zoom);*/
-		//self.drawCanvas();
-		self.userData = self.userData + 1;
-		//console.log("Custom object built : "+new Date());
-		if (self.userData == 31575)
-			self.displayData();
-		else if (self.userData % 10000 == 0)
-			console.log(self.userData);
-		//self.drawCanvas();
-	};
-	
-	self.addDataToSVG = function(data) {
-		var csvData = data.map(self.prepareEvent);
-		//console.log(csvData);
-		
-		// Adjust the focus part of the timeline to the new data
-		/*self.xFocus.domain(d3.extent(csvData, function(d) { return d.time; }));
-		self.yFocus.domain([0.0, 20.0]);*/
-
-		self.focus.selectAll(".dot").remove()
-			.data(csvData)
-			.enter().append("path")
-			.attr("d",d3.symbol().type(function(d) {return itemShapes[d.type];d3.symbol().type(d.shape);d3.symbolStar;d3.symbol().type(d.shape);d3.symbolStar;d.shape;})
-								.size(function(d) {return 50;}))
-			.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
-			.attr("stroke", function(d) {return d3.hsl(d.color,100,50)})
-			.attr("fill","none")
-			.attr("class","dot");
-		
-		/*self.focus.append("path")
-	      .datum(csvData)
-	      .attr("class", "area")
-	      .attr("d", self.areaFocus);*/
-
-		self.focus.select(".axis--x")/*
-	      .attr("transform", "translate(0," + height + ")")*/
-	      .call(this.xAxisFocus);
-
-		self.focus.select(".axis--y")
-	      .call(self.yAxisFocus);
-			//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
-
-		/*self.context.append("path")
-	      .datum(csvData)
-	      .attr("class", "area")
-	      .attr("d", self.areaContext);*/
-
-		self.context.select(".axis--x");/*
-	      .attr("transform", "translate(0," + this.heightContext + ")")
-	      .call(this.xAxisContext);*/
-
-		// Moving the brush on the data
-		var dataExtent = d3.extent(csvData, function(d) { return d.time; });
-		self.context.select(".brush")
-	      .call(self.brush)
-	      //.call(self.brush.move, [self.xFocus(dataExtent[0]), self.xFocus(dataExtent[1])]);
-	      .call(self.brush.move, self.xFocus.range());
-
-		// Focusing on the data
-		/*self.svg.select(".zoom")/*
-	      .attr("width", this.width)
-	      .attr("height", this.heightFocus)
-	      .attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
-	      .call(self.zoom);*/
-	/*self.svg.append("rect")
-		.attr("class", "zoom")
-		.attr("width", self.width)
-		.attr("height", self.heightFocus)
-		.attr("transform", "translate(" + self.marginFocus.left + "," + self.marginFocus.top + ")")
-		.call(self.zoom);*/
-		//self.drawCanvas();
-	};
-
-	// Prepare data that arrives as a list of pairs [eventType,time]
-	// to be displayed
-	self.prepareEvent = function(e) {
-		var splitted = e.data.split(";");
-		if(!self.typeHeight.hasOwnProperty(splitted[1]))
-  			self.typeHeight[splitted[1]] = 0.01;
-		else
-			self.typeHeight[splitted[1]] = self.typeHeight[splitted[1]]+0.01;
-		var shapeHeight = self.typeHeight[splitted[1]];
-  		var timeFormat = d3.timeParse('%Y-%m-%d %H:%M:%S');
-  		//console.log("prep:\n"+"time: "+splitted[1]+"\nparsed: "+timeFormat(splitted[1]));
-		return {"type":splitted[0],
-				"time":timeFormat(splitted[1]),
-				"height": shapeHeight,
-				"color":parseFloat(splitted[2]),
-				"shape":e.shape,
-				"user":e.user};
-	};
 		
 	self.displayDistributions = function() {
 		//console.log("Display distributions");
