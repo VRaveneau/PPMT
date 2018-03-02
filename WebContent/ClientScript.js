@@ -449,6 +449,17 @@ var monthsNames = [
 // TODO request a list of shapes from the server to populate this list
 var itemShapes = {};
 
+/**
+ * A debounced version of filterUserList
+ * @type {function}
+ */
+var debouncedFilterUserList = _.debounce(filterUserList, 500);
+
+/**
+ * A debounced version of filterPatternList
+ * @type {function}
+ */
+var debouncedFilterPatternList = _.debounce(filterPatternList, 500);
 
 /******************************************************************************/
 /*																			  */
@@ -1010,6 +1021,7 @@ function setupTool() {
 				);
 		});
 	
+	// TODO Might need to be deleted now...
 	d3.select("#nbUserShownInput")
 		.attr("min", "0")
 		.attr("value", firstUserShown)
@@ -1064,62 +1076,7 @@ function setupUserSearchField() {
 			suggestionDiv.style("display", "none");
 	});
 	
-	searchField.on("input", function() {
-		currentUserSearchInput = searchField.property("value");
-		
-		if(currentUserSearchInput.length > 0) {
-			relatedUsers = userList.filter(function(d, i) {
-				return d.includes(currentUserSearchInput);
-			});
-			relatedUsers.sort();
-			
-			if (relatedUsers.length > 0) {
-				currentUserSearchSuggestionIdx = 0;
-				suggestionDiv.html("");
-				relatedUsers.forEach(function(d,i) {
-					suggestionDiv.append("p")
-						.classed("selected", i==currentUserSearchSuggestionIdx)
-						.classed("clickable", true)
-						.text(d)
-						.on("click", function() {
-							currentUserSearchInput = relatedUsers[i];
-							searchField.property("value",currentUserSearchInput);
-							// Updates the suggestion list
-							relatedUsers = userList.filter(function(e, j) {
-								return e.includes(currentUserSearchInput);
-							});
-							relatedUsers.sort();
-
-							if (relatedUsers.length > 0) {
-								currentUserSearchSuggestionIdx = 0;
-								suggestionDiv.html("");
-								relatedUsers.forEach(function(e,j) {
-									suggestionDiv.append("p")
-										.classed("selected", j==currentUserSearchSuggestionIdx)
-										.text(e);
-								});
-							} else {
-								currentUserSearchSuggestionIdx = -1;
-								suggestionDiv.html("");
-							}
-							
-							createUserListDisplay();
-							suggestionDiv.style("display", "none");
-						});
-				});
-				suggestionField.property("value",relatedUsers[0]);
-			} else {
-				currentUserSearchSuggestionIdx = -1;
-				suggestionDiv.html("");
-			}
-		} else {
-			currentUserSearchInput = "";
-			currentUserSearchSuggestionIdx = -1;
-			relatedUsers = [];
-			suggestionDiv.html("");
-		}
-		createUserListDisplay();
-	});
+	searchField.on("input", debouncedFilterUserList);
 	searchField.on("keydown", function() {
 		let keyName = d3.event.key;
 		// Don't trigger if the user keeps the key down
@@ -1202,73 +1159,7 @@ function setupAlgorithmSearchField() {
 			suggestionDiv.style("display", "none");
 	});
 	
-	searchField.on("input", function() {
-		suggestionDiv.style("display", "block");
-		let currentValue = searchField.property("value");
-		currentPatternSearchInput = currentValue;
-		currentPatternSearchFragment = currentValue.split(" ").pop();
-		
-		if(currentPatternSearchFragment.length > 0) {
-			let baseLength = currentPatternSearchInput.length -
-							 currentPatternSearchFragment.length;
-			let baseValue = currentPatternSearchInput.substr(0, baseLength);
-			relatedEventTypes = eventTypes.filter(function(d, i) {
-				return d.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
-			});
-			relatedEventTypes.sort();
-			
-			if (relatedEventTypes.length > 0) {
-				currentPatternSearchSuggestionIdx = 0;
-				suggestionDiv.html("");
-				relatedEventTypes.forEach(function(d,i) {
-					suggestionDiv.append("p")
-						.classed("selected", i==currentPatternSearchSuggestionIdx)
-						.classed("clickable", true)
-						.text(baseValue + d)
-						.on("click", function() {
-							let baseLength = currentPatternSearchInput.length - 
-											currentPatternSearchFragment.length;
-							let baseValue = currentPatternSearchInput.substr(0, baseLength);
-							currentPatternSearchInput = baseValue + relatedEventTypes[i];
-							currentPatternSearchFragment = relatedEventTypes[i];
-							searchField.property("value", currentPatternSearchInput);
-							// Updates the suggestion list
-							relatedEventTypes = eventTypes.filter(function(e, j) {
-								return e.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
-							});
-							relatedEventTypes.sort();
-
-							if (relatedEventTypes.length > 0) {
-								currentPatternSearchSuggestionIdx = 0;
-								suggestionDiv.html("");
-								relatedEventTypes.forEach(function(e,j) {
-									suggestionDiv.append("p")
-										.classed("selected", j==currentPatternSearchSuggestionIdx)
-										.text(baseValue + e);
-								});
-							} else {
-								currentPatternSearchSuggestionIdx = -1;
-								suggestionDiv.html("");
-							}
-							
-							createPatternListDisplay();
-							suggestionDiv.style("display", "none");
-						});
-				});
-			} else {
-				currentPatternSearchSuggestionIdx = -1;
-				suggestionDiv.html("");
-			}
-		} else {
-			currentPatternSearchInput = "";
-			currentPatternSearchSuggestionIdx = -1;
-			currentPatternSearchFragment = "";
-			relatedEventTypes = [];
-			suggestionDiv.html("");
-		}
-
-		createPatternListDisplay();
-	});
+	searchField.on("input", debouncedFilterPatternList);
 	searchField.on("keydown", function() {
 		let keyName = d3.event.key;
 		// Don't trigger if the user keeps the key down
@@ -4510,6 +4401,146 @@ function goToHalfDayDistribution() {
  */
 function goToEvents() {
 	goToDistribution(distributionHalfDayThreshold);
+}
+
+/**
+ * Updates the list of users depending on the value in the user search field. A
+ * debounced version of this function is stored in debouncedFilterUserList.
+ */
+function filterUserList() {
+	let searchField = d3.select("#Users input.searchField");
+	let suggestionField = d3.select("#Users input.suggestionField");
+	let suggestionDiv = d3.select("#Users .suggestionDiv");
+
+	currentUserSearchInput = searchField.property("value");
+		
+	if(currentUserSearchInput.length > 0) {
+		relatedUsers = userList.filter(function(d, i) {
+			return d.includes(currentUserSearchInput);
+		});
+		relatedUsers.sort();
+		
+		if (relatedUsers.length > 0) {
+			currentUserSearchSuggestionIdx = 0;
+			suggestionDiv.html("");
+			relatedUsers.forEach(function(d,i) {
+				suggestionDiv.append("p")
+					.classed("selected", i==currentUserSearchSuggestionIdx)
+					.classed("clickable", true)
+					.text(d)
+					.on("click", function() {
+						currentUserSearchInput = relatedUsers[i];
+						searchField.property("value",currentUserSearchInput);
+						// Updates the suggestion list
+						relatedUsers = userList.filter(function(e, j) {
+							return e.includes(currentUserSearchInput);
+						});
+						relatedUsers.sort();
+
+						if (relatedUsers.length > 0) {
+							currentUserSearchSuggestionIdx = 0;
+							suggestionDiv.html("");
+							relatedUsers.forEach(function(e,j) {
+								suggestionDiv.append("p")
+									.classed("selected", j==currentUserSearchSuggestionIdx)
+									.text(e);
+							});
+						} else {
+							currentUserSearchSuggestionIdx = -1;
+							suggestionDiv.html("");
+						}
+						
+						createUserListDisplay();
+						suggestionDiv.style("display", "none");
+					});
+			});
+			suggestionField.property("value",relatedUsers[0]);
+		} else {
+			currentUserSearchSuggestionIdx = -1;
+			suggestionDiv.html("");
+		}
+	} else {
+		currentUserSearchInput = "";
+		currentUserSearchSuggestionIdx = -1;
+		relatedUsers = [];
+		suggestionDiv.html("");
+	}
+	createUserListDisplay();
+}
+
+/**
+ * Updates the list of patterns depending on the value in the pattern search field.
+ * A debounced version of this function is stored in debouncedFilterPatternList.
+ */
+function filterPatternList() {
+	let searchField = d3.select("#patternListArea input.searchField");
+	let suggestionDiv = d3.select("#patternListArea .suggestionDiv");
+
+	suggestionDiv.style("display", "block");
+	let currentValue = searchField.property("value");
+	currentPatternSearchInput = currentValue;
+	currentPatternSearchFragment = currentValue.split(" ").pop();
+	
+	if(currentPatternSearchFragment.length > 0) {
+		let baseLength = currentPatternSearchInput.length -
+							currentPatternSearchFragment.length;
+		let baseValue = currentPatternSearchInput.substr(0, baseLength);
+		relatedEventTypes = eventTypes.filter(function(d, i) {
+			return d.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
+		});
+		relatedEventTypes.sort();
+		
+		if (relatedEventTypes.length > 0) {
+			currentPatternSearchSuggestionIdx = 0;
+			suggestionDiv.html("");
+			relatedEventTypes.forEach(function(d,i) {
+				suggestionDiv.append("p")
+					.classed("selected", i==currentPatternSearchSuggestionIdx)
+					.classed("clickable", true)
+					.text(baseValue + d)
+					.on("click", function() {
+						let baseLength = currentPatternSearchInput.length - 
+										currentPatternSearchFragment.length;
+						let baseValue = currentPatternSearchInput.substr(0, baseLength);
+						currentPatternSearchInput = baseValue + relatedEventTypes[i];
+						currentPatternSearchFragment = relatedEventTypes[i];
+						searchField.property("value", currentPatternSearchInput);
+						// Updates the suggestion list
+						relatedEventTypes = eventTypes.filter(function(e, j) {
+							return e.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
+						});
+						relatedEventTypes.sort();
+
+						if (relatedEventTypes.length > 0) {
+							currentPatternSearchSuggestionIdx = 0;
+							suggestionDiv.html("");
+							relatedEventTypes.forEach(function(e,j) {
+								suggestionDiv.append("p")
+									.classed("selected", j==currentPatternSearchSuggestionIdx)
+									.text(baseValue + e);
+							});
+						} else {
+							currentPatternSearchSuggestionIdx = -1;
+							suggestionDiv.html("");
+						}
+						
+						createPatternListDisplay();
+						suggestionDiv.style("display", "none");
+					});
+			});
+		} else {
+			currentPatternSearchSuggestionIdx = -1;
+			suggestionDiv.html("");
+		}
+	} else {
+		currentPatternSearchInput = "";
+		currentPatternSearchSuggestionIdx = -1;
+		currentPatternSearchFragment = "";
+		relatedEventTypes = [];
+		suggestionDiv.html("");
+	}
+	
+	createPatternListDisplay();
 }
 
 /************************************/
