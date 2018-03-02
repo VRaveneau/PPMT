@@ -7,7 +7,7 @@
  * If content is added to it, a separate commit must be made in all branches of the project 
  */
 var config = {
-	// Type of server to user
+	// Type of server to use
 	serverType : "websocket",
 	// Adress of the websocket that we want to connect to
 	websocketAdress : "ppmt.univ-nantes.fr/ppmt/wsppmt",
