@@ -7,6 +7,8 @@
  * If content is added to it, a separate commit must be made in all branches of the project 
  */
 var config = {
+	// Type of server to user
+	serverType : "websocket",
 	// Adress of the websocket that we want to connect to
 	websocketAdress : "localhost:8080/ppmt/wsppmt",
 	// Adress of the servlet that provides the dataset list
