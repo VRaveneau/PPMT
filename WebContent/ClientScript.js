@@ -8,10 +8,8 @@ window.addEventListener ?
 /*																			  */
 /******************************************************************************/
 
-// Adress of the websocket that we want to connect to
-var __websocketAdress__ = config.websocketAdress;
-// The actual websocket
-var webSocket = null;
+// The server the tool will be connected to
+var server = createServer();
 
 // The parameters passed in the URL
 var pageParameters = {};
@@ -971,17 +969,28 @@ function init() {
 
 	// If a dataset is given as parameters, open the websocket to ask for it
 	if (pageParameters.ds) {
-		// Try to establish the websocket connection
-		webSocket = new WebSocket("ws://"+__websocketAdress__);
-		// Handle the future communication through the socket
-		webSocket.onopen = processOpen;
-		webSocket.onmessage = processMessage;
-		webSocket.onclose = processClose;
-		webSocket.onerror = processError;
+		server.connect();
 
 		setupTool();
 	} else { // Otherwise, redirect to the dataset selection page
 		location.href = "/ppmt";
+	}
+}
+
+/**
+ * Creates the server, depending on the serverType given in the config object.
+ * @returns {ServerInterface} The server interface object
+ */
+function createServer() {
+	switch(config.serverType) {
+		case "websocket":
+			return new WebSocketServer(config.websocketAdress,
+				processOpen, processClose, processError, processMessage);
+			break;
+		default:
+			// TODO raise an error or ask to choose a local dataset ?
+			console.error("!! The requested server type (" + config.serverType +
+						") is unknown !!");
 	}
 }
 
@@ -1802,8 +1811,7 @@ function processMessage(message/*Compressed*/) {
  */
 function sendToServer(jsonMessage) {
 	//console.log("Sending to server on " + new Date());
-	webSocket.send(JSON.stringify(jsonMessage));
-
+	server.sendMessage(jsonMessage);
 	// Update the last sent date display
 	d3.select("#lastSentTimeDisplay span")
 		.text(formatDate(new Date()));
@@ -6097,7 +6105,6 @@ var Timeline = function(elemId, options) {
 	self.dataContainer = d3.select(self.detachedContainer);
 	self.displayMode = "distributions";
 	self.distributionScale = "year";
-	
 	
 	// Adding the control buttons over the timeline
 	self.changeDisplayMode = function() {
