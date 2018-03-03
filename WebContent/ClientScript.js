@@ -6146,23 +6146,6 @@ var Timeline = function(elemId, options) {
 	self.distributionScale = "year";
 	
 	// Adding the control buttons over the timeline
-	self.changeDisplayMode = function() {
-	    if (this.value === "distributions") {
-	    	self.displayMode = "distributions";
-
-			/*self.focus.select(".axis--y")
-				.style("visibility","initial");*/
-	    } else {
-    		self.displayMode = "events";
-
-    		/*self.focus.select(".axis--y")
-    			.style("visibility","hidden");*/
-	    }
-	    self.switchScaleFormVisibility();
-	    self.switchBinsDisplayStyleFormVisibility();
-	    self.switchEventDisplayStyleFormVisibility();
-	    self.displayData();
-	};
 	
 	self.getRelevantDisplayMode = function() {
 		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
@@ -6406,97 +6389,6 @@ var Timeline = function(elemId, options) {
 		.classed("clickable", true)
 		.text("event")
 		.on("click", goToEvents);
-	
-	// Adding the display options (bins / discrete)
-	/*self.controlForm = self.controls.append("form")
-		.attr("class","displayControlForm");
-	self.controlForm.append("label")
-		.text("Distributions")
-		.append("input")
-		.attr("type","radio")
-		.attr("name","mode")
-		.property("checked",true)
-		.attr("value","distributions");
-	self.controlForm.append("label")
-		.text("Events")
-		.append("input")
-		.attr("type","radio")
-		.attr("name","mode")
-		.attr("value","events")
-		.attr("id","eventDisplay")
-		.property("disabled", true);
-	self.controlForm.selectAll("input").on("change", self.changeDisplayMode);*/
-	
-	self.changeDistributionScale = function() {
-	    if (this.value === "year")
-	    	self.distributionScale = "year";
-    	else if (this.value === "month")
-    		self.distributionScale = "month";
-    	else if (this.value === "day")
-    		self.distributionScale = "day";
-    	else
-    		self.distributionScale = "halfDay";
-	    self.scaleDistribution();
-	};
-
-	self.scaleDistribution = function() {
-		switch(self.distributionScale) {
-		case "year":
-			requestYearBins("Agavue");
-			break;
-		case "month":
-			requestMonthBins("Agavue");
-			break;
-		case "day":
-			requestDayBins("Agavue");
-			break;
-		case "halfDay":
-			requestHalfDayBins("Agavue");
-			break;
-		default:
-			console.log("Trying to scale distributions in an unknown way. distributionScale = "+self.distributionScale);
-		}
-	};
-	/*self.scaleForm = self.controls.append("form")
-						.style("margin-left","15px")
-						.attr("class","displayControlForm");
-	self.scaleForm.append("label")
-		.text("Year")
-		.append("input")
-		.attr("type","radio")
-		.attr("name","scale")
-		.property("checked",true)
-		.attr("value","year");
-	self.scaleForm.append("label")
-		.text("Month")
-		.append("input")
-		.attr("type","radio")
-		.attr("name","scale")
-		.attr("value","month");
-	self.scaleForm.append("label")
-		.text("Day")
-		.append("input")
-		.attr("type","radio")
-		.attr("name","scale")
-		.attr("value","day");
-	self.scaleForm.append("label")
-		.text("12 hours")
-		.append("input")
-		.attr("type","radio")
-		.attr("name","scale")
-		.attr("value","halfDay");
-	self.scaleForm.selectAll("input").on("change", self.changeDistributionScale);*/
-	
-	self.switchScaleFormVisibility = function() {
-		var currentVisibility = self.scaleForm.style("visibility");
-		switch(currentVisibility) {
-			case "hidden":
-				self.scaleForm.style("visibility","initial");
-				break;
-			default:
-				self.scaleForm.style("visibility","hidden");
-		}
-	}
 	
 	self.binsDisplayStyleForm = self.controls.append("form")
 						.style("margin-left","15px")
