@@ -355,6 +355,9 @@ var showEventTypeDescription = true;
 // Whether the name of event types in a pattern is visible or not
 var showPatternText = true;
 
+// Whether the key strokes are listened to or not
+var userInputIsDisabled = false;
+
 // Sort order for the list of users. Expected value is one of the following :
 // nbEventsDown - nbEventsUp
 // nameDown - nameUp
@@ -487,39 +490,40 @@ function displayServerDebugMessage(message) {
  * Manages keyboard input
  */
 function handleKeyPress() {
-	let kc = d3.event.key;
-	console.log(kc)
-	switch(kc) {
-	case "h":
-	case "H":
-	case "?":
-		debug();
-		break;
-	case "s":
-	case "S":
-		if (debugMode) {
-			stopUIUpdate();
+	if (!userInputIsDisabled) {
+		let kc = d3.event.key;
+		switch(kc) {
+		case "h":
+		case "H":
+		case "?":
+			debug();
+			break;
+		case "s":
+		case "S":
+			if (debugMode) {
+				stopUIUpdate();
+			}
+			break;
+		case "g":
+		case "G":
+			if (debugMode) {
+				switchPointerTarget();
+			}
+			break;
+		case "+":
+			timeline.currentZoomScale += 0.05;
+			timeline.currentZoomScale = Math.max(0.05, timeline.currentZoomScale);
+			timeline.zoomRect.call(timeline.zoom.scaleBy, 1.1);
+			timeline.zoomRectUsers.call(timeline.zoomUsers.scaleBy, 1.1);
+			break;
+		case "-":
+			timeline.currentZoomScale -= 0.05;
+			timeline.currentZoomScale = Math.max(1.0, timeline.currentZoomScale);
+			timeline.zoomRect.call(timeline.zoom.scaleBy, 0.9);
+			timeline.zoomRectUsers.call(timeline.zoomUsers.scaleBy, 0.9);
+			break;
+		default:
 		}
-		break;
-	case "g":
-	case "G":
-		if (debugMode) {
-			switchPointerTarget();
-		}
-		break;
-	case "+":
-		timeline.currentZoomScale += 0.05;
-		timeline.currentZoomScale = Math.max(0.05, timeline.currentZoomScale);
-		timeline.zoomRect.call(timeline.zoom.scaleBy, 1.1);
-		timeline.zoomRectUsers.call(timeline.zoomUsers.scaleBy, 1.1);
-		break;
-	case "-":
-		timeline.currentZoomScale -= 0.05;
-		timeline.currentZoomScale = Math.max(1.0, timeline.currentZoomScale);
-		timeline.zoomRect.call(timeline.zoom.scaleBy, 0.9);
-		timeline.zoomRectUsers.call(timeline.zoomUsers.scaleBy, 0.9);
-		break;
-	default:
 	}
 }
 
@@ -1068,10 +1072,12 @@ function setupUserSearchField() {
 	});
 	
 	searchField.on("focus", function() {
+		userInputIsDisabled = true;
 		suggestionDiv.style("display", "block");
 	});
 	
 	searchField.on("focusout", function() {
+		userInputIsDisabled = false;
 		if (mouseIsOverUserSuggestions == false)
 			suggestionDiv.style("display", "none");
 	});
@@ -1151,10 +1157,12 @@ function setupAlgorithmSearchField() {
 	});
 	
 	searchField.on("focus", function() {
+		userInputIsDisabled = true;
 		suggestionDiv.style("display", "block");
 	});
 	
 	searchField.on("focusout", function() {
+		userInputIsDisabled = false;
 		if (mouseIsOverPatternSuggestions == false)
 			suggestionDiv.style("display", "none");
 	});
