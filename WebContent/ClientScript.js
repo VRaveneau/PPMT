@@ -7229,9 +7229,15 @@ var Timeline = function(elemId, options) {
 		.attr("stroke-width","1")
 		.attr("fill-opacity","0.2");
 	
+	/**
+	 * Moves the time selection brush over a time period starting just before a
+	 * session, and ending just after
+	 * @param {number} start The start of the session
+	 * @param {number} end The end of the session
+	 */
 	self.focusOnSession = function(start, end) {
-		//self.context.select(".brush")
-			//.call(self.brush.move, [self.xFocus(start), self.xFocus(end)]);
+		// TODO Change the 5ms padding to a value depending on the session duration
+		focusOnTimePeriod(start-5*1000, end+5*1000);
 	}
 	
 	self.updateContextBounds = function(start, end) {
