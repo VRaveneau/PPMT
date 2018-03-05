@@ -4551,6 +4551,93 @@ function filterPatternList() {
 	createPatternListDisplay();
 }
 
+/**
+ * Zooms in to restrict the viewed time span to 90% of the current one
+ */
+function zoomingIn() {
+	console.log("zooming in");
+	timeline.currentZoomScale = Math.max(0.05, timeline.currentZoomScale + 0.05);
+	timeline.zoomRect.call(timeline.zoom.scaleBy, 1.1);
+	timeline.zoomRectUsers.call(timeline.zoomUsers.scaleBy, 1.1);
+}
+
+/**
+ * Zooms out to augment the viewed time span to 110% of the current one
+ */
+function zoomingOut() {
+	console.log("zoomeing out");
+	timeline.currentZoomScale = Math.max(1.0, timeline.currentZoomScale - 0.05);
+	timeline.zoomRect.call(timeline.zoom.scaleBy, 0.9);
+	timeline.zoomRectUsers.call(timeline.zoomUsers.scaleBy, 0.9);
+}
+
+/**
+ * Updates whether or not event categories should be displayed in the event bins
+ *  and updates the interface accordingly
+ */
+function switchBinCategoryDisplay() {
+	timeline.displayColorsInBins = document.getElementById("displayBinColorInput").checked;
+	if (timeline.displayColorsInBins) {
+		d3.select("#displayBinFullHeightInput").classed("hidden",false);
+		d3.select(d3.select("#displayBinFullHeightInput").node().previousElementSibling).classed("hidden",false);
+	} else {
+		timeline.displayFullHeightBins = false;
+		d3.select("#displayBinFullHeightInput").property("checked",false)
+			.classed("hidden",true);
+		d3.select(d3.select("#displayBinFullHeightInput").node().previousElementSibling).classed("hidden",true);
+	}
+	timeline.displayData();
+}
+
+/**
+ * Updates whether or not event bins should have an absolute or relative size,
+ * and updates the interface accordingly
+ */
+function switchBinHeightDisplay() {
+	timeline.displayFullHeightBins = document.getElementById("displayBinFullHeightInput").checked;
+	timeline.displayData();
+}
+
+/**
+ * Starts using the display of events by type and updates the visualization
+ */
+function startDisplayingEventsByType() {
+	timeline.eventDisplayStyle = "type";
+	// change the left axis
+	timeline.yFocus = d3.scaleBand()
+		.range([0, timeline.marginFocus.size])
+		.paddingInner(0.1);
+	timeline.displayData();
+}
+
+/**
+ * Starts using the display of events by time and updates the visualization
+ */
+function startDisplayingEventsByTime() {
+	timeline.eventDisplayStyle = "time";
+	timeline.displayData();
+}
+
+/**
+ * Starts using the display of events by user and updates the visualization
+ * @deprecated Probably never used
+ * TODO Check if this should be deleted
+ */
+function startDisplayingEventsByUser() {
+	timeline.eventDisplayStyle = "user";
+	timeline.displayData();
+}
+
+/**
+ * Switches whether all the events should be displayed in the focus view, or only
+ * the highlighted ones
+ */
+function switchFocusShowOnlyHighlighted() {
+	let optionChecked = timeline.showOnlyHighlightedInFocusForm.select("input").property("checked");
+	timeline.showOnlyHighlightedInFocus = optionChecked;
+	timeline.displayData();
+}
+
 /************************************/
 /*				Tooltip				*/
 /************************************/
@@ -6303,148 +6390,10 @@ var Timeline = function(elemId, options) {
 	// Adding the zoom option (+ / -)
 	self.currentZoomScale = 1.0;
 	
-	self.zoomForm = self.controls.append("form")
-		.attr("class","displayZoomForm");
-	self.zoomForm.append("input")
-		.attr("type","button")
-		.attr("name","zoom")
-		.attr("value","+")
-		.classed("clickable", true)
-		.attr("id", "zoomIn")
-		.on("click", function() {
-			console.log("zoomedIn");
-			self.currentZoomScale += 0.05;
-			self.currentZoomScale = Math.max(0.05, self.currentZoomScale);
-			self.zoomRect.call(self.zoom.scaleBy, 1.1);
-			self.zoomRectUsers.call(self.zoomUsers.scaleBy, 1.1);
-			//console.log("Zoom: "+self.currentZoomScale);
-		});
-	self.zoomForm.append("input")
-		.attr("type","button")
-		.attr("name","zoom")
-		.attr("value","-")
-		.classed("clickable", true)
-		.attr("id", "zoomOut")
-		.on("click", function() {
-			console.log("zoomedOut");
-			self.currentZoomScale -= 0.05;
-			self.currentZoomScale = Math.max(1.0, self.currentZoomScale);
-			self.zoomRect.call(self.zoom.scaleBy, 0.9);
-			self.zoomRectUsers.call(self.zoomUsers.scaleBy, 0.9);
-			//console.log("Zoom: "+self.currentZoomScale);
-		});
-	
-	// Adding the zoom's granularity information
-	self.zoomInfo = self.controls.append("div")
-		.attr("style","float:left;")
-		.text("Data grouped by: ");
-	self.zoomInfo.append("span")
-		.attr("id", "zoomInfoYear")
-		.classed("zoomInfoSpan", true)
-		.classed("clickable", true)
-		.text("year")
-		.on("click", goToYearDistribution);
-	self.zoomInfo.append("span")
-		.classed("zoomInfoSpan", true)
-		.text(" > ");
-	self.zoomInfo.append("span")
-		.attr("id", "zoomInfoMonth")
-		.classed("zoomInfoSpan", true)
-		.classed("clickable", true)
-		.text("month")
-		.on("click", goToMonthDistribution);
-	self.zoomInfo.append("span")
-		.classed("zoomInfoSpan", true)
-		.text(" > ");
-	self.zoomInfo.append("span")
-		.attr("id", "zoomInfoHalfMonth")
-		.classed("zoomInfoSpan", true)
-		.classed("clickable", true)
-		.text("half month")
-		.on("click", goToHalfMonthDistribution);
-	self.zoomInfo.append("span")
-		.classed("zoomInfoSpan", true)
-		.text(" > ");
-	self.zoomInfo.append("span")
-		.attr("id", "zoomInfoDay")
-		.classed("zoomInfoSpan", true)
-		.classed("clickable", true)
-		.text("day")
-		.on("click", goToDayDistribution);
-	self.zoomInfo.append("span")
-		.classed("zoomInfoSpan", true)
-		.text(" > ");
-	self.zoomInfo.append("span")
-		.attr("id", "zoomInfoHalfDay")
-		.classed("zoomInfoSpan", true)
-		.classed("clickable", true)
-		.text("half day")
-		.on("click", goToHalfDayDistribution);
-	self.zoomInfo.append("span")
-		.classed("zoomInfoSpan", true)
-		.text(" > ");
-	self.zoomInfo.append("span")
-		.attr("id", "zoomInfoEvent")
-		.classed("zoomInfoSpan", true)
-		.classed("clickable", true)
-		.text("event")
-		.on("click", goToEvents);
-	
-	self.binsDisplayStyleForm = self.controls.append("form")
-						.style("margin-left","15px")
-						.attr("class","displayControlForm")
-						.style("float","right");
-	self.binsDisplayStyleForm.append("label")
-		.text("Show categories: ")
-		.style("order","3");
-	self.binsDisplayStyleForm.append("input")
-		.attr("id","displayBinColorInput")
-		.attr("type","checkbox")
-		.attr("name","scale")
-		.classed("clickable", true)
-		.property("checked",false)
-		.style("order","4")
-		.attr("value","Colors")
-		.on("change", function() {
-			self.displayColorsInBins = this.checked;
-			if (this.checked == true) {
-				d3.select("#displayBinFullHeightInput").style("visibility","visible");
-				d3.select(d3.select("#displayBinFullHeightInput").node().previousSibling).style("visibility","visible");
-			} else {
-				self.displayFullHeightBins = false;
-				d3.select("#displayBinFullHeightInput").property("checked",false)
-					.style("visibility","hidden");
-				d3.select(d3.select("#displayBinFullHeightInput").node().previousSibling).style("visibility","hidden");
-			}
-			self.displayData();
-	});
-	self.binsDisplayStyleForm.append("label")
-		.text("Relative size: ")
-		.style("order","1")
-		.style("visibility","hidden");
-	self.binsDisplayStyleForm.append("input")
-		.attr("id","displayBinFullHeightInput")
-		.attr("type","checkbox")
-		.attr("name","scale")
-		.classed("clickable", true)
-		.property("checked",false)
-		.style("visibility","hidden")
-		.style("order","2")
-		.attr("value","Full height")
-		.on("change", function() {
-			self.displayFullHeightBins = this.checked;
-			if (this.checked == true) {
-				/*d3.select("#displayBinColorInput").style("visibility","hidden");
-				d3.select(d3.select("#displayBinColorInput").node().previousSibling).style("visibility","hidden");
-			*/} else {
-				d3.select("#displayBinColorInput").style("visibility","visible");
-				d3.select(d3.select("#displayBinColorInput").node().previousSibling).style("visibility","visible");
-			}
-			self.displayData();
-		});
+	self.binsDisplayStyleForm = d3.select("#binDisplayStyleForm");
 	
 	self.switchBinsDisplayStyleFormVisibility = function() {
-		var currentVisibility = self.binsDisplayStyleForm.style("display");
+		let currentVisibility = self.binsDisplayStyleForm.style("display");
 		switch(currentVisibility) {
 			case "none":
 				self.binsDisplayStyleForm.style("display","flex");
@@ -6502,51 +6451,8 @@ var Timeline = function(elemId, options) {
 	
 	self.eventDisplayStyle = "type";
 	
-	self.changeEventDisplayStyle = function() {
-	    if (this.value === "type") {
-	    	self.eventDisplayStyle = "type";
-	    	// change the left axis
-	    	self.yFocus = d3.scaleBand()
-	    		.range([0, self.marginFocus.size])
-	    		.paddingInner(0.1);
-	    } else if (this.value === "time") {
-    		self.eventDisplayStyle = "time";
-    		
-	    } else if (this.value === "user") {
-    		self.eventDisplayStyle = "user";
-	    } else if (this.value === "showOnlyHighlighted") {
-	    	let optionChecked = self.showOnlyHighlightedInFocusForm.select("input").property("checked");
-	    	self.showOnlyHighlightedInFocus = optionChecked;
-	    }
-	    self.displayData();
-	};
-	
-	self.eventDisplayStyleForm = self.controls.append("form")
-						.style("margin-left","15px")
-						.attr("class","displayControlForm")
-						.style("display","none")
-						.style("float","right");
-	self.eventDisplayStyleForm.append("label")
-		.text("Order events by: ");
-	self.eventDisplayStyleForm.append("label")
-		.text("Type")
-	  .append("input")
-		.attr("type","radio")
-		.attr("name","scale")
-		.classed("clickable", true)
-		.property("checked",true)
-		.attr("value","type");
-	self.eventDisplayStyleForm.append("label")
-		.text("Time")
-		.classed("hidden", true)
-	  .append("input")
-		.attr("type","radio")
-		.attr("name","scale")
-		.attr("value","time")
-		.classed("clickable", true)
-		.classed("hidden", true);
-	self.eventDisplayStyleForm.selectAll("input").on("change", self.changeEventDisplayStyle);
-	
+	self.eventDisplayStyleForm = d3.select("#eventDisplayStyleForm");
+
 	self.switchEventDisplayStyleFormVisibility = function() {
 		var currentVisibility = self.eventDisplayStyleForm.style("display");
 		switch(currentVisibility) {
@@ -6562,22 +6468,8 @@ var Timeline = function(elemId, options) {
 	
 	self.showOnlyHighlightedInFocus = false;
 	
-	self.showOnlyHighlightedInFocusForm = self.controls.append("form")
-						.style("margin-left","15px")
-						.attr("class","displayControlForm")
-						.style("display","none")
-						.style("float","right");
-	self.showOnlyHighlightedInFocusForm.append("label")
-		.text("Only show highlighted: ")
-	  .append("input")
-		.attr("type","checkbox")
-		.attr("name","showOnlyHighlighted")
-		.property("checked",false)
-		.classed("clickable", true)
-		.attr("value","showOnlyHighlighted");
+	self.showOnlyHighlightedInFocusForm = d3.select("#focusShowOnlyHighlightedForm");
 
-	self.showOnlyHighlightedInFocusForm.selectAll("input").on("change", self.changeEventDisplayStyle);
-	
 	self.displayToolTipGeneral = function(data) {
 		/* WARNING : MAY NOT BE TRUE ANYMORE
 		 * Structure : 

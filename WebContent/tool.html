@@ -172,7 +172,49 @@
 								</div> -->
 								<div class="subsection">
 									<div class="title">All users</div>
-									<div id="tl_focusControl" class="param"></div>
+									<div id="tl_focusControl" class="param">
+										<form class="displayZoomForm">
+											<input type="button" name="zoom" value="+" class="clickable" id="zoomIn" onclick="zoomingIn();"/>
+											<input type="button" name="zoom" value="-" class="clickable" id="zoomOut" onclick="zoomingOut();"/>
+										</form>
+										<div class="focusZoomInfo">
+											Data grouped by:
+											<span id="zoomInfoYear" class="zoomInfoSpan clickable" onclick="goToYearDistribution();">year</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoMonth" class="zoomInfoSpan clickable" onclick="goToMonthDistribution();">month</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoHalfMonth" class="zoomInfoSpan clickable" onclick="goToHalfMonthDistribution();">half month</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoDay" class="zoomInfoSpan clickable" onclick="goToDayDistribution();">day</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoHalfDay" class="zoomInfoSpan clickable" onclick="goToHalfDayDistribution();">half day</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoEvent" class="zoomInfoSpan clickable" onclick="goToEvents();">event</span>
+										</div>
+										<form id="binDisplayStyleForm" class="displayControlForm">
+											<label class="hidden">Relative size: </label>
+											<input id="displayBinFullHeightInput" type="checkbox" name="scale" class="clickable hidden" value="Full height" onchange="switchBinHeightDisplay();"/>
+											<label>Show categories: </label>
+											<input id="displayBinColorInput" type="checkbox" name="scale" class="clickable" value="Colors" onchange="switchBinCategoryDisplay();"/>
+										</form>
+										<form id="eventDisplayStyleForm" class="displayControlForm">
+											<label>Order events by: </label>
+											<label>
+												Type
+												<input type="radio" name="scale" class="clickable" checked value="type" onchange="startDisplayingEventsByType();"/>
+											</label>
+											<label class="hidden">
+												Time
+												<input type="radio" name="scale" class="clickable hidden" value="time" onchange="startDisplayingEventsByTime();"/>
+											</label>
+										</form>
+										<form id="focusShowOnlyHighlightedForm">
+											<label>
+												Only show highlighted: 
+												<input type="checkbox" name="showOnlyHighlighted" class="clickable" value="showOnlyHighlighted" onchange="switchFocusShowOnlyHighlighted();"/>
+											</label>
+										</form>
+									</div>
 									<div id="tl_focus" class="body"></div>
 								</div>
 								<div class="subsection">
