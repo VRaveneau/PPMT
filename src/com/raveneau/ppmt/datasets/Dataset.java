@@ -1113,6 +1113,10 @@ public class Dataset {
 			return null;
 	}
 	
+	public Map<Session, PatternManager> getPatternManagers() {
+		return this.patternManagers;
+	}
+	
 	public void addPatternManagerToSession(Session session, SessionHandler sessionHandler) {
 		patternManagers.put(session, new PatternManager(userRenaming, eventsCoded, eventsReadable, session, sessionHandler, this));
 	}
