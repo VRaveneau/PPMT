@@ -493,6 +493,13 @@ function handleKeyPress() {
 	if (!userInputIsDisabled) {
 		let kc = d3.event.key;
 		switch(kc) {
+		case "m":
+			if (debugMode) {
+				console.log("Requesting mem debug");
+				let msg = {action:"request",object:"memory"};
+				sendToServer(msg);
+			}
+			break;
 		case "h":
 		case "H":
 		case "?":
@@ -1666,7 +1673,16 @@ function processMessage(message/*Compressed*/) {
 		displayUserPatterns(msg);
 	}
 	if (msg.action === "debug") {	// Receiving a debug message from the server
-		displayServerDebugMessage(msg);
+		if (msg.object && msg.object === "memory") { // The debug is about the memory size of the dataset
+			console.log("-----MemDebug-----");
+			console.log("Dataset : "+msg.dataset);
+			console.log("Size : "+parseInt(msg.size)+"o (~"+parseInt(msg.size)/1000000+"Mo)");
+			/*console.log("Dump :");
+			console.log(msg.dump);*/
+			console.log("-----EndDebug-----");
+		} else {
+			displayServerDebugMessage(msg);
+		}
 	}
 	if (msg.action === "startLoading") { // The server starts to load the dataset
 		displayDatasetLoading();

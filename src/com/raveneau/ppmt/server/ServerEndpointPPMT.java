@@ -62,6 +62,10 @@ public class ServerEndpointPPMT {
 				
 			case "request":
 				switch(jsonMessage.getString("object")) {
+					case "memory":
+						sessionHandler.profileDatasetSize(session);
+						break;
+						
 					case "dataset":
 						System.out.println("user requests data on the "+jsonMessage.getString("dataset")+" dataset");
 			  			sessionHandler.provideData(jsonMessage.getString("dataset"),session);

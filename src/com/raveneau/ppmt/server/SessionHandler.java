@@ -23,6 +23,11 @@ import com.raveneau.ppmt.patterns.Pattern;
 
 import ca.pfv.spmf.test.MainTestGSP_saveToMemory;
 
+import com.vladium.utils.IObjectProfileNode;
+import com.vladium.utils.ObjectProfileFilters;
+import com.vladium.utils.ObjectProfileVisitors;
+import com.vladium.utils.ObjectProfiler;
+
 @ApplicationScoped
 public class SessionHandler {
 	
@@ -601,5 +606,25 @@ public class SessionHandler {
 				.add("dataset", datasetName)
 				.add("answer", answer);
 		sendToSession(session, dataMessage.build());
+	}
+	
+	public void profileDatasetSize(Session session) {
+		System.out.println("Profiling ds");
+		String dsName = currentlyUsedDatasets.get(session); 
+		
+		IObjectProfileNode profile = ObjectProfiler.profile (datasetManager.getDataset(dsName));
+		
+		System.out.println("Profile done");
+		
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "debug")
+				.add("object", "memory")
+				.add("dataset", dsName)
+				.add("size", profile.size());
+				//.add("dump", profile.dump());
+		System.out.println("Sending profile");
+		sendToSession(session, dataMessage.build());
+		System.out.println("Profile sent");
 	}
 }
