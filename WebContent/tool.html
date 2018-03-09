@@ -245,9 +245,6 @@
 								<div class="tl_separator"><span>Selected patterns</span></div>
 								<div id="tl_patterns"></div> -->
 							</div>
-							<!-- <div id="timelineOverview">
-							
-							</div> -->
 							<div id="centerOverlay">
 							
 							</div>
@@ -264,7 +261,7 @@
 						<ul class="algorithmTabs">
 							<li><a href="javascript:void(0)" class="algorithmTabLink active" onclick="openAlgorithmTab(event, 'Execution')">Execution</a></li>
 							<!-- <li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Metrics')">Metrics</a></li> -->
-							<!-- <li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Algorithm')">Mining</a></li> -->
+							<li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Algorithm')">Mining</a></li>
 						</ul>
 					
 						<div id="Execution" class="algorithmTabContent defaultAlgorithmTab">
@@ -282,22 +279,22 @@
 								
 							</div>
 						</div>
-						<!-- 
+						<!--
 						<div id="Metrics" class="algorithmTabContent">
 							<p>Pattern sizes' distribution:</p>
 							<div id="patternSizeDistribution">
 							
 							</div>
 						</div>
-						 -->
+						-->
 						<div id="Algorithm" class="algorithmTabContent">
 							<div id="sliderSupportArea">
-								<p>Support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
+								<p>Min. support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
 								<br>
 								<div id="sliderSupport"></div>
 							</div>
 							<div id="sliderGapArea">
-								<p>Gap:<span class="iconHelper" id="helpGap" title="Number of events in the pattern that don't belong to it">&nbsp;&nbsp;(?)</span></p>
+								<p>Min. and max. gap:<span class="iconHelper" id="helpGap" title="Number of events in the pattern that don't belong to it">&nbsp;&nbsp;(?)</span></p>
 								<br>
 								<div id="sliderGap"></div>
 							</div>
@@ -307,7 +304,7 @@
 								<div id="sliderWindow"></div>
 							</div>
 							<div id="sliderSizeArea">
-								<p>Size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
+								<p>Max. size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
 								<br>
 								<div id="sliderSize"></div>
 							</div>

@@ -4638,6 +4638,23 @@ function switchFocusShowOnlyHighlighted() {
 	timeline.displayData();
 }
 
+/**
+ * Returns the relevant display mode for the focus view ("events" or
+ * "distributions").
+ * 
+ * This is the valid version to use once the timeline will be implemented better.
+ * 
+ * TODO Use instead of Timeline.getRelevantDisplayMode()
+ */
+function getRelevantDisplayMode() {
+	let tlDomain = timeline.xFocus.domain();
+	if ((tlDomain[1]-tlDomain[0])/1000 < distributionHalfDayThreshold ) {
+		return "events";
+	} else {
+		return "distributions";
+	}
+}
+
 /************************************/
 /*				Tooltip				*/
 /************************************/
@@ -5421,8 +5438,6 @@ function GapSlider(elemId) {
 
 var Timeline = function(elemId, options) {
 	var self = this;
-	
-	self.userData = 0;
 	
 	self.parentNode = document.getElementById(elemId);
 	self.nodeFocusControl = document.getElementById('tl_focusControl');
@@ -6232,11 +6247,16 @@ var Timeline = function(elemId, options) {
 	self.displayMode = "distributions";
 	self.distributionScale = "year";
 	
-	// Adding the control buttons over the timeline
-	
+	/**
+	 * Temporary version of getRelevantDisplayMode()
+	 * Only used while the call to self.xFocus causes an error during the
+	 * instanciation of Timeline
+	 * 
+	 * @deprecated To be replaced by calls to getRelevantDisplayMode()
+	 */
 	self.getRelevantDisplayMode = function() {
 		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
-		if (displaySeconds < 60*60*24*3 ) { // less than 3 days
+		if (displaySeconds < distributionHalfDayThreshold ) {
 			return "events";
 		} else {
 			return "distributions";
