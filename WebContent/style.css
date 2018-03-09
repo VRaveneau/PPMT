@@ -310,6 +310,10 @@ body {
     text-decoration: none;
 }
 
+.focusZoomInfo {
+	float: left;
+}
+
 #highlightResetButtons {
 	position: absolute;
 	top: 8px;
@@ -370,8 +374,29 @@ body {
 	padding-top: 5px;
 }
 
-.displayControlForm {
+.displayZoomForm {
 	float: left;
+}
+
+.displayControlForm {
+	
+}
+
+#binDisplayStyleForm {
+	margin-left:15px;
+	float:right;
+}
+
+#eventDisplayStyleForm {
+	margin-left:15px;
+	float:right;
+	display: none;
+}
+
+#focusShowOnlyHighlightedForm {
+	margin-left:15px;
+	float:right;
+	display: none;
 }
 
 #centerOverlay {
@@ -393,10 +418,6 @@ body {
 #nbUserShownValue {
 	display: inline-block;
 	min-width: 30px;
-}
-
-#timeline form {
-	float: left;
 }
 
 #timelineOverview {

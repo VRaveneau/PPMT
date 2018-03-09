@@ -92,7 +92,6 @@
 						<div id="Users" class="controlTabContent">
 							<form>
 								<div class="searchBarArea">
-									<!-- <input type="button" class="searchButton" value="Search"> -->
 									<div class="searchFieldArea">
 										&nbsp;
 										<input type="text" class="searchField" placeholder="Write user names here">
@@ -160,7 +159,6 @@
 						</div>
 					</div>
 				
-				<!--  <div id="display">  -->
 					<div id="center" class="section">
 						<div id="timeline-view">
 							<div id="timeline">
@@ -174,7 +172,49 @@
 								</div> -->
 								<div class="subsection">
 									<div class="title">All users</div>
-									<div id="tl_focusControl" class="param"></div>
+									<div id="tl_focusControl" class="param">
+										<form class="displayZoomForm">
+											<input type="button" name="zoom" value="+" class="clickable" id="zoomIn" onclick="zoomingIn();"/>
+											<input type="button" name="zoom" value="-" class="clickable" id="zoomOut" onclick="zoomingOut();"/>
+										</form>
+										<div class="focusZoomInfo">
+											Data grouped by:
+											<span id="zoomInfoYear" class="zoomInfoSpan clickable" onclick="goToYearDistribution();">year</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoMonth" class="zoomInfoSpan clickable" onclick="goToMonthDistribution();">month</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoHalfMonth" class="zoomInfoSpan clickable" onclick="goToHalfMonthDistribution();">half month</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoDay" class="zoomInfoSpan clickable" onclick="goToDayDistribution();">day</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoHalfDay" class="zoomInfoSpan clickable" onclick="goToHalfDayDistribution();">half day</span>
+											<span class="zoomInfoSpan"> > </span>
+											<span id="zoomInfoEvent" class="zoomInfoSpan clickable" onclick="goToEvents();">event</span>
+										</div>
+										<form id="binDisplayStyleForm" class="displayControlForm">
+											<label class="hidden">Relative size: </label>
+											<input id="displayBinFullHeightInput" type="checkbox" name="scale" class="clickable hidden" value="Full height" onchange="switchBinHeightDisplay();"/>
+											<label>Show categories: </label>
+											<input id="displayBinColorInput" type="checkbox" name="scale" class="clickable" value="Colors" onchange="switchBinCategoryDisplay();"/>
+										</form>
+										<form id="eventDisplayStyleForm" class="displayControlForm">
+											<label>Order events by: </label>
+											<label>
+												Type
+												<input type="radio" name="scale" class="clickable" checked value="type" onchange="startDisplayingEventsByType();"/>
+											</label>
+											<label class="hidden">
+												Time
+												<input type="radio" name="scale" class="clickable hidden" value="time" onchange="startDisplayingEventsByTime();"/>
+											</label>
+										</form>
+										<form id="focusShowOnlyHighlightedForm">
+											<label>
+												Only show highlighted: 
+												<input type="checkbox" name="showOnlyHighlighted" class="clickable" value="showOnlyHighlighted" onchange="switchFocusShowOnlyHighlighted();"/>
+											</label>
+										</form>
+									</div>
 									<div id="tl_focus" class="body"></div>
 								</div>
 								<div class="subsection">
@@ -205,9 +245,6 @@
 								<div class="tl_separator"><span>Selected patterns</span></div>
 								<div id="tl_patterns"></div> -->
 							</div>
-							<!-- <div id="timelineOverview">
-							
-							</div> -->
 							<div id="centerOverlay">
 							
 							</div>
@@ -224,7 +261,7 @@
 						<ul class="algorithmTabs">
 							<li><a href="javascript:void(0)" class="algorithmTabLink active" onclick="openAlgorithmTab(event, 'Execution')">Execution</a></li>
 							<!-- <li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Metrics')">Metrics</a></li> -->
-							<!-- <li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Algorithm')">Mining</a></li> -->
+							<li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Algorithm')">Mining</a></li>
 						</ul>
 					
 						<div id="Execution" class="algorithmTabContent defaultAlgorithmTab">
@@ -242,22 +279,22 @@
 								
 							</div>
 						</div>
-						<!-- 
+						<!--
 						<div id="Metrics" class="algorithmTabContent">
 							<p>Pattern sizes' distribution:</p>
 							<div id="patternSizeDistribution">
 							
 							</div>
 						</div>
-						 -->
+						-->
 						<div id="Algorithm" class="algorithmTabContent">
 							<div id="sliderSupportArea">
-								<p>Support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
+								<p>Min. support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
 								<br>
 								<div id="sliderSupport"></div>
 							</div>
 							<div id="sliderGapArea">
-								<p>Gap:<span class="iconHelper" id="helpGap" title="Number of events in the pattern that don't belong to it">&nbsp;&nbsp;(?)</span></p>
+								<p>Min. and max. gap:<span class="iconHelper" id="helpGap" title="Number of events in the pattern that don't belong to it">&nbsp;&nbsp;(?)</span></p>
 								<br>
 								<div id="sliderGap"></div>
 							</div>
@@ -267,7 +304,7 @@
 								<div id="sliderWindow"></div>
 							</div>
 							<div id="sliderSizeArea">
-								<p>Size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
+								<p>Max. size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
 								<br>
 								<div id="sliderSize"></div>
 							</div>
@@ -291,7 +328,6 @@
 						<div id="patternListArea" class="body">
 							<form>
 								<div class="searchBarArea">
-									<!-- <input type="button" class="searchButton" value="Search"> -->
 									<div class="searchFieldArea">
 										&nbsp;
 										<input type="text" class="searchField" placeholder="Write event types here">
@@ -325,30 +361,7 @@
 						</div>
 					
 					</div>
-			
-	<!-- 		
-				<div id="chart-view">
-					<h4>Lift matrix:</h4>
-					<div id="chart-lift">
-					
-					</div>
 				</div>
-				<div id="dataset-info">
-					<h4>Current dataset:</h4>
-					<h4>Dataset information:</h4>
-					<p> Number of users : <span id="nbUsers">??</span><p>
-					<p> Current user : <span id="currentUser"></span><p>
-					<p> Number of different events : <span id="nbDiffEvents">??</span></p>
-					<p> Number of discovered patterns : </p>
-					<ul id="listNbPatternsStartingBy">
-						<li> Total : <span id="nbTotal">0</span></li>
-					</ul>
-				</div>
-				
-	 -->			
-				
-				
-			</div>
 					
 			<div id="tooltip" class="section hidden">
 				<!-- <div class="title">Inspector</div> -->
@@ -356,6 +369,7 @@
 				<div class="body">
 				Hover over the visualizations to get more information
 				</div>
+			</div>
 			</div>
 		</div>
 	    <script src="config.js" type="text/javascript" charset="utf-8"></script>
