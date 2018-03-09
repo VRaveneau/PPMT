@@ -614,6 +614,7 @@ public class SessionHandler {
 		
 		IObjectProfileNode profile = ObjectProfiler.profile (datasetManager.getDataset(dsName));
 		IObjectProfileNode profileEvents = ObjectProfiler.profile (datasetManager.getDataset(dsName).getEvents());
+		IObjectProfileNode profileNewEvents = ObjectProfiler.profile (datasetManager.getDataset(dsName).getOrderedEvents());
 		
 		System.out.println("Profile done");
 		
@@ -623,7 +624,8 @@ public class SessionHandler {
 				.add("object", "memory")
 				.add("dataset", dsName)
 				.add("size", profile.size())
-				.add("sizeEvents", profileEvents.size());
+				.add("sizeEvents", profileEvents.size())
+				.add("sizeNewEvents", profileNewEvents.size());
 				//.add("dump", profile.dump());
 		System.out.println("Sending profile");
 		sendToSession(session, dataMessage.build());

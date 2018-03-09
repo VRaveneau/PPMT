@@ -25,6 +25,7 @@ import javax.json.spi.JsonProvider;
 import javax.websocket.Session;
 
 import com.diogoduailibe.lzstring4j.LZString;
+import com.raveneau.ppmt.events.Event;
 import com.raveneau.ppmt.patterns.PatternManager;
 import com.raveneau.ppmt.server.SessionHandler;
 
@@ -46,6 +47,9 @@ public class Dataset {
 	private boolean loaded = false;
 	private int eventCompressionSize = 10000;
 	private List<String> compressedEvents = new ArrayList<>();
+	
+	private List<Event> orderedEvents = new ArrayList<>();
+	private int nextEventId = 0;
 	
 	private JsonObject parameters = null;
 	
@@ -217,6 +221,20 @@ public class Dataset {
 						evt += properties[i]+";";
 				}
 				String newString = evt.substring(0, evt.length()-1);
+				
+				String[] splitNew = newString.split(";");
+				int evtId = this.nextEventId++;
+				String evtUser = splitNew[3];
+				String evtStart = splitNew[1];
+				String evtEnd = splitNew[2];
+				String evtType = splitNew[0];
+				List<String> evtProp = new ArrayList<>();
+				
+				for(int propIdx=4;propIdx<properties.length;propIdx++) {
+					evtProp.add(splitNew[propIdx]);
+				}
+				
+				this.orderedEvents.add(new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp));
 				
 				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 				Date eventDate = null;
@@ -935,6 +953,10 @@ public class Dataset {
 	
 	public List<String> getEvents() {
 		return getEvents(0,nbEvents);
+	}
+	
+	public List<Event> getOrderedEvents() {
+		return orderedEvents.subList(0, nbEvents);
 	}
 	
 	public List<String> getEvents(int firstIndex, int count) {
