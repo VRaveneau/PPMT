@@ -1674,9 +1674,13 @@ function processMessage(message/*Compressed*/) {
 	}
 	if (msg.action === "debug") {	// Receiving a debug message from the server
 		if (msg.object && msg.object === "memory") { // The debug is about the memory size of the dataset
+			let fullSize = parseInt(msg.size);
+			let PMSize = parseInt(msg.sizePM);
 			console.log("-----MemDebug-----");
 			console.log("Dataset : "+msg.dataset);
-			console.log("Size : "+parseInt(msg.size)+"o (~"+parseInt(msg.size)/1000000+"Mo)");
+			console.log("Total size : "+fullSize+"o (~"+fullSize/1000000+"Mo)");
+			console.log("PatternManager size : "+PMSize+"o (~"+PMSize/1000000+"Mo)");
+			console.log("'Strict' size : "+(fullSize-PMSize)+"o (~"+(fullSize-PMSize)/1000000+"Mo)");
 			/*console.log("Dump :");
 			console.log(msg.dump);*/
 			console.log("-----EndDebug-----");
