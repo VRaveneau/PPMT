@@ -38,7 +38,7 @@ public class DummyPatternManager extends PatternManager {
 
 	@Override
 	public void addPattern(List<String> items, Integer support, List<Integer> sIds, List<String> users,
-			List<long[]> timestamps, boolean hasAllOccurrences) {
+			List<long[]> timestamps, List<int[]> eventIds,boolean hasAllOccurrences) {
 		// TODO Auto-generated method stub
 		
 	}

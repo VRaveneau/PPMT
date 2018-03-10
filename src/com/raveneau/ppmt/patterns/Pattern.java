@@ -86,8 +86,8 @@ public class Pattern {
     	return job.build();
 	}
 	
-	public void addOccurrences(Integer seqId, String user, long[] ts) {
-		this.occurrences.add(new Occurrence(seqId, user, ts));
+	public void addOccurrences(Integer seqId, String user, long[] ts, int[] eventIds) {
+		this.occurrences.add(new Occurrence(seqId, user, ts, eventIds));
 		this.sequenceId.add(seqId);
 		this.seqIdToUser.put(seqId, user);
 	}
@@ -104,6 +104,13 @@ public class Pattern {
 		return seqIdToUser.get(sId);
 	}
 	
+	/**
+	 * Provides the timestamps of every occurrence for a specific user
+	 * @param userId The user whose occurrences we want
+	 * @return The list of timestamps for all occurrences
+	 * 
+	 * TODO Make sure that the occs' eventIds are not needed (they are not if it's only for pattern distribution in sessions)
+	 */
 	public List<long[]> buildOccurrencesBinForUser(String userId) {
 		List<long[]> ts = new ArrayList<>();
 		for (Occurrence occ : occurrences) {

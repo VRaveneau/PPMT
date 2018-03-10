@@ -72,7 +72,7 @@ public class PatternManager {
 		return null;
 	}
 	
-	public void addPattern(List<String> items, Integer support, List<Integer> sIds, List<String> users, List<long[]> timestamps, boolean hasAllOccurrences) {
+	public void addPattern(List<String> items, Integer support, List<Integer> sIds, List<String> users, List<long[]> timestamps, List<int[]> eventIds,boolean hasAllOccurrences) {
 		Pattern p = new Pattern(items);
 		p.setSupport(support);
 		//p.setSequenceId(sIds);
@@ -109,11 +109,12 @@ public class PatternManager {
 			Integer s = sIds.get(i);
 			String u = users.get(i);
 			long[] t = timestamps.get(i);
+			int[] e = eventIds.get(i);
 			
 			/*if (i > sIds.size()-5)
 				System.out.println("s, u, t : "+s+" - "+u+" - "+t[0]+","+t[1]);*/
 			
-			p.addOccurrences(s, u, t);
+			p.addOccurrences(s, u, t, e);
 			// Updating the user reference
 			if (!patterns.containsKey(users.get(i)))
 				patterns.put(users.get(i), new ArrayList<Pattern>());

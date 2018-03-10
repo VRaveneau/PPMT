@@ -461,6 +461,7 @@ public class SessionHandler {
     			relevantUsers += u+";";
     			String theseOccs = "";
     			for (long[] ts: occs) {
+    				// TODO send the timestamp between the occ's first and second events, might as well be the start
     				theseOccs += String.valueOf(ts[0]+(ts[1]-ts[0])/2)+";";
     			}
     			distributionMessage.add(u, theseOccs.substring(0, theseOccs.length()-1));
@@ -474,6 +475,14 @@ public class SessionHandler {
 		sendToSession(session, dataMessage.build());
 	}
 
+	/**
+	 * Provides the occurrences of a given pattern. Only timestamps of involved events are sent, not their ids
+	 * @param patternId
+	 * @param datasetName
+	 * @param session
+	 * 
+	 * TODO Also send the involved events' ids
+	 */
 	public void providePatternOccurrences(String patternId, String datasetName, Session session) {
 		System.out.println("Handler starts to provide pattern occurrences for "+patternId);
     	JsonProvider provider = JsonProvider.provider();
