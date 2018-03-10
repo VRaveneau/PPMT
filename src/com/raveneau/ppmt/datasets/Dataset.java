@@ -982,8 +982,8 @@ public class Dataset {
 				eventCal.setTime(eventDate);
 				eventCal.set(Calendar.MILLISECOND,0);
 
-				// type(coded as integer);start(in milliseconds);user
-				String eventData = eventsCoded.get(event.getType())+";"+eventCal.getTimeInMillis()+";"+event.getUser();
+				// type(coded as integer);start(in milliseconds);user;id
+				String eventData = eventsCoded.get(event.getType())+";"+eventCal.getTimeInMillis()+";"+event.getUser()+";"+event.getId();
 				
 				currentUserSequence.add(eventData);
 				

@@ -134,7 +134,7 @@ public class SequenceDatabase {
      * @param minSupportAbsolute Minimum absolute support
      */
     public void loadDataset(Dataset dataset, int minSupportAbsolute, int windowSize) {
-    	// List of events in the form : type(coded as integer);start(in milliseconds);user
+    	// List of events in the form : type(coded as integer);start(in milliseconds);user;id
     	System.out.println("Requesting the mineable dataset with windowSize = "+windowSize);
     	List<List<String>> windows = dataset.getDatasetForMining(windowSize);
     	System.out.println("Mineable dataset received");
@@ -213,6 +213,7 @@ public class SequenceDatabase {
     public void addSequence(List<String> sequenceToAdd) {
     	ItemAbstractionPairCreator creadorPares = ItemAbstractionPairCreator.getInstance();
         long timestamp;
+        int id;
         Sequence sequence = new Sequence(sequences.size());
         Itemset itemset = new Itemset();
         int start = 0;
@@ -223,7 +224,9 @@ public class SequenceDatabase {
         	//System.out.println(event);
         	// Getting the timestamp
         	timestamp = Long.parseLong(splitEvent[1]);
+        	id = Integer.parseInt(splitEvent[3]);
         	itemset.setTimestamp(timestamp);
+        	itemset.setId(id);
         	//itemset.setUser(splitEvent[2]);
         	sequence.setUser(splitEvent[2]);
         	// Getting the value for the item
