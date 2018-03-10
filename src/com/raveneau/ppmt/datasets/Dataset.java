@@ -30,25 +30,44 @@ import com.raveneau.ppmt.patterns.PatternManager;
 import com.raveneau.ppmt.server.SessionHandler;
 
 public class Dataset {
+	/**
+	 * Name of the dataset
+	 */
 	private String name = null;
+	/**
+	 * All the event types in the dataset
+	 */
 	private ArrayList<String> events = new ArrayList<>();
+	/**
+	 * Map from an integer representation to an event type
+	 */
 	private Map<String,String> eventsReadable = new HashMap<>();	// coded : readable
+	/**
+	 * Map from an event type to an integer representation  
+	 */
 	private Map<String,String> eventsCoded = new HashMap<>();	// readable : coded
+	/**
+	 * Number of occurrences for each event type
+	 */
 	private Map<String,Integer> eventOccs = new HashMap<>();
-	private List<String> timeSortedEvents = new ArrayList<>();
-	private Map<String, List<String>> userSequences = new HashMap<>();	// < User : [event] >
-	private Map<String, String> userRenaming = new HashMap<>();
+	private List<Event> timeSortedEvents = new ArrayList<>();
+	private Map<String, List<Event>> userSequences = new HashMap<>();	// < User : [event] >
 	private int nbEvents = 0;
 	private Date firstEvent = null;
 	private Date lastEvent = null;
+	/**
+	 * Path to the csv file containing the dataset
+	 */
 	private String inputPath = null;
+	/**
+	 * Path to the json file containing the dataset's parameters
+	 */
 	private String inputPathParameters = null;
 	private boolean loading = false;
 	private boolean loaded = false;
 	private int eventCompressionSize = 10000;
 	private List<String> compressedEvents = new ArrayList<>();
 	
-	private List<Event> orderedEvents = new ArrayList<>();
 	private int nextEventId = 0;
 	
 	private JsonObject parameters = null;
@@ -97,8 +116,7 @@ public class Dataset {
 	private Date getEventDate(int index) {
 		if (index > timeSortedEvents.size())
 			return null;
-		String event = timeSortedEvents.get(index);
-		return getDateInEvent(event);
+		return timeSortedEvents.get(index).getStart();
 	}
 	
 	private Date getDateInEvent(String event) {
@@ -113,7 +131,7 @@ public class Dataset {
 		}
 		return eventDate;
 	}
-	
+	/*
 	private void compressEvents() {
 		Date compressStart = new Date();
 		System.out.println("Starting to compress the events, bins of "+eventCompressionSize);
@@ -140,7 +158,7 @@ public class Dataset {
 		Date compressEnd = new Date();
 		long compressTime = compressEnd.getTime() - compressStart.getTime();
 		System.out.println("dataset loaded in "+compressTime+"ms.");
-	}
+	}*/
 	
 	/**
 	 * Load the parameters in the file targeted by inputPathParameters
@@ -173,6 +191,7 @@ public class Dataset {
 		// read the file
 		FileInputStream in = null;
 		BufferedReader reader = null;
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		try {
 			in = new FileInputStream(new File(inputPath));
 			reader = new BufferedReader(new InputStreamReader(in));
@@ -183,112 +202,90 @@ public class Dataset {
 			// for each line (event)
 			while ((line = reader.readLine()) != null) {
 				// split the sequence according to ";" into tokens
-				// type;start;end;user;chart;version;options...
-				String[] properties = line.split(";");
+				// type;start;end;user;options...
+				String[] eventParts = line.split(";");
 				
-				boolean userIsNew = false;
-				
-				// Checks if the user is known
-				if (!userRenaming.containsKey(properties[3])) {
-					// Code if we want to rename the users
-					/*String rename = "user"+Integer.toString(userRenaming.size());
-					userRenaming.put(properties[3], rename);
-					userSequences.put(rename, new ArrayList<String>());
-					userIsNew = true;*/
-					// Code if we don't want to rename the users
-					String rename = properties[3];
-					userRenaming.put(properties[3], rename);
-					userSequences.put(rename, new ArrayList<String>());
-					userIsNew = true;
-				}
-				String newUserName = userRenaming.get(properties[3]);
-				// Checks if the event is known
-				if (!events.contains(properties[0])) {
-					events.add(properties[0]);
-					eventOccs.put(properties[0], new Integer(1));
-					eventsReadable.put(String.valueOf(eventTypeCode), properties[0]);
-					eventsCoded.put(properties[0], String.valueOf(eventTypeCode));
-					eventTypeCode++;
-				} else {
-					eventOccs.put(properties[0], new Integer(eventOccs.get(properties[0]).intValue()+1));
-				}
-				// Adds the data to the sequence
-				String evt = "";
-				for(int i =0; i < properties.length; i++) {
-					if(i == 3) // replace the username with its new name
-						evt += userRenaming.get(properties[3])+";";
-					else
-						evt += properties[i]+";";
-				}
-				String newString = evt.substring(0, evt.length()-1);
-				
-				String[] splitNew = newString.split(";");
 				int evtId = this.nextEventId++;
-				String evtUser = splitNew[3];
-				String evtStart = splitNew[1];
-				String evtEnd = splitNew[2];
-				String evtType = splitNew[0];
+				String evtUser = eventParts[3];
+				Date evtStart = null;
+				Date evtEnd = null;
+				String evtType = eventParts[0];
 				List<String> evtProp = new ArrayList<>();
 				
-				for(int propIdx=4;propIdx<properties.length;propIdx++) {
-					evtProp.add(splitNew[propIdx]);
+				for(int propIdx=4;propIdx<eventParts.length;propIdx++) {
+					evtProp.add(eventParts[propIdx]);
 				}
-				
-				this.orderedEvents.add(new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp));
-				
-				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				Date eventDate = null;
-				
 				try {
-					eventDate = df.parse(properties[1]);
+					evtStart = df.parse(eventParts[1]);
+					if (eventParts[2].length() > 0)
+						evtEnd = df.parse(eventParts[2]);
 				} catch (ParseException e1) {
 					e1.printStackTrace();
 				}
+				if (userSequences.get(evtUser) == null)
+					userSequences.put(evtUser, new ArrayList<Event>());
+				String userName = evtUser;
+				// Checks if the event is known
+				if (!events.contains(evtType)) {
+					events.add(evtType);
+					eventOccs.put(evtType, new Integer(1));
+					eventsReadable.put(String.valueOf(eventTypeCode), evtType);
+					eventsCoded.put(evtType, String.valueOf(eventTypeCode));
+					eventTypeCode++;
+				} else {
+					eventOccs.put(evtType, new Integer(eventOccs.get(evtType).intValue()+1));
+				}
+				// Adds the data to the sequence
+				String evt = "";
+				for(int i =0; i < eventParts.length; i++) {
+					evt += eventParts[i]+";";
+				}
+				evt = evt.substring(0, evt.length()-1);
 				
-				// Adds the event at it's rightful place in the list
-				if (previousEvent != null && previousEvent.after(eventDate)) {
+				Event newEvent = new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp);
+				
+				// Adds the event at its rightful place in the list
+				if (previousEvent != null && previousEvent.after(evtStart)) {
 					System.out.println("(line "+lineCount+") An event is not in order !!");
-					System.out.println(previousEvent+" encountered before "+eventDate);
+					System.out.println(previousEvent+" encountered before "+evtStart);
 					
 					int i = timeSortedEvents.size()-1;
-					while(getEventDate(i).after(eventDate)) {
+					while(getEventDate(i).after(evtStart)) {
 						i--;
 						if (i == -1)
 							break;
 					}
-					timeSortedEvents.add(i+1, newString);
+					timeSortedEvents.add(i+1, newEvent);
 					if (i == -1)
 						System.out.println("Event inserted at position 0, before "+getEventDate(1));
 					else
 						System.out.println("Event inserted between "+getEventDate(i)+" and "+getEventDate(i+2));
 					// Insert the event in the relevant user trace, keeping it sorted
-					if (userIsNew) {
-						userSequences.get(newUserName).add(newString);
-					} else {
-						i = userSequences.get(newUserName).size()-1;
-						while(getDateInEvent(userSequences.get(newUserName).get(i)).after(eventDate)) {
-							i--;
-						}
-						userSequences.get(newUserName).add(i+1,newString);
+					int traceLength = userSequences.get(userName).size();
+					int candidatePos = traceLength - 1;
+					while(candidatePos >= 0 &&
+							userSequences.get(userName).get(i).getStart().after(evtStart)) {
+						candidatePos--;
 					}
+					userSequences.get(userName).add(i+1,newEvent);
 				} else {
-					timeSortedEvents.add(newString);
-					userSequences.get(newUserName).add(newString);
-					previousEvent = eventDate;
+					timeSortedEvents.add(newEvent);
+					userSequences.get(userName).add(newEvent);
+					previousEvent = evtStart;
 				}
 				
 				// Updates if necessary the firstEvent and lastEvent fields
 				//System.out.println("Event start : "+properties[1]+" // Date : "+eventDate);
-				if (firstEvent == null || firstEvent.after(eventDate)) {
-					firstEvent = eventDate;
+				if (firstEvent == null || firstEvent.after(evtStart)) {
+					firstEvent = evtStart;
 				}
-				if (lastEvent == null || lastEvent.before(eventDate)) {
-					lastEvent = eventDate;
+				if (lastEvent == null || lastEvent.before(evtStart)) {
+					lastEvent = evtStart;
 				}
 				
 				// Add to the relevant dayBin (a bin is half a day)
 				Calendar day = GregorianCalendar.getInstance();
-				day.setTime(eventDate);
+				day.setTime(evtStart);
 				if (day.get(Calendar.HOUR_OF_DAY) < 12)
 					day.set(Calendar.HOUR_OF_DAY,0);
 				else
@@ -303,21 +300,21 @@ public class Dataset {
 					hm.put("eventTypes", new ArrayList<String>());
 					binsProperties.put(day, hm);
 				}
-				dayBins.get(day).add(newUserName+";"+evt.substring(0, evt.length()-1));
+				dayBins.get(day).add(userName+";"+evt);
 				lineCount++;
 				
 				// Update the properties of the bin
 					// user name
-				if (!((ArrayList<String>)binsProperties.get(day).get("userNames")).contains(newUserName))
-					((ArrayList<String>)binsProperties.get(day).get("userNames")).add(newUserName);
+				if (!((ArrayList<String>)binsProperties.get(day).get("userNames")).contains(userName))
+					((ArrayList<String>)binsProperties.get(day).get("userNames")).add(userName);
 					// event type and its number of occurrences
-				if (!((ArrayList<String>)binsProperties.get(day).get("eventTypes")).contains(properties[0])) {
-					((ArrayList<String>)binsProperties.get(day).get("eventTypes")).add(properties[0]);
-					binsProperties.get(day).put(properties[0], new Integer(1));
+				if (!((ArrayList<String>)binsProperties.get(day).get("eventTypes")).contains(evtType)) {
+					((ArrayList<String>)binsProperties.get(day).get("eventTypes")).add(evtType);
+					binsProperties.get(day).put(evtType, new Integer(1));
 				} else {
 					binsProperties.get(day).put(
-							properties[0], 
-							new Integer((Integer)binsProperties.get(day).get(properties[0]) + 1)
+							evtType, 
+							new Integer((Integer)binsProperties.get(day).get(evtType) + 1)
 							);
 				}
 					
@@ -454,23 +451,13 @@ public class Dataset {
 	 */
 	public String getFirstEvent(String user) {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Date eventDate = null;
-		try {
-			eventDate = df.parse(userSequences.get(user).get(0).split(";")[1]); // Extracts the event's start in the data
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+		Date eventDate = userSequences.get(user).get(0).getStart();
 		return df.format(eventDate);// eventDate.toString();
 	}
 	
 	public String getLastEvent(String user) {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Date eventDate = null;
-		try {
-			eventDate = df.parse(userSequences.get(user).get(userSequences.get(user).size()-1).split(";")[1]);
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+		Date eventDate = userSequences.get(user).get(userSequences.get(user).size()-1).getStart();
 		return df.format(eventDate);//eventDate.toString();
 	}
 	
@@ -530,7 +517,7 @@ public class Dataset {
 	 */
 	public String getInfoOnUserToString(String username) {
 		if (userSequences.containsKey(username)) {
-			List<String> trace = userSequences.get(username);
+			List<Event> trace = userSequences.get(username);
 			return username+";"
 					+trace.size()+";"
 					+getFirstEvent(username)+";"
@@ -539,7 +526,7 @@ public class Dataset {
 		return null;
 	}
 	
-	public List<String> getTrace(String user) {
+	public List<Event> getTrace(String user) {
 		if (this.userSequences.containsKey(user)) {
 			return this.userSequences.get(user);
 		} else {
@@ -951,15 +938,11 @@ public class Dataset {
 		return null;//result;
 	}
 	
-	public List<String> getEvents() {
+	public List<Event> getEvents() {
 		return getEvents(0,nbEvents);
 	}
 	
-	public List<Event> getOrderedEvents() {
-		return orderedEvents.subList(0, nbEvents);
-	}
-	
-	public List<String> getEvents(int firstIndex, int count) {
+	public List<Event> getEvents(int firstIndex, int count) {
 		if (firstIndex < nbEvents) {
 			return timeSortedEvents.subList(firstIndex, firstIndex+count);
 		}
@@ -993,16 +976,14 @@ public class Dataset {
 
 			System.out.println("Doing user "+userCount);
 			
-			for (String event : userSequences.get(user)) {	// For each event of the user
-				Date eventDate = getDateInEvent(event);
+			for (Event event : userSequences.get(user)) {	// For each event of the user
+				Date eventDate = event.getStart();
 				eventCal = GregorianCalendar.getInstance();
 				eventCal.setTime(eventDate);
 				eventCal.set(Calendar.MILLISECOND,0);
 
-				// before: type;start;end;user;...
-				// after: type(coded as integer);start(in milliseconds);user
-				String[] splitEvent = event.split(";",5);
-				String eventData = eventsCoded.get(splitEvent[0])+";"+eventCal.getTimeInMillis()+";"+splitEvent[3];
+				// type(coded as integer);start(in milliseconds);user
+				String eventData = eventsCoded.get(event.getType())+";"+eventCal.getTimeInMillis()+";"+event.getUser();
 				
 				currentUserSequence.add(eventData);
 				
@@ -1040,16 +1021,14 @@ public class Dataset {
 				System.out.println(userCount+" user done");
 			userCount++;
 			
-			for (String event : userSequences.get(user)) {	// For each event of the user
-				Date eventDate = getDateInEvent(event);
+			for (Event event : userSequences.get(user)) {	// For each event of the user
+				Date eventDate = event.getStart();
 				eventCal = GregorianCalendar.getInstance();
 				eventCal.setTime(eventDate);
 				eventCal.set(Calendar.MILLISECOND,0);
 
-				// before: type;start;end;user;...
-				// after: type(coded as integer);start(in milliseconds);user
-				String[] splitEvent = event.split(";",5);
-				String eventData = eventsCoded.get(splitEvent[0])+";"+eventCal.getTimeInMillis()+";"+splitEvent[3];
+				// type(coded as integer);start(in milliseconds);user
+				String eventData = eventsCoded.get(event.getType())+";"+eventCal.getTimeInMillis()+";"+event.getUser();
 				
 				if (windowStart == null) {		// First event for this user, initialize the first 2 windows
 					windowStart = (Calendar) eventCal.clone();
@@ -1140,7 +1119,7 @@ public class Dataset {
 	}
 	
 	public void addPatternManagerToSession(Session session, SessionHandler sessionHandler) {
-		patternManagers.put(session, new PatternManager(userRenaming, eventsCoded, eventsReadable, session, sessionHandler, this));
+		patternManagers.put(session, new PatternManager(eventsCoded, eventsReadable, session, sessionHandler, this));
 	}
 	
 	public void modifyTraceByGroupingEvents(List<Integer> typeIdsToJoin) {

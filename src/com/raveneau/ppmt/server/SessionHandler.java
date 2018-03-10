@@ -17,6 +17,7 @@ import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.algorithms.AlgorithmHandler;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.datasets.DatasetManager;
+import com.raveneau.ppmt.events.Event;
 import com.raveneau.ppmt.events.SteeringListener;
 import com.raveneau.ppmt.patterns.Occurrence;
 import com.raveneau.ppmt.patterns.Pattern;
@@ -258,7 +259,7 @@ public class SessionHandler {
     	JsonProvider provider = JsonProvider.provider();
     	// Provide all the traces at once, events ordered by time, 1000 events at a time
     	
-    	List<String> events = datasetManager.getAllEvents(datasetName);
+    	List<Event> events = datasetManager.getAllEvents(datasetName);
     	
     	JsonObjectBuilder dataMessage = null;
 		
@@ -266,7 +267,7 @@ public class SessionHandler {
 				.add("action", "data")
 				.add("type", "events");
     	int nbEventsInMessage = 0;
-    	for (String e : events) {
+    	for (Event e : events) {
     		if (nbEventsInMessage == 1000) {
     			dataMessage.add("numberOfEvents", nbEventsInMessage);
     			sendToSession(session, dataMessage.build());
@@ -276,7 +277,7 @@ public class SessionHandler {
     			nbEventsInMessage = 0;
     		}
 
-			dataMessage.add(Integer.toString(nbEventsInMessage), e);
+			dataMessage.add(Integer.toString(nbEventsInMessage), e.toString());
     		nbEventsInMessage++;
     	}
     	dataMessage.add("numberOfEvents", nbEventsInMessage);
@@ -614,7 +615,6 @@ public class SessionHandler {
 		
 		IObjectProfileNode profile = ObjectProfiler.profile (datasetManager.getDataset(dsName));
 		IObjectProfileNode profileEvents = ObjectProfiler.profile (datasetManager.getDataset(dsName).getEvents());
-		IObjectProfileNode profileNewEvents = ObjectProfiler.profile (datasetManager.getDataset(dsName).getOrderedEvents());
 		
 		System.out.println("Profile done");
 		
@@ -624,8 +624,7 @@ public class SessionHandler {
 				.add("object", "memory")
 				.add("dataset", dsName)
 				.add("size", profile.size())
-				.add("sizeEvents", profileEvents.size())
-				.add("sizeNewEvents", profileNewEvents.size());
+				.add("sizeEvents", profileEvents.size());
 				//.add("dump", profile.dump());
 		System.out.println("Sending profile");
 		sendToSession(session, dataMessage.build());

@@ -16,7 +16,6 @@ public class PatternManager {
 	private Map<String,Integer> patternItemsToId = new HashMap<>();
 	private Map<Integer,String> patternIdToItems = new HashMap<>();
 	private Map<String,List<Pattern>> patterns = new HashMap<>();
-	private Map<String, String> userRenaming = new HashMap<>();
 	private Map<String, String> eventsCoded = new HashMap<>();
 	private Map<String, String> eventsReadable = new HashMap<>();
 	private Map<Integer, List<String>> patternIdToUser = new HashMap<>();
@@ -30,12 +29,9 @@ public class PatternManager {
 	private SessionHandler sessionHandler = null;
 	private Dataset dataset = null;
 	
-	public PatternManager(Map<String, String> userRenamingInverted, Map<String, String> eventsCoded, Map<String, String> eventsReadable, Session session, SessionHandler sessionHandler, Dataset dataset) {
+	public PatternManager(Map<String, String> eventsCoded, Map<String, String> eventsReadable, Session session, SessionHandler sessionHandler, Dataset dataset) {
 		super();
 		System.out.println("creating the PatternManager");
-		for (String k : userRenamingInverted.keySet()) {
-			this.userRenaming.put(userRenamingInverted.get(k), k);
-		}
 		this.session = session;
 		this.dataset = dataset;
 		this.sessionHandler = sessionHandler;
