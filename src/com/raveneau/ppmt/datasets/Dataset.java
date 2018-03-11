@@ -8,13 +8,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -50,8 +53,8 @@ public class Dataset {
 	 * Number of occurrences for each event type
 	 */
 	private Map<String,Integer> eventOccs = new HashMap<>();
-	private List<Event> timeSortedEvents = new ArrayList<>();
-	private Map<String, List<Event>> userSequences = new HashMap<>();	// < User : [event] >
+	private TreeSet<Event> timeSortedEvents = new TreeSet<>();
+	private Map<String, TreeSet<Event>> userSequences = new HashMap<>();	// < User : [event] >
 	private int nbEvents = 0;
 	private Date firstEvent = null;
 	private Date lastEvent = null;
@@ -112,12 +115,6 @@ public class Dataset {
 		if (startLoading) {
 			loadData();
 		}
-	}
-	
-	private Date getEventDate(int index) {
-		if (index > timeSortedEvents.size())
-			return null;
-		return timeSortedEvents.get(index).getStart();
 	}
 	
 	private Date getDateInEvent(String event) {
@@ -196,9 +193,7 @@ public class Dataset {
 		try {
 			in = new FileInputStream(new File(inputPath));
 			reader = new BufferedReader(new InputStreamReader(in));
-			Date previousEvent = null;
 			String line;
-			int lineCount = 0;
 			// for each line (event)
 			while ((line = reader.readLine()) != null) {
 				// split the sequence according to ";" into tokens
@@ -223,7 +218,7 @@ public class Dataset {
 					e1.printStackTrace();
 				}
 				if (userSequences.get(evtUser) == null)
-					userSequences.put(evtUser, new ArrayList<Event>());
+					userSequences.put(evtUser, new TreeSet<Event>());
 				String userName = evtUser;
 				// Checks if the event is known
 				if (!events.contains(evtType)) {
@@ -240,44 +235,8 @@ public class Dataset {
 				
 				Event newEvent = new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp);
 				
-				// Adds the event at its rightful place in the list
-				if (previousEvent != null && previousEvent.after(evtStart)) {
-					System.out.println("(line "+lineCount+") An event is not in order !!");
-					System.out.println(previousEvent+" encountered before "+evtStart);
-					
-					int i = timeSortedEvents.size()-1;
-					while(getEventDate(i).after(evtStart)) {
-						i--;
-						if (i == -1)
-							break;
-					}
-					timeSortedEvents.add(i+1, newEvent);
-					if (i == -1)
-						System.out.println("Event inserted at position 0, before "+getEventDate(1));
-					else
-						System.out.println("Event inserted between "+getEventDate(i)+" and "+getEventDate(i+2));
-					// Insert the event in the relevant user trace, keeping it sorted
-					int traceLength = userSequences.get(userName).size();
-					int candidatePos = traceLength - 1;
-					while(candidatePos >= 0 &&
-							userSequences.get(userName).get(i).getStart().after(evtStart)) {
-						candidatePos--;
-					}
-					userSequences.get(userName).add(i+1,newEvent);
-				} else {
-					timeSortedEvents.add(newEvent);
-					userSequences.get(userName).add(newEvent);
-					previousEvent = evtStart;
-				}
-				
-				// Updates if necessary the firstEvent and lastEvent fields
-				//System.out.println("Event start : "+properties[1]+" // Date : "+eventDate);
-				if (firstEvent == null || firstEvent.after(evtStart)) {
-					firstEvent = evtStart;
-				}
-				if (lastEvent == null || lastEvent.before(evtStart)) {
-					lastEvent = evtStart;
-				}
+				timeSortedEvents.add(newEvent);
+				userSequences.get(evtUser).add(newEvent);
 				
 				// Add to the relevant dayBin (a bin is half a day)
 				Calendar day = GregorianCalendar.getInstance();
@@ -297,7 +256,6 @@ public class Dataset {
 					binsProperties.put(day, hm);
 				}
 				dayBins.get(day).add(userName+";"+evt);
-				lineCount++;
 				
 				// Update the properties of the bin
 					// user name
@@ -320,6 +278,8 @@ public class Dataset {
 					System.out.println(nbEvents+" events stored");
 				}
 			}
+			firstEvent = timeSortedEvents.first().getStart();
+			lastEvent = timeSortedEvents.last().getStart();
 			
 			reader.close();
 		} catch (IOException e) {
@@ -466,13 +426,13 @@ public class Dataset {
 	 */
 	public String getFirstEvent(String user) {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Date eventDate = userSequences.get(user).get(0).getStart();
+		Date eventDate = userSequences.get(user).first().getStart();
 		return df.format(eventDate);// eventDate.toString();
 	}
 	
 	public String getLastEvent(String user) {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Date eventDate = userSequences.get(user).get(userSequences.get(user).size()-1).getStart();
+		Date eventDate = userSequences.get(user).last().getStart();
 		return df.format(eventDate);//eventDate.toString();
 	}
 	
@@ -532,7 +492,7 @@ public class Dataset {
 	 */
 	public String getInfoOnUserToString(String username) {
 		if (userSequences.containsKey(username)) {
-			List<Event> trace = userSequences.get(username);
+			TreeSet<Event> trace = userSequences.get(username);
 			return username+";"
 					+trace.size()+";"
 					+getFirstEvent(username)+";"
@@ -543,7 +503,7 @@ public class Dataset {
 	
 	public List<Event> getTrace(String user) {
 		if (this.userSequences.containsKey(user)) {
-			return this.userSequences.get(user);
+			return new ArrayList<>(this.userSequences.get(user));
 		} else {
 			return new ArrayList<>();
 		}
@@ -958,8 +918,15 @@ public class Dataset {
 	}
 	
 	public List<Event> getEvents(int firstIndex, int count) {
-		if (firstIndex < nbEvents) {
-			return timeSortedEvents.subList(firstIndex, firstIndex+count);
+		if (firstIndex < nbEvents && firstIndex+count <= nbEvents) {
+			Iterator<Event> it = timeSortedEvents.iterator();
+			for(int i=0; i<firstIndex;i++)
+				it.next();
+			Event firstEvt = it.next();
+			for(int i=0; i<count-2;i++)
+				it.next();
+			Event lastEvt = it.next();
+			return new ArrayList<>(timeSortedEvents.subSet(firstEvt, true, lastEvt, true));
 		}
 		return null;
 	}

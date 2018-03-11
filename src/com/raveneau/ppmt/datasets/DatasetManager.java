@@ -463,7 +463,7 @@ public class DatasetManager {
 		
 	public List<Event> getAllEvents(String datasetName) {
 		Dataset d = getDataset(datasetName);
-		return getEvents(0,d.getNbEvent(),datasetName);
+		return getDataset(datasetName).getEvents();
 	}
 	
 	public List<String> getAllEventsCompressed(String datasetName) {

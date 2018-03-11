@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-public class Event {
+public class Event implements Comparable<Event>{
 	private int id;
 	private String type;
 	private String user;
@@ -85,5 +85,17 @@ public class Event {
 		for(String prop : properties)
 			result += ";"+prop;
 		return result;
+	}
+
+	/**
+	 * Compares this event to another. Order them by their start, or by their id if both start are the same
+	 */
+	@Override
+	public int compareTo(Event o) {
+		int dateComp = this.start.compareTo(o.getStart());
+		if (dateComp != 0)
+			return dateComp;
+		else
+			return this.id - o.getId();
 	}
 }
