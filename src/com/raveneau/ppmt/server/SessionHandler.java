@@ -646,7 +646,14 @@ public class SessionHandler {
 		TraceModification modifs = datasetManager.getDataset(dsName).createEventTypeFromPattern(patternId, session);
 		
 		// Create the message to communicate the changes to the client
-		
+		/*
+		 * if (msg.action === "dataAlteration") {
+		if (msg.type === "eventTypeCreated") {
+			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+		}
+	}
+		 * 
+		 */
 		// Send this message
 	}
 }

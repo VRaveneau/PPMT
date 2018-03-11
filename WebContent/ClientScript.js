@@ -2982,6 +2982,7 @@ function resetPatterns() {
  * Updates the data after the creation of a new event type
  * @param {JSON} newEvents New events to add to the data
  * @param {number[]} removedIds Ids of events to be removed
+ * TODO Implement it
  */
 function updateDatasetForNewEventType(newEvents, removedIds) {
 	console.log(newEvents);

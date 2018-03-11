@@ -494,14 +494,16 @@ public class Dataset {
 				JsonObject desc = parameters.getJsonObject("eventDescription");
 				if (desc.containsKey(eventsReadable.get(i))) {
 					infos.put("description", desc.getJsonString(eventsReadable.get(i)).getString());
+				} else {
+					infos.put("description", "???");
 				}
 			}
 			//	The event type category
 			if (parameters.containsKey("eventCategory")) {
 				JsonObject categories = parameters.getJsonObject("eventCategory");
+				boolean found = false;
 				for (String category: categories.keySet()) {
 					JsonArray eTypes = categories.getJsonArray(category);
-					boolean found = false;
 					for (int idx = 0; idx < eTypes.size(); idx++) {
 						String type = eTypes.getString(idx);
 						if (type.equals(eventsReadable.get(i))) {
@@ -512,6 +514,9 @@ public class Dataset {
 					}
 					if (found == true)
 						break;
+				}
+				if (!found) {
+					infos.put("category", "defaultCat");
 				}
 			}
 			res.put(eventsReadable.get(i), infos);
