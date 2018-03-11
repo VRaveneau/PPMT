@@ -69,6 +69,7 @@ public class Dataset {
 	private List<String> compressedEvents = new ArrayList<>();
 	
 	private int nextEventId = 0;
+	private int nextEventTypeCode = 0;
 	
 	private JsonObject parameters = null;
 	
@@ -198,7 +199,6 @@ public class Dataset {
 			Date previousEvent = null;
 			String line;
 			int lineCount = 0;
-			int eventTypeCode = 0;
 			// for each line (event)
 			while ((line = reader.readLine()) != null) {
 				// split the sequence according to ";" into tokens
@@ -227,14 +227,10 @@ public class Dataset {
 				String userName = evtUser;
 				// Checks if the event is known
 				if (!events.contains(evtType)) {
-					events.add(evtType);
-					eventOccs.put(evtType, new Integer(1));
-					eventsReadable.put(String.valueOf(eventTypeCode), evtType);
-					eventsCoded.put(evtType, String.valueOf(eventTypeCode));
-					eventTypeCode++;
-				} else {
-					eventOccs.put(evtType, new Integer(eventOccs.get(evtType).intValue()+1));
+					addEventType(evtType);
 				}
+				eventOccs.put(evtType, new Integer(eventOccs.get(evtType).intValue()+1));
+				
 				// Adds the data to the sequence
 				String evt = "";
 				for(int i =0; i < eventParts.length; i++) {
@@ -346,6 +342,25 @@ public class Dataset {
 		this.loading = false;
 		
 		//this.patternManager = new PatternManager(userRenaming);
+	}
+	
+	private void addEventType(String eventType) {
+		events.add(eventType);
+		eventOccs.put(eventType, new Integer(0));
+		eventsReadable.put(String.valueOf(nextEventTypeCode), eventType);
+		eventsCoded.put(eventType, String.valueOf(nextEventTypeCode));
+		nextEventTypeCode++;
+	}
+	
+	private void addEvent(String evtType, String evtUser, Date evtStart, Date evtEnd, List<String> evtProp) {
+		/*int evtId = this.nextEventId++;
+		
+		eventOccs.put(evtType, new Integer(eventOccs.get(evtType).intValue()+1));
+		Event newEvent = new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp);
+	*/}
+	
+	private void removeEvent() {
+		
 	}
 	
 	public void loadTrueEventNames(String path) { // TODO Make sure the mapping file is the right one
@@ -1122,7 +1137,12 @@ public class Dataset {
 		patternManagers.put(session, new PatternManager(eventsCoded, eventsReadable, session, sessionHandler, this));
 	}
 	
-	public void modifyTraceByGroupingEvents(List<Integer> typeIdsToJoin) {
+	public void createEventTypeFromPattern(int patternId) {
+		/*List<Integer> eventIdToDelete = new ArrayList<>();
+		String newEventName = "event"+nextEventTypeCode;
+		addEventType(newEventName);
 		
-	}
+		Event newEvent = new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp);
+		eventOccs.put(evtType, new Integer(eventOccs.get(evtType).intValue()+1));
+	*/}
 }
