@@ -1184,12 +1184,18 @@ public class Dataset {
 		List<Integer> eventIdToDelete = new ArrayList<>();
 		List<Event> eventsToDelete = new ArrayList<>();
 		TraceModification modifs = new TraceModification();
-		String newEventType = "event"+nextEventTypeCode;
-		addEventType(newEventType);
 		
 		PatternManager pm = patternManagers.get(session);
 		Pattern p = pm.getPattern(patternId);
 		List<Occurrence> occs = p.getOccurrences();
+		
+		String newEventType = "";
+		for(String item : p.getReadableItems()) {
+			if (newEventType.length() > 0)
+				newEventType += ".";
+			newEventType+=item;
+		}
+		addEventType(newEventType);
 		
 		for (Occurrence occ : occs) {
 			int[] evtIds = occ.getEventIds();
