@@ -10,7 +10,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -29,8 +31,11 @@ import javax.websocket.Session;
 
 import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.events.Event;
+import com.raveneau.ppmt.patterns.Occurrence;
+import com.raveneau.ppmt.patterns.Pattern;
 import com.raveneau.ppmt.patterns.PatternManager;
 import com.raveneau.ppmt.server.SessionHandler;
+import com.sun.xml.bind.v2.model.util.ArrayInfoUtil;
 
 public class Dataset {
 	/**
@@ -220,11 +225,10 @@ public class Dataset {
 				if (userSequences.get(evtUser) == null)
 					userSequences.put(evtUser, new TreeSet<Event>());
 				String userName = evtUser;
-				// Checks if the event is known
+				// Checks if the event type is known
 				if (!events.contains(evtType)) {
 					addEventType(evtType);
 				}
-				eventOccs.put(evtType, new Integer(eventOccs.get(evtType).intValue()+1));
 				
 				// Adds the data to the sequence
 				String evt = "";
@@ -233,10 +237,7 @@ public class Dataset {
 				}
 				evt = evt.substring(0, evt.length()-1);
 				
-				Event newEvent = new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp);
-				
-				timeSortedEvents.add(newEvent);
-				userSequences.get(evtUser).add(newEvent);
+				addEvent(evtType, evtUser, evtStart, evtEnd, evtProp);
 				
 				// Add to the relevant dayBin (a bin is half a day)
 				Calendar day = GregorianCalendar.getInstance();
@@ -272,8 +273,6 @@ public class Dataset {
 							);
 				}
 					
-				// Add an event to the count
-				nbEvents++;
 				if (nbEvents%500000 == 0) {
 					System.out.println(nbEvents+" events stored");
 				}
@@ -312,15 +311,53 @@ public class Dataset {
 		nextEventTypeCode++;
 	}
 	
-	private void addEvent(String evtType, String evtUser, Date evtStart, Date evtEnd, List<String> evtProp) {
-		/*int evtId = this.nextEventId++;
+	/**
+	 * Creates a new event and returns it
+	 * @param evtType
+	 * @param evtUser
+	 * @param evtStart
+	 * @param evtEnd
+	 * @param evtProp
+	 * @return
+	 */
+	private Event addEvent(String evtType, String evtUser, Date evtStart, Date evtEnd, List<String> evtProp) {
+		int evtId = this.nextEventId++;
+		Event newEvent = new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp);
 		
 		eventOccs.put(evtType, new Integer(eventOccs.get(evtType).intValue()+1));
-		Event newEvent = new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp);
-	*/}
-	
-	private void removeEvent() {
 		
+		timeSortedEvents.add(newEvent);
+		userSequences.get(evtUser).add(newEvent);
+		// Add an event to the count
+		nbEvents++;
+		
+		return newEvent;
+	}
+	
+	/**
+	 * TODO Also update the half day bins
+	 */
+	private void removeEvent(Event e) {
+		timeSortedEvents.remove(e);
+		userSequences.get(e.getUser()).remove(e);
+		nbEvents--;
+	}
+	
+	/**
+	 * TODO Also update the half day bins
+	 */
+	private void removeEvents(Collection<Event> c) {
+		timeSortedEvents.removeAll(c);
+		HashMap<String, List<Event>> toBeRemoved = new HashMap<>();
+		for(Event e : c) {
+			if (!toBeRemoved.containsKey(e.getUser()))
+				toBeRemoved.put(e.getUser(), new ArrayList<Event>());
+			toBeRemoved.get(e.getUser()).add(e);
+		}
+		for(String u : toBeRemoved.keySet()) {
+			userSequences.get(u).removeAll(toBeRemoved.get(u));
+		}
+		nbEvents-= c.size();
 	}
 	
 	public void loadTrueEventNames(String path) { // TODO Make sure the mapping file is the right one
@@ -913,6 +950,39 @@ public class Dataset {
 		return null;//result;
 	}
 	
+	public Event getEventOfUserById(int eventId, String user) {
+		for(Event e : userSequences.get(user)) {
+			if (e.getId() == eventId)
+				return e;
+		}
+		return null;
+	}
+	
+	public List<Event> getEventsOfUserById(int[] eventIds, String user) {
+		List<Event> result = new ArrayList<>();
+		List<Integer> ids = new ArrayList<>();
+		
+		for(int i : eventIds) {
+			ids.add(i);
+		}
+		
+		for(Event e : userSequences.get(user)) {
+			if (ids.contains(e.getId()))
+				result.add(e);
+		}
+		return null;
+	}
+	
+	public List<Event> getEventsOfUserById(List<Integer> eventIds, String user) {
+		List<Event> result = new ArrayList<>();
+		
+		for(Event e : userSequences.get(user)) {
+			if (eventIds.contains(e.getId()))
+				result.add(e);
+		}
+		return result;
+	}
+	
 	public List<Event> getEvents() {
 		return getEvents(0,nbEvents);
 	}
@@ -1104,12 +1174,45 @@ public class Dataset {
 		patternManagers.put(session, new PatternManager(eventsCoded, eventsReadable, session, sessionHandler, this));
 	}
 	
-	public void createEventTypeFromPattern(int patternId) {
-		/*List<Integer> eventIdToDelete = new ArrayList<>();
-		String newEventName = "event"+nextEventTypeCode;
-		addEventType(newEventName);
+	public TraceModification createEventTypeFromPattern(int patternId, Session session) {
+		System.out.println("Event type creation started");
+		List<Integer> eventIdToDelete = new ArrayList<>();
+		List<Event> eventsToDelete = new ArrayList<>();
+		TraceModification modifs = new TraceModification();
+		String newEventType = "event"+nextEventTypeCode;
+		addEventType(newEventType);
 		
-		Event newEvent = new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp);
-		eventOccs.put(evtType, new Integer(eventOccs.get(evtType).intValue()+1));
-	*/}
+		PatternManager pm = patternManagers.get(session);
+		Pattern p = pm.getPattern(patternId);
+		List<Occurrence> occs = p.getOccurrences();
+		
+		for (Occurrence occ : occs) {
+			int[] evtIds = occ.getEventIds();
+			List<Integer> evtIdsList = new ArrayList<>();
+			
+			for(int i : evtIds) {
+				evtIdsList.add(Integer.valueOf(i));
+			}
+			eventIdToDelete.addAll(evtIdsList);
+			
+			String user = occ.getUser();
+			List<Event> occEvents = getEventsOfUserById(evtIdsList, user);
+			eventsToDelete.addAll(occEvents);
+			Date start = occEvents.get(0).getStart();
+			Date end = null;
+			List<String> props = new ArrayList<>();
+			
+			modifs.addNewEvent(addEvent(newEventType, user, start, end, props));
+			removeEvents(occEvents);
+		}
+
+		System.out.println("Removing events");
+		
+		removeEvents(eventsToDelete);
+		modifs.setRemovedIds(eventIdToDelete);
+
+		System.out.println("Event type creation done");
+		
+		return modifs;
+	}
 }

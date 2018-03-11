@@ -47,7 +47,7 @@ public class Occurrence {
 	public int[] getEventIds() {
 		return eventIds;
 	}
-
+	
 	public void setEventIds(int[] eventIds) {
 		this.eventIds = eventIds;
 	}

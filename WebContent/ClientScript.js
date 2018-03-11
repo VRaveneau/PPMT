@@ -1718,6 +1718,11 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "datasetList") {
 		receiveDatasetList(msg);
 	}
+	if (msg.action === "dataAlteration") {
+		if (msg.type === "eventTypeCreated") {
+			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+		}
+	}
 }
 
 /*************************************/
@@ -1969,8 +1974,25 @@ function requestSteeringOnPattern(patternId) {
 function requestSteeringOnUser(userId) {
 	console.log('requesting steering on user '+userId);
 	let action = {
-			action: "steerOnuser",
+			action: "steerOnUser",
 			userId: userId
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests an alteration of the dataset by creating a new event type from
+ * a pattern
+ * @param {number} patternId - Id of the pattern
+ * @param {string} eventType - The name of the new event type - Not yet implemented
+ */
+function requestEventTypeCreationFromPattern(patternId) {
+	console.log('requesting the creation of event type '+
+		' from pattern '+ patternId);
+	let action = {
+			action: "alterDataset",
+			alteration: "createEventTypeFromPattern",
+			patternId: patternId
 	};
 	sendToServer(action);
 }
@@ -2954,6 +2976,16 @@ function resetPatterns() {
 	patternOccurrences = {};
 	selectedPatternIds = [];
 	// TODO Deal with the pattern metrics in patternMetrics
+}
+
+/**
+ * Updates the data after the creation of a new event type
+ * @param {JSON} newEvents New events to add to the data
+ * @param {number[]} removedIds Ids of events to be removed
+ */
+function updateDatasetForNewEventType(newEvents, removedIds) {
+	console.log(newEvents);
+	console.log(removedIds);
 }
 
 /************************************/

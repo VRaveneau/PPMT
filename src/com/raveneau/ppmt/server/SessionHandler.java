@@ -17,6 +17,7 @@ import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.algorithms.AlgorithmHandler;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.datasets.DatasetManager;
+import com.raveneau.ppmt.datasets.TraceModification;
 import com.raveneau.ppmt.events.Event;
 import com.raveneau.ppmt.events.SteeringListener;
 import com.raveneau.ppmt.patterns.Occurrence;
@@ -638,5 +639,14 @@ public class SessionHandler {
 		System.out.println("Sending profile");
 		sendToSession(session, dataMessage.build());
 		System.out.println("Profile sent");
+	}
+	
+	public void createEventTypeFromPattern(int patternId, Session session) {
+		String dsName = currentlyUsedDatasets.get(session);
+		TraceModification modifs = datasetManager.getDataset(dsName).createEventTypeFromPattern(patternId, session);
+		
+		// Create the message to communicate the changes to the client
+		
+		// Send this message
 	}
 }

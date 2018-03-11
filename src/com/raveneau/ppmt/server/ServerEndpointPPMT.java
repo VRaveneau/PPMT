@@ -138,6 +138,16 @@ public class ServerEndpointPPMT {
 			case "steerOnUser":
 				sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
 				break;
+			
+			case "alterDataset":
+				switch(jsonMessage.getString("alteration")) {
+					case "createEventTypeFromPattern" :
+						sessionHandler.createEventTypeFromPattern(jsonMessage.getInt("patternId"), session);
+						break;
+					default:
+						System.out.println("Unknwon dataset alteration : " + jsonMessage.getString("alteration"));
+				}
+				break;
 				
 			case "ping":
 				// Just used to keep the connection alive
