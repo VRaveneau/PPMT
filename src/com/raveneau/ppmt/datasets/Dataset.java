@@ -181,6 +181,12 @@ public class Dataset {
 			e.printStackTrace();
 		}
 		
+		JsonProvider provider = JsonProvider.provider();
+		// Add the expected parameters if they are not present
+		if(!parameters.containsKey("eventDescription"))
+			parameters.put("eventDescription", provider.createObjectBuilder().build());
+		if(!parameters.containsKey("eventCategory"))
+			parameters.put("eventCategory", provider.createObjectBuilder().build());
 	}
 	
 	/**
