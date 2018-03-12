@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.enterprise.context.ApplicationScoped;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.spi.JsonProvider;
@@ -645,15 +647,27 @@ public class SessionHandler {
 		String dsName = currentlyUsedDatasets.get(session);
 		TraceModification modifs = datasetManager.getDataset(dsName).createEventTypeFromPattern(patternId, session);
 		
+		// Send the new event types info
+		provideEventTypesInfo(dsName, session);
+		
 		// Create the message to communicate the changes to the client
-		/*
-		 * if (msg.action === "dataAlteration") {
-		if (msg.type === "eventTypeCreated") {
-			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "dataAlteration")
+				.add("type", "eventTypeCreated");
+		
+		JsonArrayBuilder removedIds = provider.createArrayBuilder();
+		for (Integer id : modifs.getRemovedIds())
+			removedIds.add(id.intValue());
+		dataMessage.add("removedIds", removedIds.build());
+		
+		JsonArrayBuilder newEvents = provider.createArrayBuilder();
+		for (Event e : modifs.getNewEvents()) {
+			newEvents.add(e.toString());
 		}
-	}
-		 * 
-		 */
+		dataMessage.add("newEvents", newEvents.build());
+				
 		// Send this message
+		sendToSession(session, dataMessage.build());
 	}
 }
