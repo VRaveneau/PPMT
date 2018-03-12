@@ -670,4 +670,13 @@ public class SessionHandler {
 		// Send this message
 		sendToSession(session, dataMessage.build());
 	}
+
+	/**
+	 * Create a user-specific dataset if needed
+	 * @param session The session that wants to alter the dataset
+	 */
+	public void sessionAltersDataset(Session session) {
+		// TODO Auto-generated method stub
+		
+	}
 }
