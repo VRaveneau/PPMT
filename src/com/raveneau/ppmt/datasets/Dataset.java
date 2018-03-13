@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import javax.json.Json;
@@ -26,6 +27,7 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonValue;
 import javax.json.spi.JsonProvider;
 import javax.websocket.Session;
 
@@ -79,7 +81,7 @@ public class Dataset {
 	private int nextEventId = 0;
 	private int nextEventTypeCode = 0;
 	
-	private JsonObject parameters = null;
+	private DatasetParameters parameters = parameters = new DatasetParameters();;
 	
 	private Map<Session,PatternManager> patternManagers = new HashMap<>();
 	
@@ -169,24 +171,46 @@ public class Dataset {
 	public void loadParameters() {
 		try {
 			JsonReader jsonReader = Json.createReader(new FileInputStream(new File(inputPathParameters)));
-			parameters = jsonReader.readObject();
+			JsonObject params = jsonReader.readObject();
 			jsonReader.close();
 			System.out.println("Parameters for dataset "+name+":");
-			System.out.println(parameters);
+			System.out.println(params);
+			
+			// Store the read parameters
+			if(params.containsKey("eventDescription")) {
+				for( Entry<String, JsonValue> e : params.getJsonObject("eventDescription").entrySet()) {
+					parameters.addEventDescription(e.getKey(), e.getValue().toString());
+				}
+			}
+			if(params.containsKey("eventCategory")) {
+				for( Entry<String, JsonValue> e : params.getJsonObject("eventCategory").entrySet()) {
+					JsonArray arr = (JsonArray) e.getValue();
+					for (JsonValue evt : arr) {
+						parameters.addEventToCategory(evt.toString(), e.getKey());
+					}
+				}
+			}
+			if(params.containsKey("nbUsers")) {
+				parameters.setNbUsers(params.getInt("nbUsers"));
+			}
+			if(params.containsKey("nbEvents")) {
+				parameters.setNbEvents(params.getInt("nbEvents"));
+			}
+			if(params.containsKey("nbEventTypes")) {
+				parameters.setNbEventTypes(params.getInt("nbEventTypes"));
+			}
+			if(params.containsKey("duration")) {
+				parameters.setDuration(params.getString("duration"));
+			}
+			
 		} catch (FileNotFoundException e) {
 			//e.printStackTrace();
 			System.out.println("No parameter file for dataset "+name+":");
-			parameters = Json.createObjectBuilder().build();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
 		JsonProvider provider = JsonProvider.provider();
-		// Add the expected parameters if they are not present
-		/*if(!parameters.containsKey("eventDescription"))
-			parameters.put("eventDescription", provider.createObjectBuilder().build());
-		if(!parameters.containsKey("eventCategory"))
-			parameters.put("eventCategory", provider.createObjectBuilder().build());*/
 	}
 	
 	/**
@@ -458,7 +482,7 @@ public class Dataset {
 		return loading;
 	}
 	
-	public JsonObject getParameters() {
+	public DatasetParameters getParameters() {
 		return parameters;
 	}
 	
@@ -512,35 +536,31 @@ public class Dataset {
 			infos.put("nbOccs", eventOccs.get(eventsReadable.get(i)).toString());
 			// Add the informations from the parameters if present
 			//	The event type description
-			if (parameters.containsKey("eventDescription")) {
-				JsonObject desc = parameters.getJsonObject("eventDescription");
-				if (desc.containsKey(eventsReadable.get(i))) {
-					infos.put("description", desc.getJsonString(eventsReadable.get(i)).getString());
-				} else {
-					infos.put("description", "???");
-				}
+			Map<String, String> desc = parameters.getEventDescriptions();
+			if (desc.containsKey(eventsReadable.get(i))) {
+				infos.put("description", desc.get(eventsReadable.get(i)).replaceAll("\"", ""));
+			} else {
+				infos.put("description", "???");
 			}
 			//	The event type category
-			if (parameters.containsKey("eventCategory")) {
-				JsonObject categories = parameters.getJsonObject("eventCategory");
-				boolean found = false;
-				for (String category: categories.keySet()) {
-					JsonArray eTypes = categories.getJsonArray(category);
-					for (int idx = 0; idx < eTypes.size(); idx++) {
-						String type = eTypes.getString(idx);
-						if (type.equals(eventsReadable.get(i))) {
-							infos.put("category", category);
-							found = true;
-							break;
-						}
-					}
-					if (found == true)
+			Map<String, List<String>> categories = parameters.getEventByCategories();
+			boolean found = false;
+			for (String category: categories.keySet()) {
+				List<String> eTypes = categories.get(category);
+				for (int idx = 0; idx < eTypes.size(); idx++) {
+					if (eTypes.get(idx).replaceAll("\"", "").equals(eventsReadable.get(i))) {
+						infos.put("category", category);
+						found = true;
 						break;
+					}
 				}
-				if (!found) {
-					infos.put("category", "defaultCat");
-				}
+				if (found == true)
+					break;
 			}
+			if (!found) {
+				infos.put("category", "defaultCat");
+			}
+			
 			res.put(eventsReadable.get(i), infos);
 		}
 		
