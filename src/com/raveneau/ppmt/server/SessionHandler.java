@@ -36,11 +36,8 @@ import com.vladium.utils.ObjectProfiler;
 public class SessionHandler {
 	
 	private final Set<Session> sessions = new HashSet<>();
+	private final Map<Session, ClientHandler> clientHandlers = new HashMap<>();
 	private DatasetManager datasetManager = DatasetManager.getInstance();
-	private final Map<Session, EventListenerList> listeners = new HashMap<>();
-	private final Map<Session, String> currentlyUsedDatasets = new HashMap<>();
-	//private Map<Session, GspThread> gspHandlers = new HashMap<>();
-	private Map<Session, AlgorithmHandler> algorithmHandlers = new HashMap<>();
 	
 	public SessionHandler() {
 		super();
@@ -51,11 +48,7 @@ public class SessionHandler {
 		System.out.println("Adding session to the session handler : "+this.hashCode());
     	
 		sessions.add(session);
-		
-		algorithmHandlers.put(session, new AlgorithmHandler(this, datasetManager, session));
-		listeners.put(session, new EventListenerList());
-		
-		addSteeringListener(algorithmHandlers.get(session), session);
+		clientHandlers.put(session, new ClientHandler(this, session));
 	}
 	
 	/**
@@ -68,65 +61,25 @@ public class SessionHandler {
     	JsonObject startLoading = provider.createObjectBuilder()
     			.add("action", "startLoading")
     			.build();	// Add informations on the dataset (size ...)
-    	sendToSession(session, startLoading);
-    	
-    	// Stores that the session is using this dataset
-    	currentlyUsedDatasets.put(session, datasetName);
+    	clientHandlers.get(session).sendMessage(startLoading);
+    	clientHandlers.get(session).setDataset(datasetManager.getDataset(datasetName));
     	
 		datasetManager.loadDataset(datasetName);
 	}
 	
 	public void removeSession(Session session) {
 		sessions.remove(session);
+		ClientHandler removed = clientHandlers.remove(session);
+		// TODO Make sure the removed handler will be GC'ed
 	}
-
-    private JsonObject createAddMessage(Pattern pattern, String sIDs) {
-    	JsonProvider provider = JsonProvider.provider();
-    	String items = pattern.itemsToJson().toString().split(":")[1]; //$NON-NLS-1$
-    	items = items.substring(0, items.lastIndexOf('}'));
-    	JsonObject addMessage = provider.createObjectBuilder()
-    			.add("action", "add") //$NON-NLS-1$ //$NON-NLS-2$
-    			.add("id", pattern.getId()) //$NON-NLS-1$
-    			.add("size", pattern.getItems().size()) //$NON-NLS-1$
-    			.add("items", items) //$NON-NLS-1$
-    			.add("sequences", sIDs) //$NON-NLS-1$
-    			.build();
-        return addMessage;
-    }
 
     private void sendToAllConnectedSessions(JsonObject message) {
     	for (Session session : sessions) {
-    		sendToSession(session, message);
+    		clientHandlers.get(session).sendMessage(message);
     	}
     }
 
-    private void sendToSession(Session session, JsonObject message) {
-    	try {
-    		session.getBasicRemote().sendText(message.toString());
-    	} catch (IOException ex) {
-    		sessions.remove(session);
-    		System.out.println("Error, sending to session failed."); //$NON-NLS-1$
-    	}
-    }
-    
-    /**
-     * Compresses a message and sends it to a session.
-     * @param session The session the message will be sent to
-     * @param message The message to be sent
-     * @deprecated The compression is currently too costly to be interesting
-     * 
-     * TODO Use a more efficient compression or remove the method
-     */
-    private void sendToSessionCompressed(Session session, JsonObject message) {
-    	try {
-    		String compressed = LZString.compressToUTF16(message.toString());
-    		session.getBasicRemote().sendText(compressed);
-    	} catch (IOException ex) {
-    		sessions.remove(session);
-    		System.out.println("Error, sending to session failed."); //$NON-NLS-1$
-    	}
-    }
-
+    // TODO Should be moved to the clientHandler or the client
     public void provideYearBins(String datasetName, Session session) {
     	System.out.println("Handler starts to provide data");
     	JsonProvider provider = JsonProvider.provider();
@@ -149,10 +102,11 @@ public class SessionHandler {
     			.add("occs"+yearCount, y.get(8));
 			yearCount++;
     	}
-    	sendToSession(session, dataMessage.build());
+    	clientHandlers.get(session).sendMessage(dataMessage.build());
     	System.out.println("|-Handler provided the data");
     }
 
+    // TODO Should be moved to the clientHandler or the client
     public void provideMonthBins(String datasetName, Session session) {
     	System.out.println("Handler starts to provide data");
     	JsonProvider provider = JsonProvider.provider();
@@ -175,10 +129,11 @@ public class SessionHandler {
     			.add("occs"+monthCount, m.get(8));
 			monthCount++;
     	}
-    	sendToSession(session, dataMessage.build());
+    	clientHandlers.get(session).sendMessage(dataMessage.build());
     	System.out.println("|-Handler provided the data");
     }
 
+    // TODO Should be moved to the clientHandler or the client
     public void provideHalfMonthBins(String datasetName, Session session) {
     	System.out.println("Handler starts to provide data");
     	JsonProvider provider = JsonProvider.provider();
@@ -201,10 +156,11 @@ public class SessionHandler {
     			.add("occs"+halfMonthCount, m.get(8));
 			halfMonthCount++;
     	}
-    	sendToSession(session, dataMessage.build());
+    	clientHandlers.get(session).sendMessage(dataMessage.build());
     	System.out.println("|-Handler provided the data");
     }
 
+    // TODO Should be moved to the clientHandler or the client
     public void provideDayBins(String datasetName, Session session) {
     	System.out.println("Handler starts to provide data");
     	JsonProvider provider = JsonProvider.provider();
@@ -227,10 +183,11 @@ public class SessionHandler {
     			.add("occs"+dayCount, d.get(8));
 			dayCount++;
     	}
-    	sendToSession(session, dataMessage.build());
+    	clientHandlers.get(session).sendMessage(dataMessage.build());
     	System.out.println("|-Handler provided the data");
     }
 
+    // TODO Should be moved to the clientHandler or the client
     public void provideHalfDayBins(String datasetName, Session session) {
     	System.out.println("Handler starts to provide data");
     	JsonProvider provider = JsonProvider.provider();
@@ -253,115 +210,30 @@ public class SessionHandler {
     			.add("occs"+halfDayCount, d.get(8));
 			halfDayCount++;
     	}
-    	sendToSession(session, dataMessage.build());
+    	clientHandlers.get(session).sendMessage(dataMessage.build());
     	System.out.println("|-Handler provided the data");
     }
     
+    // TODO see if the datasetName is still needed
     public void provideData(String datasetName, Session session) {
-    	System.out.println("Handler starts to provide data");
-    	JsonProvider provider = JsonProvider.provider();
-    	// Provide all the traces at once, events ordered by time, 1000 events at a time
-    	
-    	List<Event> events = datasetManager.getAllEvents(datasetName);
-    	
-    	JsonObjectBuilder dataMessage = null;
-		
-		dataMessage = provider.createObjectBuilder()
-				.add("action", "data")
-				.add("type", "events");
-    	int nbEventsInMessage = 0;
-    	for (Event e : events) {
-    		if (nbEventsInMessage == 1000) {
-    			dataMessage.add("numberOfEvents", nbEventsInMessage);
-    			sendToSession(session, dataMessage.build());
-    			dataMessage = provider.createObjectBuilder()
-    					.add("action", "data")
-    					.add("type", "events");
-    			nbEventsInMessage = 0;
-    		}
-
-			dataMessage.add(Integer.toString(nbEventsInMessage), e.toString());
-    		nbEventsInMessage++;
-    	}
-    	dataMessage.add("numberOfEvents", nbEventsInMessage);
-		sendToSession(session, dataMessage.build());
-    	System.out.println("|-Handler provided the data");
-    	
-    	// Provide all the traces at once, events ordered by time and compressed
-    	
-    	/*List<String> events = datasetManager.getAllEventsCompressed(datasetName);
-    	
-    	JsonObjectBuilder dataMessage = null;
-		
-    	for (String e : events) {
-    		dataMessage = provider.createObjectBuilder()
-				.add("action", "data")
-				.add("type", "events")
-				.add("data", e);
-    		sendToSession(session, dataMessage.build());
-		}
-    	System.out.println("|-Handler provided the data");*/
-    	
+    	clientHandlers.get(session).provideData();
     }
 
+    // TODO see if the datasetName is still needed
 	public void provideDatasetInfo(String datasetName, Session session) {
-		JsonObjectBuilder dataMessage = null;
-		JsonProvider provider = JsonProvider.provider();
-		
-		System.out.println("requesting infos");
-		
-		// date of first and last events
-		String firstEvent = datasetManager.getFirstEvent(datasetName);
-		String lastEvent = datasetManager.getLastEvent(datasetName);
-		// list of events
-		List<String> events = datasetManager.getEventTypes(datasetName);
-		// Number of events
-		String nbEvents = Integer.toString(datasetManager.getNbEvents(datasetName));
-		// list of users
-		List<String> users = datasetManager.getUsersName(datasetName);
-		// Name of the dataset
-		String name = datasetManager.getDatasetName(datasetName);
-		
-		dataMessage = provider.createObjectBuilder()
-				.add("action", "datasetInfo")
-				.add("numberOfSequences", users.size())
-				.add("numberOfDifferentEvents", events.size())
-				.add("nbEvents", nbEvents)
-				.add("firstEvent", firstEvent)
-				.add("lastEvent", lastEvent)
-				.add("name", name);
-
-		int count = 0;
-		for (String u : users) {
-			dataMessage.add("user"+Integer.toString(count), u);
-			count++;
-		}
-		
-		sendToSession(session, dataMessage.build());
+		clientHandlers.get(session).provideDatasetInfo();
 	}
 
+    // TODO see if the datasetName is still needed
 	public void provideEventTypesInfo(String datasetName, Session session) {
-		JsonObjectBuilder dataMessage = null;
-		JsonProvider provider = JsonProvider.provider();
-		
-		System.out.println("requesting event types");
-		
-		// list of event types
-		List<String> et = datasetManager.getEventTypes(datasetName);
-		
-		dataMessage = provider.createObjectBuilder()
-				.add("action", "eventTypes")
-				.add("dataset", datasetName)
-				.add("size", et.size());
-		int count = 0;
-		for (String t : et) {
-			dataMessage.add(Integer.toString(count), t);
-			count++;
-		}
-		sendToSession(session, dataMessage.build());
+		clientHandlers.get(session).provideEventTypesInfo();
 	}
 	
-	public void provideDatasetList(Session session) {
+	/**
+	 * Should no longer be called now that the dataset selection is on another page
+	 * @param session
+	 */
+	/*public void provideDatasetList(Session session) {
 		JsonObjectBuilder dataMessage = null;
 		JsonProvider provider = JsonProvider.provider();
 		
@@ -380,102 +252,32 @@ public class SessionHandler {
 			count++;
 		}
 		sendToSession(session, dataMessage.build());
-	}
+	}*/
 
 	public void requestSteeringOnPattern(int patternId, Session session) {
-		for(SteeringListener listener : getSteeringListeners(session)) {
-			listener.steeringRequestedOnPattern(new Integer(patternId));
-			System.out.println("SessionHandler: transmitting steering request on pattern id "+patternId);
-		}
+		clientHandlers.get(session).requestSteeringOnPattern(patternId);
 	}
 
 	public void requestSteeringOnUser(String userId, Session session) {
-		for(SteeringListener listener : getSteeringListeners(session)) {
-			listener.steeringRequestedOnUser(userId);
-		}
+		clientHandlers.get(session).requestSteeringOnUser(userId);
 	}
 
 	public void addSteeringListener(SteeringListener listener, Session session) {
-		listeners.get(session).add(SteeringListener.class, listener);
+		clientHandlers.get(session).addSteeringListener(listener);
 	}
 
 	public void removeSteeringListener(SteeringListener listener, Session session) {
-		listeners.get(session).remove(SteeringListener.class, listener);
-	}
-	
-	private SteeringListener[] getSteeringListeners(Session session) {
-		return listeners.get(session).getListeners(SteeringListener.class);
+		clientHandlers.get(session).removeSteeringListener(listener);
 	}
 
+	// TODO See if the datasetName is still needed
 	public void provideUserList(String datasetName, Session session) {
-    	JsonProvider provider = JsonProvider.provider();
-    	
-    	// provide the user list
-    	List<String> userList = datasetManager.getUsers(datasetName);
-    	JsonObjectBuilder dataMessageBuilder = null;
-		dataMessageBuilder = provider.createObjectBuilder()
-			.add("action", "data")
-			.add("type", "userList")
-			.add("size", userList.size());
-		for (int i=0; i < userList.size(); i++) 
-			dataMessageBuilder.add(Integer.toString(i), userList.get(i));
-		sendToSession(session, dataMessageBuilder.build());
-		
-    	System.out.println("|-Handler provided the user list");
+    	clientHandlers.get(session).provideUserList();
 	}
 	
-	public void runAlgoToFile() {
-		MainTestGSP_saveToMemory mainTest = new MainTestGSP_saveToMemory();
-		mainTest.runAlgoToFileFromDatabase();
-	}
-	
+	// TODO See if the datasetName is still needed
 	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, String datasetName, Session session) {
-		AlgorithmHandler algoHandler = algorithmHandlers.get(session);
-		algoHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName);
-	}
-
-	public void alertOfNewPattern(Session session, Pattern p) {
-		JsonObjectBuilder dataMessage = null;
-		JsonProvider provider = JsonProvider.provider();
-		
-		dataMessage = provider.createObjectBuilder()
-				.add("action", "info")
-				.add("object", "newPattern")
-				.add("size", p.getItems().size())
-				.add("support", p.getSupport())
-				.add("id", p.getId());
-
-		int count = 0;
-		for (String i : p.getReadableItems()) {
-			dataMessage.add(Integer.toString(count), i);
-			count++;
-		}
-		
-		// Add the distribution per user, the same way that it's done in providePatternDistributionPerUser(...)
-		List<String> users = datasetManager.getDataset(currentlyUsedDatasets.get(session)).getUsers();
-		
-		JsonObjectBuilder distributionMessage = provider.createObjectBuilder();
-    	
-    	String relevantUsers = "";
-    	
-    	for (String u: users) {
-    		List<long[]> occs = p.buildOccurrencesBinForUser(u);
-    		if (!occs.isEmpty()) {
-    			relevantUsers += u+";";
-    			String theseOccs = "";
-    			for (long[] ts: occs) {
-    				// TODO send the timestamp between the occ's first and second events, might as well be the start
-    				theseOccs += String.valueOf(ts[0]+(ts[1]-ts[0])/2)+";";
-    			}
-    			distributionMessage.add(u, theseOccs.substring(0, theseOccs.length()-1));
-    		}
-    	}
-    	distributionMessage.add("users", relevantUsers.substring(0, relevantUsers.length()-1))
-			.add("patternId", p.getId());
-	
-    	// Add the distribution to the final message and send it
-    	dataMessage.add("userDistribution", distributionMessage.build());    	
-		sendToSession(session, dataMessage.build());
+		clientHandlers.get(session).runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 	}
 
 	/**
@@ -485,97 +287,14 @@ public class SessionHandler {
 	 * @param session
 	 * 
 	 * TODO Also send the involved events' ids
+	 * TODO See if the datasetName is still needed
 	 */
 	public void providePatternOccurrences(String patternId, String datasetName, Session session) {
-		System.out.println("Handler starts to provide pattern occurrences for "+patternId);
-    	JsonProvider provider = JsonProvider.provider();
-    	
-    	Pattern p = datasetManager.getDataset(datasetName).getPatternManager(session).getPattern(Integer.parseInt(patternId));
-    	
-    	JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "data")
-				.add("type", "patternOccs")
-				.add("patternId", patternId)
-				.add("count", p.getSupport());
-    	int patternCount = 0;
-    	for (Occurrence o : p.getOccurrences()) {
-    		String occ = o.getUser();
-    		long[] ts = o.getTimestamps();
-
-    		for (int idx =0; idx < ts.length; idx++) {
-    			occ += ";"+ts[idx];
-    		}
-    		
-			dataMessage.add(Integer.toString(patternCount), occ);
-			patternCount++;
-    	}
-    	sendToSession(session, dataMessage.build());
-    	System.out.println("|-Handler provided the pattern occurrences");
-	}
-
-	public void signalStart(Session session, long start) {
-		JsonProvider provider = JsonProvider.provider();
-		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "signal")
-				.add("type", "start")
-				.add("time", start);
-		sendToSession(session, dataMessage.build());
-	}
-
-	public void signalEnd(Session session, long end) {
-		JsonProvider provider = JsonProvider.provider();
-		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "signal")
-				.add("type", "end")
-				.add("time", end);
-		sendToSession(session, dataMessage.build());
-	}
-
-	public void signalNewLevel(Session session, int k) {
-		JsonProvider provider = JsonProvider.provider();
-		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "signal")
-				.add("type", "newLevel")
-				.add("level", k);
-		sendToSession(session, dataMessage.build());
-	}
-
-	public void signalLoadingData(Session session) {
-		JsonProvider provider = JsonProvider.provider();
-		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "signal")
-				.add("type", "loading");
-		sendToSession(session, dataMessage.build());
-	}
-
-	public void signalDataLoaded(Session session) {
-		JsonProvider provider = JsonProvider.provider();
-		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "signal")
-				.add("type", "loaded");
-		sendToSession(session, dataMessage.build());
-	}
-
-	public void signalSteeringStarted(String type, String value, Session session) {
-		JsonProvider provider = JsonProvider.provider();
-		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "signal")
-				.add("type", "steeringStart")
-				.add("steeringType",type)
-				.add("value", value);
-		sendToSession(session, dataMessage.build());
-	}
-
-	public void signalSteeringStop(Session session) {
-		JsonProvider provider = JsonProvider.provider();
-		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "signal")
-				.add("type", "steeringStop");
-		sendToSession(session, dataMessage.build());
+		clientHandlers.get(session).providePatternOccurrences(patternId);
 	}
 
 	// Probably not used, since it was merged into alertOfNewPattern(...)
-	public void providePatternDistributionPerUser(Integer patternId, String datasetName, Session session) {
+	/*public void providePatternDistributionPerUser(Integer patternId, String datasetName, Session session) {
 		JsonProvider provider = JsonProvider.provider();
     	
     	Pattern p = datasetManager.getDataset(datasetName).getPatternManager(session).getPattern(patternId);
@@ -604,8 +323,13 @@ public class SessionHandler {
 
 		dataMessage.add("users", relevantUsers.substring(0, relevantUsers.length()-1));
     	sendToSession(session, dataMessage.build());
-	}
+	}*/
 
+	/**
+	 * TODO This needs to stay here
+	 * @param datasetName
+	 * @param session
+	 */
 	public void validateDataset(String datasetName, Session session) {
 		String answer = "valid";
 		if (datasetManager.getDataset(datasetName) == null) {
@@ -618,57 +342,15 @@ public class SessionHandler {
 				.add("object", "dataset")
 				.add("dataset", datasetName)
 				.add("answer", answer);
-		sendToSession(session, dataMessage.build());
+		clientHandlers.get(session).sendMessage(dataMessage.build());
 	}
 	
 	public void profileDatasetSize(Session session) {
-		System.out.println("Profiling ds");
-		String dsName = currentlyUsedDatasets.get(session); 
-		
-		IObjectProfileNode profile = ObjectProfiler.profile (datasetManager.getDataset(dsName));
-		IObjectProfileNode profileEvents = ObjectProfiler.profile (datasetManager.getDataset(dsName).getEvents());
-		
-		System.out.println("Profile done");
-		
-		JsonProvider provider = JsonProvider.provider();
-		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "debug")
-				.add("object", "memory")
-				.add("dataset", dsName)
-				.add("size", profile.size())
-				.add("sizeEvents", profileEvents.size());
-				//.add("dump", profile.dump());
-		System.out.println("Sending profile");
-		sendToSession(session, dataMessage.build());
-		System.out.println("Profile sent");
+		clientHandlers.get(session).profileDatasetSize();
 	}
 	
 	public void createEventTypeFromPattern(int patternId, Session session) {
-		String dsName = currentlyUsedDatasets.get(session);
-		TraceModification modifs = datasetManager.getDataset(dsName).createEventTypeFromPattern(patternId, session);
-		
-		// Send the new event types info
-		provideEventTypesInfo(dsName, session);
-		
-		// Create the message to communicate the changes to the client
-		JsonProvider provider = JsonProvider.provider();
-		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
-				.add("action", "dataAlteration")
-				.add("type", "eventTypeCreated");
-		
-		JsonArrayBuilder removedIds = provider.createArrayBuilder();
-		for (Integer id : modifs.getRemovedIds())
-			removedIds.add(id.intValue());
-		dataMessage.add("removedIds", removedIds.build());
-		
-		JsonArrayBuilder newEvents = provider.createArrayBuilder();
-		for (Event e : modifs.getNewEvents()) {
-			newEvents.add(e.toString());
-		}
-		dataMessage.add("newEvents", newEvents.build());
-				
-		// Send this message
-		sendToSession(session, dataMessage.build());
+		clientHandlers.get(session).createEventTypeFromPattern(patternId);
 	}
 
 	/**

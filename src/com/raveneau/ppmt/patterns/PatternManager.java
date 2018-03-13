@@ -7,6 +7,7 @@ import javax.websocket.Session;
 
 import com.raveneau.ppmt.algorithms.SteeringTypes;
 import com.raveneau.ppmt.datasets.Dataset;
+import com.raveneau.ppmt.server.ClientHandler;
 import com.raveneau.ppmt.server.SessionHandler;
 
 import java.util.List;
@@ -25,20 +26,12 @@ public class PatternManager {
 	
 	private Map<Integer,Pattern> allPatterns = new HashMap<>();
 	
-	private Session session = null;
-	private SessionHandler sessionHandler = null;
-	private Dataset dataset = null;
+	private ClientHandler clientHandler = null;
 	
-	public PatternManager(Map<String, String> eventsCoded, Map<String, String> eventsReadable, Session session, SessionHandler sessionHandler, Dataset dataset) {
-		super();
-		System.out.println("creating the PatternManager");
-		this.session = session;
-		this.dataset = dataset;
-		this.sessionHandler = sessionHandler;
-		this.eventsCoded = eventsCoded;
-		this.eventsReadable = eventsReadable;
-		
-		System.out.println("PatternManager created");
+	public PatternManager(ClientHandler clientHandler) {
+		this.clientHandler = clientHandler;
+		this.eventsCoded = clientHandler.getDataset().getEventsCoded();
+		this.eventsReadable = clientHandler.getDataset().getEventsReadable();
 	}
 	
 	public List<String> getAllPatterns() {
@@ -138,7 +131,7 @@ public class PatternManager {
 		
 		//System.out.println("Pattern "+itemsString+" decoded to "+p.getReadableItems());
 		
-		this.sessionHandler.alertOfNewPattern(this.session, p);
+		this.clientHandler.alertOfNewPattern(p);
 	}
 
 	public Pattern getPattern(int patternId) {
@@ -159,7 +152,7 @@ public class PatternManager {
 	 * @param start The time (in ms) at which teh algorithm started
 	 */
 	public void signalStart(long start) {
-		sessionHandler.signalStart(session, start);
+		this.clientHandler.signalStart(start);
 	}
 
 	/**
@@ -167,7 +160,7 @@ public class PatternManager {
 	 * @param end The time (in ms) at which teh algorithm ended
 	 */
 	public void signalEnd(long end) {
-		sessionHandler.signalEnd(session, end);
+		this.clientHandler.signalEnd(end);
 	}
 
 	/**
@@ -175,7 +168,7 @@ public class PatternManager {
 	 * @param k The level (size of the candidates)
 	 */
 	public void signalNewLevel(int k) {
-		sessionHandler.signalNewLevel(session, k);
+		this.clientHandler.signalNewLevel(k);
 		this.levelExtractionState.put(new Integer(k), ExtractionState.PARTIAL);
 	}
 
@@ -183,14 +176,14 @@ public class PatternManager {
 	 * Send to the client a message indicating that the data is being loaded by the algorithm
 	 */
 	public void signalLoadingData() {
-		sessionHandler.signalLoadingData(session);
+		this.clientHandler.signalLoadingData();
 	}
 
 	/**
 	 * Send to the client a message indicating that the data has been loaded by the algorithm
 	 */
 	public void signalDataLoaded() {
-		sessionHandler.signalDataLoaded(session);
+		this.clientHandler.signalDataLoaded();
 	}
 	
 	public void signalLevelExtracted(int k) {
@@ -204,13 +197,13 @@ public class PatternManager {
 	public void sendSteeringNotificationToClient(SteeringTypes type, String value) {
 		switch (type) {
 		case PATTERN:
-			sessionHandler.signalSteeringStarted("pattern", value, session);
+			this.clientHandler.signalSteeringStarted("pattern", value);
 			break;
 		case TIME:
-			sessionHandler.signalSteeringStarted("time", value, session);
+			this.clientHandler.signalSteeringStarted("time", value);
 			break;
 		case USER:
-			sessionHandler.signalSteeringStarted("user", value, session);
+			this.clientHandler.signalSteeringStarted("user", value);
 			break;
 		default:
 			break;
@@ -218,6 +211,6 @@ public class PatternManager {
 	}
 
 	public void sendSteeringEndNotificationToClient() {
-		sessionHandler.signalSteeringStop(session);
+		this.clientHandler.signalSteeringStop();
 	}
 }

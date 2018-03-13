@@ -5,42 +5,35 @@ import javax.websocket.Session;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.events.SteeringListener;
+import com.raveneau.ppmt.server.ClientHandler;
 import com.raveneau.ppmt.server.SessionHandler;
 
 public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 
-	private SessionHandler sessionHandler;
+	/*private SessionHandler sessionHandler;
 	private Session session;
 	private DatasetManager datasetManager;
-	private Dataset dataset;
+	private Dataset dataset;*/
+	
+	private ClientHandler clientHandler = null;
 	
 	private GspParameters algorithmParameters;
 	
 	private GspThread algorithm = null;
 	private Thread thread = null;
 	
-	public AlgorithmHandler(SessionHandler sessionHandler, DatasetManager datasetManager, Session session) {
-		this.sessionHandler = sessionHandler;
-		this.session = session;
-		this.datasetManager = datasetManager;
-	}
-
-	public Session getSession() {
-		return this.session;
+	public AlgorithmHandler(ClientHandler clientHandler) {
+		this.clientHandler = clientHandler;
 	}
 	
-	public void startMining(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, String datasetName) {
+	public void startMining(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration) {
 		
 		if (algorithm == null) {
 			this.algorithmParameters = new GspParameters();
 			this.algorithmParameters.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 			
-			this.dataset = datasetManager.getDataset(datasetName);
-			
-			System.out.println("In AlgoHandler.startMining, "+datasetName+"'userSequences size is "+this.dataset.getNbSequences());
-			
-			this.dataset.addPatternManagerToSession(session, sessionHandler); // deletes all the previously known patterns
-			algorithm = new GspThread(this.dataset, session, algorithmParameters);
+			// TODO Make sure any existing pattern has been deleted
+			algorithm = new GspThread(clientHandler.getDataset(), clientHandler.getPatternManager(), algorithmParameters);
 			// Useless if the parameters are passed in the constructor //algorithm.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 			
 			this.thread = new Thread(algorithm);
@@ -53,7 +46,7 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 
 	@Override
 	public void steeringRequestedOnPattern(int patternId) {
-		System.out.println("AlgoHandler: Steering on pattern id " + Integer.toString(patternId) + " (" + dataset.getPatternManager(session).getPattern(patternId).itemsToString() + ")");
+		System.out.println("AlgoHandler: Steering on pattern id " + Integer.toString(patternId) + " (" + clientHandler.getPatternManager().getPattern(patternId).itemsToString() + ")");
 		
 		this.algorithmParameters.requestSteeringOnPattern(patternId);
 		/*

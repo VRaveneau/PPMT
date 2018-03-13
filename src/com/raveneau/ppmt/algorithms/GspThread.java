@@ -15,7 +15,6 @@ import ca.pfv.spmf.algorithms.sequentialpatterns.gsp_AGP.items.creators.Abstract
 public class GspThread implements Runnable {
 
 	private Dataset dataset = null;
-	private Session session = null;
 	private PatternManager patternManager = null;
 	
 	/*private float minSupRelative = (float)0.01;
@@ -35,10 +34,10 @@ public class GspThread implements Runnable {
     
     private AlgoGSP algorithm = null;
     
-	public GspThread(Dataset dataset, Session session, GspParameters parameters) {
+    // TODO Give access to the clientHandler ?
+	public GspThread(Dataset dataset, PatternManager pm, GspParameters parameters) {
 		this.dataset = dataset;
-		this.session = session;
-		this.patternManager = dataset.getPatternManager(session);
+		this.patternManager = pm;
 		this.parameters = parameters;
 	}
 
@@ -67,7 +66,7 @@ public class GspThread implements Runnable {
 		patternManager.signalDataLoaded();
 		
 		// use the parameters object instead, and maybe also in start(), for runAlgorithm() ?
-        algorithm = new AlgoGSP(this.parameters,/*minSupAbsolute, maxSize, minGap, maxGap, windowSize, maxDuration,*/ abstractionCreator);
+        algorithm = new AlgoGSP(this.parameters, abstractionCreator);
 	}
 
 	@Override
@@ -89,29 +88,4 @@ public class GspThread implements Runnable {
 		}
 		System.out.println("GSP done");
 	}
-
-	/**
-	 * Not to be used for episodes
-	 * @param minSupRelative
-	 * @param windowSize
-	 * @param maxSize
-	 * @param maxGap
-	 */
-	/*public void updateParameters(float minSupRelative, int windowSize, int maxSize, int maxGap) {
-		this.minSupRelative = minSupRelative;
-		this.maxSize = maxSize;
-		this.maxGap = maxGap;
-		this.windowSize = windowSize;
-	}*/
-
-	/* Not to be used if we have a GspParameters object
-	public void updateParameters(int minSupAbsolute, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration) {
-		this.minSupAbsolute = minSupAbsolute;
-		this.maxSize = maxSize;
-		this.minGap = minGap;
-		this.maxGap = maxGap;
-		this.windowSize = windowSize;
-		this.maxDuration = maxDuration;
-	}*/
-
 }

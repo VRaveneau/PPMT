@@ -1756,6 +1756,9 @@ function requestDatasetLoad(datasetName) {
 
 /**
  * Asks for the list of available datasets
+ * @deprecated Should no longer be used
+ * 
+ * TODO see if it really is deprecated
  */
 function requestDatasetList() {
 	var action = {

@@ -183,10 +183,10 @@ public class Dataset {
 		
 		JsonProvider provider = JsonProvider.provider();
 		// Add the expected parameters if they are not present
-		if(!parameters.containsKey("eventDescription"))
+		/*if(!parameters.containsKey("eventDescription"))
 			parameters.put("eventDescription", provider.createObjectBuilder().build());
 		if(!parameters.containsKey("eventCategory"))
-			parameters.put("eventCategory", provider.createObjectBuilder().build());
+			parameters.put("eventCategory", provider.createObjectBuilder().build());*/
 	}
 	
 	/**
@@ -416,6 +416,22 @@ public class Dataset {
 	public void setName(String name) {
 		this.name = name;
 	}
+	public Map<String, String> getEventsReadable() {
+		return eventsReadable;
+	}
+
+	public void setEventsReadable(Map<String, String> eventsReadable) {
+		this.eventsReadable = eventsReadable;
+	}
+
+	public Map<String, String> getEventsCoded() {
+		return eventsCoded;
+	}
+
+	public void setEventsCoded(Map<String, String> eventsCoded) {
+		this.eventsCoded = eventsCoded;
+	}
+
 	public int getNbEventType() {
 		return events.size();
 	}
@@ -1181,8 +1197,8 @@ public class Dataset {
 		return this.patternManagers;
 	}
 	
-	public void addPatternManagerToSession(Session session, SessionHandler sessionHandler) {
-		patternManagers.put(session, new PatternManager(eventsCoded, eventsReadable, session, sessionHandler, this));
+	public void addPatternManagerToSession(Session session, PatternManager pm) {
+		patternManagers.put(session, pm);
 	}
 	
 	public TraceModification createEventTypeFromPattern(int patternId, Session session) {

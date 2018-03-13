@@ -9,19 +9,13 @@ import javax.websocket.Session;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.patterns.Pattern;
 import com.raveneau.ppmt.patterns.PatternManager;
+import com.raveneau.ppmt.server.ClientHandler;
 import com.raveneau.ppmt.server.SessionHandler;
 
 public class DummyPatternManager extends PatternManager {
 
-	public DummyPatternManager() {
-		super(new HashMap<String, String>(),
-				new HashMap<String, String>(),null,null,null);
-	}
-	
-	public DummyPatternManager(Map<String, String> eventsCoded,
-			Map<String, String> eventsReadable, Session session, SessionHandler sessionHandler, Dataset dataset) {
-		super(eventsCoded, eventsReadable, session, sessionHandler, dataset);
-		// TODO Auto-generated constructor stub
+	public DummyPatternManager(ClientHandler ch) {
+		super(ch);
 	}
 
 	@Override
