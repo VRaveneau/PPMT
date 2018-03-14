@@ -368,7 +368,7 @@ var userInputIsDisabled = false;
 var lastUserSort = "";
 
 // Sort order for the list of event types. Expected value is one of the following :
-// nbEventsDown - nbEventsUp
+// supportDown - supportUp
 // nameDown - nameUp
 // categoryDown - categoryUp
 var lastEventTypeSort = "";
@@ -2347,7 +2347,7 @@ function receiveEventTypes(message) {
 		};
 	}
 	
-	sortEventTypesByNbEvents(true);
+	sortEventTypesBySupport(true);
 	
 	createEventTypesListDisplay();
 }
@@ -2669,16 +2669,16 @@ function sortEventTypesByName(decreasing=false) {
  * Sorts the event types list according to the number of events associated to them
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
-function sortEventTypesByNbEvents(decreasing=false) {
+function sortEventTypesBySupport(decreasing=false) {
 	eventTypes.sort(function(a,b) {
 		return eventTypeInformations[a].nbOccs - eventTypeInformations[b].nbOccs;
 	});
 	
 	if (decreasing == true) {
 		eventTypes.reverse();
-		lastEventTypeSort = "nbEventsDown";
+		lastEventTypeSort = "supportDown";
 	} else {
-		lastEventTypeSort = "nbEventsUp";
+		lastEventTypeSort = "supportUp";
 	}
 }
 
@@ -3347,9 +3347,9 @@ function clickOnEventTypeNameHeader() {
 }
 
 /**
- * Handles a click on the 'nbEvents' header in the event types list
+ * Handles a click on the 'support' header in the event types list
  */
-function clickOnEventTypeNbEventsHeader() {
+function clickOnEventTypeSupportHeader() {
 	let header = null;
 	let txt = "";
 	// Remove the sorting indicators
@@ -3358,18 +3358,18 @@ function clickOnEventTypeNbEventsHeader() {
 			let colName = d3.select(this).text().split(/\s/);
 			colName.pop();
 			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0events") {
+			if (colName == "Support") {
 				header = this;
 				txt = colName;
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastEventTypeSort == "nbEventsDown") {
+	if (lastEventTypeSort == "supportDown") {
 		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesByNbEvents();
+		sortEventTypesBySupport();
 	} else {
 		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesByNbEvents(true);
+		sortEventTypesBySupport(true);
 	}
 	
 	createEventTypesListDisplay();
@@ -5536,6 +5536,8 @@ var Timeline = function(elemId, options) {
 			.call(self.brush.move, self.xFocus.range().map(t.invertX, t));
 		self.zoomRectUsers.property("__zoom", t);  // Manually save the transform to clear the saved old transform
 		console.log(this);
+		
+		self.drawContextBinsFromData();
 	};
 	
 	self.zoomedUsers = function() {
@@ -5564,6 +5566,8 @@ var Timeline = function(elemId, options) {
 		self.context.select(".brush")
 			.call(self.brush.move, self.xUsers.range().map(t.invertX, t));
 		self.zoomRect.property("__zoom", t);  // Manually save the transform to clear the saved old transform
+		
+		self.drawContextBinsFromData();
 	};
 	
 	self.drawUsersPatterns = function() {
@@ -6213,7 +6217,8 @@ var Timeline = function(elemId, options) {
 		    		binHeight+y/2);*/		// y
 		}
 		
-		self.canvasOverviewContext.fillStyle = "#fff";
+		self.drawContextBins(bins);
+		/*self.canvasOverviewContext.fillStyle = "#fff";
 		self.canvasOverviewContext.rect(0,0,self.canvasOverview.attr("width"),self.canvasOverview.attr("height"));
 		self.canvasOverviewContext.fill();
 
@@ -6244,7 +6249,7 @@ var Timeline = function(elemId, options) {
 		area(data);
 		self.canvasOverviewContext.fillStyle = "#04B7FB";
 		self.canvasOverviewContext.strokeStyle = "#04B7FB";
-		self.canvasOverviewContext.fill();
+		self.canvasOverviewContext.fill();*/
 	};
 	
 	self.drawCurrentBins = function() {
@@ -6258,6 +6263,102 @@ var Timeline = function(elemId, options) {
 		self.drawPatternBins(self.bins);
 	};
 	
+	self.drawContextBinsFromData = function() {
+		self.drawContextBins(self.bins);
+	}
+
+	self.drawContextBins = function(bins) {
+		let maxBin = 0;
+		for (let iBin=0; iBin < bins.length; iBin++) {
+			if (parseInt(bins[iBin][3]) > maxBin)
+				maxBin = parseFloat(bins[iBin][3]);
+		}
+
+		self.canvasOverviewContext.fillStyle = "#fff";
+		self.canvasOverviewContext.rect(0,0,self.canvasOverview.attr("width"),self.canvasOverview.attr("height"));
+		self.canvasOverviewContext.fill();
+
+		self.yContext.domain([0.0, maxBin+1.0]);
+		
+		let area = d3.area()
+		    .x(function(d) { return d[0]; })
+		    .y0(self.heightContext)
+		    .y1(function(d) { return d[1]; })
+		    .context(self.canvasOverviewContext);
+		
+		let dataBeforeBrush = [];
+		let dataUnderBrush = [];
+		let dataAfterBrush = [];
+		
+		for (let iBin=0; iBin < bins.length; iBin++) {			
+			let thisData = [];
+			
+			let beforeBrushStart = false;
+			let beforeBrushEnd = false;
+
+			let brushStartTime = self.xFocus.domain()[0];
+			let brushEndTime = self.xFocus.domain()[1];
+
+			let binStartTime = d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][1]);
+			let binValue = parseInt(bins[iBin][3]);
+			thisData.push(self.xContext(binStartTime));
+			thisData.push(self.yContext(binValue));
+			if (binStartTime < brushStartTime) {
+				dataBeforeBrush.push(thisData);
+				beforeBrushStart = true;
+			} else if (binStartTime > brushEndTime)
+				dataAfterBrush.push(thisData);
+			else {
+				dataUnderBrush.push(thisData);
+				beforeBrushEnd = true;
+			}
+			
+			let binEndTime = d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][2]);
+			thisData = [];
+			
+			thisData.push(self.xContext(binEndTime));
+			thisData.push(self.yContext(binValue));
+
+			if (binEndTime < brushStartTime)
+				dataBeforeBrush.push(thisData);
+			else if (binEndTime > brushEndTime) {
+				if (beforeBrushEnd) {
+					let brushEndData = [];
+					brushEndData.push(self.xContext(brushEndTime));
+					brushEndData.push(self.yContext(binValue));
+					dataUnderBrush.push(brushEndData);
+					dataAfterBrush.push(brushEndData);
+				}
+				dataAfterBrush.push(thisData);
+			} else {
+				if (beforeBrushStart) {
+					let brushStartData = [];
+					brushStartData.push(self.xContext(brushStartTime));
+					brushStartData.push(self.yContext(binValue));
+					dataBeforeBrush.push(brushStartData);
+					dataUnderBrush.push(brushStartData);
+				}
+				dataUnderBrush.push(thisData);
+			}
+		}
+		
+		self.canvasOverviewContext.beginPath();
+		area(dataBeforeBrush);
+		self.canvasOverviewContext.fillStyle = "lightgrey";//"#04B7FB";
+		self.canvasOverviewContext.strokeStyle = "lightgrey";
+		self.canvasOverviewContext.fill();
+		self.canvasOverviewContext.beginPath();
+		area(dataUnderBrush);
+		self.canvasOverviewContext.fillStyle = "#04B7FB";
+		self.canvasOverviewContext.strokeStyle = "#04B7FB";
+		self.canvasOverviewContext.fill();
+		self.canvasOverviewContext.beginPath();
+		area(dataAfterBrush);
+		self.canvasOverviewContext.fillStyle = "lightgrey";//"#04B7FB";
+		self.canvasOverviewContext.strokeStyle = "lightgrey";
+		self.canvasOverviewContext.fill();
+	};
+
 	self.brushed = function() {
 		let s = d3.event.selection || self.xContext.range();
 		// draw the custom brush handles
@@ -6293,6 +6394,8 @@ var Timeline = function(elemId, options) {
 			.call(self.zoomUsers.transform, d3.zoomIdentity.scale(self.width / (s[1] - s[0]))
 			.translate(-s[0], 0));
 		
+		self.drawContextBinsFromData();
+
 		// draw the custom brush handles
 		//self.brushHandles.attr("display", null).attr("transform", function(d, i) { return "translate(" + [ s[i], - self.marginContext.size / 4] + ")"; });
 	};
