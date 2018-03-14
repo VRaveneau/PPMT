@@ -153,19 +153,21 @@ class SupportCounting {
                 List<Integer> sIds = candidate.getSequenceIds();
                 List<String> users = new ArrayList<>();
                 List<long[]> timestamps = new ArrayList<>();
+                List<int[]> eventIds = new ArrayList<>();
                 for (ItemAbstractionPair i : candidate.getElements()) {
                 	cItems.add(i.getItem().getId().toString());
                 }
                 for (Integer seqId : sIds) {
                 	users.addAll(candidate.getAppearenceUserInSequence(seqId));
                 	timestamps.addAll(candidate.getAppearanceTimestampInSequence(seqId));
+                	eventIds.addAll(candidate.getAppearanceIdInSequence(seqId));
                 }
                 List<Integer> fullSIds = new ArrayList<>();
                 for (Integer sId : sIds) {
                 	for (int nb=0; nb < candidate.getAppearencesInSequence(sId).size(); nb++)
                 		fullSIds.add(sId);
                 }
-                patternManager.addPattern(cItems, cSupport, fullSIds, users, timestamps, true);
+                patternManager.addPattern(cItems, cSupport, fullSIds, users, timestamps, eventIds, true);
             }
         }
         candidateSet = null;
@@ -211,7 +213,7 @@ class SupportCounting {
                  * Version with the new finder (episodes)
                  */
             	// For every found occurrence
-            	for (long[] occ : finder.getFoundOccurrences()) {
+            	for (String[] occ : finder.getFoundOccurrences()) {
 	            	candidate.addAppearance(sequence.getId(), occ, sequence.getUser());
             	}
             }

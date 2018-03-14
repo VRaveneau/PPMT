@@ -10,6 +10,8 @@ import java.util.Map;
 
 import javax.websocket.Session;
 
+import com.raveneau.ppmt.events.Event;
+
 public class DatasetManager {
 	
 	// Singleton
@@ -148,7 +150,7 @@ public class DatasetManager {
 	    }
 	}
 	
-	public List<String> getTrace(String user, String dataset) {
+	public List<Event> getTrace(String user, String dataset) {
 		return getDataset(dataset).getTrace(user);
 	}
 
@@ -459,16 +461,16 @@ public class DatasetManager {
 		return getDataset(datasetName).getPatternDistribution(pattern, session);
 	}
 		
-	public List<String> getAllEvents(String datasetName) {
+	public List<Event> getAllEvents(String datasetName) {
 		Dataset d = getDataset(datasetName);
-		return getEvents(0,d.getNbEvent(),datasetName);
+		return getDataset(datasetName).getEvents();
 	}
 	
 	public List<String> getAllEventsCompressed(String datasetName) {
 		return getDataset(datasetName).getCompressedEvents();
 	}
 	
-	public List<String> getEvents(int startIndex, int count, String datasetName) {
+	public List<Event> getEvents(int startIndex, int count, String datasetName) {
 		return getDataset(datasetName).getEvents(startIndex, count);
 	}
 }

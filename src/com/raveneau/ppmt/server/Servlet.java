@@ -37,7 +37,7 @@ public class Servlet extends HttpServlet {
 		int count = 0;
 		for (Dataset d : list) {
 			dataMessage.add(Integer.toString(count), d.getName());
-			dataMessage.add("param"+Integer.toString(count), d.getParameters().toString());
+			dataMessage.add("param"+Integer.toString(count), d.getParameters().toJsonObject());
 			count++;
 		}
 		

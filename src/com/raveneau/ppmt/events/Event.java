@@ -1,16 +1,18 @@
 package com.raveneau.ppmt.events;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
-public class Event {
+public class Event implements Comparable<Event>{
 	private int id;
 	private String type;
 	private String user;
-	private String start;
-	private String end;
+	private Date start;
+	private Date end;
 	private List<String> properties;
 	
-	public Event(int id, String type, String user, String start, String end, List<String> properties) {
+	public Event(int id, String type, String user, Date start, Date end, List<String> properties) {
 		super();
 		this.id = id;
 		this.type = type;
@@ -44,19 +46,19 @@ public class Event {
 		this.user = user;
 	}
 
-	public String getStart() {
+	public Date getStart() {
 		return start;
 	}
 
-	public void setStart(String start) {
+	public void setStart(Date start) {
 		this.start = start;
 	}
 
-	public String getEnd() {
+	public Date getEnd() {
 		return end;
 	}
 
-	public void setEnd(String end) {
+	public void setEnd(Date end) {
 		this.end = end;
 	}
 
@@ -70,5 +72,30 @@ public class Event {
 	
 	public void addProperty(String property) {
 		this.properties.add(property);
+	}
+	
+	public String toString() {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		String result = this.type+";"+df.format(start)+";";
+		if (this.end != null)
+			result += df.format(end)+";";
+		else
+			result += ";";
+		result += user;
+		for(String prop : properties)
+			result += ";"+prop;
+		return result;
+	}
+
+	/**
+	 * Compares this event to another. Order them by their start, or by their id if both start are the same
+	 */
+	@Override
+	public int compareTo(Event o) {
+		int dateComp = this.start.compareTo(o.getStart());
+		if (dateComp != 0)
+			return dateComp;
+		else
+			return this.id - o.getId();
 	}
 }

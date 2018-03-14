@@ -1676,14 +1676,11 @@ function processMessage(message/*Compressed*/) {
 		if (msg.object && msg.object === "memory") { // The debug is about the memory size of the dataset
 			let fullSize = parseInt(msg.size);
 			let eventSize = parseInt(msg.sizeEvents);
-			let newEventSize = parseInt(msg.sizeNewEvents);
 			console.log("-----MemDebug-----");
 			console.log("Dataset : "+msg.dataset);
 			console.log("Total size : "+fullSize+"o (~"+fullSize/1000000+"Mo)");
-			console.log("String events size : "+eventSize+"o (~"+eventSize/1000000+"Mo)");
-			console.log("Event events size : "+newEventSize+"o (~"+newEventSize/1000000+"Mo)");
-			console.log("'Strict' size (String) : "+(fullSize-eventSize)+"o (~"+(fullSize-eventSize)/1000000+"Mo)");
-			console.log("'Strict' size (Events) : "+(fullSize-newEventSize)+"o (~"+(fullSize-newEventSize)/1000000+"Mo)");
+			console.log("Events size : "+eventSize+"o (~"+eventSize/1000000+"Mo)");
+			console.log("'Strict' size : "+(fullSize-eventSize)+"o (~"+(fullSize-eventSize)/1000000+"Mo)");
 			/*console.log("Dump :");
 			console.log(msg.dump);*/
 			console.log("-----EndDebug-----");
@@ -1721,6 +1718,11 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "datasetList") {
 		receiveDatasetList(msg);
 	}
+	if (msg.action === "dataAlteration") {
+		if (msg.type === "eventTypeCreated") {
+			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+		}
+	}
 }
 
 /*************************************/
@@ -1754,6 +1756,9 @@ function requestDatasetLoad(datasetName) {
 
 /**
  * Asks for the list of available datasets
+ * @deprecated Should no longer be used
+ * 
+ * TODO see if it really is deprecated
  */
 function requestDatasetList() {
 	var action = {
@@ -1972,8 +1977,25 @@ function requestSteeringOnPattern(patternId) {
 function requestSteeringOnUser(userId) {
 	console.log('requesting steering on user '+userId);
 	let action = {
-			action: "steerOnuser",
+			action: "steerOnUser",
 			userId: userId
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests an alteration of the dataset by creating a new event type from
+ * a pattern
+ * @param {number} patternId - Id of the pattern
+ * @param {string} eventType - The name of the new event type - Not yet implemented
+ */
+function requestEventTypeCreationFromPattern(patternId) {
+	console.log('requesting the creation of event type '+
+		' from pattern '+ patternId);
+	let action = {
+			action: "alterDataset",
+			alteration: "createEventTypeFromPattern",
+			patternId: patternId
 	};
 	sendToServer(action);
 }
@@ -2957,6 +2979,17 @@ function resetPatterns() {
 	patternOccurrences = {};
 	selectedPatternIds = [];
 	// TODO Deal with the pattern metrics in patternMetrics
+}
+
+/**
+ * Updates the data after the creation of a new event type
+ * @param {JSON} newEvents New events to add to the data
+ * @param {number[]} removedIds Ids of events to be removed
+ * TODO Implement it
+ */
+function updateDatasetForNewEventType(newEvents, removedIds) {
+	console.log(newEvents);
+	console.log(removedIds);
 }
 
 /************************************/

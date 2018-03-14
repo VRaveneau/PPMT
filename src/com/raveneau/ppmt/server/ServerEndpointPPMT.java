@@ -76,11 +76,6 @@ public class ServerEndpointPPMT {
 			  			sessionHandler.provideDatasetInfo(jsonMessage.getString("dataset"),session);
 						break;
 						
-					case "datasetList":
-						System.out.println("user requests the list of datasets");
-			  			sessionHandler.provideDatasetList(session);
-						break;
-						
 					case "eventTypes":
 						System.out.println("user requests event types on the "+jsonMessage.getString("dataset")+" dataset");
 			  			sessionHandler.provideEventTypesInfo(jsonMessage.getString("dataset"),session);
@@ -137,6 +132,17 @@ public class ServerEndpointPPMT {
 				
 			case "steerOnUser":
 				sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
+				break;
+			
+			case "alterDataset":
+				sessionHandler.sessionAltersDataset(session);
+				switch(jsonMessage.getString("alteration")) {
+					case "createEventTypeFromPattern" :
+						sessionHandler.createEventTypeFromPattern(jsonMessage.getInt("patternId"), session);
+						break;
+					default:
+						System.out.println("Unknwon dataset alteration : " + jsonMessage.getString("alteration"));
+				}
 				break;
 				
 			case "ping":

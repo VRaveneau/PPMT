@@ -5,17 +5,19 @@ public class Occurrence {
 	private Integer seqId;
 	private String user;
 	private long[] timestamps;
+	private int[] eventIds;
 	
 	// Store the events, including the ones that create gaps
 	//private ArrayList<Event> events;
 	// Store the properties tied to the occurrence
 	//private HashMap<String, String> properties;
 	
-	public Occurrence(Integer seqId, String user, long[] timestamps) {
+	public Occurrence(Integer seqId, String user, long[] timestamps, int[] eventIds) {
 		super();
 		this.seqId = seqId;
 		this.user = user;
 		this.timestamps = timestamps;
+		this.eventIds = eventIds;
 	}
 
 	public Integer getSeqId() {
@@ -40,6 +42,14 @@ public class Occurrence {
 
 	public void setTimestamps(long[] timestamps) {
 		this.timestamps = timestamps;
+	}
+
+	public int[] getEventIds() {
+		return eventIds;
+	}
+	
+	public void setEventIds(int[] eventIds) {
+		this.eventIds = eventIds;
 	}
 	/*
 	public ArrayList<Event> getEvents() {

@@ -51,10 +51,10 @@ public class CandidateInSequenceFinder {
     
     /**
      * Store all the episodes found in the sequence
-     * with a String of the form :
-     * 	timestampStart;timestampEnd;user
+     * with a list of Strings of the form :
+     * timestamp1 - id1 - timestamp2 - id2 - ...
      */
-    private List<long[]> occurrences = new ArrayList<>();
+    private List<String[]> occurrences = new ArrayList<>();
     
     /**
      * Standard constructor. It only needs the abstraction creator.
@@ -160,9 +160,10 @@ public class CandidateInSequenceFinder {
                     // We set the flag to true
                     present = true;
                     // We add the occurrence
-                    long[] timestamps = new long[foundPositions.size()];
-                    for (int idx = 0; idx < foundPositions.size(); idx++) {
-                    	timestamps[idx] = sequence.get(foundPositions.get(idx)[0]).getTimestamp();
+                    String[] timestamps = new String[foundPositions.size()*2];
+                    for (int idx = 0, tsIdx=0; idx < foundPositions.size(); idx++, tsIdx+=2) {
+                    	timestamps[tsIdx] = Long.toString(sequence.get(foundPositions.get(idx)[0]).getTimestamp());
+                    	timestamps[tsIdx+1] = Integer.toString(sequence.get(foundPositions.get(idx)[0]).getId());
                     }
                     //timestamps[0] = sequence.get(foundPositions.get(0)[0]).getTimestamp(); // Timestamp of the first event
                     //timestamps[1] = sequence.get(pos[0]).getTimestamp(); // Timestamp of the last event
@@ -348,7 +349,7 @@ public class CandidateInSequenceFinder {
         return newPos;
     }
 
-	public List<long[]> getFoundOccurrences() {
+	public List<String[]> getFoundOccurrences() {
 		return occurrences;
 	}
 }

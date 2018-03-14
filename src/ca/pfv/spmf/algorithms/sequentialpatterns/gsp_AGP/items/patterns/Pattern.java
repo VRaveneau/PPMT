@@ -52,6 +52,7 @@ public class Pattern implements Comparable<Pattern> {
     
     private Map<Integer,long[]> appearenceTimestamps = new HashMap<>();
     private Map<Integer,String> appearenceUsers = new HashMap<>();
+    private Map<Integer,int[]> appearenceIds = new HashMap<>();
     //private Boolean frequent = null;
     private int support = 0;
 
@@ -406,14 +407,24 @@ public class Pattern implements Comparable<Pattern> {
      * Add a sequence ID in the sequence Id set
      * @param sequenceId  the sequence id
      */
-    public void addAppearance(Integer sequenceId, long[] timestamps, String user) {
+    public void addAppearance(Integer sequenceId, String[] timestampsAndIds, String user) {
         appearingIn.set(sequenceId);
         if (!appearencesBySequence.containsKey(sequenceId)) {
         	appearencesBySequence.put(sequenceId, new ArrayList<Integer>());
         }
-    	appearencesBySequence.get(sequenceId).add(new Integer(nextAppearenceId));
+        
+        long[] timestamps = new long[timestampsAndIds.length/2];
+        int[] ids = new int[timestampsAndIds.length/2];
+    	
+        for(int i=0, j=0; i < timestampsAndIds.length; i += 2, j++) {
+        	timestamps[j] = Long.parseLong(timestampsAndIds[i]);
+        	ids[j] = Integer.parseInt(timestampsAndIds[i+1]);
+        }
+        
+        appearencesBySequence.get(sequenceId).add(new Integer(nextAppearenceId));
         appearenceTimestamps.put(new Integer(nextAppearenceId), timestamps);
         appearenceUsers.put(new Integer(nextAppearenceId), user);
+        appearenceIds.put(new Integer(nextAppearenceId), ids);
     	nextAppearenceId++;
     	
     	support++;
@@ -447,6 +458,14 @@ public class Pattern implements Comparable<Pattern> {
     	return appearenceTimestamps.get(occId);
     }
 
+    public List<int[]> getAppearanceIdInSequence(Integer seqId) {
+    	List<int[]> result = new ArrayList<>();
+    	for (Integer occId : appearencesBySequence.get(seqId))
+    		result.add(appearenceIds.get(occId));
+    	
+    	return result;
+    }
+    
     /**
      * It returns the support of a pattern
      * @return the support

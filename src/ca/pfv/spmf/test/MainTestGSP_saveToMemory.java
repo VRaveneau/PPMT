@@ -89,7 +89,7 @@ public class MainTestGSP_saveToMemory {
         
         System.out.println("Running the algorithm and saving to "+prefix+"-"+filename);
         
-        PatternManager patternManager = new DummyPatternManager();
+        PatternManager patternManager = new DummyPatternManager(null);
         System.out.println("Start");
         try {
             // Before uncommenting the next line, update to the new runAlgorithm method
@@ -150,7 +150,7 @@ public class MainTestGSP_saveToMemory {
         
         System.out.println("Running the algorithm and saving to "+filename);
         
-        PatternManager patternManager = new DummyPatternManager();
+        PatternManager patternManager = new DummyPatternManager(null);
         System.out.println("Start");
         try {
             // Before uncommenting the next line, update to the new runAlgorithm method
@@ -215,7 +215,7 @@ public class MainTestGSP_saveToMemory {
         
         try {
             // Before uncommenting the next line, update to the new runAlgorithm method
-            PatternManager patternManager = new DummyPatternManager();
+            PatternManager patternManager = new DummyPatternManager(null);
 			algorithm.runAlgorithm(sequenceDatabase,keepPatterns,verbose,output, outputSequenceIdentifiers, patternManager);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

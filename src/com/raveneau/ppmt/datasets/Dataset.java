@@ -8,50 +8,80 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.AbstractCollection;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonValue;
 import javax.json.spi.JsonProvider;
 import javax.websocket.Session;
 
 import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.events.Event;
+import com.raveneau.ppmt.patterns.Occurrence;
+import com.raveneau.ppmt.patterns.Pattern;
 import com.raveneau.ppmt.patterns.PatternManager;
 import com.raveneau.ppmt.server.SessionHandler;
+import com.sun.xml.bind.v2.model.util.ArrayInfoUtil;
 
 public class Dataset {
+	/**
+	 * Name of the dataset
+	 */
 	private String name = null;
+	/**
+	 * All the event types in the dataset
+	 */
 	private ArrayList<String> events = new ArrayList<>();
+	/**
+	 * Map from an integer representation to an event type
+	 */
 	private Map<String,String> eventsReadable = new HashMap<>();	// coded : readable
+	/**
+	 * Map from an event type to an integer representation  
+	 */
 	private Map<String,String> eventsCoded = new HashMap<>();	// readable : coded
+	/**
+	 * Number of occurrences for each event type
+	 */
 	private Map<String,Integer> eventOccs = new HashMap<>();
-	private List<String> timeSortedEvents = new ArrayList<>();
-	private Map<String, List<String>> userSequences = new HashMap<>();	// < User : [event] >
-	private Map<String, String> userRenaming = new HashMap<>();
+	private TreeSet<Event> timeSortedEvents = new TreeSet<>();
+	private Map<String, TreeSet<Event>> userSequences = new HashMap<>();	// < User : [event] >
 	private int nbEvents = 0;
 	private Date firstEvent = null;
 	private Date lastEvent = null;
+	/**
+	 * Path to the csv file containing the dataset
+	 */
 	private String inputPath = null;
+	/**
+	 * Path to the json file containing the dataset's parameters
+	 */
 	private String inputPathParameters = null;
 	private boolean loading = false;
 	private boolean loaded = false;
 	private int eventCompressionSize = 10000;
 	private List<String> compressedEvents = new ArrayList<>();
 	
-	private List<Event> orderedEvents = new ArrayList<>();
 	private int nextEventId = 0;
+	private int nextEventTypeCode = 0;
 	
-	private JsonObject parameters = null;
+	private DatasetParameters parameters = parameters = new DatasetParameters();;
 	
 	private Map<Session,PatternManager> patternManagers = new HashMap<>();
 	
@@ -94,13 +124,6 @@ public class Dataset {
 		}
 	}
 	
-	private Date getEventDate(int index) {
-		if (index > timeSortedEvents.size())
-			return null;
-		String event = timeSortedEvents.get(index);
-		return getDateInEvent(event);
-	}
-	
 	private Date getDateInEvent(String event) {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		String date = event.split(";")[1];
@@ -113,7 +136,7 @@ public class Dataset {
 		}
 		return eventDate;
 	}
-	
+	/*
 	private void compressEvents() {
 		Date compressStart = new Date();
 		System.out.println("Starting to compress the events, bins of "+eventCompressionSize);
@@ -140,7 +163,7 @@ public class Dataset {
 		Date compressEnd = new Date();
 		long compressTime = compressEnd.getTime() - compressStart.getTime();
 		System.out.println("dataset loaded in "+compressTime+"ms.");
-	}
+	}*/
 	
 	/**
 	 * Load the parameters in the file targeted by inputPathParameters
@@ -148,18 +171,46 @@ public class Dataset {
 	public void loadParameters() {
 		try {
 			JsonReader jsonReader = Json.createReader(new FileInputStream(new File(inputPathParameters)));
-			parameters = jsonReader.readObject();
+			JsonObject params = jsonReader.readObject();
 			jsonReader.close();
 			System.out.println("Parameters for dataset "+name+":");
-			System.out.println(parameters);
+			System.out.println(params);
+			
+			// Store the read parameters
+			if(params.containsKey("eventDescription")) {
+				for( Entry<String, JsonValue> e : params.getJsonObject("eventDescription").entrySet()) {
+					parameters.addEventDescription(e.getKey(), e.getValue().toString());
+				}
+			}
+			if(params.containsKey("eventCategory")) {
+				for( Entry<String, JsonValue> e : params.getJsonObject("eventCategory").entrySet()) {
+					JsonArray arr = (JsonArray) e.getValue();
+					for (JsonValue evt : arr) {
+						parameters.addEventToCategory(evt.toString(), e.getKey());
+					}
+				}
+			}
+			if(params.containsKey("nbUsers")) {
+				parameters.setNbUsers(params.getInt("nbUsers"));
+			}
+			if(params.containsKey("nbEvents")) {
+				parameters.setNbEvents(params.getInt("nbEvents"));
+			}
+			if(params.containsKey("nbEventTypes")) {
+				parameters.setNbEventTypes(params.getInt("nbEventTypes"));
+			}
+			if(params.containsKey("duration")) {
+				parameters.setDuration(params.getString("duration"));
+			}
+			
 		} catch (FileNotFoundException e) {
 			//e.printStackTrace();
 			System.out.println("No parameter file for dataset "+name+":");
-			parameters = Json.createObjectBuilder().build();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
+		JsonProvider provider = JsonProvider.provider();
 	}
 	
 	/**
@@ -173,122 +224,54 @@ public class Dataset {
 		// read the file
 		FileInputStream in = null;
 		BufferedReader reader = null;
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		try {
 			in = new FileInputStream(new File(inputPath));
 			reader = new BufferedReader(new InputStreamReader(in));
-			Date previousEvent = null;
 			String line;
-			int lineCount = 0;
-			int eventTypeCode = 0;
 			// for each line (event)
 			while ((line = reader.readLine()) != null) {
 				// split the sequence according to ";" into tokens
-				// type;start;end;user;chart;version;options...
-				String[] properties = line.split(";");
+				// type;start;end;user;options...
+				String[] eventParts = line.split(";");
 				
-				boolean userIsNew = false;
-				
-				// Checks if the user is known
-				if (!userRenaming.containsKey(properties[3])) {
-					// Code if we want to rename the users
-					/*String rename = "user"+Integer.toString(userRenaming.size());
-					userRenaming.put(properties[3], rename);
-					userSequences.put(rename, new ArrayList<String>());
-					userIsNew = true;*/
-					// Code if we don't want to rename the users
-					String rename = properties[3];
-					userRenaming.put(properties[3], rename);
-					userSequences.put(rename, new ArrayList<String>());
-					userIsNew = true;
-				}
-				String newUserName = userRenaming.get(properties[3]);
-				// Checks if the event is known
-				if (!events.contains(properties[0])) {
-					events.add(properties[0]);
-					eventOccs.put(properties[0], new Integer(1));
-					eventsReadable.put(String.valueOf(eventTypeCode), properties[0]);
-					eventsCoded.put(properties[0], String.valueOf(eventTypeCode));
-					eventTypeCode++;
-				} else {
-					eventOccs.put(properties[0], new Integer(eventOccs.get(properties[0]).intValue()+1));
-				}
-				// Adds the data to the sequence
-				String evt = "";
-				for(int i =0; i < properties.length; i++) {
-					if(i == 3) // replace the username with its new name
-						evt += userRenaming.get(properties[3])+";";
-					else
-						evt += properties[i]+";";
-				}
-				String newString = evt.substring(0, evt.length()-1);
-				
-				String[] splitNew = newString.split(";");
 				int evtId = this.nextEventId++;
-				String evtUser = splitNew[3];
-				String evtStart = splitNew[1];
-				String evtEnd = splitNew[2];
-				String evtType = splitNew[0];
+				String evtUser = eventParts[3];
+				Date evtStart = null;
+				Date evtEnd = null;
+				String evtType = eventParts[0];
 				List<String> evtProp = new ArrayList<>();
 				
-				for(int propIdx=4;propIdx<properties.length;propIdx++) {
-					evtProp.add(splitNew[propIdx]);
+				for(int propIdx=4;propIdx<eventParts.length;propIdx++) {
+					evtProp.add(eventParts[propIdx]);
 				}
-				
-				this.orderedEvents.add(new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp));
-				
-				SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				Date eventDate = null;
-				
 				try {
-					eventDate = df.parse(properties[1]);
+					evtStart = df.parse(eventParts[1]);
+					if (eventParts[2].length() > 0)
+						evtEnd = df.parse(eventParts[2]);
 				} catch (ParseException e1) {
 					e1.printStackTrace();
 				}
-				
-				// Adds the event at it's rightful place in the list
-				if (previousEvent != null && previousEvent.after(eventDate)) {
-					System.out.println("(line "+lineCount+") An event is not in order !!");
-					System.out.println(previousEvent+" encountered before "+eventDate);
-					
-					int i = timeSortedEvents.size()-1;
-					while(getEventDate(i).after(eventDate)) {
-						i--;
-						if (i == -1)
-							break;
-					}
-					timeSortedEvents.add(i+1, newString);
-					if (i == -1)
-						System.out.println("Event inserted at position 0, before "+getEventDate(1));
-					else
-						System.out.println("Event inserted between "+getEventDate(i)+" and "+getEventDate(i+2));
-					// Insert the event in the relevant user trace, keeping it sorted
-					if (userIsNew) {
-						userSequences.get(newUserName).add(newString);
-					} else {
-						i = userSequences.get(newUserName).size()-1;
-						while(getDateInEvent(userSequences.get(newUserName).get(i)).after(eventDate)) {
-							i--;
-						}
-						userSequences.get(newUserName).add(i+1,newString);
-					}
-				} else {
-					timeSortedEvents.add(newString);
-					userSequences.get(newUserName).add(newString);
-					previousEvent = eventDate;
+				if (userSequences.get(evtUser) == null)
+					userSequences.put(evtUser, new TreeSet<Event>());
+				String userName = evtUser;
+				// Checks if the event type is known
+				if (!events.contains(evtType)) {
+					addEventType(evtType);
 				}
 				
-				// Updates if necessary the firstEvent and lastEvent fields
-				//System.out.println("Event start : "+properties[1]+" // Date : "+eventDate);
-				if (firstEvent == null || firstEvent.after(eventDate)) {
-					firstEvent = eventDate;
+				// Adds the data to the sequence
+				String evt = "";
+				for(int i =0; i < eventParts.length; i++) {
+					evt += eventParts[i]+";";
 				}
-				if (lastEvent == null || lastEvent.before(eventDate)) {
-					lastEvent = eventDate;
-				}
+				evt = evt.substring(0, evt.length()-1);
+				
+				addEvent(evtType, evtUser, evtStart, evtEnd, evtProp);
 				
 				// Add to the relevant dayBin (a bin is half a day)
 				Calendar day = GregorianCalendar.getInstance();
-				day.setTime(eventDate);
+				day.setTime(evtStart);
 				if (day.get(Calendar.HOUR_OF_DAY) < 12)
 					day.set(Calendar.HOUR_OF_DAY,0);
 				else
@@ -303,30 +286,29 @@ public class Dataset {
 					hm.put("eventTypes", new ArrayList<String>());
 					binsProperties.put(day, hm);
 				}
-				dayBins.get(day).add(newUserName+";"+evt.substring(0, evt.length()-1));
-				lineCount++;
+				dayBins.get(day).add(userName+";"+evt);
 				
 				// Update the properties of the bin
 					// user name
-				if (!((ArrayList<String>)binsProperties.get(day).get("userNames")).contains(newUserName))
-					((ArrayList<String>)binsProperties.get(day).get("userNames")).add(newUserName);
+				if (!((ArrayList<String>)binsProperties.get(day).get("userNames")).contains(userName))
+					((ArrayList<String>)binsProperties.get(day).get("userNames")).add(userName);
 					// event type and its number of occurrences
-				if (!((ArrayList<String>)binsProperties.get(day).get("eventTypes")).contains(properties[0])) {
-					((ArrayList<String>)binsProperties.get(day).get("eventTypes")).add(properties[0]);
-					binsProperties.get(day).put(properties[0], new Integer(1));
+				if (!((ArrayList<String>)binsProperties.get(day).get("eventTypes")).contains(evtType)) {
+					((ArrayList<String>)binsProperties.get(day).get("eventTypes")).add(evtType);
+					binsProperties.get(day).put(evtType, new Integer(1));
 				} else {
 					binsProperties.get(day).put(
-							properties[0], 
-							new Integer((Integer)binsProperties.get(day).get(properties[0]) + 1)
+							evtType, 
+							new Integer((Integer)binsProperties.get(day).get(evtType) + 1)
 							);
 				}
 					
-				// Add an event to the count
-				nbEvents++;
 				if (nbEvents%500000 == 0) {
 					System.out.println(nbEvents+" events stored");
 				}
 			}
+			firstEvent = timeSortedEvents.first().getStart();
+			lastEvent = timeSortedEvents.last().getStart();
 			
 			reader.close();
 		} catch (IOException e) {
@@ -349,6 +331,63 @@ public class Dataset {
 		this.loading = false;
 		
 		//this.patternManager = new PatternManager(userRenaming);
+	}
+	
+	private void addEventType(String eventType) {
+		events.add(eventType);
+		eventOccs.put(eventType, new Integer(0));
+		eventsReadable.put(String.valueOf(nextEventTypeCode), eventType);
+		eventsCoded.put(eventType, String.valueOf(nextEventTypeCode));
+		nextEventTypeCode++;
+	}
+	
+	/**
+	 * Creates a new event and returns it
+	 * @param evtType
+	 * @param evtUser
+	 * @param evtStart
+	 * @param evtEnd
+	 * @param evtProp
+	 * @return
+	 */
+	private Event addEvent(String evtType, String evtUser, Date evtStart, Date evtEnd, List<String> evtProp) {
+		int evtId = this.nextEventId++;
+		Event newEvent = new Event(evtId, evtType, evtUser, evtStart, evtEnd, evtProp);
+		
+		eventOccs.put(evtType, new Integer(eventOccs.get(evtType).intValue()+1));
+		
+		timeSortedEvents.add(newEvent);
+		userSequences.get(evtUser).add(newEvent);
+		// Add an event to the count
+		nbEvents++;
+		
+		return newEvent;
+	}
+	
+	/**
+	 * TODO Also update the half day bins
+	 */
+	private void removeEvent(Event e) {
+		timeSortedEvents.remove(e);
+		userSequences.get(e.getUser()).remove(e);
+		nbEvents--;
+	}
+	
+	/**
+	 * TODO Also update the half day bins
+	 */
+	private void removeEvents(Collection<Event> c) {
+		timeSortedEvents.removeAll(c);
+		HashMap<String, List<Event>> toBeRemoved = new HashMap<>();
+		for(Event e : c) {
+			if (!toBeRemoved.containsKey(e.getUser()))
+				toBeRemoved.put(e.getUser(), new ArrayList<Event>());
+			toBeRemoved.get(e.getUser()).add(e);
+		}
+		for(String u : toBeRemoved.keySet()) {
+			userSequences.get(u).removeAll(toBeRemoved.get(u));
+		}
+		nbEvents-= c.size();
 	}
 	
 	public void loadTrueEventNames(String path) { // TODO Make sure the mapping file is the right one
@@ -401,6 +440,22 @@ public class Dataset {
 	public void setName(String name) {
 		this.name = name;
 	}
+	public Map<String, String> getEventsReadable() {
+		return eventsReadable;
+	}
+
+	public void setEventsReadable(Map<String, String> eventsReadable) {
+		this.eventsReadable = eventsReadable;
+	}
+
+	public Map<String, String> getEventsCoded() {
+		return eventsCoded;
+	}
+
+	public void setEventsCoded(Map<String, String> eventsCoded) {
+		this.eventsCoded = eventsCoded;
+	}
+
 	public int getNbEventType() {
 		return events.size();
 	}
@@ -427,7 +482,7 @@ public class Dataset {
 		return loading;
 	}
 	
-	public JsonObject getParameters() {
+	public DatasetParameters getParameters() {
 		return parameters;
 	}
 	
@@ -454,23 +509,13 @@ public class Dataset {
 	 */
 	public String getFirstEvent(String user) {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Date eventDate = null;
-		try {
-			eventDate = df.parse(userSequences.get(user).get(0).split(";")[1]); // Extracts the event's start in the data
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+		Date eventDate = userSequences.get(user).first().getStart();
 		return df.format(eventDate);// eventDate.toString();
 	}
 	
 	public String getLastEvent(String user) {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		Date eventDate = null;
-		try {
-			eventDate = df.parse(userSequences.get(user).get(userSequences.get(user).size()-1).split(";")[1]);
-		} catch (ParseException e) {
-			e.printStackTrace();
-		}
+		Date eventDate = userSequences.get(user).last().getStart();
 		return df.format(eventDate);//eventDate.toString();
 	}
 	
@@ -491,30 +536,31 @@ public class Dataset {
 			infos.put("nbOccs", eventOccs.get(eventsReadable.get(i)).toString());
 			// Add the informations from the parameters if present
 			//	The event type description
-			if (parameters.containsKey("eventDescription")) {
-				JsonObject desc = parameters.getJsonObject("eventDescription");
-				if (desc.containsKey(eventsReadable.get(i))) {
-					infos.put("description", desc.getJsonString(eventsReadable.get(i)).getString());
-				}
+			Map<String, String> desc = parameters.getEventDescriptions();
+			if (desc.containsKey(eventsReadable.get(i))) {
+				infos.put("description", desc.get(eventsReadable.get(i)).replaceAll("\"", ""));
+			} else {
+				infos.put("description", "???");
 			}
 			//	The event type category
-			if (parameters.containsKey("eventCategory")) {
-				JsonObject categories = parameters.getJsonObject("eventCategory");
-				for (String category: categories.keySet()) {
-					JsonArray eTypes = categories.getJsonArray(category);
-					boolean found = false;
-					for (int idx = 0; idx < eTypes.size(); idx++) {
-						String type = eTypes.getString(idx);
-						if (type.equals(eventsReadable.get(i))) {
-							infos.put("category", category);
-							found = true;
-							break;
-						}
-					}
-					if (found == true)
+			Map<String, List<String>> categories = parameters.getEventByCategories();
+			boolean found = false;
+			for (String category: categories.keySet()) {
+				List<String> eTypes = categories.get(category);
+				for (int idx = 0; idx < eTypes.size(); idx++) {
+					if (eTypes.get(idx).replaceAll("\"", "").equals(eventsReadable.get(i))) {
+						infos.put("category", category);
+						found = true;
 						break;
+					}
 				}
+				if (found == true)
+					break;
 			}
+			if (!found) {
+				infos.put("category", "defaultCat");
+			}
+			
 			res.put(eventsReadable.get(i), infos);
 		}
 		
@@ -530,7 +576,7 @@ public class Dataset {
 	 */
 	public String getInfoOnUserToString(String username) {
 		if (userSequences.containsKey(username)) {
-			List<String> trace = userSequences.get(username);
+			TreeSet<Event> trace = userSequences.get(username);
 			return username+";"
 					+trace.size()+";"
 					+getFirstEvent(username)+";"
@@ -539,9 +585,9 @@ public class Dataset {
 		return null;
 	}
 	
-	public List<String> getTrace(String user) {
+	public List<Event> getTrace(String user) {
 		if (this.userSequences.containsKey(user)) {
-			return this.userSequences.get(user);
+			return new ArrayList<>(this.userSequences.get(user));
 		} else {
 			return new ArrayList<>();
 		}
@@ -951,17 +997,53 @@ public class Dataset {
 		return null;//result;
 	}
 	
-	public List<String> getEvents() {
+	public Event getEventOfUserById(int eventId, String user) {
+		for(Event e : userSequences.get(user)) {
+			if (e.getId() == eventId)
+				return e;
+		}
+		return null;
+	}
+	
+	public List<Event> getEventsOfUserById(int[] eventIds, String user) {
+		List<Event> result = new ArrayList<>();
+		List<Integer> ids = new ArrayList<>();
+		
+		for(int i : eventIds) {
+			ids.add(i);
+		}
+		
+		for(Event e : userSequences.get(user)) {
+			if (ids.contains(e.getId()))
+				result.add(e);
+		}
+		return null;
+	}
+	
+	public List<Event> getEventsOfUserById(List<Integer> eventIds, String user) {
+		List<Event> result = new ArrayList<>();
+		
+		for(Event e : userSequences.get(user)) {
+			if (eventIds.contains(e.getId()))
+				result.add(e);
+		}
+		return result;
+	}
+	
+	public List<Event> getEvents() {
 		return getEvents(0,nbEvents);
 	}
 	
-	public List<Event> getOrderedEvents() {
-		return orderedEvents.subList(0, nbEvents);
-	}
-	
-	public List<String> getEvents(int firstIndex, int count) {
-		if (firstIndex < nbEvents) {
-			return timeSortedEvents.subList(firstIndex, firstIndex+count);
+	public List<Event> getEvents(int firstIndex, int count) {
+		if (firstIndex < nbEvents && firstIndex+count <= nbEvents) {
+			Iterator<Event> it = timeSortedEvents.iterator();
+			for(int i=0; i<firstIndex;i++)
+				it.next();
+			Event firstEvt = it.next();
+			for(int i=0; i<count-2;i++)
+				it.next();
+			Event lastEvt = it.next();
+			return new ArrayList<>(timeSortedEvents.subSet(firstEvt, true, lastEvt, true));
 		}
 		return null;
 	}
@@ -993,16 +1075,14 @@ public class Dataset {
 
 			System.out.println("Doing user "+userCount);
 			
-			for (String event : userSequences.get(user)) {	// For each event of the user
-				Date eventDate = getDateInEvent(event);
+			for (Event event : userSequences.get(user)) {	// For each event of the user
+				Date eventDate = event.getStart();
 				eventCal = GregorianCalendar.getInstance();
 				eventCal.setTime(eventDate);
 				eventCal.set(Calendar.MILLISECOND,0);
 
-				// before: type;start;end;user;...
-				// after: type(coded as integer);start(in milliseconds);user
-				String[] splitEvent = event.split(";",5);
-				String eventData = eventsCoded.get(splitEvent[0])+";"+eventCal.getTimeInMillis()+";"+splitEvent[3];
+				// type(coded as integer);start(in milliseconds);user;id
+				String eventData = eventsCoded.get(event.getType())+";"+eventCal.getTimeInMillis()+";"+event.getUser()+";"+event.getId();
 				
 				currentUserSequence.add(eventData);
 				
@@ -1040,16 +1120,14 @@ public class Dataset {
 				System.out.println(userCount+" user done");
 			userCount++;
 			
-			for (String event : userSequences.get(user)) {	// For each event of the user
-				Date eventDate = getDateInEvent(event);
+			for (Event event : userSequences.get(user)) {	// For each event of the user
+				Date eventDate = event.getStart();
 				eventCal = GregorianCalendar.getInstance();
 				eventCal.setTime(eventDate);
 				eventCal.set(Calendar.MILLISECOND,0);
 
-				// before: type;start;end;user;...
-				// after: type(coded as integer);start(in milliseconds);user
-				String[] splitEvent = event.split(";",5);
-				String eventData = eventsCoded.get(splitEvent[0])+";"+eventCal.getTimeInMillis()+";"+splitEvent[3];
+				// type(coded as integer);start(in milliseconds);user
+				String eventData = eventsCoded.get(event.getType())+";"+eventCal.getTimeInMillis()+";"+event.getUser();
 				
 				if (windowStart == null) {		// First event for this user, initialize the first 2 windows
 					windowStart = (Calendar) eventCal.clone();
@@ -1139,11 +1217,55 @@ public class Dataset {
 		return this.patternManagers;
 	}
 	
-	public void addPatternManagerToSession(Session session, SessionHandler sessionHandler) {
-		patternManagers.put(session, new PatternManager(userRenaming, eventsCoded, eventsReadable, session, sessionHandler, this));
+	public void addPatternManagerToSession(Session session, PatternManager pm) {
+		patternManagers.put(session, pm);
 	}
 	
-	public void modifyTraceByGroupingEvents(List<Integer> typeIdsToJoin) {
+	public TraceModification createEventTypeFromPattern(int patternId, Session session) {
+		System.out.println("Event type creation started");
+		List<Integer> eventIdToDelete = new ArrayList<>();
+		List<Event> eventsToDelete = new ArrayList<>();
+		TraceModification modifs = new TraceModification();
 		
+		PatternManager pm = patternManagers.get(session);
+		Pattern p = pm.getPattern(patternId);
+		List<Occurrence> occs = p.getOccurrences();
+		
+		String newEventType = "";
+		for(String item : p.getReadableItems()) {
+			if (newEventType.length() > 0)
+				newEventType += ".";
+			newEventType+=item;
+		}
+		addEventType(newEventType);
+		
+		for (Occurrence occ : occs) {
+			int[] evtIds = occ.getEventIds();
+			List<Integer> evtIdsList = new ArrayList<>();
+			
+			for(int i : evtIds) {
+				evtIdsList.add(Integer.valueOf(i));
+			}
+			eventIdToDelete.addAll(evtIdsList);
+			
+			String user = occ.getUser();
+			List<Event> occEvents = getEventsOfUserById(evtIdsList, user);
+			eventsToDelete.addAll(occEvents);
+			Date start = occEvents.get(0).getStart();
+			Date end = null;
+			List<String> props = new ArrayList<>();
+			
+			modifs.addNewEvent(addEvent(newEventType, user, start, end, props));
+			removeEvents(occEvents);
+		}
+
+		System.out.println("Removing events");
+		
+		removeEvents(eventsToDelete);
+		modifs.setRemovedIds(eventIdToDelete);
+
+		System.out.println("Event type creation done");
+		
+		return modifs;
 	}
 }

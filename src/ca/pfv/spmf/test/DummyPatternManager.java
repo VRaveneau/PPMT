@@ -9,20 +9,13 @@ import javax.websocket.Session;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.patterns.Pattern;
 import com.raveneau.ppmt.patterns.PatternManager;
+import com.raveneau.ppmt.server.ClientHandler;
 import com.raveneau.ppmt.server.SessionHandler;
 
 public class DummyPatternManager extends PatternManager {
 
-	public DummyPatternManager() {
-		super(new HashMap<String, String>(),
-				new HashMap<String, String>(),
-				new HashMap<String, String>(),null,null,null);
-	}
-	
-	public DummyPatternManager(Map<String, String> userRenamingInverted, Map<String, String> eventsCoded,
-			Map<String, String> eventsReadable, Session session, SessionHandler sessionHandler, Dataset dataset) {
-		super(userRenamingInverted, eventsCoded, eventsReadable, session, sessionHandler, dataset);
-		// TODO Auto-generated constructor stub
+	public DummyPatternManager(ClientHandler ch) {
+		super(ch);
 	}
 
 	@Override
@@ -39,7 +32,7 @@ public class DummyPatternManager extends PatternManager {
 
 	@Override
 	public void addPattern(List<String> items, Integer support, List<Integer> sIds, List<String> users,
-			List<long[]> timestamps, boolean hasAllOccurrences) {
+			List<long[]> timestamps, List<int[]> eventIds,boolean hasAllOccurrences) {
 		// TODO Auto-generated method stub
 		
 	}
