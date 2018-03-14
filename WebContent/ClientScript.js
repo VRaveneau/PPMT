@@ -368,7 +368,7 @@ var userInputIsDisabled = false;
 var lastUserSort = "";
 
 // Sort order for the list of event types. Expected value is one of the following :
-// nbEventsDown - nbEventsUp
+// supportDown - supportUp
 // nameDown - nameUp
 // categoryDown - categoryUp
 var lastEventTypeSort = "";
@@ -2347,7 +2347,7 @@ function receiveEventTypes(message) {
 		};
 	}
 	
-	sortEventTypesByNbEvents(true);
+	sortEventTypesBySupport(true);
 	
 	createEventTypesListDisplay();
 }
@@ -2669,16 +2669,16 @@ function sortEventTypesByName(decreasing=false) {
  * Sorts the event types list according to the number of events associated to them
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
-function sortEventTypesByNbEvents(decreasing=false) {
+function sortEventTypesBySupport(decreasing=false) {
 	eventTypes.sort(function(a,b) {
 		return eventTypeInformations[a].nbOccs - eventTypeInformations[b].nbOccs;
 	});
 	
 	if (decreasing == true) {
 		eventTypes.reverse();
-		lastEventTypeSort = "nbEventsDown";
+		lastEventTypeSort = "supportDown";
 	} else {
-		lastEventTypeSort = "nbEventsUp";
+		lastEventTypeSort = "supportUp";
 	}
 }
 
@@ -3347,9 +3347,9 @@ function clickOnEventTypeNameHeader() {
 }
 
 /**
- * Handles a click on the 'nbEvents' header in the event types list
+ * Handles a click on the 'support' header in the event types list
  */
-function clickOnEventTypeNbEventsHeader() {
+function clickOnEventTypeSupportHeader() {
 	let header = null;
 	let txt = "";
 	// Remove the sorting indicators
@@ -3358,18 +3358,18 @@ function clickOnEventTypeNbEventsHeader() {
 			let colName = d3.select(this).text().split(/\s/);
 			colName.pop();
 			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0events") {
+			if (colName == "Support") {
 				header = this;
 				txt = colName;
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastEventTypeSort == "nbEventsDown") {
+	if (lastEventTypeSort == "supportDown") {
 		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesByNbEvents();
+		sortEventTypesBySupport();
 	} else {
 		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesByNbEvents(true);
+		sortEventTypesBySupport(true);
 	}
 	
 	createEventTypesListDisplay();
