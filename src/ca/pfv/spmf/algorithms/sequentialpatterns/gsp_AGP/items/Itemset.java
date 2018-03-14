@@ -40,6 +40,8 @@ public final class Itemset{
      */
     private long timestamp = 0;
     
+    private int id = -1;
+    
     private String user = null;
     
     /**
@@ -208,5 +210,13 @@ public final class Itemset{
 	public String getUser() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	public int getId() {
+		return this.id;
+	}
+	
+	public void setId(int id) {
+		this.id = id;
 	}
 }

@@ -26,11 +26,12 @@ function receiveDatasetList(message) {
 	messageTag.textContent = "Select the dataset you want to use";
 	
 	let dsList = d3.select("#datasetList");
-	let datasetNb = parseInt(message.size);
-	
+	let datasetNb = message.size;
+	console.log(datasetNb);
 	for (let i = 0; i < datasetNb; i++) {
 		let dsName = message[i.toString()];
-		let dsParams = JSON.parse(message["param"+i.toString()]);
+		let dsParams = message["param"+i.toString()];
+		console.log(dsParams);
 
 		// Create the card for the dataset
 		let card = dsList.append("div")
@@ -45,13 +46,13 @@ function receiveDatasetList(message) {
 			.text(dsName);
 		
 		// Add more information to the card if they are available
-		if (dsParams.nbUsers) {
+		if (dsParams.nbUsers > 0) {
 			card.append("p")
 				.classed("nbUsers", true)
 				.classed("datasetParameter", true)
 				.text("Users : " + dsParams.nbUsers);
 		}
-		if (dsParams.nbEvents) {
+		if (dsParams.nbEvents > 0) {
 			// Display large numbers with a space every 3 digit
 			let nbE = dsParams.nbEvents
 				.toString().split('').reverse().reduce(function(acc,val) {
@@ -68,13 +69,13 @@ function receiveDatasetList(message) {
 				.classed("datasetParameter", true)
 				.text("Events : " + nbE);
 		}
-		if (dsParams.nbEventTypes) {
+		if (dsParams.nbEventTypes > 0) {
 			card.append("p")
 				.classed("nbEventTypes", true)
 				.classed("datasetParameter", true)
 				.text("Event types : " + dsParams.nbEventTypes);
 		}
-		if (dsParams.duration) {
+		if (dsParams.duration.length > 0) {
 			card.append("p")
 				.classed("duration", true)
 				.classed("datasetParameter", true)
