@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -29,6 +30,19 @@ public class Pattern {
 	public Pattern(List<String> items) {
 		super();
 		this.setItems(items);
+	}
+	
+	public Pattern(Pattern p) {
+		this.id = p.id;
+		this.items = new ArrayList<>(p.items);
+		this.itemsReadable = new ArrayList<>(p.itemsReadable);
+		this.support = p.support;
+		this.occurrences = new ArrayList<>(p.occurrences);
+		this.sequenceId = new ArrayList<>(p.sequenceId);
+		this.seqIdToUser = new HashMap<>();
+		for (Entry<Integer, String> kv : p.seqIdToUser.entrySet()) {
+			this.seqIdToUser.put(kv.getKey(), kv.getValue());
+		}
 	}
 
 	public int getId() {

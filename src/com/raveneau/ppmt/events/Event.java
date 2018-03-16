@@ -1,6 +1,7 @@
 package com.raveneau.ppmt.events;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -20,6 +21,16 @@ public class Event implements Comparable<Event>{
 		this.start = start;
 		this.end = end;
 		this.properties = properties;
+	}
+	
+	public Event(Event origin) {
+		super();
+		this.id = origin.getId();
+		this.type = origin.getType();
+		this.user = origin.getUser();
+		this.start = origin.getStart();
+		this.end = origin.getEnd();
+		this.properties = new ArrayList<>(origin.getProperties());
 	}
 
 	public int getId() {

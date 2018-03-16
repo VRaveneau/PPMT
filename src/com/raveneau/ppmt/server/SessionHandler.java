@@ -358,7 +358,15 @@ public class SessionHandler {
 	 * @param session The session that wants to alter the dataset
 	 */
 	public void sessionAltersDataset(Session session) {
-		// TODO Auto-generated method stub
+		ClientHandler ch = clientHandlers.get(session);
+		Dataset oldDS = ch.getDataset();
+		if (oldDS.isGlobal()) {
+			ch.setDataset(new Dataset(oldDS, session), false);
+			oldDS.removePatternManagerFromSession(session);
+			System.out.println("New dataset created");
+		} else {
+			System.out.println("Dataset was already user-specific");
+		}
 		
 	}
 }

@@ -86,9 +86,15 @@ public class ClientHandler {
 	}
 
 	public void setDataset(Dataset dataset) {
+		setDataset(dataset, true);
+	}
+	
+	public void setDataset(Dataset dataset, boolean initializePatternManager) {
 		this.dataset = dataset;
-		setPatternManager(new PatternManager(this));
-		dataset.addPatternManagerToSession(session, patternManager);
+		if (initializePatternManager) {
+			setPatternManager(new PatternManager(this));
+			dataset.addPatternManagerToSession(session, patternManager);
+		}
 	}
 	
 	public void sendMessage(JsonObject message) {

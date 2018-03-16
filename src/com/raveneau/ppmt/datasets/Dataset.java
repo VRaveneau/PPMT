@@ -81,7 +81,9 @@ public class Dataset {
 	private int nextEventId = 0;
 	private int nextEventTypeCode = 0;
 	
-	private DatasetParameters parameters = parameters = new DatasetParameters();;
+	private boolean global = true;
+	
+	private DatasetParameters parameters = new DatasetParameters();;
 	
 	private Map<Session,PatternManager> patternManagers = new HashMap<>();
 	
@@ -121,6 +123,51 @@ public class Dataset {
 		
 		if (startLoading) {
 			loadData();
+		}
+	}
+	
+	public Dataset(Dataset ds, Session session) {
+		this.name = ds.getName();
+		this.events = new ArrayList<>(ds.getEventList());
+		this.eventsReadable = new HashMap<>();
+		for (Entry<String, String> kv : ds.getEventsReadable().entrySet()) {
+			eventsReadable.put(kv.getKey(), kv.getValue());
+		}
+		this.eventsCoded = new HashMap<>();
+		for (Entry<String, String> kv : ds.getEventsCoded().entrySet()) {
+			eventsCoded.put(kv.getKey(), kv.getValue());
+		}
+		this.eventOccs = new HashMap<>();
+		for (Entry<String, Integer> kv : ds.getEventOccs().entrySet()) {
+			eventOccs.put(kv.getKey(), kv.getValue());
+		}
+		this.timeSortedEvents = new TreeSet<>(ds.getEvents());
+		this.userSequences = new HashMap<>();
+		for (Entry<String, TreeSet<Event>> kv : ds.getUserSequences().entrySet()) {
+			this.userSequences.put(kv.getKey(), new TreeSet<>(kv.getValue()));
+		}
+		this.nbEvents = ds.getNbEvent();
+		this.firstEvent = (Date) ds.getFirstEventDate().clone();
+		this.lastEvent = (Date) ds.getLastEventDate().clone();
+		this.inputPath = ds.getInputPath();
+		this.inputPathParameters = ds.getInputPathParameters();
+		this.loading = false;
+		this.loaded = ds.isLoaded();
+		this.eventCompressionSize = ds.getEventCompressionSize();
+		this.compressedEvents = new ArrayList<>(ds.getCompressedEvents());
+		this.nextEventId = ds.getNextEventId();
+		this.nextEventTypeCode = ds.getNextEventTypeCode();
+		this.global = false;
+		this.parameters = ds.getParameters();
+		this.patternManagers = new HashMap<>();
+		this.patternManagers.put(session, new PatternManager(ds.getPatternManager(session)));
+		this.dayBins = new HashMap<>();
+		for(Entry<Calendar, List<String>> kv : ds.dayBins.entrySet()) {
+			dayBins.put(kv.getKey(), new ArrayList<>(kv.getValue()));
+		}
+		this.binsProperties = new HashMap<>();
+		for(Entry<Calendar, Map<String, Object>> kv : ds.binsProperties.entrySet()) {
+			binsProperties.put(kv.getKey(), new HashMap<>(kv.getValue()));
 		}
 	}
 	
@@ -456,6 +503,22 @@ public class Dataset {
 		this.eventsCoded = eventsCoded;
 	}
 
+	public Map<String, Integer> getEventOccs() {
+		return eventOccs;
+	}
+
+	public void setEventOccs(Map<String, Integer> eventOccs) {
+		this.eventOccs = eventOccs;
+	}
+	
+	public Map<String, TreeSet<Event>> getUserSequences() {
+		return userSequences;
+	}
+	
+	public TreeSet<Event> getUserSequence(String user) {
+		return userSequences.get(user);
+	}
+
 	public int getNbEventType() {
 		return events.size();
 	}
@@ -473,15 +536,38 @@ public class Dataset {
 	public void setInputPath(String inputPath) {
 		this.inputPath = inputPath;
 	}
-	
-	public boolean isLoaded() {
-		return loaded;
+	public String getInputPathParameters() {
+		return inputPathParameters;
 	}
 	
 	public boolean isLoading() {
 		return loading;
 	}
 	
+	public boolean isLoaded() {
+		return loaded;
+	}
+	
+	public int getEventCompressionSize() {
+		return eventCompressionSize;
+	}
+	
+	public int getNextEventId() {
+		return nextEventId;
+	}
+	
+	public int getNextEventTypeCode() {
+		return nextEventTypeCode;
+	}
+	
+	public boolean isGlobal() {
+		return global;
+	}
+
+	public void setGlobal(boolean global) {
+		this.global = global;
+	}
+
 	public DatasetParameters getParameters() {
 		return parameters;
 	}
@@ -1221,12 +1307,15 @@ public class Dataset {
 		patternManagers.put(session, pm);
 	}
 	
+	public void removePatternManagerFromSession(Session session) {
+		patternManagers.remove(session);
+	}
+	
 	public TraceModification createEventTypeFromPattern(int patternId, Session session) {
 		System.out.println("Event type creation started");
 		List<Integer> eventIdToDelete = new ArrayList<>();
 		List<Event> eventsToDelete = new ArrayList<>();
 		TraceModification modifs = new TraceModification();
-		
 		PatternManager pm = patternManagers.get(session);
 		Pattern p = pm.getPattern(patternId);
 		List<Occurrence> occs = p.getOccurrences();
