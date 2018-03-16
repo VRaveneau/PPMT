@@ -6328,6 +6328,17 @@ var Timeline = function(elemId, options) {
 					brushEndData.push(self.yContext(binValue));
 					dataUnderBrush.push(brushEndData);
 					dataAfterBrush.push(brushEndData);
+				} else if (beforeBrushStart) {
+					let brushStartData = [];
+					brushStartData.push(self.xContext(brushStartTime));
+					brushStartData.push(self.yContext(binValue));
+					let brushEndData = [];
+					brushEndData.push(self.xContext(brushEndTime));
+					brushEndData.push(self.yContext(binValue));
+					dataBeforeBrush.push(brushStartData);
+					dataUnderBrush.push(brushStartData);
+					dataUnderBrush.push(brushEndData);
+					dataAfterBrush.push(brushEndData);
 				}
 				dataAfterBrush.push(thisData);
 			} else {
