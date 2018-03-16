@@ -189,8 +189,7 @@ public class ClientHandler {
 		String firstEvent = dataset.getFirstEvent();
 		String lastEvent = dataset.getLastEvent();
 		// list of events
-		// TODO Get this directly from the dataset, not from the DSManager
-		List<String> events = DatasetManager.getInstance().getEventTypes(dataset.getName());
+		List<String> events = dataset.getEventTypeInfo();
 		// Number of events
 		String nbEvents = Integer.toString(dataset.getNbEvent());
 		// list of users
@@ -224,7 +223,7 @@ public class ClientHandler {
 		
 		// list of event types
 		// TODO Get this directly from the dataset, not from the DSManager
-		List<String> et = DatasetManager.getInstance().getEventTypes(dataset.getName());
+		List<String> et = dataset.getEventTypeInfo();
 		
 		dataMessage = provider.createObjectBuilder()
 				.add("action", "eventTypes")

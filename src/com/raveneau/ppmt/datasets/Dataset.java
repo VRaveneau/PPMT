@@ -613,7 +613,8 @@ public class Dataset {
 		return events;
 	}
 	
-	public Map<String,Map<String,String>> getEventTypeInfo() {
+	// TODO Optimize it better, it is probably redundant
+	public List<String> getEventTypeInfo() {
 		HashMap<String,Map<String,String>> res = new HashMap<>();
 		
 		for (String i : eventsReadable.keySet()) {
@@ -650,7 +651,17 @@ public class Dataset {
 			res.put(eventsReadable.get(i), infos);
 		}
 		
-		return res;
+		List<String> result = new ArrayList<>();
+		for (String e : res.keySet()) {
+			String s = "type:"+e+";";
+			for (String info : res.get(e).keySet()) {
+				s+=info+":"+res.get(e).get(info)+";";
+			}
+			s = s.substring(0, s.length()-1);
+			result.add(s);
+		}
+		
+		return result;
 	}
 	
 	/**
