@@ -4826,43 +4826,41 @@ function changeTooltip(data, origin) {
 				}
 				break;
 			case "events":
-					splitData = data.split(";");
-					
 					let typeLine = area.append("p")
 						.classed("clickable", true)
-						.classed("bold", highlightedEventTypes.includes(splitData[0]))
+						.classed("bold", highlightedEventTypes.includes(data.type))
 						.text("Type: ")
 						.on("click", function() {
-							highlightEventTypeRow(splitData[0]);
+							highlightEventTypeRow(data.type);
 							d3.select(this)
-								.classed("bold", highlightedEventTypes.includes(splitData[0]));
+								.classed("bold", highlightedEventTypes.includes(data.type));
 							setHighlights();
 							timeline.displayData();
 						});
 					typeLine.append("span")
-						.style("color",colorList[splitData[0]][0])
-						.text(itemShapes[splitData[0]]);
+						.style("color",colorList[data.type][0])
+						.text(itemShapes[data.type]);
 					typeLine.append("span")
-						.text(" "+splitData[0]);
+						.text(" "+data.type);
 					area.append("p")
-						.text("Time: " + splitData[1]);
+						.text("Time: " + formatDate(new Date(data.start)));
 					area.append("p")
 						.classed("clickable", true)
-						.classed("bold", highlightedUsers.includes(splitData[3]))
-						.text("User: " + splitData[3])
+						.classed("bold", highlightedUsers.includes(data.user))
+						.text("User: " + data.user)
 						.on("click", function() {
-							highlightUserRow(splitData[3]);
+							highlightUserRow(data.user);
 							d3.select(this)
-								.classed("bold", highlightedUsers.includes(splitData[3]));
+								.classed("bold", highlightedUsers.includes(data.user));
 							setHighlights();
 							timeline.displayData();
 						});
 					area.append("p")
 						.text("Properties:");
-					for(var i = 4; i < splitData.length; i++)
+					for(let i = 0; i < data.properties.length; i++)
 						area.append("p")
 							.classed("tooltipEventProperty", true)
-							.text(splitData[i]);
+							.text(data.properties[i]);
 			}
 			break;
 		case "session":
@@ -7057,11 +7055,9 @@ var Timeline = function(elemId, options) {
 					
 					if (self.displayMode == "events") {
 						if (self.eventDisplayStyle == "type") {
-							let dataTs = data.split(";")[1];
-							let dataType = data.split(";")[0];
-							let ts = d3.timeParse('%Y-%m-%d %H:%M:%S')(dataTs);
+							let ts = new Date(data.start);
 							let dataX = self.xFocus(ts);
-							let dataY = self.yFocus(dataType) + self.yFocus.bandwidth()/2;
+							let dataY = self.yFocus(data.type) + self.yFocus.bandwidth()/2;
 							
 							self.svgPointerHB.attr("y1",dataY);
 							self.svgPointerHB.attr("y2",dataY);
@@ -7070,9 +7066,7 @@ var Timeline = function(elemId, options) {
 						}
 						if (self.eventDisplayStyle == "time") {
 							// Need a way to get the height at which the data is represented to work fully
-							let dataTs = data.split(";")[1];
-							let dataType = data.split(";")[0];
-							let ts = d3.timeParse('%Y-%m-%d %H:%M:%S')(dataTs);
+							let ts = new Date(data.start);
 							let dataX = self.xFocus(ts);
 							let dataY = 0;//self.yFocus(dataType) + self.yFocus.bandwidth()/2;
 							
