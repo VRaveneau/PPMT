@@ -238,8 +238,6 @@ var eventTypesByCategory = {};
 // For each category, the two colors associated with it
 var eventTypeCategoryColors = {};
 
-// References to the events of the dataset, associated to the relevant user
-var userTraces = {};
 // The names of all users present in the dataset
 var userList = [];
 
@@ -2131,11 +2129,6 @@ function receiveEvents(eventsCompressed) {
 		timeOrderedEvents.push([oldStrParts.join(";")]);
 		// Add the event to the array later used to create the crossfilter
 		rawData.push(evtObj);
-		// Adding the event to its user
-		if(typeof(userTraces[user]) == typeof([]))
-			userTraces[user].push(timeOrderedEvents[timeOrderedEvents.length-1]);
-		else
-			userTraces[user] = [timeOrderedEvents[timeOrderedEvents.length-1]];
 	}
 	nbEventsReceived += nbEventsInMessage;
 	enableCentralOverlay("Receiving all the events... ("+nbEventsReceived+" out of "+datasetInfo["numberOfEvents"]+")");
@@ -2354,44 +2347,53 @@ function receiveEventTypes(message) {
  */
 function buildUserSessions() {
 	let nbOfSession = 0;
+	let initialTimeFilter = currentTimeFilter;
+	dataDimensions.time.filterAll();
 
 	for (let userIdx = 0; userIdx < userList.length; userIdx++) {
-		let timeParser = d3.timeParse('%Y-%m-%d %H:%M:%S');
 		let u = userList[userIdx];
-		let lastEventDate = timeParser(userTraces[u][0][0].split(";")[1]).getTime();
-		userSessions[u] = [
-			{
-				start: Number(lastEventDate), 
-				end: Number(lastEventDate), 
-				count: {}, 
-				nbEvents: 1
-			}
-		];
+		// Consider only the events of the current user
+		dataDimensions.user.filterExact(u);
+		let currentSession = null;
+		userSessions[u] = [];
 		
-		for (let idx = 1; idx < userTraces[u].length; idx++) {
-			let thisEventDate = timeParser(userTraces[u][idx][0].split(";")[1]).getTime();
-			if (lastEventDate + sessionInactivityLimit > thisEventDate) {
-				// Keep growing the current session
-				userSessions[u][userSessions[u].length - 1].end = Number(thisEventDate);
-				userSessions[u][userSessions[u].length - 1].nbEvents++;
-			} else {
-				// Create a new session
-				userSessions[u].push(
-					{
-						start: Number(thisEventDate), 
-						end: Number(thisEventDate), 
+		dataDimensions.time.bottom(Infinity).forEach( function(evt) {
+			if (currentSession != null) {
+				if (evt.start - currentSession.end < sessionInactivityLimit ) {
+					// Keep growing the current session
+					currentSession.end = evt.start;
+					currentSession.nbEvents++;
+				} else {
+					// Store the current session
+					userSessions[u].push(currentSession);
+					// Create a new session
+					currentSession = {
+						start: evt.start, 
+						end: evt.start, 
 						count: {}, 
 						nbEvents: 1
-					}
-				);
+					};
+				}
+			} else { // Initialize the first session
+				currentSession = {
+					start: evt.start,
+					end: evt.start,
+					count: {}, 
+					nbEvents: 1
+				};
 			}
-			lastEventDate = thisEventDate;
-		}
+		});
+		// Store the last session
+		userSessions[u].push(currentSession);
 
 		nbOfSession += userSessions[u].length;
 	}
 	// Add the number of sessions as an information about the dataset
 	datasetInfo.nbSessions = nbOfSession;
+	// Restore the initial time filter
+	dataDimensions.time.filterRange(initialTimeFilter);
+	// Reset the user filter
+	dataDimensions.user.filterAll();
 	// Refresh the display of dataset infos
 	displayDatasetInfo();
 	// Refresh the user list display
@@ -5652,9 +5654,6 @@ var Timeline = function(elemId, options) {
 					});
 				}
 				
-				/*var event = userTraces[userName][j];
-				var eventData = event[0].split(";");*/
-				
 				self.canvasUsersContext.beginPath();
 				
 				let x1 = Math.floor(self.xUsers(new Date(ses.start)));
@@ -6462,12 +6461,10 @@ var Timeline = function(elemId, options) {
 		
 		switch(self.displayMode) {
 		case "distributions":
-			//self.displayDistributions();
 			self.drawBins(self.bins);
 			self.drawPatternOccurrences();
 			break;
 		case "events":
-			//self.displayEvents();
 			//console.log("----Draw Events");
 			//self.drawPatternOccurrences();
 			self.drawEvents();
@@ -7209,56 +7206,6 @@ var Timeline = function(elemId, options) {
 		self.users.select(".axis--x").call(self.xAxisUsers);
 		self.users.select(".axis--y").call(self.yAxisUsers);
 	}
-		
-	self.displayDistributions = function() {
-		//console.log("Display distributions");
-		self.drawCanvas();	// Replace with a drawing function handling distributions
-		// Code for a transition
-		/*var t = svg.transition().duration(750),
-			g = t.selectAll(".group").attr("transform", function(d) { return "translate(0," + y0(d.key) + ")"; });
-		g.selectAll("rect").attr("y", function(d) { return y1(d.value); });
-		g.select(".group-label").attr("y", function(d) { return y1(d.values[0].value / 2); })*/
-	};
-	
-	self.displayEvents = function() {
-		//console.log("Display events");
-		self.drawCanvas();	// Replace with a drawing function handling events
-		// Code for a transition
-		/*var t = svg.transition().duration(750),
-			g = t.selectAll(".group").attr("transform", "translate(0," + y0(y0.domain()[0]) + ")");
-		g.selectAll("rect").attr("y", function(d) { return y1(d.value + d.valueOffset); });
-		g.select(".group-label").attr("y", function(d) { return y1(d.values[0].value / 2 + d.values[0].valueOffset); })*/
-	};
-	
-	self.drawCanvas = function() {
-		//console.log("Drawing canvas");
-		self.canvasContext.fillStyle = "#fff";
-		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
-		self.canvasContext.fill();
-		
-		for (var user in userTraces) {
-			if (userTraces.hasOwnProperty(user)) {
-				for (var id=0; id < userTraces[user].length; id++) {
-					self.canvasContext.beginPath();
-				    self.canvasContext.fillStyle = "green";//node.attr("fillStyle");
-				    var splitEvent = userTraces[user][id].data.split(";");
-				    var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(splitEvent[1]));
-				    if(!self.typeHeight.hasOwnProperty(splitEvent[1]))
-						self.typeHeight[splitEvent[1]] = 0.01;
-					else
-						self.typeHeight[splitEvent[1]] = self.typeHeight[splitEvent[1]]+0.01;
-				    var y = self.yFocus(self.typeHeight[splitEvent[1]]);
-				    var size = 5;
-				    self.canvasContext.fillRect(x, y, size, size);
-				    //console.log("x: "+node.attr("x")+" ;y :"+node.attr("y")+" ;size :"+node.attr("size"));
-				    //self.canvasContext.fill();
-				    self.canvasContext.closePath();
-				}
-			}
-		}
-		
-		//console.log("data drawn");
-	};
 	
 	self.drawEvents = function() {
 		switch(self.eventDisplayStyle) {
