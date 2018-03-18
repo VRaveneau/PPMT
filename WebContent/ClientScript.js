@@ -296,12 +296,6 @@ var firstEventReceived = null;
 // Time of reception of the last event
 var lastEventReceived = null;
 
-// Index map of the events, with two levels of indexation over the time:
-// First level has keys with year with century + day of the year (in decimal)
-// Second level has keys with hours + minutes
-var eventAccessor = {};
-var formatAccessorFirstLevel = d3.timeFormat("%Y%j"); // year with century as decimal + day of the year as decimal
-var formatAccessorSecondLevel = d3.timeFormat("%H%M"); // hour + minutes
 // Maximum number of events at a same time
 var maxEventAtOneTime = 0;
 
@@ -2142,15 +2136,6 @@ function receiveEvents(eventsCompressed) {
 			userTraces[user].push(timeOrderedEvents[timeOrderedEvents.length-1]);
 		else
 			userTraces[user] = [timeOrderedEvents[timeOrderedEvents.length-1]];
-		// Setting the accessor if necessary
-		if (!eventAccessor.hasOwnProperty(formatAccessorFirstLevel(time))) {
-			eventAccessor[formatAccessorFirstLevel(time)] = {};
-			eventAccessor[formatAccessorFirstLevel(time)][formatAccessorSecondLevel(time)] = timeOrderedEvents.length-1;
-		} else {
-			if (!eventAccessor[formatAccessorFirstLevel(time)].hasOwnProperty(formatAccessorSecondLevel(time))) {
-				eventAccessor[formatAccessorFirstLevel(time)][formatAccessorSecondLevel(time)] = timeOrderedEvents.length-1;
-			}
-		}
 	}
 	nbEventsReceived += nbEventsInMessage;
 	enableCentralOverlay("Receiving all the events... ("+nbEventsReceived+" out of "+datasetInfo["numberOfEvents"]+")");
@@ -2358,19 +2343,6 @@ function receiveEventTypes(message) {
 /************************************/
 /*		Data manipulation			*/
 /************************************/
-
-/**
- * Returns the first event starting from a given date
- * @param {string} date The date
- */
-function getEventAccessorAtDate(date) {
-	let result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
-	while (result === undefined) {
-		date = d3.timeMinute.offset(date,1);
-		result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
-	}
-	return result;
-}
 
 /**
  * Builds the user sessions based on the value of sessionInactivityLimit
