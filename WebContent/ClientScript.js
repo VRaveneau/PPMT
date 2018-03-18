@@ -286,9 +286,6 @@ var userSessions = {};
 
 // Number of trace events sent from the server
 var nbEventsReceived = 0;
-// Events in the dataset, ordered by time
-// Each event is the single element of an array, to allow references to them
-var timeOrderedEvents = [];
 // Time of reception of the first event
 var firstEventReceived = null;
 // Time of reception of the last event
@@ -2121,12 +2118,6 @@ function receiveEvents(eventsCompressed) {
 			"user": evt.user,
 			"properties": evt.properties
 		};
-		let oldStrParts = [evt.type,evt.start,evt.end,evt.user];
-		for(let propertyIdx=0; propertyIdx < evt.properties.length; propertyIdx++) {
-			oldStrParts.push(evt.properties[propertyIdx]);
-		}
-		let user = evt.user;
-		timeOrderedEvents.push([oldStrParts.join(";")]);
 		// Add the event to the array later used to create the crossfilter
 		rawData.push(evtObj);
 	}
