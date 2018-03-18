@@ -5715,89 +5715,61 @@ var Timeline = function(elemId, options) {
 		
 		// Draw the event symbols if needed
 		if (drawEvents == true) {
-			// get the last accessor point before the time-span start
-			let firstIndex = getEventAccessorAtDate(self.xUsers.domain()[0]);
-			//console.log("Retreived first index is "+firstIndex);
-			// find the real first index
-			var startFound = false;
-			var startingIndex = firstIndex; // to see how many events have been check vs how many have been drawn
-			while (!startFound) {
-				var info = timeOrderedEvents[firstIndex][0].split(";");
-				var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-				if (time < self.xFocus.domain()[0])
-					firstIndex++;
-				else
-					startFound = true;
-			}
-
-			let drawCount = 0;
-			var endReached = false;
-			while (!endReached) {
-				var info = timeOrderedEvents[firstIndex][0].split(";");
+			dataDimensions.time.bottom(Infinity).forEach( function(evt) {
 				// Only draw if the user is displayed
-				if (shownUsers.includes(info[3])) {
-					var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-					if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
-						endReached = true;
-					else {
-					    firstIndex++;
-					    // Don't draw if the event is not highlighted and we only want the highlighted ones
-						if (drawOnlyHighlightedEvents == true) {
-							if (getCurrentEventColor(info[0], info[3]) == colorList[info[0]][1]) {
-								continue;
-							}
+				if (shownUsers.includes(evt.user)) {
+					let time = new Date(evt.start);
+					// Don't draw if the event is not highlighted and we only want the highlighted ones
+					if (drawOnlyHighlightedEvents == true) {
+						if (getCurrentEventColor(evt.type, evt.user) == colorList[evt.type][1]) {
+							return;
 						}
-						drawCount++;
-					    
-						let x = self.xUsers(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-						let y = self.yUsers(info[3]) + self.yUsers.bandwidth()/2;
-						
-						/* Draw the symbol when using svg for the event types
-						var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
-												.size(self.yFocus.bandwidth())
-												.context(self.canvasContext);
-						var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
-												.size(self.yFocus.bandwidth())
-												.context(self.hiddenCanvasContext);
-						
-						//self.canvasContext.rect(x-2.5,y-2.5,5,5);
-						self.canvasContext.beginPath();
-						self.canvasContext.translate(x,y);
-						self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-						symbolGenerator();
-						self.canvasContext.stroke();
-						self.canvasContext.translate(-x,-y);
-					    self.canvasContext.closePath();
-					    
-					    self.hiddenCanvasContext.beginPath();
-						self.hiddenCanvasContext.translate(x,y);
-						self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-						hiddenSymbolGenerator();
-						self.hiddenCanvasContext.fill();
-						self.hiddenCanvasContext.translate(-x,-y);
-					    self.hiddenCanvasContext.closePath();*/
-						
-						let trueX = x - self.canvasUsersContext.measureText(itemShapes[info[0]]).width/2;
-						let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
-						let symbolSize = Math.min(self.yUsers.bandwidth() * 0.8, 18);
-						
-					    self.canvasUsersContext.font = "bold "+symbolSize+"px Geneva";
-					    self.canvasUsersContext.fillStyle = symbolColor;
-					    self.canvasUsersContext.textBaseline="middle";
-						self.canvasUsersContext.fillText(itemShapes[info[0]], trueX, y);
-					    /*
-						self.hiddenCanvasUsersContext.font = "bold "+symbolSize+"px Geneva";
-					    self.hiddenCanvasUsersContext.fillStyle = "rgb("+color.join(',')+")";
-					    self.hiddenCanvasUsersContext.textBaseline="middle";
-						self.hiddenCanvasUsersContext.fillText(itemShapes[info[0]], trueX, y);
-						*/
 					}
-				} else {
-					if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
-						endReached = true;
-					firstIndex++;
+					
+					let x = self.xUsers(time);				
+					let y = self.yUsers(evt.user) + self.yUsers.bandwidth()/2;
+					
+					/* Draw the symbol when using svg for the event types
+					var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
+											.size(self.yFocus.bandwidth())
+											.context(self.canvasContext);
+					var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
+											.size(self.yFocus.bandwidth())
+											.context(self.hiddenCanvasContext);
+					
+					//self.canvasContext.rect(x-2.5,y-2.5,5,5);
+					self.canvasContext.beginPath();
+					self.canvasContext.translate(x,y);
+					self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+					symbolGenerator();
+					self.canvasContext.stroke();
+					self.canvasContext.translate(-x,-y);
+					self.canvasContext.closePath();
+					
+					self.hiddenCanvasContext.beginPath();
+					self.hiddenCanvasContext.translate(x,y);
+					self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+					hiddenSymbolGenerator();
+					self.hiddenCanvasContext.fill();
+					self.hiddenCanvasContext.translate(-x,-y);
+					self.hiddenCanvasContext.closePath();*/
+					
+					let trueX = x - self.canvasUsersContext.measureText(itemShapes[evt.type]).width/2;
+					let symbolColor = getCurrentEventColor(evt.type, evt.user).toString();
+					let symbolSize = Math.min(self.yUsers.bandwidth() * 0.8, 18);
+					
+					self.canvasUsersContext.font = "bold "+symbolSize+"px Geneva";
+					self.canvasUsersContext.fillStyle = symbolColor;
+					self.canvasUsersContext.textBaseline="middle";
+					self.canvasUsersContext.fillText(itemShapes[evt.type], trueX, y);
+					/*
+					self.hiddenCanvasUsersContext.font = "bold "+symbolSize+"px Geneva";
+					self.hiddenCanvasUsersContext.fillStyle = "rgb("+color.join(',')+")";
+					self.hiddenCanvasUsersContext.textBaseline="middle";
+					self.hiddenCanvasUsersContext.fillText(itemShapes[info[0]], trueX, y);
+					*/
 				}
-			}
+			});
 		}
 		
 		//console.log("User traces drawn");
