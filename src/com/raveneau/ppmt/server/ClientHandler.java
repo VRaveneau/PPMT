@@ -156,7 +156,8 @@ public class ClientHandler {
     	List<Event> events = dataset.getEvents();
     	
     	JsonObjectBuilder dataMessage = null;
-		
+		JsonArrayBuilder eventArray = provider.createArrayBuilder();
+    	
 		dataMessage = provider.createObjectBuilder()
 				.add("action", "data")
 				.add("type", "events");
@@ -164,17 +165,20 @@ public class ClientHandler {
     	for (Event e : events) {
     		if (nbEventsInMessage == 1000) {
     			dataMessage.add("numberOfEvents", nbEventsInMessage);
+    			dataMessage.add("events", eventArray.build());
     			sendToSession(session, dataMessage.build());
     			dataMessage = provider.createObjectBuilder()
     					.add("action", "data")
     					.add("type", "events");
+    			eventArray = provider.createArrayBuilder();
     			nbEventsInMessage = 0;
     		}
-
-			dataMessage.add(Integer.toString(nbEventsInMessage), e.toString());
+    		eventArray.add(e.toJsonObject());
+			//dataMessage.add(Integer.toString(nbEventsInMessage), e.toString());
     		nbEventsInMessage++;
     	}
     	dataMessage.add("numberOfEvents", nbEventsInMessage);
+		dataMessage.add("events", eventArray.build());
 		sendToSession(session, dataMessage.build());
     	System.out.println("|-Client provided the data");
     }

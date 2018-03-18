@@ -5,6 +5,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.spi.JsonProvider;
+
 public class Event implements Comparable<Event>{
 	private int id;
 	private String type;
@@ -96,6 +101,22 @@ public class Event implements Comparable<Event>{
 		for(String prop : properties)
 			result += ";"+prop;
 		return result;
+	}
+	
+	public JsonObject toJsonObject() {
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder builder = provider.createObjectBuilder()
+				.add("type", type)
+				.add("id", id)
+				.add("start", df.format(start))
+				.add("user", user)
+				.add("end", (end != null) ? df.format(end) : "");
+		JsonArrayBuilder propBuilder = provider.createArrayBuilder();
+		for(String prop : properties)
+				propBuilder.add(prop);
+		builder.add("properties", propBuilder.build());
+		return builder.build();
 	}
 
 	/**

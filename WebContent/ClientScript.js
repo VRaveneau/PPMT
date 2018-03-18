@@ -2119,19 +2119,22 @@ function receiveEvents(eventsCompressed) {
 	if (nbEventsReceived == 0)
 		firstEventReceived = new Date();
 	for (let i=0; i < nbEventsInMessage; i++) {
-		let evtParts = events[i.toString()].split(";");
-		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(events[i.toString()].split(";")[1]);
+		let evt = events.events[i];
+		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(evt.start);
 		let evtObj = {
-			"type": evtParts[0],
+			"id": evt.id,
+			"type": evt.type,
 			"start": time.getTime(),
-			"end": evtParts[2],
-			"user": evtParts[3]	
+			"end": evt.end,
+			"user": evt.user,
+			"properties": evt.properties
 		};
-		for(let propertyIdx=4; propertyIdx < evtParts.length; propertyIdx++) {
-			evtObj["property"+(propertyIdx-3)] = evtParts[propertyIdx];
+		let oldStrParts = [evt.type,evt.start,evt.end,evt.user];
+		for(let propertyIdx=0; propertyIdx < evt.properties.length; propertyIdx++) {
+			oldStrParts.push(evt.properties[propertyIdx]);
 		}
-		let user = evtParts[3];
-		timeOrderedEvents.push([events[i.toString()]]);
+		let user = evt.user;
+		timeOrderedEvents.push([oldStrParts.join(";")]);
 		// Add the event to the array later used to create the crossfilter
 		rawData.push(evtObj);
 		// Adding the event to its user
