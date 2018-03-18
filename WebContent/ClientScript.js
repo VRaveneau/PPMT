@@ -7294,101 +7294,6 @@ var Timeline = function(elemId, options) {
 		//console.log("data drawn");
 	};
 	
-	self.drawUsersTest = function() {
-		//console.log("drawing users");
-		
-		var displayStep = (self.yFocus.domain()[1] - self.yFocus.domain()[0] - 2) / datasetInfo["numberOfDifferentEvents"];
-
-		self.canvasUsersContext.fillStyle = "#fff";
-		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
-		self.canvasUsersContext.fill();
-		var drawCount = 0;
-		
-		/*self.hiddenCanvasContext.fillStyle = "#fff";
-		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
-		
-		self.colorToData = {};
-		let nextColor = 1;
-		*/
-		// get the last accessor point before the time-span start
-		var firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
-		//console.log("Retreived first index is "+firstIndex);
-		// find the real first index
-		var startFound = false;
-		var startingIndex = firstIndex;
-		while (!startFound) {
-			var info = timeOrderedEvents[firstIndex+1][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time < self.xFocus.domain()[0])
-				firstIndex++;
-			else
-				startFound = true;
-		}
-		//console.log("drawing from event "+firstIndex);
-		var endReached = false;
-		while (!endReached) {
-			var info = timeOrderedEvents[firstIndex][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
-				endReached = true;
-			else {
-				drawCount++;
-				
-				// Attributing a color to data link
-			    var color = [];
-			    // via http://stackoverflow.com/a/15804183
-			    if(nextColor < 16777215){
-			    	color.push(nextColor & 0xff); // R
-			    	color.push((nextColor & 0xff00) >> 8); // G 
-			    	color.push((nextColor & 0xff0000) >> 16); // B
-
-			    	nextColor += 1;
-			    }
-			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
-				
-				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-				var y = self.yFocus(eventDisplayHeight[info[0]]*displayStep);
-				
-				var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(50)
-										//.attr("transform","translate("+x+","+y+")")
-										.context(self.canvasContext);
-/*.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
-.attr("stroke", function(d) {return d3.hsl(d.color,100,50)})*/
-				var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(50)
-										//.attr("transform","translate("+x+","+y+")")
-										.context(self.hiddenCanvasContext);
-				
-				//self.canvasContext.rect(x-2.5,y-2.5,5,5);
-				self.canvasContext.beginPath();
-				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = colorList[info[0]][0].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-				symbolGenerator();
-				self.canvasContext.stroke();
-				self.canvasContext.translate(-x,-y);
-			    self.canvasContext.closePath();
-			    
-			    self.hiddenCanvasContext.beginPath();
-				self.hiddenCanvasContext.translate(x,y);
-				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-				hiddenSymbolGenerator();
-				self.hiddenCanvasContext.fill();
-				self.hiddenCanvasContext.translate(-x,-y);
-			    self.hiddenCanvasContext.closePath();
-			    
-			    firstIndex++;
-			}
-		}
-		//console.log("to event "+firstIndex);
-		
-		var nbEventsChecked = firstIndex-startingIndex;
-		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
-	
-		
-		//console.log("users drawn");
-	}
-	
 	self.drawEvents = function() {
 		switch(self.eventDisplayStyle) {
 		case "type":
@@ -7435,104 +7340,77 @@ var Timeline = function(elemId, options) {
 		self.colorToData = {};
 		let nextColor = 100; // 100 instead of 1, to capture all the colors (around 1 the detection isn't working 100% of the time)
 		
-		// get the last accessor point before the time-span start
-		let firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
-		//console.log("Retreived first index is "+firstIndex);
-		// find the real first index
-		var startFound = false;
-		var startingIndex = firstIndex; // to see how many events have been check vs how many have been drawn
-		while (!startFound) {
-			var info = timeOrderedEvents[firstIndex][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time < self.xFocus.domain()[0])
-				firstIndex++;
-			else
-				startFound = true;
-		}
-		var nbEventsChecked = firstIndex - startingIndex;
-		//console.log("drawing from event "+firstIndex);
-		var endReached = false;
-		while (!endReached) {
-			var info = timeOrderedEvents[firstIndex][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
-				endReached = true;
-			else {
-				drawCount++;
+		dataDimensions.time.bottom(Infinity).forEach( function(evt) {
+			let time = new Date(evt.start);
 				
-				// Attributing a color to data link
-			    let color = [];
-			    // via http://stackoverflow.com/a/15804183
-			    if(nextColor < 16777215){
-			    	let nextR = Math.max(0, Math.floor(Math.floor(nextColor / 255) / 255));
-			    	let nextG = Math.max(0, Math.floor(nextColor / 255) % 255);
-			    	let nextB = nextColor % 255;
-			    	color = [nextR, nextG, nextB];
-			    	
-			    	//color.push(nextColor & 0xff); // R
-			    	//color.push((nextColor & 0xff00) >> 8); // G 
-			    	//color.push((nextColor & 0xff0000) >> 16); // B
+			// Attributing a color to data link
+			let color = [];
+			// via http://stackoverflow.com/a/15804183
+			if(nextColor < 16777215){
+				let nextR = Math.max(0, Math.floor(Math.floor(nextColor / 255) / 255));
+				let nextG = Math.max(0, Math.floor(nextColor / 255) % 255);
+				let nextB = nextColor % 255;
+				color = [nextR, nextG, nextB];
+				
+				//color.push(nextColor & 0xff); // R
+				//color.push((nextColor & 0xff00) >> 8); // G 
+				//color.push((nextColor & 0xff0000) >> 16); // B
 
-			    	nextColor += 1;
-			    }
-			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
-			    //console.log("event at index "+firstIndex+" gets color "+color.join(','));
-			    firstIndex++;
-			    
-			    if (self.showOnlyHighlightedInFocus == true) {
-			    	if (getCurrentEventColor(info[0], info[3]) == colorList[info[0]][1])
-			    		continue;
-			    }
-			    
-				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-				var y = self.yFocus(info[0]) + self.yFocus.bandwidth()/2;
-				
-				/* Draw the symbol when using svg for the event types
-				var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(self.yFocus.bandwidth())
-										.context(self.canvasContext);
-				var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(self.yFocus.bandwidth())
-										.context(self.hiddenCanvasContext);
-				
-				//self.canvasContext.rect(x-2.5,y-2.5,5,5);
-				self.canvasContext.beginPath();
-				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-				symbolGenerator();
-				self.canvasContext.stroke();
-				self.canvasContext.translate(-x,-y);
-			    self.canvasContext.closePath();
-			    
-			    self.hiddenCanvasContext.beginPath();
-				self.hiddenCanvasContext.translate(x,y);
-				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-				hiddenSymbolGenerator();
-				self.hiddenCanvasContext.fill();
-				self.hiddenCanvasContext.translate(-x,-y);
-			    self.hiddenCanvasContext.closePath();*/
-				
-				let trueX = x - self.canvasContext.measureText(itemShapes[info[0]]).width/2;
-				let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
-				//selectedColorFading
-			    self.canvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
-			    self.canvasContext.fillStyle = symbolColor;
-			    self.canvasContext.textBaseline="middle";
-				self.canvasContext.fillText(itemShapes[info[0]], trueX, y);
-			    
-				self.hiddenCanvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
-			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
-			    self.hiddenCanvasContext.textBaseline="middle";
-				self.hiddenCanvasContext.fillText(itemShapes[info[0]], trueX, y);
-				
+				nextColor += 1;
 			}
-		}
+			self.colorToData["rgb("+color.join(',')+")"] = evt;
+			
+			if (self.showOnlyHighlightedInFocus == true) {
+				if (getCurrentEventColor(evt.type, evt.user) == colorList[evt.type][1])
+					return;
+			}
+			
+			let x = self.xFocus(time);
+			let y = self.yFocus(evt.type) + self.yFocus.bandwidth()/2;
+			
+			/* Draw the symbol when using svg for the event types
+			var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
+									.size(self.yFocus.bandwidth())
+									.context(self.canvasContext);
+			var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
+									.size(self.yFocus.bandwidth())
+									.context(self.hiddenCanvasContext);
+			
+			//self.canvasContext.rect(x-2.5,y-2.5,5,5);
+			self.canvasContext.beginPath();
+			self.canvasContext.translate(x,y);
+			self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+			symbolGenerator();
+			self.canvasContext.stroke();
+			self.canvasContext.translate(-x,-y);
+			self.canvasContext.closePath();
+			
+			self.hiddenCanvasContext.beginPath();
+			self.hiddenCanvasContext.translate(x,y);
+			self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+			hiddenSymbolGenerator();
+			self.hiddenCanvasContext.fill();
+			self.hiddenCanvasContext.translate(-x,-y);
+			self.hiddenCanvasContext.closePath();*/
+			
+			let trueX = x - self.canvasContext.measureText(itemShapes[evt.type]).width/2;
+			let symbolColor = getCurrentEventColor(evt.type, evt.user).toString();
+			//selectedColorFading
+			self.canvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
+			self.canvasContext.fillStyle = symbolColor;
+			self.canvasContext.textBaseline="middle";
+			self.canvasContext.fillText(itemShapes[evt.type], trueX, y);
+			
+			self.hiddenCanvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
+			self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
+			self.hiddenCanvasContext.textBaseline="middle";
+			self.hiddenCanvasContext.fillText(itemShapes[evt.type], trueX, y);
+		});
+
 		//console.log("to event "+firstIndex);
 		/*
 		self.canvasContext.restore();
 		self.hiddenCanvasContext.restore();*/
-		nbEventsChecked += drawCount;
-		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
 		//console.log("events drawn");
 	}
