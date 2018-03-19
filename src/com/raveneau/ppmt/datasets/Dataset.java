@@ -1334,7 +1334,7 @@ public class Dataset {
 		String newEventType = "";
 		for(String item : p.getReadableItems()) {
 			if (newEventType.length() > 0)
-				newEventType += ".";
+				newEventType += "_";
 			newEventType+=item;
 		}
 		addEventType(newEventType);

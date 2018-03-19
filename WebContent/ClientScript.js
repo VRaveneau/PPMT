@@ -2971,7 +2971,7 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	console.log("Removed");
 	let toAdd = [];
 	newEvents.forEach(function(evt) {
-		let time = new Date(evt.start);
+		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(evt.start);
 		let evtObj = {
 			"id": evt.id,
 			"type": evt.type,
@@ -2996,7 +2996,7 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	resetPatterns();
-	console.log("Reseted");
+	console.log("Reset patterns done");
 }
 
 /**
