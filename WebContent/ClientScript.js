@@ -1694,10 +1694,14 @@ function processMessage(message/*Compressed*/) {
 		}
 	}
 	if (msg.action === "signal") {
-		if (msg.type === "start")
+		if (msg.type === "start") {
 			startAlgorithmRuntime(parseInt(msg.time));
-		if (msg.type === "end")
+			addToHistory("Algorithm started");
+		}
+		if (msg.type === "end") {
 			stopAlgorithmRuntime(parseInt(msg.time));
+			addToHistory("Algorithm ended");
+		}
 		if (msg.type === "newLevel")
 			handleNewLevelSignal(parseInt(msg.level));
 		if (msg.type === "loading")
@@ -2035,7 +2039,6 @@ function receiveDatasetInfo(message) {
 	datasetInfo["name"] = message.name;
 	
 	displayDatasetInfo();
-	addToHistory('Dataset '+message.name+' loaded');
 
 	// Update the max number of users to display their sessions
 	d3.select("#nbUserShownInput")
@@ -2147,6 +2150,7 @@ function receiveEvents(eventsCompressed) {
 		console.log("Dimensions created at "+new Date());
 		rawData = null;
 		console.log("raw data removed");
+		addToHistory("Dataset "+datasetInfo.name+" received");
 		buildUserSessions();
 		computeMaxEventAtOneTime();
 		disableCentralOverlay();
@@ -3004,6 +3008,7 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	dataDimensions.time.filterRange(currentTimeFilter);
 	resetPatterns();
 	console.log("Reset patterns done");
+	addToHistory("Event type "+newEvents[0].type+" created from pattern");
 }
 
 /**
@@ -3648,17 +3653,14 @@ function highlightEventTypeRow(eType) {
 		row.classed("selectedEventTypeRow", true);
 		// Adds the newly highlighted event type to the list
 		highlightedEventTypes.push(eType);
-		addToHistory("Highlight event type "+eType);
 	} else {
 		if (row.classed("selectedEventTypeRow")) {
 			// Remove this event type from the list of highlighted event types
 			let eventIdx = highlightedEventTypes.indexOf(eType);
 			highlightedEventTypes.splice(eventIdx, 1);
-			addToHistory("Unhighlight event type "+eType);
 		} else {
 			// Adds the newly highlighted user to the list
 			highlightedEventTypes.push(eType);
-			addToHistory("Highlight event type "+eType);
 		}
 		row.classed("selectedEventTypeRow", !row.classed("selectedEventTypeRow"));
 	}
@@ -3680,7 +3682,6 @@ function highlightUserRow(userName) {
 		// Updates the displays of the number of selected users
 		d3.select("#showSelectedUserSessionsButton")
 			.text("Selected users ("+highlightedUsers.length+")");
-		addToHistory("Highlight user "+userName);
 	} else {
 		if (row.classed("selectedUserRow")) {
 			// Remove this user from the list of highlighted users
@@ -3689,7 +3690,6 @@ function highlightUserRow(userName) {
 			// Updates the displays of the number of selected users
 			d3.select("#showSelectedUserSessionsButton")
 				.text("Selected users ("+highlightedUsers.length+")");
-			addToHistory("Unhighlight user "+userName);
 			// If a filter is being applied, removes the row if necessary
 			if (relatedUsers.length == 0) {
 				if (currentUserSearchInput.length > 0)
@@ -3705,7 +3705,6 @@ function highlightUserRow(userName) {
 			// Updates the displays of the number of selected users
 			d3.select("#showSelectedUserSessionsButton")
 				.text("Selected users ("+highlightedUsers.length+")");
-			addToHistory("Highlight user "+userName);
 		}
 		row.classed("selectedUserRow", !row.classed("selectedUserRow"));
 	}
