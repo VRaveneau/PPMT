@@ -214,7 +214,10 @@ public class AlgoGSP {
         
         // Loop until everything has been extracted with the default algorithm
         while (this.lastLevelCompleted < this.parameters.getMaxSize()) {
-        
+        	
+        	if (parameters.isTerminationRequested())
+        		break;
+        	
 	        //We repeat the same loop. MAIN LOOP
 	        while (frequentSet != null && 
 	        		!frequentSet.isEmpty() &&
@@ -251,6 +254,10 @@ public class AlgoGSP {
 	            MemoryLogger.getInstance().checkMemory();
 	            
 	            frequentSet = supportCounter.countSupport(candidateSet, k, this.parameters, /*minSupAbsolute,*/ patternManager/*, maxDuration, minGap, maxGap*/);
+	            
+	            if (parameters.isTerminationRequested())
+	            	break;
+	            
 	            if (verbose) {
 	                System.out.println(frequentSet.size() + " frequent patterns\n");
 	            }

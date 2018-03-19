@@ -26,6 +26,8 @@ public class GspParameters {
 	private String steeringUserIdRequested = "";
 	private String steeringUserIdOccurring = "";
 	
+	private boolean terminationRequested = false;
+	
 	public GspParameters() {
 		super();
 		setChanged(false);
@@ -214,7 +216,13 @@ public class GspParameters {
 	public void setSteeringUserIdOccurring(String steeringUserIdOccurring) {
 		this.steeringUserIdOccurring = steeringUserIdOccurring;
 	}
-	
-	
-	
+
+	public boolean isTerminationRequested() {
+		return terminationRequested;
+	}
+
+	public void setTerminationRequested(boolean terminationRequested) {
+		this.terminationRequested = terminationRequested;
+	}
+		
 }

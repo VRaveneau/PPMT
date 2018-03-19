@@ -88,6 +88,8 @@ class SupportCounting {
         
         //For each candidate
         for (Pattern candidate : candidateSet) {
+        	if (parameters.isTerminationRequested())
+        		break;
         	List<String> candidateItems = new ArrayList<>();
         	for (ItemAbstractionPair abstractionPair : candidate.getElements()) {
         		candidateItems.add(abstractionPair.getItem().getId().toString());
@@ -144,6 +146,10 @@ class SupportCounting {
         	}
             //we check for each sequence of the original database if it appears in it
             checkCandidateInSequence(k, candidate, parameters.getMaxDuration(), parameters.getMinGap(), parameters.getMaxGap());
+            
+            if (parameters.isTerminationRequested())
+            	break;
+            
             if (candidate.getSupport() >= parameters.getMinSupAbsolute()) {
                 result.add(candidate);
                 putInIndexationMap(candidate);

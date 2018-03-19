@@ -80,7 +80,9 @@ public class GspThread implements Runnable {
 	@Override
 	public void run() {		
 		setupForStart();
-		start();
+		if(!parameters.isTerminationRequested())
+			start();
+		finished = true;
 	}
 	
 	public void start() {
@@ -95,10 +97,5 @@ public class GspThread implements Runnable {
 			e.printStackTrace();
 		}
 		System.out.println("GSP done");
-		finished = true;
-	}
-	
-	public void stop() {
-		
 	}
 }

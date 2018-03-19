@@ -486,6 +486,7 @@ public class ClientHandler {
 		sendToSession(session, dataMessage.build());
 		
 		// Remove the now old pattern manager
+		dataset.removePatternManagerFromSession(session);
 		patternManager = null;
 	}
 }
