@@ -1241,8 +1241,8 @@ function setupAlgorithmSearchField() {
 function setupPatternSizesChart() {
 	let data = Object.keys(patternMetrics.sizeDistribution);
 	
-	patternSizesChart.x.domain(data.map(function(d) { return d; }));
-	patternSizesChart.y.domain([0, d3.max(data, function(d) {
+	patternSizesChart.y.domain(data.map(function(d) { return d; }));
+	patternSizesChart.x.domain([0, d3.max(data, function(d) {
 		return patternMetrics.sizeDistribution[d];
 	})]);
 
@@ -1265,13 +1265,10 @@ function setupPatternSizesChart() {
 		.data(data)
 		.enter().append("rect")
 			.attr("class", "bar")
-			.attr("x", (d) => patternSizesChart.x(d))
-			.attr("y", (d) => patternSizesChart.y(patternMetrics.sizeDistribution[d]))
-			.attr("width", patternSizesChart.x.bandwidth())
-			.attr("height", function(d) {
-				return patternSizesChart.height -
-				 patternSizesChart.y(patternMetrics.sizeDistribution[d]);
-				});
+			.attr("x", patternSizesChart.x(0))
+			.attr("y", (d) => patternSizesChart.y(d))
+			.attr("height", patternSizesChart.y.bandwidth())
+			.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]));
 }
 
 /**
@@ -4151,8 +4148,8 @@ function handleNewLevelSignal(level) {
 function drawPatternSizesChart() {
 	let data = Object.keys(patternMetrics.sizeDistribution);
 	
-	patternSizesChart.x.domain(data.map(function(d) { return d; }));
-	patternSizesChart.y.domain([0, d3.max(data, function(d) {
+	patternSizesChart.y.domain(data.map(function(d) { return d; }));
+	patternSizesChart.x.domain([0, d3.max(data, function(d) {
 		return patternMetrics.sizeDistribution[d];
 	})]);
 	
@@ -4175,56 +4172,50 @@ function drawPatternSizesChart() {
 	bars.exit()
 		.transition()
 		.duration(0)
-		.attr("y", patternSizesChart.y(0))
-		.attr("height", patternSizesChart.height - patternSizesChart.y(0))
+		.attr("x", patternSizesChart.x(0))
+		.attr("width", patternSizesChart.width - patternSizesChart.x(0))
 		.style('fill-opacity', 1e-6)
 		.remove();
 	
 	texts.exit()
 		.transition()
 		.duration(0)
-		.attr("y", patternSizesChart.y(0))
-		.attr("height", patternSizesChart.height - patternSizesChart.y(0))
+		.attr("x", patternSizesChart.x(0))
+		.attr("width", patternSizesChart.width - patternSizesChart.x(0))
 		.style('fill-opacity', 1e-6)
 		.remove();
 	
 	bars.enter().append("rect")
 		.attr("class", "bar")
-		.attr("y", patternSizesChart.y(0))
-		.attr("height", patternSizesChart.height - patternSizesChart.y(0));
+		.attr("x", patternSizesChart.x(0))
+		.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]));
 	
 	texts.enter().append("text")
 		.attr("class", "bar")
-		.attr("text-anchor", "middle")
-		.attr("x", function(d) {
-			return patternSizesChart.x(d) + patternSizesChart.x.bandwidth()/2;
-		})
+		.attr("text-anchor", "start")
+		.attr("alignment-baseline", "middle")
 		.attr("y", function(d) {
-			return patternSizesChart.y(patternMetrics.sizeDistribution[d]) - 5;
+			return patternSizesChart.y(d) + patternSizesChart.y.bandwidth()/2;
 		})
-		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
+		.attr("x", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]) + 5)
+		.text((d) => patternMetrics.sizeDistribution[d]);
 		
 	// the "UPDATE" set:
 	bars.transition().duration(0)
-		.attr("x", function(d) { return patternSizesChart.x(d); })
-		.attr("width", patternSizesChart.x.bandwidth())
-		.attr("y", function(d) {
-			return patternSizesChart.y(patternMetrics.sizeDistribution[d]);
-		})
-		.attr("height", function(d) {
-			return patternSizesChart.height -
-			patternSizesChart.y(patternMetrics.sizeDistribution[d]);
+		.attr("y", function(d) { return patternSizesChart.y(d); })
+		.attr("height", patternSizesChart.y.bandwidth())
+		.attr("x", patternSizesChart.x(0))
+		.attr("width", function(d) {
+			return patternSizesChart.x(patternMetrics.sizeDistribution[d]);
 		});
 	
 	texts.transition()
 		.duration(0)
-		.attr("x", function(d) {
-			return patternSizesChart.x(d) + patternSizesChart.x.bandwidth()/2;
-		})
 		.attr("y", function(d) {
-			return patternSizesChart.y(patternMetrics.sizeDistribution[d]) - 5;
+			return patternSizesChart.y(d) + patternSizesChart.y.bandwidth()/2;
 		})
-		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
+		.attr("x", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]) + 5)
+		.text((d) => patternMetrics.sizeDistribution[d]);
 }
 
 /**
@@ -5228,15 +5219,15 @@ function PatternSizesChart() {
 			.attr("width", "100%")
 			.attr("height", "100%")
 			.attr("id","patternSizesSvg");
-	this.margin = {top: 20, right: 0, bottom: 40, left: 30};
+	this.margin = {top: 10, right: 40, bottom: 20, left: 30};
 	this.width = this.svg.node().getBoundingClientRect().width -
 				 this.margin.left - this.margin.right;
 	this.height = this.svg.node().getBoundingClientRect().height -
 				 this.margin.top - this.margin.bottom;
-	this.x = d3.scaleBand().rangeRound([0, this.width]).padding(0.1);
-	this.y = d3.scaleLinear().rangeRound([this.height, 0]);
-	this.xAxis = d3.axisBottom(this.x);
-	this.yAxis = d3.axisLeft(this.y).ticks(5);
+	this.y = d3.scaleBand().rangeRound([0, this.height]).padding(0.1);
+	this.x = d3.scaleLinear().rangeRound([0, this.width]);
+	this.xAxis = d3.axisBottom(this.x).ticks(5);
+	this.yAxis = d3.axisLeft(this.y);
 	this.g = this.svg.append("g")
 			.attr("transform",
 				 "translate(" + this.margin.left + "," + this.margin.top + ")");
