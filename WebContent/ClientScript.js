@@ -1448,7 +1448,7 @@ function addToHistory(action) {
 	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
 	let formatTime = d3.timeFormat("%H:%M:%S");
 	let now = formatTime(new Date());
-	history.append("p")
+	history.insert("p",":first-child")
 		.text("- "+action)
 	  .append("span")
 		.classed("timestamp", true)
