@@ -28,7 +28,7 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 	
 	public void startMining(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration) {
 		
-		if (algorithm == null) {
+		if (algorithm == null || algorithm.isFinished()) {
 			this.algorithmParameters = new GspParameters();
 			this.algorithmParameters.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 			

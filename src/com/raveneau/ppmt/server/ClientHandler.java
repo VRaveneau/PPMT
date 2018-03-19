@@ -287,6 +287,10 @@ public class ClientHandler {
 	}
 	
 	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration) {
+		if (patternManager == null) {
+			setPatternManager(new PatternManager(this));
+			dataset.addPatternManagerToSession(session, patternManager);
+		}
 		algorithmHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 	}
 	
@@ -477,5 +481,8 @@ public class ClientHandler {
 				
 		// Send this message
 		sendToSession(session, dataMessage.build());
+		
+		// Remove the now old pattern manager
+		patternManager = null;
 	}
 }

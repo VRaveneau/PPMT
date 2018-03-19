@@ -1547,6 +1547,11 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
 }
 
+// TODO Store current parameters in global variables and use them instead of startInitialMining()
+function requestAlgorithmReStart() {
+	startInitialMining();
+}
+
 /*************************************/
 /*		Websocket management		 */
 /*************************************/
@@ -1710,6 +1715,8 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "dataAlteration") {
 		if (msg.type === "eventTypeCreated") {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+			// Restart the mining
+			requestAlgorithmReStart();
 		}
 	}
 }
