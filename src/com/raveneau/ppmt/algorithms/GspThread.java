@@ -97,4 +97,8 @@ public class GspThread implements Runnable {
 		System.out.println("GSP done");
 		finished = true;
 	}
+	
+	public void stop() {
+		
+	}
 }

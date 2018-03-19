@@ -43,6 +43,12 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 			System.out.println("  Tip : Steering should be used instead, or a restart");
 		}
 	}
+	
+	public void stopMining() {
+		algorithm.stop(); // TODO make it do something
+		algorithm = null;
+		thread.stop();
+	}
 
 	@Override
 	public void steeringRequestedOnPattern(int patternId) {
