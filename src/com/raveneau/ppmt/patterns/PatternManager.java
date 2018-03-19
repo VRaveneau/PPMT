@@ -3,6 +3,8 @@ package com.raveneau.ppmt.patterns;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
+
 import javax.websocket.Session;
 
 import com.raveneau.ppmt.algorithms.SteeringTypes;
@@ -32,6 +34,47 @@ public class PatternManager {
 		this.clientHandler = clientHandler;
 		this.eventsCoded = clientHandler.getDataset().getEventsCoded();
 		this.eventsReadable = clientHandler.getDataset().getEventsReadable();
+	}
+	
+	public PatternManager(PatternManager pm) {
+		this.patternId = pm.patternId;
+		this.patternItemsToId = new HashMap<>();
+		for (Entry<String, Integer> kv : pm.patternItemsToId.entrySet()) {
+			this.patternItemsToId.put(kv.getKey(), kv.getValue());
+		}
+		this.patternIdToItems = new HashMap<>();
+		for (Entry<Integer, String> kv : pm.patternIdToItems.entrySet()) {
+			this.patternIdToItems.put(kv.getKey(), kv.getValue());
+		}
+		this.patterns = new HashMap<>();
+		for (Entry<String, List<Pattern>> kv : pm.patterns.entrySet()) {
+			this.patterns.put(kv.getKey(), new ArrayList<>(kv.getValue()));
+		}
+		this.eventsCoded = new HashMap<>();
+		for (Entry<String, String> kv : pm.eventsCoded.entrySet()) {
+			this.eventsCoded.put(kv.getKey(), kv.getValue());
+		}
+		this.eventsReadable = new HashMap<>();
+		for (Entry<String, String> kv : pm.eventsReadable.entrySet()) {
+			this.eventsReadable.put(kv.getKey(), kv.getValue());
+		}
+		this.patternIdToUser = new HashMap<>();
+		for (Entry<Integer, List<String>> kv : pm.patternIdToUser.entrySet()) {
+			this.patternIdToUser.put(kv.getKey(), new ArrayList<>(kv.getValue()));
+		}
+		this.patternExtractionState = new HashMap<>();
+		for (Entry<Integer, ExtractionState> kv : pm.patternExtractionState.entrySet()) {
+			this.patternExtractionState.put(kv.getKey(), kv.getValue());
+		}
+		this.levelExtractionState = new HashMap<>();
+		for (Entry<Integer, ExtractionState> kv : pm.levelExtractionState.entrySet()) {
+			this.levelExtractionState.put(kv.getKey(), kv.getValue());
+		}
+		this.allPatterns = new HashMap<>();
+		for (Entry<Integer, Pattern> kv : pm.allPatterns.entrySet()) {
+			this.allPatterns.put(kv.getKey(), new Pattern(kv.getValue()));
+		}
+		this.clientHandler = pm.clientHandler;
 	}
 	
 	public List<String> getAllPatterns() {

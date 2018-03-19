@@ -238,8 +238,6 @@ var eventTypesByCategory = {};
 // For each category, the two colors associated with it
 var eventTypeCategoryColors = {};
 
-// References to the events of the dataset, associated to the relevant user
-var userTraces = {};
 // The names of all users present in the dataset
 var userList = [];
 
@@ -288,20 +286,11 @@ var userSessions = {};
 
 // Number of trace events sent from the server
 var nbEventsReceived = 0;
-// Events in the dataset, ordered by time
-// Each event is the single element of an array, to allow references to them
-var timeOrderedEvents = [];
 // Time of reception of the first event
 var firstEventReceived = null;
 // Time of reception of the last event
 var lastEventReceived = null;
 
-// Index map of the events, with two levels of indexation over the time:
-// First level has keys with year with century + day of the year (in decimal)
-// Second level has keys with hours + minutes
-var eventAccessor = {};
-var formatAccessorFirstLevel = d3.timeFormat("%Y%j"); // year with century as decimal + day of the year as decimal
-var formatAccessorSecondLevel = d3.timeFormat("%H%M"); // hour + minutes
 // Maximum number of events at a same time
 var maxEventAtOneTime = 0;
 
@@ -1558,6 +1547,11 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
 }
 
+// TODO Store current parameters in global variables and use them instead of startInitialMining()
+function requestAlgorithmReStart() {
+	startInitialMining();
+}
+
 /*************************************/
 /*		Websocket management		 */
 /*************************************/
@@ -1721,6 +1715,8 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "dataAlteration") {
 		if (msg.type === "eventTypeCreated") {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+			// Restart the mining
+			requestAlgorithmReStart();
 		}
 	}
 }
@@ -2119,35 +2115,18 @@ function receiveEvents(eventsCompressed) {
 	if (nbEventsReceived == 0)
 		firstEventReceived = new Date();
 	for (let i=0; i < nbEventsInMessage; i++) {
-		let evtParts = events[i.toString()].split(";");
-		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(events[i.toString()].split(";")[1]);
+		let evt = events.events[i];
+		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(evt.start);
 		let evtObj = {
-			"type": evtParts[0],
+			"id": evt.id,
+			"type": evt.type,
 			"start": time.getTime(),
-			"end": evtParts[2],
-			"user": evtParts[3]	
+			"end": evt.end,
+			"user": evt.user,
+			"properties": evt.properties
 		};
-		for(let propertyIdx=4; propertyIdx < evtParts.length; propertyIdx++) {
-			evtObj["property"+(propertyIdx-3)] = evtParts[propertyIdx];
-		}
-		let user = evtParts[3];
-		timeOrderedEvents.push([events[i.toString()]]);
 		// Add the event to the array later used to create the crossfilter
 		rawData.push(evtObj);
-		// Adding the event to its user
-		if(typeof(userTraces[user]) == typeof([]))
-			userTraces[user].push(timeOrderedEvents[timeOrderedEvents.length-1]);
-		else
-			userTraces[user] = [timeOrderedEvents[timeOrderedEvents.length-1]];
-		// Setting the accessor if necessary
-		if (!eventAccessor.hasOwnProperty(formatAccessorFirstLevel(time))) {
-			eventAccessor[formatAccessorFirstLevel(time)] = {};
-			eventAccessor[formatAccessorFirstLevel(time)][formatAccessorSecondLevel(time)] = timeOrderedEvents.length-1;
-		} else {
-			if (!eventAccessor[formatAccessorFirstLevel(time)].hasOwnProperty(formatAccessorSecondLevel(time))) {
-				eventAccessor[formatAccessorFirstLevel(time)][formatAccessorSecondLevel(time)] = timeOrderedEvents.length-1;
-			}
-		}
 	}
 	nbEventsReceived += nbEventsInMessage;
 	enableCentralOverlay("Receiving all the events... ("+nbEventsReceived+" out of "+datasetInfo["numberOfEvents"]+")");
@@ -2173,6 +2152,7 @@ function receiveEvents(eventsCompressed) {
 		disableCentralOverlay();
 		requestRelevantBins(currentDatasetName, timeline.getRelevantDistributionScale());
 		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
+		dataDimensions.time.filterRange(currentTimeFilter);
 		startInitialMining();
 	}
 }
@@ -2357,19 +2337,6 @@ function receiveEventTypes(message) {
 /************************************/
 
 /**
- * Returns the first event starting from a given date
- * @param {string} date The date
- */
-function getEventAccessorAtDate(date) {
-	let result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
-	while (result === undefined) {
-		date = d3.timeMinute.offset(date,1);
-		result = eventAccessor[formatAccessorFirstLevel(date)][formatAccessorSecondLevel(date)];
-	}
-	return result;
-}
-
-/**
  * Builds the user sessions based on the value of sessionInactivityLimit
  * A session has :
  * - a start (in milliseconds)
@@ -2379,44 +2346,53 @@ function getEventAccessorAtDate(date) {
  */
 function buildUserSessions() {
 	let nbOfSession = 0;
+	let initialTimeFilter = currentTimeFilter;
+	dataDimensions.time.filterAll();
+	userSessions = {};
 
-	for (let userIdx = 0; userIdx < userList.length; userIdx++) {
-		let timeParser = d3.timeParse('%Y-%m-%d %H:%M:%S');
-		let u = userList[userIdx];
-		let lastEventDate = timeParser(userTraces[u][0][0].split(";")[1]).getTime();
-		userSessions[u] = [
-			{
-				start: Number(lastEventDate), 
-				end: Number(lastEventDate), 
-				count: {}, 
-				nbEvents: 1
-			}
-		];
-		
-		for (let idx = 1; idx < userTraces[u].length; idx++) {
-			let thisEventDate = timeParser(userTraces[u][idx][0].split(";")[1]).getTime();
-			if (lastEventDate + sessionInactivityLimit > thisEventDate) {
-				// Keep growing the current session
-				userSessions[u][userSessions[u].length - 1].end = Number(thisEventDate);
-				userSessions[u][userSessions[u].length - 1].nbEvents++;
-			} else {
-				// Create a new session
-				userSessions[u].push(
-					{
-						start: Number(thisEventDate), 
-						end: Number(thisEventDate), 
+	dataDimensions.user.group().all().forEach( function(grp) {
+		let u = grp.key;
+		// Consider only the events of the current user
+		dataDimensions.user.filterExact(u);
+		let currentSession = null;
+		userSessions[u] = [];
+		dataDimensions.time.bottom(Infinity).forEach( function(evt) {
+			if (currentSession != null) {
+				if (evt.start - currentSession.end < sessionInactivityLimit ) {
+					// Keep growing the current session
+					currentSession.end = evt.start;
+					currentSession.nbEvents++;
+				} else {
+					// Store the current session
+					userSessions[u].push(currentSession);
+					// Create a new session
+					currentSession = {
+						start: evt.start, 
+						end: evt.start, 
 						count: {}, 
 						nbEvents: 1
-					}
-				);
+					};
+				}
+			} else { // Initialize the first session
+				currentSession = {
+					start: evt.start,
+					end: evt.start,
+					count: {}, 
+					nbEvents: 1
+				};
 			}
-			lastEventDate = thisEventDate;
-		}
+		});
+		// Store the last session
+		userSessions[u].push(currentSession);
 
 		nbOfSession += userSessions[u].length;
-	}
+	});
 	// Add the number of sessions as an information about the dataset
 	datasetInfo.nbSessions = nbOfSession;
+	// Restore the initial time filter
+	dataDimensions.time.filterRange(initialTimeFilter);
+	// Reset the user filter
+	dataDimensions.user.filterAll();
 	// Refresh the display of dataset infos
 	displayDatasetInfo();
 	// Refresh the user list display
@@ -2978,7 +2954,14 @@ function resetPatterns() {
 	patternIdList = [];
 	patternOccurrences = {};
 	selectedPatternIds = [];
-	// TODO Deal with the pattern metrics in patternMetrics
+	// TODO Deal with the potential other pattern metrics in patternMetrics
+	patternMetrics.sizeDistribution = {};
+	drawPatternSizesChart();
+	createPatternListDisplay();
+	updatePatternCountDisplay();
+	// TODO Keep the initial sessions ?
+	buildUserSessions();
+	refreshUserPatterns();
 }
 
 /**
@@ -2988,13 +2971,64 @@ function resetPatterns() {
  * TODO Implement it
  */
 function updateDatasetForNewEventType(newEvents, removedIds) {
-	console.log(newEvents);
-	console.log(removedIds);
+	resetDataFilters();
+	dataset.remove(function(d,i) {
+		return removedIds.includes(d.id);
+	});
+	console.log("Removed");
+	let toAdd = [];
+	newEvents.forEach(function(evt) {
+		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(evt.start);
+		let evtObj = {
+			"id": evt.id,
+			"type": evt.type,
+			"start": time.getTime(),
+			"end": evt.end,
+			"user": evt.user,
+			"properties": evt.properties
+		};
+		toAdd.push(evtObj);
+	});
+	dataset.add(toAdd);
+	console.log("Added");
+	// Recreate the dimensions
+	// TODO Do it properly in a function
+	dataDimensions.user.dispose();
+	dataDimensions.time.dispose();
+	dataDimensions.type.dispose();
+	dataDimensions.user = dataset.dimension(function(d) {return d.user;});
+	dataDimensions.time = dataset.dimension(function(d) {return d.start;});
+	dataDimensions.type = dataset.dimension(function(d) {return d.type;});
+	console.log("Recreated");
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+	resetPatterns();
+	console.log("Reset patterns done");
+}
+
+/**
+ * Resets all the filters applied to the crossfitler storing the events
+ */
+function resetDataFilters() {
+	dataDimensions.time.filterAll();
+	dataDimensions.type.filterAll();
+	dataDimensions.user.filterAll();
 }
 
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+/**
+ * Updates the display of the number of pattern discovered, selected and
+ * filtered
+ */
+function updatePatternCountDisplay() {
+	d3.select("#patternNumberSpan").text(numberOfPattern);
+	d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+	// TODO dynamically update the number of patterns matching the filter
+	d3.select("#highlightedPatternNumberSpan").text("0");
+}
 
 /**
  * Displays information on the dataset when there is no dataset
@@ -4823,43 +4857,41 @@ function changeTooltip(data, origin) {
 				}
 				break;
 			case "events":
-					splitData = data.split(";");
-					
 					let typeLine = area.append("p")
 						.classed("clickable", true)
-						.classed("bold", highlightedEventTypes.includes(splitData[0]))
+						.classed("bold", highlightedEventTypes.includes(data.type))
 						.text("Type: ")
 						.on("click", function() {
-							highlightEventTypeRow(splitData[0]);
+							highlightEventTypeRow(data.type);
 							d3.select(this)
-								.classed("bold", highlightedEventTypes.includes(splitData[0]));
+								.classed("bold", highlightedEventTypes.includes(data.type));
 							setHighlights();
 							timeline.displayData();
 						});
 					typeLine.append("span")
-						.style("color",colorList[splitData[0]][0])
-						.text(itemShapes[splitData[0]]);
+						.style("color",colorList[data.type][0])
+						.text(itemShapes[data.type]);
 					typeLine.append("span")
-						.text(" "+splitData[0]);
+						.text(" "+data.type);
 					area.append("p")
-						.text("Time: " + splitData[1]);
+						.text("Time: " + formatDate(new Date(data.start)));
 					area.append("p")
 						.classed("clickable", true)
-						.classed("bold", highlightedUsers.includes(splitData[3]))
-						.text("User: " + splitData[3])
+						.classed("bold", highlightedUsers.includes(data.user))
+						.text("User: " + data.user)
 						.on("click", function() {
-							highlightUserRow(splitData[3]);
+							highlightUserRow(data.user);
 							d3.select(this)
-								.classed("bold", highlightedUsers.includes(splitData[3]));
+								.classed("bold", highlightedUsers.includes(data.user));
 							setHighlights();
 							timeline.displayData();
 						});
 					area.append("p")
 						.text("Properties:");
-					for(var i = 4; i < splitData.length; i++)
+					for(let i = 0; i < data.properties.length; i++)
 						area.append("p")
 							.classed("tooltipEventProperty", true)
-							.text(splitData[i]);
+							.text(data.properties[i]);
 			}
 			break;
 		case "session":
@@ -5679,9 +5711,6 @@ var Timeline = function(elemId, options) {
 					});
 				}
 				
-				/*var event = userTraces[userName][j];
-				var eventData = event[0].split(";");*/
-				
 				self.canvasUsersContext.beginPath();
 				
 				let x1 = Math.floor(self.xUsers(new Date(ses.start)));
@@ -5712,89 +5741,61 @@ var Timeline = function(elemId, options) {
 		
 		// Draw the event symbols if needed
 		if (drawEvents == true) {
-			// get the last accessor point before the time-span start
-			let firstIndex = getEventAccessorAtDate(self.xUsers.domain()[0]);
-			//console.log("Retreived first index is "+firstIndex);
-			// find the real first index
-			var startFound = false;
-			var startingIndex = firstIndex; // to see how many events have been check vs how many have been drawn
-			while (!startFound) {
-				var info = timeOrderedEvents[firstIndex][0].split(";");
-				var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-				if (time < self.xFocus.domain()[0])
-					firstIndex++;
-				else
-					startFound = true;
-			}
-
-			let drawCount = 0;
-			var endReached = false;
-			while (!endReached) {
-				var info = timeOrderedEvents[firstIndex][0].split(";");
+			dataDimensions.time.bottom(Infinity).forEach( function(evt) {
 				// Only draw if the user is displayed
-				if (shownUsers.includes(info[3])) {
-					var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-					if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
-						endReached = true;
-					else {
-					    firstIndex++;
-					    // Don't draw if the event is not highlighted and we only want the highlighted ones
-						if (drawOnlyHighlightedEvents == true) {
-							if (getCurrentEventColor(info[0], info[3]) == colorList[info[0]][1]) {
-								continue;
-							}
+				if (shownUsers.includes(evt.user)) {
+					let time = new Date(evt.start);
+					// Don't draw if the event is not highlighted and we only want the highlighted ones
+					if (drawOnlyHighlightedEvents == true) {
+						if (getCurrentEventColor(evt.type, evt.user) == colorList[evt.type][1]) {
+							return;
 						}
-						drawCount++;
-					    
-						let x = self.xUsers(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-						let y = self.yUsers(info[3]) + self.yUsers.bandwidth()/2;
-						
-						/* Draw the symbol when using svg for the event types
-						var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
-												.size(self.yFocus.bandwidth())
-												.context(self.canvasContext);
-						var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
-												.size(self.yFocus.bandwidth())
-												.context(self.hiddenCanvasContext);
-						
-						//self.canvasContext.rect(x-2.5,y-2.5,5,5);
-						self.canvasContext.beginPath();
-						self.canvasContext.translate(x,y);
-						self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-						symbolGenerator();
-						self.canvasContext.stroke();
-						self.canvasContext.translate(-x,-y);
-					    self.canvasContext.closePath();
-					    
-					    self.hiddenCanvasContext.beginPath();
-						self.hiddenCanvasContext.translate(x,y);
-						self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-						hiddenSymbolGenerator();
-						self.hiddenCanvasContext.fill();
-						self.hiddenCanvasContext.translate(-x,-y);
-					    self.hiddenCanvasContext.closePath();*/
-						
-						let trueX = x - self.canvasUsersContext.measureText(itemShapes[info[0]]).width/2;
-						let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
-						let symbolSize = Math.min(self.yUsers.bandwidth() * 0.8, 18);
-						
-					    self.canvasUsersContext.font = "bold "+symbolSize+"px Geneva";
-					    self.canvasUsersContext.fillStyle = symbolColor;
-					    self.canvasUsersContext.textBaseline="middle";
-						self.canvasUsersContext.fillText(itemShapes[info[0]], trueX, y);
-					    /*
-						self.hiddenCanvasUsersContext.font = "bold "+symbolSize+"px Geneva";
-					    self.hiddenCanvasUsersContext.fillStyle = "rgb("+color.join(',')+")";
-					    self.hiddenCanvasUsersContext.textBaseline="middle";
-						self.hiddenCanvasUsersContext.fillText(itemShapes[info[0]], trueX, y);
-						*/
 					}
-				} else {
-					if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
-						endReached = true;
-					firstIndex++;
+					
+					let x = self.xUsers(time);				
+					let y = self.yUsers(evt.user) + self.yUsers.bandwidth()/2;
+					
+					/* Draw the symbol when using svg for the event types
+					var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
+											.size(self.yFocus.bandwidth())
+											.context(self.canvasContext);
+					var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
+											.size(self.yFocus.bandwidth())
+											.context(self.hiddenCanvasContext);
+					
+					//self.canvasContext.rect(x-2.5,y-2.5,5,5);
+					self.canvasContext.beginPath();
+					self.canvasContext.translate(x,y);
+					self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+					symbolGenerator();
+					self.canvasContext.stroke();
+					self.canvasContext.translate(-x,-y);
+					self.canvasContext.closePath();
+					
+					self.hiddenCanvasContext.beginPath();
+					self.hiddenCanvasContext.translate(x,y);
+					self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+					hiddenSymbolGenerator();
+					self.hiddenCanvasContext.fill();
+					self.hiddenCanvasContext.translate(-x,-y);
+					self.hiddenCanvasContext.closePath();*/
+					
+					let trueX = x - self.canvasUsersContext.measureText(itemShapes[evt.type]).width/2;
+					let symbolColor = getCurrentEventColor(evt.type, evt.user).toString();
+					let symbolSize = Math.min(self.yUsers.bandwidth() * 0.8, 18);
+					
+					self.canvasUsersContext.font = "bold "+symbolSize+"px Geneva";
+					self.canvasUsersContext.fillStyle = symbolColor;
+					self.canvasUsersContext.textBaseline="middle";
+					self.canvasUsersContext.fillText(itemShapes[evt.type], trueX, y);
+					/*
+					self.hiddenCanvasUsersContext.font = "bold "+symbolSize+"px Geneva";
+					self.hiddenCanvasUsersContext.fillStyle = "rgb("+color.join(',')+")";
+					self.hiddenCanvasUsersContext.textBaseline="middle";
+					self.hiddenCanvasUsersContext.fillText(itemShapes[info[0]], trueX, y);
+					*/
 				}
-			}
+			});
 		}
 		
 		//console.log("User traces drawn");
@@ -6328,6 +6329,17 @@ var Timeline = function(elemId, options) {
 					brushEndData.push(self.yContext(binValue));
 					dataUnderBrush.push(brushEndData);
 					dataAfterBrush.push(brushEndData);
+				} else if (beforeBrushStart) {
+					let brushStartData = [];
+					brushStartData.push(self.xContext(brushStartTime));
+					brushStartData.push(self.yContext(binValue));
+					let brushEndData = [];
+					brushEndData.push(self.xContext(brushEndTime));
+					brushEndData.push(self.yContext(binValue));
+					dataBeforeBrush.push(brushStartData);
+					dataUnderBrush.push(brushStartData);
+					dataUnderBrush.push(brushEndData);
+					dataAfterBrush.push(brushEndData);
 				}
 				dataAfterBrush.push(thisData);
 			} else {
@@ -6506,12 +6518,10 @@ var Timeline = function(elemId, options) {
 		
 		switch(self.displayMode) {
 		case "distributions":
-			//self.displayDistributions();
 			self.drawBins(self.bins);
 			self.drawPatternOccurrences();
 			break;
 		case "events":
-			//self.displayEvents();
 			//console.log("----Draw Events");
 			//self.drawPatternOccurrences();
 			self.drawEvents();
@@ -7071,11 +7081,9 @@ var Timeline = function(elemId, options) {
 					
 					if (self.displayMode == "events") {
 						if (self.eventDisplayStyle == "type") {
-							let dataTs = data.split(";")[1];
-							let dataType = data.split(";")[0];
-							let ts = d3.timeParse('%Y-%m-%d %H:%M:%S')(dataTs);
+							let ts = new Date(data.start);
 							let dataX = self.xFocus(ts);
-							let dataY = self.yFocus(dataType) + self.yFocus.bandwidth()/2;
+							let dataY = self.yFocus(data.type) + self.yFocus.bandwidth()/2;
 							
 							self.svgPointerHB.attr("y1",dataY);
 							self.svgPointerHB.attr("y2",dataY);
@@ -7084,9 +7092,7 @@ var Timeline = function(elemId, options) {
 						}
 						if (self.eventDisplayStyle == "time") {
 							// Need a way to get the height at which the data is represented to work fully
-							let dataTs = data.split(";")[1];
-							let dataType = data.split(";")[0];
-							let ts = d3.timeParse('%Y-%m-%d %H:%M:%S')(dataTs);
+							let ts = new Date(data.start);
 							let dataX = self.xFocus(ts);
 							let dataY = 0;//self.yFocus(dataType) + self.yFocus.bandwidth()/2;
 							
@@ -7257,151 +7263,6 @@ var Timeline = function(elemId, options) {
 		self.users.select(".axis--x").call(self.xAxisUsers);
 		self.users.select(".axis--y").call(self.yAxisUsers);
 	}
-		
-	self.displayDistributions = function() {
-		//console.log("Display distributions");
-		self.drawCanvas();	// Replace with a drawing function handling distributions
-		// Code for a transition
-		/*var t = svg.transition().duration(750),
-			g = t.selectAll(".group").attr("transform", function(d) { return "translate(0," + y0(d.key) + ")"; });
-		g.selectAll("rect").attr("y", function(d) { return y1(d.value); });
-		g.select(".group-label").attr("y", function(d) { return y1(d.values[0].value / 2); })*/
-	};
-	
-	self.displayEvents = function() {
-		//console.log("Display events");
-		self.drawCanvas();	// Replace with a drawing function handling events
-		// Code for a transition
-		/*var t = svg.transition().duration(750),
-			g = t.selectAll(".group").attr("transform", "translate(0," + y0(y0.domain()[0]) + ")");
-		g.selectAll("rect").attr("y", function(d) { return y1(d.value + d.valueOffset); });
-		g.select(".group-label").attr("y", function(d) { return y1(d.values[0].value / 2 + d.values[0].valueOffset); })*/
-	};
-	
-	self.drawCanvas = function() {
-		//console.log("Drawing canvas");
-		self.canvasContext.fillStyle = "#fff";
-		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
-		self.canvasContext.fill();
-		
-		for (var user in userTraces) {
-			if (userTraces.hasOwnProperty(user)) {
-				for (var id=0; id < userTraces[user].length; id++) {
-					self.canvasContext.beginPath();
-				    self.canvasContext.fillStyle = "green";//node.attr("fillStyle");
-				    var splitEvent = userTraces[user][id].data.split(";");
-				    var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(splitEvent[1]));
-				    if(!self.typeHeight.hasOwnProperty(splitEvent[1]))
-						self.typeHeight[splitEvent[1]] = 0.01;
-					else
-						self.typeHeight[splitEvent[1]] = self.typeHeight[splitEvent[1]]+0.01;
-				    var y = self.yFocus(self.typeHeight[splitEvent[1]]);
-				    var size = 5;
-				    self.canvasContext.fillRect(x, y, size, size);
-				    //console.log("x: "+node.attr("x")+" ;y :"+node.attr("y")+" ;size :"+node.attr("size"));
-				    //self.canvasContext.fill();
-				    self.canvasContext.closePath();
-				}
-			}
-		}
-		
-		//console.log("data drawn");
-	};
-	
-	self.drawUsersTest = function() {
-		//console.log("drawing users");
-		
-		var displayStep = (self.yFocus.domain()[1] - self.yFocus.domain()[0] - 2) / datasetInfo["numberOfDifferentEvents"];
-
-		self.canvasUsersContext.fillStyle = "#fff";
-		self.canvasUsersContext.rect(0,0,self.canvasUsers.attr("width"),self.canvasUsers.attr("height"));
-		self.canvasUsersContext.fill();
-		var drawCount = 0;
-		
-		/*self.hiddenCanvasContext.fillStyle = "#fff";
-		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
-		
-		self.colorToData = {};
-		let nextColor = 1;
-		*/
-		// get the last accessor point before the time-span start
-		var firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
-		//console.log("Retreived first index is "+firstIndex);
-		// find the real first index
-		var startFound = false;
-		var startingIndex = firstIndex;
-		while (!startFound) {
-			var info = timeOrderedEvents[firstIndex+1][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time < self.xFocus.domain()[0])
-				firstIndex++;
-			else
-				startFound = true;
-		}
-		//console.log("drawing from event "+firstIndex);
-		var endReached = false;
-		while (!endReached) {
-			var info = timeOrderedEvents[firstIndex][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
-				endReached = true;
-			else {
-				drawCount++;
-				
-				// Attributing a color to data link
-			    var color = [];
-			    // via http://stackoverflow.com/a/15804183
-			    if(nextColor < 16777215){
-			    	color.push(nextColor & 0xff); // R
-			    	color.push((nextColor & 0xff00) >> 8); // G 
-			    	color.push((nextColor & 0xff0000) >> 16); // B
-
-			    	nextColor += 1;
-			    }
-			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
-				
-				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-				var y = self.yFocus(eventDisplayHeight[info[0]]*displayStep);
-				
-				var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(50)
-										//.attr("transform","translate("+x+","+y+")")
-										.context(self.canvasContext);
-/*.attr("transform",function(d) {return "translate("+self.xFocus(d.time)+","+self.yFocus(d.height)+")"})
-.attr("stroke", function(d) {return d3.hsl(d.color,100,50)})*/
-				var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(50)
-										//.attr("transform","translate("+x+","+y+")")
-										.context(self.hiddenCanvasContext);
-				
-				//self.canvasContext.rect(x-2.5,y-2.5,5,5);
-				self.canvasContext.beginPath();
-				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = colorList[info[0]][0].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-				symbolGenerator();
-				self.canvasContext.stroke();
-				self.canvasContext.translate(-x,-y);
-			    self.canvasContext.closePath();
-			    
-			    self.hiddenCanvasContext.beginPath();
-				self.hiddenCanvasContext.translate(x,y);
-				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-				hiddenSymbolGenerator();
-				self.hiddenCanvasContext.fill();
-				self.hiddenCanvasContext.translate(-x,-y);
-			    self.hiddenCanvasContext.closePath();
-			    
-			    firstIndex++;
-			}
-		}
-		//console.log("to event "+firstIndex);
-		
-		var nbEventsChecked = firstIndex-startingIndex;
-		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
-	
-		
-		//console.log("users drawn");
-	}
 	
 	self.drawEvents = function() {
 		switch(self.eventDisplayStyle) {
@@ -7449,104 +7310,77 @@ var Timeline = function(elemId, options) {
 		self.colorToData = {};
 		let nextColor = 100; // 100 instead of 1, to capture all the colors (around 1 the detection isn't working 100% of the time)
 		
-		// get the last accessor point before the time-span start
-		let firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
-		//console.log("Retreived first index is "+firstIndex);
-		// find the real first index
-		var startFound = false;
-		var startingIndex = firstIndex; // to see how many events have been check vs how many have been drawn
-		while (!startFound) {
-			var info = timeOrderedEvents[firstIndex][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time < self.xFocus.domain()[0])
-				firstIndex++;
-			else
-				startFound = true;
-		}
-		var nbEventsChecked = firstIndex - startingIndex;
-		//console.log("drawing from event "+firstIndex);
-		var endReached = false;
-		while (!endReached) {
-			var info = timeOrderedEvents[firstIndex][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
-				endReached = true;
-			else {
-				drawCount++;
+		dataDimensions.time.bottom(Infinity).forEach( function(evt) {
+			let time = new Date(evt.start);
 				
-				// Attributing a color to data link
-			    let color = [];
-			    // via http://stackoverflow.com/a/15804183
-			    if(nextColor < 16777215){
-			    	let nextR = Math.max(0, Math.floor(Math.floor(nextColor / 255) / 255));
-			    	let nextG = Math.max(0, Math.floor(nextColor / 255) % 255);
-			    	let nextB = nextColor % 255;
-			    	color = [nextR, nextG, nextB];
-			    	
-			    	//color.push(nextColor & 0xff); // R
-			    	//color.push((nextColor & 0xff00) >> 8); // G 
-			    	//color.push((nextColor & 0xff0000) >> 16); // B
+			// Attributing a color to data link
+			let color = [];
+			// via http://stackoverflow.com/a/15804183
+			if(nextColor < 16777215){
+				let nextR = Math.max(0, Math.floor(Math.floor(nextColor / 255) / 255));
+				let nextG = Math.max(0, Math.floor(nextColor / 255) % 255);
+				let nextB = nextColor % 255;
+				color = [nextR, nextG, nextB];
+				
+				//color.push(nextColor & 0xff); // R
+				//color.push((nextColor & 0xff00) >> 8); // G 
+				//color.push((nextColor & 0xff0000) >> 16); // B
 
-			    	nextColor += 1;
-			    }
-			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
-			    //console.log("event at index "+firstIndex+" gets color "+color.join(','));
-			    firstIndex++;
-			    
-			    if (self.showOnlyHighlightedInFocus == true) {
-			    	if (getCurrentEventColor(info[0], info[3]) == colorList[info[0]][1])
-			    		continue;
-			    }
-			    
-				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-				var y = self.yFocus(info[0]) + self.yFocus.bandwidth()/2;
-				
-				/* Draw the symbol when using svg for the event types
-				var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(self.yFocus.bandwidth())
-										.context(self.canvasContext);
-				var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(self.yFocus.bandwidth())
-										.context(self.hiddenCanvasContext);
-				
-				//self.canvasContext.rect(x-2.5,y-2.5,5,5);
-				self.canvasContext.beginPath();
-				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-				symbolGenerator();
-				self.canvasContext.stroke();
-				self.canvasContext.translate(-x,-y);
-			    self.canvasContext.closePath();
-			    
-			    self.hiddenCanvasContext.beginPath();
-				self.hiddenCanvasContext.translate(x,y);
-				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
-				hiddenSymbolGenerator();
-				self.hiddenCanvasContext.fill();
-				self.hiddenCanvasContext.translate(-x,-y);
-			    self.hiddenCanvasContext.closePath();*/
-				
-				let trueX = x - self.canvasContext.measureText(itemShapes[info[0]]).width/2;
-				let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
-				//selectedColorFading
-			    self.canvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
-			    self.canvasContext.fillStyle = symbolColor;
-			    self.canvasContext.textBaseline="middle";
-				self.canvasContext.fillText(itemShapes[info[0]], trueX, y);
-			    
-				self.hiddenCanvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
-			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
-			    self.hiddenCanvasContext.textBaseline="middle";
-				self.hiddenCanvasContext.fillText(itemShapes[info[0]], trueX, y);
-				
+				nextColor += 1;
 			}
-		}
+			self.colorToData["rgb("+color.join(',')+")"] = evt;
+			
+			if (self.showOnlyHighlightedInFocus == true) {
+				if (getCurrentEventColor(evt.type, evt.user) == colorList[evt.type][1])
+					return;
+			}
+			
+			let x = self.xFocus(time);
+			let y = self.yFocus(evt.type) + self.yFocus.bandwidth()/2;
+			
+			/* Draw the symbol when using svg for the event types
+			var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
+									.size(self.yFocus.bandwidth())
+									.context(self.canvasContext);
+			var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
+									.size(self.yFocus.bandwidth())
+									.context(self.hiddenCanvasContext);
+			
+			//self.canvasContext.rect(x-2.5,y-2.5,5,5);
+			self.canvasContext.beginPath();
+			self.canvasContext.translate(x,y);
+			self.canvasContext.strokeStyle = colorList[info[0]].toString();//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+			symbolGenerator();
+			self.canvasContext.stroke();
+			self.canvasContext.translate(-x,-y);
+			self.canvasContext.closePath();
+			
+			self.hiddenCanvasContext.beginPath();
+			self.hiddenCanvasContext.translate(x,y);
+			self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//d3.hsl(parseInt(colorList[info[0]]),100,50).rgb();//"green";
+			hiddenSymbolGenerator();
+			self.hiddenCanvasContext.fill();
+			self.hiddenCanvasContext.translate(-x,-y);
+			self.hiddenCanvasContext.closePath();*/
+			
+			let trueX = x - self.canvasContext.measureText(itemShapes[evt.type]).width/2;
+			let symbolColor = getCurrentEventColor(evt.type, evt.user).toString();
+			//selectedColorFading
+			self.canvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
+			self.canvasContext.fillStyle = symbolColor;
+			self.canvasContext.textBaseline="middle";
+			self.canvasContext.fillText(itemShapes[evt.type], trueX, y);
+			
+			self.hiddenCanvasContext.font = "bold "+self.yFocus.bandwidth()+"px Geneva";
+			self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
+			self.hiddenCanvasContext.textBaseline="middle";
+			self.hiddenCanvasContext.fillText(itemShapes[evt.type], trueX, y);
+		});
+
 		//console.log("to event "+firstIndex);
 		/*
 		self.canvasContext.restore();
 		self.hiddenCanvasContext.restore();*/
-		nbEventsChecked += drawCount;
-		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
 		//console.log("events drawn");
 	}
@@ -7566,32 +7400,11 @@ var Timeline = function(elemId, options) {
 		self.canvasContext.translate("0.5","0.5");
 		self.hiddenCanvasContext.translate("0.5","0.5");*/
 		
-		
-		
-		
-		// get the last accessor point before the time-span start
-		var firstIndex = getEventAccessorAtDate(self.xFocus.domain()[0]);
-		//console.log("Retreived first index is "+firstIndex);
-		// find the real first index
-		var startFound = false;
-		var startingIndex = firstIndex;
-		while (!startFound) {
-			var info = timeOrderedEvents[firstIndex+1][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			if (time < self.xFocus.domain()[0])
-				firstIndex++;
-			else
-				startFound = true;
-		}
 		//console.log("drawing from event "+firstIndex);
-		// get the last accessor point for the end of the time-span
-		var lastIndex = getEventAccessorAtDate(self.xFocus.domain()[1]);
 
 		/*self.yFocus.domain([0.0, lastIndex-firstIndex+2]);
 		self.focus.select(".axis--y")
 	      	.call(self.yAxisFocus);*/
-
-		var drawCount = 0;
 		
 		/*self.canvasContext.fillStyle = "#fff";
 		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
@@ -7599,7 +7412,7 @@ var Timeline = function(elemId, options) {
 		
 		self.hiddenCanvasContext.fillStyle = "#fff";
 		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
-*/		
+		*/		
 		self.colorToData = {};
 		let nextColor = 100;
 		
@@ -7607,10 +7420,9 @@ var Timeline = function(elemId, options) {
 		var previousTime = undefined;
 		var previousType = "";
 		var currentHeight = 1;
-		while (!endReached) {
-			var info = timeOrderedEvents[firstIndex][0].split(";");
-			var time = d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]);
-			var type = info[0];
+		
+		dataDimensions.time.bottom(Infinity).forEach( function(evt) {
+			let time = new Date(evt.start);
 			if (!(typeof(previousTime) === "undefined")) {
 				if (time.valueOf() == previousTime.valueOf()) {
 					if (type == previousType) {	// Jittering
@@ -7626,85 +7438,83 @@ var Timeline = function(elemId, options) {
 				}
 			}
 			previousTime = time;
-			previousType = type;
-			if (time > self.xFocus.domain()[1] || firstIndex == timeOrderedEvents.length - 1)
-				endReached = true;
-			else {
-				drawCount++;
+			previousType = evt.type;
 				
-				// Attributing a color to data link
-			    var color = [];
-			    // via http://stackoverflow.com/a/15804183
-			    if(nextColor < 16777215){
-			    	color.push(nextColor & 0xff); // R
-			    	color.push((nextColor & 0xff00) >> 8); // G 
-			    	color.push((nextColor & 0xff0000) >> 16); // B
+			// Attributing a color to data link
+			let color = [];
+			// via http://stackoverflow.com/a/15804183
+			if(nextColor < 16777215){
+				color.push(nextColor & 0xff); // R
+				color.push((nextColor & 0xff00) >> 8); // G 
+				color.push((nextColor & 0xff0000) >> 16); // B
 
-			    	nextColor += 1;
-			    }
-			    self.colorToData["rgb("+color.join(',')+")"] = timeOrderedEvents[firstIndex][0];
-			    
-			    firstIndex++;
-			    
-			    if (self.showOnlyHighlightedInFocus == true) {
-			    	if (getCurrentEventColor(info[0], info[3]) == colorList[info[0]][1])
-			    		continue;
-			    }
-			    
-				var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(info[1]));				
-				var y = self.yFocus(currentHeight);
-				
-				/*
-				var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(50)
-										.context(self.canvasContext);
-				
-				var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
-										.size(50)
-										.context(self.hiddenCanvasContext);
-				
-				self.canvasContext.beginPath();
-				self.canvasContext.translate(x,y);
-				self.canvasContext.strokeStyle = colorList[info[0]].toString();
-				symbolGenerator();
-				self.canvasContext.stroke();
-				self.canvasContext.translate(-x,-y);
-			    self.canvasContext.closePath();
-			    
-			    self.hiddenCanvasContext.beginPath();
-				self.hiddenCanvasContext.translate(x,y);
-				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
-				hiddenSymbolGenerator();
-				self.hiddenCanvasContext.fill();
-				self.hiddenCanvasContext.translate(-x,-y);
-			    self.hiddenCanvasContext.closePath();*/
-				
-				let trueX = x - self.canvasContext.measureText(itemShapes[info[0]]).width/2;
-				let symbolColor = getCurrentEventColor(info[0], info[3]).toString();
-				let fontSize = (self.marginFocus.size / maxEventAtOneTime) - 4;
-				fontSize = Math.min(fontSize, 18);
-				
-			    self.canvasContext.font = "bold "+fontSize+"px Geneva";
-			    self.canvasContext.fillStyle = symbolColor;
-			    self.canvasContext.textBaseline="middle";
-				self.canvasContext.fillText(itemShapes[info[0]], trueX, y);
-			    
-				self.hiddenCanvasContext.font = "bold "+fontSize+"px Geneva";
-			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
-			    self.hiddenCanvasContext.textBaseline="middle";
-				self.hiddenCanvasContext.fillText(itemShapes[info[0]], trueX, y);
+				nextColor += 1;
 			}
-		}
-		//console.log("to event "+firstIndex);
+			self.colorToData["rgb("+color.join(',')+")"] = evt;
+			
+			if (self.showOnlyHighlightedInFocus == true) {
+				if (getCurrentEventColor(evt.type, evt.user) == colorList[evt.type][1])
+					return;
+			}
+			
+			let x = self.xFocus(time);
+			let y = self.yFocus(currentHeight);
+			
+			/*
+			var symbolGenerator = d3.symbol().type(itemShapes[info[0]])
+									.size(50)
+									.context(self.canvasContext);
+			
+			var hiddenSymbolGenerator = d3.symbol().type(itemShapes[info[0]])
+									.size(50)
+									.context(self.hiddenCanvasContext);
+			
+			self.canvasContext.beginPath();
+			self.canvasContext.translate(x,y);
+			self.canvasContext.strokeStyle = colorList[info[0]].toString();
+			symbolGenerator();
+			self.canvasContext.stroke();
+			self.canvasContext.translate(-x,-y);
+			self.canvasContext.closePath();
+			
+			self.hiddenCanvasContext.beginPath();
+			self.hiddenCanvasContext.translate(x,y);
+			self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
+			hiddenSymbolGenerator();
+			self.hiddenCanvasContext.fill();
+			self.hiddenCanvasContext.translate(-x,-y);
+			self.hiddenCanvasContext.closePath();*/
+			
+			let trueX = x - self.canvasContext.measureText(itemShapes[evt.type]).width/2;
+			let symbolColor = getCurrentEventColor(evt.type, evt.user).toString();
+			let fontSize = (self.marginFocus.size / maxEventAtOneTime) - 4;
+			fontSize = Math.min(fontSize, 18);
+			
+			self.canvasContext.font = "bold "+fontSize+"px Geneva";
+			self.canvasContext.fillStyle = symbolColor;
+			self.canvasContext.textBaseline="middle";
+			self.canvasContext.fillText(itemShapes[evt.type], trueX, y);
+			
+			self.hiddenCanvasContext.font = "bold "+fontSize+"px Geneva";
+			self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";
+			self.hiddenCanvasContext.textBaseline="middle";
+			self.hiddenCanvasContext.fillText(itemShapes[evt.type], trueX, y);
+		});
+
 
 		/*self.canvasContext.restore();
 		self.hiddenCanvasContext.restore();*/
-		var nbEventsChecked = firstIndex-startingIndex;
-		console.log(drawCount+" events drawn, "+nbEventsChecked+" events checked");
 		
 		//console.log("events drawn");
 	}
 	
+	/**
+	 * Draws the events by user. Should not be used, since this is basically the
+	 * behavior of the session view with "show events" checked.
+	 * 
+	 * @deprecated Not using the correct drawing method. Also not relying on the
+	 * crossfilter data
+	 */
 	self.drawEventsByUser= function() {
 		//console.log("drawing events");
 		
