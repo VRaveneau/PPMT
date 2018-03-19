@@ -86,9 +86,15 @@ public class ClientHandler {
 	}
 
 	public void setDataset(Dataset dataset) {
+		setDataset(dataset, true);
+	}
+	
+	public void setDataset(Dataset dataset, boolean initializePatternManager) {
 		this.dataset = dataset;
-		setPatternManager(new PatternManager(this));
-		dataset.addPatternManagerToSession(session, patternManager);
+		if (initializePatternManager) {
+			setPatternManager(new PatternManager(this));
+			dataset.addPatternManagerToSession(session, patternManager);
+		}
 	}
 	
 	public void sendMessage(JsonObject message) {
@@ -150,7 +156,8 @@ public class ClientHandler {
     	List<Event> events = dataset.getEvents();
     	
     	JsonObjectBuilder dataMessage = null;
-		
+		JsonArrayBuilder eventArray = provider.createArrayBuilder();
+    	
 		dataMessage = provider.createObjectBuilder()
 				.add("action", "data")
 				.add("type", "events");
@@ -158,17 +165,20 @@ public class ClientHandler {
     	for (Event e : events) {
     		if (nbEventsInMessage == 1000) {
     			dataMessage.add("numberOfEvents", nbEventsInMessage);
+    			dataMessage.add("events", eventArray.build());
     			sendToSession(session, dataMessage.build());
     			dataMessage = provider.createObjectBuilder()
     					.add("action", "data")
     					.add("type", "events");
+    			eventArray = provider.createArrayBuilder();
     			nbEventsInMessage = 0;
     		}
-
-			dataMessage.add(Integer.toString(nbEventsInMessage), e.toString());
+    		eventArray.add(e.toJsonObject());
+			//dataMessage.add(Integer.toString(nbEventsInMessage), e.toString());
     		nbEventsInMessage++;
     	}
     	dataMessage.add("numberOfEvents", nbEventsInMessage);
+		dataMessage.add("events", eventArray.build());
 		sendToSession(session, dataMessage.build());
     	System.out.println("|-Client provided the data");
     }
@@ -183,8 +193,7 @@ public class ClientHandler {
 		String firstEvent = dataset.getFirstEvent();
 		String lastEvent = dataset.getLastEvent();
 		// list of events
-		// TODO Get this directly from the dataset, not from the DSManager
-		List<String> events = DatasetManager.getInstance().getEventTypes(dataset.getName());
+		List<String> events = dataset.getEventTypeInfo();
 		// Number of events
 		String nbEvents = Integer.toString(dataset.getNbEvent());
 		// list of users
@@ -218,7 +227,7 @@ public class ClientHandler {
 		
 		// list of event types
 		// TODO Get this directly from the dataset, not from the DSManager
-		List<String> et = DatasetManager.getInstance().getEventTypes(dataset.getName());
+		List<String> et = dataset.getEventTypeInfo();
 		
 		dataMessage = provider.createObjectBuilder()
 				.add("action", "eventTypes")
@@ -278,6 +287,10 @@ public class ClientHandler {
 	}
 	
 	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration) {
+		if (patternManager == null) {
+			setPatternManager(new PatternManager(this));
+			dataset.addPatternManagerToSession(session, patternManager);
+		}
 		algorithmHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 	}
 	
@@ -446,6 +459,9 @@ public class ClientHandler {
 	public void createEventTypeFromPattern(int patternId) {
 		TraceModification modifs = dataset.createEventTypeFromPattern(patternId, session);
 		
+		// Stop the algorithm
+		algorithmHandler.stopMining();
+		
 		// Send the new event types info
 		provideEventTypesInfo();
 		
@@ -462,11 +478,15 @@ public class ClientHandler {
 		
 		JsonArrayBuilder newEvents = provider.createArrayBuilder();
 		for (Event e : modifs.getNewEvents()) {
-			newEvents.add(e.toString());
+			newEvents.add(e.toJsonObject());
 		}
 		dataMessage.add("newEvents", newEvents.build());
 				
 		// Send this message
 		sendToSession(session, dataMessage.build());
+		
+		// Remove the now old pattern manager
+		dataset.removePatternManagerFromSession(session);
+		patternManager = null;
 	}
 }

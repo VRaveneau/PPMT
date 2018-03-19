@@ -34,6 +34,8 @@ public class GspThread implements Runnable {
     
     private AlgoGSP algorithm = null;
     
+    private boolean finished = false;
+    
     // TODO Give access to the clientHandler ?
 	public GspThread(Dataset dataset, PatternManager pm, GspParameters parameters) {
 		this.dataset = dataset;
@@ -47,6 +49,10 @@ public class GspThread implements Runnable {
 	
 	public GspParameters getParameters() {
 		return this.parameters;
+	}
+	
+	public boolean isFinished() {
+		return finished;
 	}
 	
 	public void setupForStart() {
@@ -65,6 +71,8 @@ public class GspThread implements Runnable {
         // TODO move the call to another object than the pattern manager
 		patternManager.signalDataLoaded();
 		
+		finished = false;
+		
 		// use the parameters object instead, and maybe also in start(), for runAlgorithm() ?
         algorithm = new AlgoGSP(this.parameters, abstractionCreator);
 	}
@@ -72,7 +80,9 @@ public class GspThread implements Runnable {
 	@Override
 	public void run() {		
 		setupForStart();
-		start();
+		if(!parameters.isTerminationRequested())
+			start();
+		finished = true;
 	}
 	
 	public void start() {

@@ -28,7 +28,7 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 	
 	public void startMining(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration) {
 		
-		if (algorithm == null) {
+		if (algorithm == null || algorithm.isFinished()) {
 			this.algorithmParameters = new GspParameters();
 			this.algorithmParameters.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 			
@@ -42,6 +42,10 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 			System.out.println("Error : Trying to start mining while already running");
 			System.out.println("  Tip : Steering should be used instead, or a restart");
 		}
+	}
+	
+	public void stopMining() {
+		algorithmParameters.setTerminationRequested(true);
 	}
 
 	@Override

@@ -99,7 +99,7 @@ public class DatasetManager {
 		return getDataset(datasetName).getUsers();
 	}
 	
-	public List<String> getEventTypes(String datasetName) {
+	/*public List<String> getEventTypes(String datasetName) {
 		Map<String, Map<String, String>> infos = getDataset(datasetName).getEventTypeInfo();
 		List<String> result = new ArrayList<>();
 		for (String e : infos.keySet()) {
@@ -113,7 +113,7 @@ public class DatasetManager {
 		return result;
 		
 		//return getDataset(datasetName).getEventList();
-	}
+	}*/
 	
 	public int getNbEvents(String datasetName) {
 		return getDataset(datasetName).getNbEvent();
