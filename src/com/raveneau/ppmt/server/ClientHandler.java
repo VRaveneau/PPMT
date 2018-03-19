@@ -2,10 +2,7 @@ package com.raveneau.ppmt.server;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
@@ -16,7 +13,6 @@ import javax.websocket.Session;
 import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.algorithms.AlgorithmHandler;
 import com.raveneau.ppmt.datasets.Dataset;
-import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.datasets.TraceModification;
 import com.raveneau.ppmt.events.Event;
 import com.raveneau.ppmt.events.SteeringListener;

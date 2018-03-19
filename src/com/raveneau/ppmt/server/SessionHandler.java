@@ -1,36 +1,19 @@
 package com.raveneau.ppmt.server;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.enterprise.context.ApplicationScoped;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.spi.JsonProvider;
-import javax.swing.event.EventListenerList;
 import javax.websocket.Session;
 
-import com.diogoduailibe.lzstring4j.LZString;
-import com.raveneau.ppmt.algorithms.AlgorithmHandler;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.datasets.DatasetManager;
-import com.raveneau.ppmt.datasets.TraceModification;
-import com.raveneau.ppmt.events.Event;
 import com.raveneau.ppmt.events.SteeringListener;
-import com.raveneau.ppmt.patterns.Occurrence;
-import com.raveneau.ppmt.patterns.Pattern;
-
-import ca.pfv.spmf.test.MainTestGSP_saveToMemory;
-
-import com.vladium.utils.IObjectProfileNode;
-import com.vladium.utils.ObjectProfileFilters;
-import com.vladium.utils.ObjectProfileVisitors;
-import com.vladium.utils.ObjectProfiler;
 
 @ApplicationScoped
 public class SessionHandler {
@@ -228,31 +211,6 @@ public class SessionHandler {
 	public void provideEventTypesInfo(String datasetName, Session session) {
 		clientHandlers.get(session).provideEventTypesInfo();
 	}
-	
-	/**
-	 * Should no longer be called now that the dataset selection is on another page
-	 * @param session
-	 */
-	/*public void provideDatasetList(Session session) {
-		JsonObjectBuilder dataMessage = null;
-		JsonProvider provider = JsonProvider.provider();
-		
-		System.out.println("requesting dataset list");
-		
-		// list of dataset names
-		List<Dataset> list = datasetManager.getDatasetList();
-		
-		dataMessage = provider.createObjectBuilder()
-				.add("action", "datasetList")
-				.add("size", list.size());
-		int count = 0;
-		for (Dataset d : list) {
-			dataMessage.add(Integer.toString(count), d.getName());
-			dataMessage.add("param"+Integer.toString(count), d.getParameters().toString());
-			count++;
-		}
-		sendToSession(session, dataMessage.build());
-	}*/
 
 	public void requestSteeringOnPattern(int patternId, Session session) {
 		clientHandlers.get(session).requestSteeringOnPattern(patternId);
@@ -354,8 +312,8 @@ public class SessionHandler {
 	}
 
 	/**
-	 * Create a user-specific dataset if needed
-	 * @param session The session that wants to alter the dataset
+	 * Create a user-specific dataset if the user is altering its dataset for the first time
+	 * @param session The session that wants to alter its dataset
 	 */
 	public void sessionAltersDataset(Session session) {
 		ClientHandler ch = clientHandlers.get(session);
