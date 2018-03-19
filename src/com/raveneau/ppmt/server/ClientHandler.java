@@ -459,6 +459,9 @@ public class ClientHandler {
 	public void createEventTypeFromPattern(int patternId) {
 		TraceModification modifs = dataset.createEventTypeFromPattern(patternId, session);
 		
+		// Stop the algorithm
+		algorithmHandler.stopMining();
+		
 		// Send the new event types info
 		provideEventTypesInfo();
 		
