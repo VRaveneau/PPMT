@@ -2145,6 +2145,7 @@ function receiveEvents(eventsCompressed) {
 		disableCentralOverlay();
 		requestRelevantBins(currentDatasetName, timeline.getRelevantDistributionScale());
 		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
+		dataDimensions.time.filterRange(currentTimeFilter);
 		startInitialMining();
 	}
 }
@@ -2340,14 +2341,14 @@ function buildUserSessions() {
 	let nbOfSession = 0;
 	let initialTimeFilter = currentTimeFilter;
 	dataDimensions.time.filterAll();
+	userSessions = {};
 
-	for (let userIdx = 0; userIdx < userList.length; userIdx++) {
-		let u = userList[userIdx];
+	dataDimensions.user.group().all().forEach( function(grp) {
+		let u = grp.key;
 		// Consider only the events of the current user
 		dataDimensions.user.filterExact(u);
 		let currentSession = null;
 		userSessions[u] = [];
-		
 		dataDimensions.time.bottom(Infinity).forEach( function(evt) {
 			if (currentSession != null) {
 				if (evt.start - currentSession.end < sessionInactivityLimit ) {
@@ -2378,7 +2379,7 @@ function buildUserSessions() {
 		userSessions[u].push(currentSession);
 
 		nbOfSession += userSessions[u].length;
-	}
+	});
 	// Add the number of sessions as an information about the dataset
 	datasetInfo.nbSessions = nbOfSession;
 	// Restore the initial time filter
@@ -2946,8 +2947,14 @@ function resetPatterns() {
 	patternIdList = [];
 	patternOccurrences = {};
 	selectedPatternIds = [];
-	// TODO Deal with the pattern metrics in patternMetrics
-	// TODO Deal with the pattern by size graph
+	// TODO Deal with the potential other pattern metrics in patternMetrics
+	patternMetrics.sizeDistribution = {};
+	drawPatternSizesChart();
+	createPatternListDisplay();
+	updatePatternCountDisplay();
+	// TODO Keep the initial sessions ?
+	buildUserSessions();
+	refreshUserPatterns();
 }
 
 /**
@@ -2957,12 +2964,12 @@ function resetPatterns() {
  * TODO Implement it
  */
 function updateDatasetForNewEventType(newEvents, removedIds) {
-	resetPatterns();
 	resetDataFilters();
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
-	
+	console.log("Removed");
+	let toAdd = [];
 	newEvents.forEach(function(evt) {
 		let time = new Date(evt.start);
 		let evtObj = {
@@ -2973,10 +2980,23 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 			"user": evt.user,
 			"properties": evt.properties
 		};
-		dataset.add([evtObj]);
+		toAdd.push(evtObj);
 	});
+	dataset.add(toAdd);
+	console.log("Added");
+	// Recreate the dimensions
+	// TODO Do it properly in a function
+	dataDimensions.user.dispose();
+	dataDimensions.time.dispose();
+	dataDimensions.type.dispose();
+	dataDimensions.user = dataset.dimension(function(d) {return d.user;});
+	dataDimensions.time = dataset.dimension(function(d) {return d.start;});
+	dataDimensions.type = dataset.dimension(function(d) {return d.type;});
+	console.log("Recreated");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
+	resetPatterns();
+	console.log("Reseted");
 }
 
 /**
@@ -2991,6 +3011,17 @@ function resetDataFilters() {
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+/**
+ * Updates the display of the number of pattern discovered, selected and
+ * filtered
+ */
+function updatePatternCountDisplay() {
+	d3.select("#patternNumberSpan").text(numberOfPattern);
+	d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+	// TODO dynamically update the number of patterns matching the filter
+	d3.select("#highlightedPatternNumberSpan").text("0");
+}
 
 /**
  * Displays information on the dataset when there is no dataset
