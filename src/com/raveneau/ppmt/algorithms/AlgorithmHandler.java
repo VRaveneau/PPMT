@@ -45,9 +45,7 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 	}
 	
 	public void stopMining() {
-		algorithm.stop(); // TODO make it do something
-		algorithm = null;
-		thread.stop();
+		algorithmParameters.setTerminationRequested(true);
 	}
 
 	@Override
