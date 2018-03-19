@@ -205,12 +205,12 @@ public class ClientHandler {
 				.add("firstEvent", firstEvent)
 				.add("lastEvent", lastEvent)
 				.add("name", name);
-
-		int count = 0;
+		
+		JsonArrayBuilder userArray = provider.createArrayBuilder();
 		for (String u : users) {
-			dataMessage.add("user"+Integer.toString(count), u);
-			count++;
+			userArray.add(u);
 		}
+		dataMessage.add("users", userArray.build());
 		
 		sendToSession(session, dataMessage.build());
 	}

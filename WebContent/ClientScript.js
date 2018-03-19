@@ -2021,16 +2021,15 @@ function handleDatasetValidation(msg) {
 /**
  * Receives information about a dataset from the server
  * @param {JSON} message - The message containing the information
+ * 
+ * TODO Describe the message structure
  */
 function receiveDatasetInfo(message) {
 	//console.log("number of sequences : " + message.numberOfSequences);
-	datasetInfo["numberOfSequences"] = parseInt(message.numberOfSequences);
-	datasetInfo["numberOfDifferentEvents"] = parseInt(message.numberOfDifferentEvents);
-	datasetInfo["numberOfEvents"] = parseInt(message.nbEvents);
-	let userList = [];
-	for (let i=0; i < datasetInfo["numberOfSequences"];i++)
-		userList.push(message["user"+i.toString()]);
-	datasetInfo["users"] = userList;
+	datasetInfo["numberOfSequences"] = message.numberOfSequences;
+	datasetInfo["numberOfDifferentEvents"] = message.numberOfDifferentEvents;
+	datasetInfo["numberOfEvents"] = message.nbEvents;
+	datasetInfo["users"] = message.users;
 	datasetInfo["firstEvent"] = message.firstEvent;
 	datasetInfo["lastEvent"] = message.lastEvent;
 	datasetInfo["name"] = message.name;
