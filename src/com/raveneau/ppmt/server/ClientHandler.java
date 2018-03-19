@@ -471,7 +471,7 @@ public class ClientHandler {
 		
 		JsonArrayBuilder newEvents = provider.createArrayBuilder();
 		for (Event e : modifs.getNewEvents()) {
-			newEvents.add(e.toString());
+			newEvents.add(e.toJsonObject());
 		}
 		dataMessage.add("newEvents", newEvents.build());
 				

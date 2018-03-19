@@ -2947,6 +2947,7 @@ function resetPatterns() {
 	patternOccurrences = {};
 	selectedPatternIds = [];
 	// TODO Deal with the pattern metrics in patternMetrics
+	// TODO Deal with the pattern by size graph
 }
 
 /**
@@ -2956,8 +2957,35 @@ function resetPatterns() {
  * TODO Implement it
  */
 function updateDatasetForNewEventType(newEvents, removedIds) {
-	console.log(newEvents);
-	console.log(removedIds);
+	resetPatterns();
+	resetDataFilters();
+	dataset.remove(function(d,i) {
+		return removedIds.includes(d.id);
+	});
+	
+	newEvents.forEach(function(evt) {
+		let time = new Date(evt.start);
+		let evtObj = {
+			"id": evt.id,
+			"type": evt.type,
+			"start": time.getTime(),
+			"end": evt.end,
+			"user": evt.user,
+			"properties": evt.properties
+		};
+		dataset.add([evtObj]);
+	});
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+}
+
+/**
+ * Resets all the filters applied to the crossfitler storing the events
+ */
+function resetDataFilters() {
+	dataDimensions.time.filterAll();
+	dataDimensions.type.filterAll();
+	dataDimensions.user.filterAll();
 }
 
 /************************************/
@@ -7346,7 +7374,7 @@ var Timeline = function(elemId, options) {
 		
 		self.hiddenCanvasContext.fillStyle = "#fff";
 		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
-*/		
+		*/		
 		self.colorToData = {};
 		let nextColor = 100;
 		
