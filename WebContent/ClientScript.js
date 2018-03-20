@@ -1007,6 +1007,9 @@ function createServer() {
 			return new WebSocketServer(config.websocketAdress,
 				processOpen, processClose, processError, processMessage);
 			break;
+		case "local":
+			return new LocalServer(processOpen, processClose, processError, processMessage);
+			break;
 		default:
 			// TODO raise an error or ask to choose a local dataset ?
 			console.error("!! The requested server type (" + config.serverType +
@@ -1613,15 +1616,16 @@ function processError(message) {
  * Should at least contain the "action" property
  */
 function processMessage(message/*Compressed*/) {
+    var msg = message.data;
 	// Update the last received date display
 	d3.select("#lastReceivedTimeDisplay span")
 		.text(formatDate(new Date()));
 	//console.log("Receive from server => " + message.data + "\n");
 	//var message = LZString.decompressFromUTF16(messageCompressed.data);
-	var msg = JSON.parse(message.data);
-	//console.log("Receive message on " + new Date());
-	//console.log(msg);
-	
+    if (typeof msg === "string") {
+	    msg = JSON.parse(msg);
+    };
+
 	if (msg.action === "add") {
 		addPatternToList(msg);
 	}
@@ -2043,8 +2047,8 @@ function receiveDatasetInfo(message) {
 	datasetInfo["numberOfDifferentEvents"] = message.numberOfDifferentEvents;
 	datasetInfo["numberOfEvents"] = message.nbEvents;
 	datasetInfo["users"] = message.users;
-	datasetInfo["firstEvent"] = message.firstEvent;
-	datasetInfo["lastEvent"] = message.lastEvent;
+	datasetInfo["firstEvent"] = new Date(message.firstEvent);
+	datasetInfo["lastEvent"] = new Date(message.lastEvent);
 	datasetInfo["name"] = message.name;
 	
 	displayDatasetInfo();
@@ -7287,26 +7291,10 @@ var Timeline = function(elemId, options) {
 		focusOnTimePeriod(start-5*1000, end+5*1000);
 	}
 	
-	self.updateContextBounds = function(start, end) {
+	self.updateContextBounds = function(startDate, endDate) {
 		console.log("Updating context bounds");
-		
-		// Extract information from the date, for the Agavue date format
-		// 	This format is "Sun Mar 31 01:32:10 CET 2013"
-		var startDate = start.split(" ");
-		var endDate = end.split(" ");
-		var startString = startDate[0]+" "
-			+startDate[1]+" "
-			+startDate[2]+" "
-			+startDate[3]+" "
-			+startDate[5];
-		var endString = endDate[0]+" "
-			+endDate[1]+" "
-			+endDate[2]+" "
-			+endDate[3]+" "
-			+endDate[5];
-		var timeFormat = d3.timeParse('%a %b %d %H:%M:%S %Y'); // See if the timeline's timeParse can be used instead ?
-		var startTime = d3.timeSecond.offset(timeFormat(startString),-1);
-		var endTime = d3.timeSecond.offset(timeFormat(endString),1);
+		var startTime = d3.timeSecond.offset(startDate, -1);
+		var endTime = d3.timeSecond.offset(endDate, 1);
 		self.xFocus = d3.scaleTime()
 			.domain([startTime,endTime])
 			.range([0,self.width]);
