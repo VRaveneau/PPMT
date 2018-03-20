@@ -1163,6 +1163,53 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 /********************************/
+/* 	Extendend algorithm view 	*/
+/********************************/
+
+#algorithmExtended {
+	position: absolute;
+	right:0;
+
+	width: 50%;
+	height: 50%;
+	margin: 0px;
+	padding: 0px;
+	background-color: #BEC6D3;/* #e4e7ec;*/
+	flex-direction: row;
+
+	z-index: 10;
+	border-radius: 5px;
+}
+
+#algorithmExtended:not(.hidden) {
+	display: flex;
+}
+
+#algorithmExtendedMainPanel {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 8;
+}
+
+#algorithmExtendedSidePanel {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 2;
+}
+
+#patternSizeTableArea {
+	
+}
+
+#extendedAlgorithmStrategyArea {
+	flex-grow: 1;
+}
+
+#algorithmSpeedArea {
+	flex-grow: 1;
+}
+
+/********************************/
 /* 		Event types tabs 		*/
 /********************************/
 

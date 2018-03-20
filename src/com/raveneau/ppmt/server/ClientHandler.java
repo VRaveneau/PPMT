@@ -2,10 +2,9 @@ package com.raveneau.ppmt.server;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
@@ -16,7 +15,6 @@ import javax.websocket.Session;
 import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.algorithms.AlgorithmHandler;
 import com.raveneau.ppmt.datasets.Dataset;
-import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.datasets.TraceModification;
 import com.raveneau.ppmt.events.Event;
 import com.raveneau.ppmt.events.SteeringListener;
@@ -193,7 +191,7 @@ public class ClientHandler {
 		String firstEvent = dataset.getFirstEvent();
 		String lastEvent = dataset.getLastEvent();
 		// list of events
-		List<String> events = dataset.getEventTypeInfo();
+		List<String> events = dataset.getEventList();
 		// Number of events
 		String nbEvents = Integer.toString(dataset.getNbEvent());
 		// list of users
@@ -209,12 +207,12 @@ public class ClientHandler {
 				.add("firstEvent", firstEvent)
 				.add("lastEvent", lastEvent)
 				.add("name", name);
-
-		int count = 0;
+		
+		JsonArrayBuilder userArray = provider.createArrayBuilder();
 		for (String u : users) {
-			dataMessage.add("user"+Integer.toString(count), u);
-			count++;
+			userArray.add(u);
 		}
+		dataMessage.add("users", userArray.build());
 		
 		sendToSession(session, dataMessage.build());
 	}
@@ -226,7 +224,6 @@ public class ClientHandler {
 		System.out.println("requesting event types");
 		
 		// list of event types
-		// TODO Get this directly from the dataset, not from the DSManager
 		List<String> et = dataset.getEventTypeInfo();
 		
 		dataMessage = provider.createObjectBuilder()
@@ -270,17 +267,17 @@ public class ClientHandler {
     	JsonProvider provider = JsonProvider.provider();
     	
     	// provide the user list
-    	List<String> userList = new ArrayList<>();
+    	JsonArrayBuilder userArrayBuilder = provider.createArrayBuilder();
     	for (String u : dataset.getUsers())
-    		userList.add(dataset.getInfoOnUserToString(u));
+    		userArrayBuilder.add(dataset.getInfoOnUserToJson(u));
+    	JsonArray userArray = userArrayBuilder.build();
     	
     	JsonObjectBuilder dataMessageBuilder = null;
 		dataMessageBuilder = provider.createObjectBuilder()
 			.add("action", "data")
 			.add("type", "userList")
-			.add("size", userList.size());
-		for (int i=0; i < userList.size(); i++) 
-			dataMessageBuilder.add(Integer.toString(i), userList.get(i));
+			.add("size", userArray.size())
+			.add("users", userArray);
 		sendToSession(session, dataMessageBuilder.build());
 		
     	System.out.println("|-ClientHandler provided the user list");
@@ -351,6 +348,7 @@ public class ClientHandler {
 		System.out.println("ClientHandler starts to provide pattern occurrences for "+patternId);
     	JsonProvider provider = JsonProvider.provider();
     	
+    	// Useless, the pattern manager is known here
     	Pattern p = dataset.getPatternManager(session).getPattern(Integer.parseInt(patternId));
     	
     	JsonObjectBuilder dataMessage = provider.createObjectBuilder()
