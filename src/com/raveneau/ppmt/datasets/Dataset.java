@@ -682,6 +682,29 @@ public class Dataset {
 		return null;
 	}
 	
+	/**
+	 * Returns a JsonObject with information on a given user
+	 * The following fields are present:
+	 * 	name
+	 * 	eventNumber
+	 * 	firstEventDate
+	 * 	lastEventDate
+	 * @param username The user
+	 * @return
+	 */
+	public JsonObject getInfoOnUserToJson(String username) {
+		if (userSequences.containsKey(username)) {
+			TreeSet<Event> trace = userSequences.get(username);
+			return JsonProvider.provider().createObjectBuilder()
+					.add("name", username)
+					.add("eventNumber", trace.size())
+					.add("firstEventDate", getFirstEvent(username))
+					.add("lastEventDate", getLastEvent(username))
+					.build();
+		}
+		return null;
+	}
+	
 	public List<Event> getTrace(String user) {
 		if (this.userSequences.containsKey(user)) {
 			return new ArrayList<>(this.userSequences.get(user));

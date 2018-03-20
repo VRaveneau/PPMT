@@ -3,6 +3,8 @@ package com.raveneau.ppmt.server;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
@@ -189,7 +191,7 @@ public class ClientHandler {
 		String firstEvent = dataset.getFirstEvent();
 		String lastEvent = dataset.getLastEvent();
 		// list of events
-		List<String> events = dataset.getEventTypeInfo();
+		List<String> events = dataset.getEventList();
 		// Number of events
 		String nbEvents = Integer.toString(dataset.getNbEvent());
 		// list of users
@@ -222,7 +224,6 @@ public class ClientHandler {
 		System.out.println("requesting event types");
 		
 		// list of event types
-		// TODO Get this directly from the dataset, not from the DSManager
 		List<String> et = dataset.getEventTypeInfo();
 		
 		dataMessage = provider.createObjectBuilder()
@@ -266,17 +267,17 @@ public class ClientHandler {
     	JsonProvider provider = JsonProvider.provider();
     	
     	// provide the user list
-    	List<String> userList = new ArrayList<>();
+    	JsonArrayBuilder userArrayBuilder = provider.createArrayBuilder();
     	for (String u : dataset.getUsers())
-    		userList.add(dataset.getInfoOnUserToString(u));
+    		userArrayBuilder.add(dataset.getInfoOnUserToJson(u));
+    	JsonArray userArray = userArrayBuilder.build();
     	
     	JsonObjectBuilder dataMessageBuilder = null;
 		dataMessageBuilder = provider.createObjectBuilder()
 			.add("action", "data")
 			.add("type", "userList")
-			.add("size", userList.size());
-		for (int i=0; i < userList.size(); i++) 
-			dataMessageBuilder.add(Integer.toString(i), userList.get(i));
+			.add("size", userArray.size())
+			.add("users", userArray);
 		sendToSession(session, dataMessageBuilder.build());
 		
     	System.out.println("|-ClientHandler provided the user list");

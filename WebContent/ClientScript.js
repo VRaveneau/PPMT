@@ -2051,14 +2051,14 @@ function receiveDatasetInfo(message) {
  */
 function receiveUserList(message) {
 	//console.log("Receiving a list of users")
-	let nbUsers = parseInt(message.size);
+	let nbUsers = message.size;
 	//console.log("Adding "+message.size+" users");
 	for (let i = 0; i < nbUsers; i++) {
-		let userInfo = message[i.toString()].split(";");
-		let infoToSave = [userInfo[0], userInfo[1]]; // name and nbEvents
-		userList.push(userInfo[0]);
+		let userInfo = message.users[i];
+		let infoToSave = [userInfo.name, userInfo.eventNumber]; // name and nbEvents
+		userList.push(userInfo.name);
 		// Date format : yyyy-MM-dd HH:mm:ss
-		let startDate = userInfo[2].split(" ");
+		let startDate = userInfo.firstEventDate.split(" ");
 		let part1 = startDate[0].split("-");
 		let part2 = startDate[1].split(":");
 		let d1 = new Date(parseInt(part1[0]),
@@ -2069,7 +2069,7 @@ function receiveUserList(message) {
 				parseInt(part2[2]));
 		let startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
 		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		let endDate = userInfo[3].split(" ");
+		let endDate = userInfo.lastEventDate.split(" ");
 		part1 = endDate[0].split("-");
 		part2 = endDate[1].split(":");
 		let d2 = new Date(parseInt(part1[0]),
@@ -2089,8 +2089,8 @@ function receiveUserList(message) {
 		let startTime = d1.getTime();
 		let timeDiff = endTime-startTime;
 		
-		infoToSave.push(timeDiff, userInfo[2], userInfo[3]); // trace duration, start, end
-		userProperties[userInfo[0]] = {"start": d1, "end":d2, "duration": timeDiff};
+		infoToSave.push(timeDiff, userInfo.firstEventDate, userInfo.lastEventDate); // trace duration, start, end
+		userProperties[userInfo.name] = {"start": d1, "end":d2, "duration": timeDiff};
 		userInformations.push(infoToSave);	// Add this user to the list of already known ones
 	}
 	// sorting by event per user, in descending order
