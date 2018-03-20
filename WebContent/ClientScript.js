@@ -397,6 +397,9 @@ var runningTaskIndicatorState = false;
 // Whether the extended algorithm view is shown or not
 var useExtendedAlgorithmView = false;
 
+// The current state of the algorithm
+var algorithmState = null;
+
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -1542,6 +1545,9 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	//stopAlgorithmRuntime();
 	//startAlgorithmRuntime();
 	
+	// Reset the algorithm state
+	algorithmState = new AlgorithmState();
+
 	// Update the display of the current parameters in the Execution tab
 	d3.select("#currentSupport").text(minSupport+" occs.");
 	d3.select("#currentGap").text(minGap+"-"+maxGap+" events");
@@ -1693,6 +1699,7 @@ function processMessage(message/*Compressed*/) {
 			if (updateUI) {
 				addPatternToList(msg);
 				drawPatternSizesChart();
+				algorithmState.addPattern();
 			}
 		}
 	}
@@ -4145,6 +4152,9 @@ function handleLoadedSignal() {
 function handleNewLevelSignal(level) {
 	d3.select("#currentAlgorithmWork")
 		.text("(working on size "+level+")");
+	
+	algorithmState.stopLevel();
+	algorithmState.startLevel(level);
 }
 
 /**
@@ -5523,7 +5533,86 @@ function GapSlider(elemId) {
 	};
 }
 
+/**
+ * All the informations about the state of a progressive algorithm
+ * @constructor
+ */
+function AlgorithmState() {
+	this.running = false;
+	this.underSteering = false;
+	this.steeringTarget = null;
+	this.patternSizeInfo = {};
+	this.currentLevel = null;
 
+	this.startLevel = function(pSize) {
+		// Go to a previously started pattern size
+		if (Object.keys(this.patternSizeInfo).includes(pSize)) {
+			this.currentLevel = this.patternSizeInfo[pSize];
+		} else { // Start a new pattern size
+			this.patternSizeInfo[pSize] = {
+				size: pSize,
+				status: "active",
+				patternCount : 0,
+				candidates : 0,
+				candidatesChecked : 0,
+				elapsedTime: 0
+			};
+			this.currentLevel = this.patternSizeInfo[pSize];
+		}
+	};
+
+	this.stopLevel = function() {
+		if (this.currentLevel != null) {
+			if (this.currentLevel.candidates == this.currentLevel.candidatesChecked &&
+				!this.isUnderSteering() ) {
+				this.currentLevel.status = "done";
+			} else {
+				this.currentLevel.status = "started";
+			}
+			this.currentLevel = null;
+		}
+	};
+
+	this.isUnderSteering = function() {
+		return this.underSteering;
+	};
+
+	this.getProgression = function(patternSize) {
+		let res = null;
+		if (patternSize) {
+			if (this.patternSizeInfo[patternSize])
+				res = 100 * this.patternSizeInfo[patternSize].candidatesChecked
+							/ this.patternSizeInfo[patternSize].candidates;
+		} else {
+			if (this.currentLevel != null)
+				res = 100 * this.currentLevel.candidatesChecked / this.currentLevel.candidates;
+		}
+		
+		return res;
+	}
+
+	this.getTotalPatternNumber = function() {
+		let res = 0;
+		this.patternSizeInfo.forEach( (d) => {
+			res += d.patternCount;
+		});
+		return res;
+	}
+
+	this.getTotalElapsedTime = function() {
+		let res = 0;
+		this.patternSizeInfo.forEach( (d) => {
+			res += d.elapsedTime;
+		});
+		return res;
+	}
+
+	this.addPattern = function() {
+		if (this.currentLevel != null) {
+			this.currentLevel.patternCount++;
+		}
+	}
+}
 
 
 
