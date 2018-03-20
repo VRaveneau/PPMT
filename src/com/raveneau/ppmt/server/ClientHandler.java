@@ -2,7 +2,9 @@ package com.raveneau.ppmt.server;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -224,17 +226,25 @@ public class ClientHandler {
 		System.out.println("requesting event types");
 		
 		// list of event types
-		List<String> et = dataset.getEventTypeInfo();
+		Map<String,Map<String,String>> et = dataset.getEventTypeInfo();
 		
 		dataMessage = provider.createObjectBuilder()
 				.add("action", "eventTypes")
 				.add("dataset", dataset.getName())
 				.add("size", et.size());
-		int count = 0;
-		for (String t : et) {
-			dataMessage.add(Integer.toString(count), t);
-			count++;
+		
+		JsonArrayBuilder eventTypeArray = provider.createArrayBuilder();
+		
+		for (String evtType : et.keySet()) {
+			JsonObjectBuilder evtObj = provider.createObjectBuilder()
+					.add("type", evtType)
+					.add("nbOccs", et.get(evtType).get("nbOccs"))
+					.add("description", et.get(evtType).get("description"))
+					.add("category", et.get(evtType).get("category"));
+			eventTypeArray.add(evtObj.build());
 		}
+		dataMessage.add("eventTypes", eventTypeArray.build());
+		
 		sendToSession(session, dataMessage.build());
 	}
 	

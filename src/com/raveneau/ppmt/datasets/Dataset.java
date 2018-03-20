@@ -614,7 +614,7 @@ public class Dataset {
 	}
 	
 	// TODO Optimize it better, it is probably redundant
-	public List<String> getEventTypeInfo() {
+	public HashMap<String,Map<String,String>> getEventTypeInfo() {
 		HashMap<String,Map<String,String>> res = new HashMap<>();
 		
 		for (String i : eventsReadable.keySet()) {
@@ -661,7 +661,7 @@ public class Dataset {
 			result.add(s);
 		}
 		
-		return result;
+		return res;
 	}
 	
 	/**
