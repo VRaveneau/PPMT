@@ -394,6 +394,9 @@ var runningTaskIndicator;
 // Whether the activity indicator is active or not
 var runningTaskIndicatorState = false;
 
+// Whether the extended algorithm view is shown or not
+var useExtendedAlgorithmView = false;
+
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -482,6 +485,9 @@ function handleKeyPress() {
 	if (!userInputIsDisabled) {
 		let kc = d3.event.key;
 		switch(kc) {
+		case "t":
+			toggleExtendedAlgorithmView();
+			break;
 		case "m":
 			if (debugMode) {
 				console.log("Requesting mem debug");
@@ -1241,8 +1247,8 @@ function setupAlgorithmSearchField() {
 function setupPatternSizesChart() {
 	let data = Object.keys(patternMetrics.sizeDistribution);
 	
-	patternSizesChart.x.domain(data.map(function(d) { return d; }));
-	patternSizesChart.y.domain([0, d3.max(data, function(d) {
+	patternSizesChart.y.domain(data.map(function(d) { return d; }));
+	patternSizesChart.x.domain([0, d3.max(data, function(d) {
 		return patternMetrics.sizeDistribution[d];
 	})]);
 
@@ -1265,13 +1271,10 @@ function setupPatternSizesChart() {
 		.data(data)
 		.enter().append("rect")
 			.attr("class", "bar")
-			.attr("x", (d) => patternSizesChart.x(d))
-			.attr("y", (d) => patternSizesChart.y(patternMetrics.sizeDistribution[d]))
-			.attr("width", patternSizesChart.x.bandwidth())
-			.attr("height", function(d) {
-				return patternSizesChart.height -
-				 patternSizesChart.y(patternMetrics.sizeDistribution[d]);
-				});
+			.attr("x", patternSizesChart.x(0))
+			.attr("y", (d) => patternSizesChart.y(d))
+			.attr("height", patternSizesChart.y.bandwidth())
+			.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]));
 }
 
 /**
@@ -1448,7 +1451,7 @@ function addToHistory(action) {
 	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
 	let formatTime = d3.timeFormat("%H:%M:%S");
 	let now = formatTime(new Date());
-	history.append("p")
+	history.insert("p",":first-child")
 		.text("- "+action)
 	  .append("span")
 		.classed("timestamp", true)
@@ -1694,10 +1697,14 @@ function processMessage(message/*Compressed*/) {
 		}
 	}
 	if (msg.action === "signal") {
-		if (msg.type === "start")
+		if (msg.type === "start") {
 			startAlgorithmRuntime(parseInt(msg.time));
-		if (msg.type === "end")
+			addToHistory("Algorithm started");
+		}
+		if (msg.type === "end") {
 			stopAlgorithmRuntime(parseInt(msg.time));
+			addToHistory("Algorithm ended");
+		}
 		if (msg.type === "newLevel")
 			handleNewLevelSignal(parseInt(msg.level));
 		if (msg.type === "loading")
@@ -2020,22 +2027,20 @@ function handleDatasetValidation(msg) {
 /**
  * Receives information about a dataset from the server
  * @param {JSON} message - The message containing the information
+ * 
+ * TODO Describe the message structure
  */
 function receiveDatasetInfo(message) {
 	//console.log("number of sequences : " + message.numberOfSequences);
-	datasetInfo["numberOfSequences"] = parseInt(message.numberOfSequences);
-	datasetInfo["numberOfDifferentEvents"] = parseInt(message.numberOfDifferentEvents);
-	datasetInfo["numberOfEvents"] = parseInt(message.nbEvents);
-	let userList = [];
-	for (let i=0; i < datasetInfo["numberOfSequences"];i++)
-		userList.push(message["user"+i.toString()]);
-	datasetInfo["users"] = userList;
+	datasetInfo["numberOfSequences"] = message.numberOfSequences;
+	datasetInfo["numberOfDifferentEvents"] = message.numberOfDifferentEvents;
+	datasetInfo["numberOfEvents"] = message.nbEvents;
+	datasetInfo["users"] = message.users;
 	datasetInfo["firstEvent"] = message.firstEvent;
 	datasetInfo["lastEvent"] = message.lastEvent;
 	datasetInfo["name"] = message.name;
 	
 	displayDatasetInfo();
-	addToHistory('Dataset '+message.name+' loaded');
 
 	// Update the max number of users to display their sessions
 	d3.select("#nbUserShownInput")
@@ -2052,14 +2057,14 @@ function receiveDatasetInfo(message) {
  */
 function receiveUserList(message) {
 	//console.log("Receiving a list of users")
-	let nbUsers = parseInt(message.size);
+	let nbUsers = message.size;
 	//console.log("Adding "+message.size+" users");
 	for (let i = 0; i < nbUsers; i++) {
-		let userInfo = message[i.toString()].split(";");
-		let infoToSave = [userInfo[0], userInfo[1]]; // name and nbEvents
-		userList.push(userInfo[0]);
+		let userInfo = message.users[i];
+		let infoToSave = [userInfo.name, userInfo.eventNumber]; // name and nbEvents
+		userList.push(userInfo.name);
 		// Date format : yyyy-MM-dd HH:mm:ss
-		let startDate = userInfo[2].split(" ");
+		let startDate = userInfo.firstEventDate.split(" ");
 		let part1 = startDate[0].split("-");
 		let part2 = startDate[1].split(":");
 		let d1 = new Date(parseInt(part1[0]),
@@ -2070,7 +2075,7 @@ function receiveUserList(message) {
 				parseInt(part2[2]));
 		let startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
 		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		let endDate = userInfo[3].split(" ");
+		let endDate = userInfo.lastEventDate.split(" ");
 		part1 = endDate[0].split("-");
 		part2 = endDate[1].split(":");
 		let d2 = new Date(parseInt(part1[0]),
@@ -2090,8 +2095,8 @@ function receiveUserList(message) {
 		let startTime = d1.getTime();
 		let timeDiff = endTime-startTime;
 		
-		infoToSave.push(timeDiff, userInfo[2], userInfo[3]); // trace duration, start, end
-		userProperties[userInfo[0]] = {"start": d1, "end":d2, "duration": timeDiff};
+		infoToSave.push(timeDiff, userInfo.firstEventDate, userInfo.lastEventDate); // trace duration, start, end
+		userProperties[userInfo.name] = {"start": d1, "end":d2, "duration": timeDiff};
 		userInformations.push(infoToSave);	// Add this user to the list of already known ones
 	}
 	// sorting by event per user, in descending order
@@ -2147,6 +2152,7 @@ function receiveEvents(eventsCompressed) {
 		console.log("Dimensions created at "+new Date());
 		rawData = null;
 		console.log("raw data removed");
+		addToHistory("Dataset "+datasetInfo.name+" received");
 		buildUserSessions();
 		computeMaxEventAtOneTime();
 		disableCentralOverlay();
@@ -3004,6 +3010,7 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	dataDimensions.time.filterRange(currentTimeFilter);
 	resetPatterns();
 	console.log("Reset patterns done");
+	addToHistory("Event type "+newEvents[0].type+" created from pattern");
 }
 
 /**
@@ -3648,17 +3655,14 @@ function highlightEventTypeRow(eType) {
 		row.classed("selectedEventTypeRow", true);
 		// Adds the newly highlighted event type to the list
 		highlightedEventTypes.push(eType);
-		addToHistory("Highlight event type "+eType);
 	} else {
 		if (row.classed("selectedEventTypeRow")) {
 			// Remove this event type from the list of highlighted event types
 			let eventIdx = highlightedEventTypes.indexOf(eType);
 			highlightedEventTypes.splice(eventIdx, 1);
-			addToHistory("Unhighlight event type "+eType);
 		} else {
 			// Adds the newly highlighted user to the list
 			highlightedEventTypes.push(eType);
-			addToHistory("Highlight event type "+eType);
 		}
 		row.classed("selectedEventTypeRow", !row.classed("selectedEventTypeRow"));
 	}
@@ -3680,7 +3684,6 @@ function highlightUserRow(userName) {
 		// Updates the displays of the number of selected users
 		d3.select("#showSelectedUserSessionsButton")
 			.text("Selected users ("+highlightedUsers.length+")");
-		addToHistory("Highlight user "+userName);
 	} else {
 		if (row.classed("selectedUserRow")) {
 			// Remove this user from the list of highlighted users
@@ -3689,7 +3692,6 @@ function highlightUserRow(userName) {
 			// Updates the displays of the number of selected users
 			d3.select("#showSelectedUserSessionsButton")
 				.text("Selected users ("+highlightedUsers.length+")");
-			addToHistory("Unhighlight user "+userName);
 			// If a filter is being applied, removes the row if necessary
 			if (relatedUsers.length == 0) {
 				if (currentUserSearchInput.length > 0)
@@ -3705,7 +3707,6 @@ function highlightUserRow(userName) {
 			// Updates the displays of the number of selected users
 			d3.select("#showSelectedUserSessionsButton")
 				.text("Selected users ("+highlightedUsers.length+")");
-			addToHistory("Highlight user "+userName);
 		}
 		row.classed("selectedUserRow", !row.classed("selectedUserRow"));
 	}
@@ -4152,8 +4153,8 @@ function handleNewLevelSignal(level) {
 function drawPatternSizesChart() {
 	let data = Object.keys(patternMetrics.sizeDistribution);
 	
-	patternSizesChart.x.domain(data.map(function(d) { return d; }));
-	patternSizesChart.y.domain([0, d3.max(data, function(d) {
+	patternSizesChart.y.domain(data.map(function(d) { return d; }));
+	patternSizesChart.x.domain([0, d3.max(data, function(d) {
 		return patternMetrics.sizeDistribution[d];
 	})]);
 	
@@ -4176,56 +4177,50 @@ function drawPatternSizesChart() {
 	bars.exit()
 		.transition()
 		.duration(0)
-		.attr("y", patternSizesChart.y(0))
-		.attr("height", patternSizesChart.height - patternSizesChart.y(0))
+		.attr("x", patternSizesChart.x(0))
+		.attr("width", patternSizesChart.width - patternSizesChart.x(0))
 		.style('fill-opacity', 1e-6)
 		.remove();
 	
 	texts.exit()
 		.transition()
 		.duration(0)
-		.attr("y", patternSizesChart.y(0))
-		.attr("height", patternSizesChart.height - patternSizesChart.y(0))
+		.attr("x", patternSizesChart.x(0))
+		.attr("width", patternSizesChart.width - patternSizesChart.x(0))
 		.style('fill-opacity', 1e-6)
 		.remove();
 	
 	bars.enter().append("rect")
 		.attr("class", "bar")
-		.attr("y", patternSizesChart.y(0))
-		.attr("height", patternSizesChart.height - patternSizesChart.y(0));
+		.attr("x", patternSizesChart.x(0))
+		.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]));
 	
 	texts.enter().append("text")
 		.attr("class", "bar")
-		.attr("text-anchor", "middle")
-		.attr("x", function(d) {
-			return patternSizesChart.x(d) + patternSizesChart.x.bandwidth()/2;
-		})
+		.attr("text-anchor", "start")
+		.attr("alignment-baseline", "middle")
 		.attr("y", function(d) {
-			return patternSizesChart.y(patternMetrics.sizeDistribution[d]) - 5;
+			return patternSizesChart.y(d) + patternSizesChart.y.bandwidth()/2;
 		})
-		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
+		.attr("x", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]) + 5)
+		.text((d) => patternMetrics.sizeDistribution[d]);
 		
 	// the "UPDATE" set:
 	bars.transition().duration(0)
-		.attr("x", function(d) { return patternSizesChart.x(d); })
-		.attr("width", patternSizesChart.x.bandwidth())
-		.attr("y", function(d) {
-			return patternSizesChart.y(patternMetrics.sizeDistribution[d]);
-		})
-		.attr("height", function(d) {
-			return patternSizesChart.height -
-			patternSizesChart.y(patternMetrics.sizeDistribution[d]);
+		.attr("y", function(d) { return patternSizesChart.y(d); })
+		.attr("height", patternSizesChart.y.bandwidth())
+		.attr("x", patternSizesChart.x(0))
+		.attr("width", function(d) {
+			return patternSizesChart.x(patternMetrics.sizeDistribution[d]);
 		});
 	
 	texts.transition()
 		.duration(0)
-		.attr("x", function(d) {
-			return patternSizesChart.x(d) + patternSizesChart.x.bandwidth()/2;
-		})
 		.attr("y", function(d) {
-			return patternSizesChart.y(patternMetrics.sizeDistribution[d]) - 5;
+			return patternSizesChart.y(d) + patternSizesChart.y.bandwidth()/2;
 		})
-		.text(function(d) { return patternMetrics.sizeDistribution[d]; });
+		.attr("x", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]) + 5)
+		.text((d) => patternMetrics.sizeDistribution[d]);
 }
 
 /**
@@ -4745,6 +4740,18 @@ function getRelevantDisplayMode() {
 	}
 }
 
+/**
+ * Expands or shrinks the extended algorithm view
+ */
+function toggleExtendedAlgorithmView() {
+	useExtendedAlgorithmView = !useExtendedAlgorithmView;
+	if(useExtendedAlgorithmView) { // Show the extended view
+		d3.select("#algorithmExtended").classed("hidden", false);
+	} else { // Show the shrinked view
+		d3.select("#algorithmExtended").classed("hidden", true);
+	}
+}
+
 /************************************/
 /*				Tooltip				*/
 /************************************/
@@ -5229,15 +5236,15 @@ function PatternSizesChart() {
 			.attr("width", "100%")
 			.attr("height", "100%")
 			.attr("id","patternSizesSvg");
-	this.margin = {top: 20, right: 0, bottom: 40, left: 30};
+	this.margin = {top: 10, right: 40, bottom: 20, left: 30};
 	this.width = this.svg.node().getBoundingClientRect().width -
 				 this.margin.left - this.margin.right;
 	this.height = this.svg.node().getBoundingClientRect().height -
 				 this.margin.top - this.margin.bottom;
-	this.x = d3.scaleBand().rangeRound([0, this.width]).padding(0.1);
-	this.y = d3.scaleLinear().rangeRound([this.height, 0]);
-	this.xAxis = d3.axisBottom(this.x);
-	this.yAxis = d3.axisLeft(this.y).ticks(5);
+	this.y = d3.scaleBand().rangeRound([0, this.height]).padding(0.1);
+	this.x = d3.scaleLinear().rangeRound([0, this.width]);
+	this.xAxis = d3.axisBottom(this.x).ticks(5);
+	this.yAxis = d3.axisLeft(this.y);
 	this.g = this.svg.append("g")
 			.attr("transform",
 				 "translate(" + this.margin.left + "," + this.margin.top + ")");
