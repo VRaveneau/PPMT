@@ -397,6 +397,9 @@ var runningTaskIndicatorState = false;
 // Whether the extended algorithm view is shown or not
 var useExtendedAlgorithmView = false;
 
+// The current state of the algorithm
+var algorithmState = null;
+
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -1542,6 +1545,9 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	//stopAlgorithmRuntime();
 	//startAlgorithmRuntime();
 	
+	// Reset the algorithm state
+	algorithmState = new AlgorithmState();
+
 	// Update the display of the current parameters in the Execution tab
 	d3.select("#currentSupport").text(minSupport+" occs.");
 	d3.select("#currentGap").text(minGap+"-"+maxGap+" events");
@@ -1693,6 +1699,7 @@ function processMessage(message/*Compressed*/) {
 			if (updateUI) {
 				addPatternToList(msg);
 				drawPatternSizesChart();
+				algorithmState.addPattern();
 			}
 		}
 	}
@@ -2253,75 +2260,49 @@ function receivePatternOccurrences(message) {
  * @param {JSON} message The message containing the event types
  */
 function receiveEventTypes(message) {
-	let nbEvents = parseInt(message.size);
+	let nbEvents = message.size;
 	// Hide the message saying that there is no event
 	if (nbEvents > 0)
 		d3.select("#noEvent").classed("hidden", true);
 
-	for (let i = 0; i < nbEvents; i++) {
-		let eventInfo = message[i.toString()].split(";");
-		let eType = "";
-		let eCode = "";
-		let eNbOccs = "";
-		let eCategory = "";
-		let eDescription = "";
-		let eColor;
-		
-		for (let j=0; j < eventInfo.length;j++) {
-			let info = eventInfo[j].split(":");
-			switch(info[0]) {
-			case "code":
-				// Use a temporary code in case we don't have the category yet
-				eCode = shapes[i%shapes.length];
-				break;
-			case "type":
-				eType = info[1];
-				if (!eventTypes.includes(eType))
+	message.eventTypes.forEach( function(evtType) {
+		let eType = evtType.type;
+		if (!eventTypes.includes(eType))
 					eventTypes.push(eType);
-				break;
-			case "nbOccs":
-				eNbOccs = info[1];
-				break;
-			case "category":
-				eCategory = info[1];
-				// Setup the category if it is a new one
-				if (eventTypeCategories.includes(eCategory) == false) {
-					eventTypesByCategory[eCategory] = [];
-					eventTypeCategories.push(eCategory);
-					let catColor = getNextCategoryColor();
-					eventTypeCategoryColors[eCategory] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
-					
-					let categoryRow = d3.select("#categoryTableBody").append("tr");
-					categoryRow.append("td").text(eCategory);
-					let categorySvg = categoryRow.append("td")
-						.append("svg")
-						.attr("width",60)
-						.attr("height", 20);
-					categorySvg.append("rect")
-						.attr("width", 30)
-						.attr("height", 20)
-						.attr("fill",eventTypeCategoryColors[eCategory][0].toString());
-					categorySvg.append("rect")
-						.attr("width", 30)
-						.attr("height", 20)
-						.attr("x",30)
-						.attr("fill",eventTypeCategoryColors[eCategory][1].toString());
-				}
-				break;
-			case "description":
-				eDescription = info[1];
-				break;
-			default:
-			}
+
+		let eNbOccs = evtType.nbOccs;
+		let eDescription = evtType.description;
+		let eCategory = evtType.category;
+		// Setup the category if it is a new one
+		if (eventTypeCategories.includes(eCategory) == false) {
+			eventTypesByCategory[eCategory] = [];
+			eventTypeCategories.push(eCategory);
+			let catColor = getNextCategoryColor();
+			eventTypeCategoryColors[eCategory] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
+			
+			let categoryRow = d3.select("#categoryTableBody").append("tr");
+			categoryRow.append("td").text(eCategory);
+			let categorySvg = categoryRow.append("td")
+				.append("svg")
+				.attr("width",60)
+				.attr("height", 20);
+			categorySvg.append("rect")
+				.attr("width", 30)
+				.attr("height", 20)
+				.attr("fill",eventTypeCategoryColors[eCategory][0].toString());
+			categorySvg.append("rect")
+				.attr("width", 30)
+				.attr("height", 20)
+				.attr("x",30)
+				.attr("fill",eventTypeCategoryColors[eCategory][1].toString());
 		}
-		
+
 		eventTypesByCategory[eCategory].push(eType);
 
-		// Correct the event code now that we have the category
 		// Take the first available shape in this category
-		eCode = shapes[(eventTypesByCategory[eCategory].length - 1)%shapes.length];
+		let eCode = shapes[(eventTypesByCategory[eCategory].length - 1)%shapes.length];
+		let eColor = eventTypeCategoryColors[eCategory];
 		
-		eColor = eventTypeCategoryColors[eCategory];
 		colorList[eType] = eColor;
 		itemShapes[eType] = eCode;
 		
@@ -2331,7 +2312,7 @@ function receiveEventTypes(message) {
 				"nbOccs":eNbOccs,
 				"code":eCode
 		};
-	}
+	});
 	
 	sortEventTypesBySupport(true);
 	
@@ -4145,6 +4126,9 @@ function handleLoadedSignal() {
 function handleNewLevelSignal(level) {
 	d3.select("#currentAlgorithmWork")
 		.text("(working on size "+level+")");
+	
+	algorithmState.stopLevel();
+	algorithmState.startLevel(level);
 }
 
 /**
@@ -5523,7 +5507,86 @@ function GapSlider(elemId) {
 	};
 }
 
+/**
+ * All the informations about the state of a progressive algorithm
+ * @constructor
+ */
+function AlgorithmState() {
+	this.running = false;
+	this.underSteering = false;
+	this.steeringTarget = null;
+	this.patternSizeInfo = {};
+	this.currentLevel = null;
 
+	this.startLevel = function(pSize) {
+		// Go to a previously started pattern size
+		if (Object.keys(this.patternSizeInfo).includes(pSize)) {
+			this.currentLevel = this.patternSizeInfo[pSize];
+		} else { // Start a new pattern size
+			this.patternSizeInfo[pSize] = {
+				size: pSize,
+				status: "active",
+				patternCount : 0,
+				candidates : 0,
+				candidatesChecked : 0,
+				elapsedTime: 0
+			};
+			this.currentLevel = this.patternSizeInfo[pSize];
+		}
+	};
+
+	this.stopLevel = function() {
+		if (this.currentLevel != null) {
+			if (this.currentLevel.candidates == this.currentLevel.candidatesChecked &&
+				!this.isUnderSteering() ) {
+				this.currentLevel.status = "done";
+			} else {
+				this.currentLevel.status = "started";
+			}
+			this.currentLevel = null;
+		}
+	};
+
+	this.isUnderSteering = function() {
+		return this.underSteering;
+	};
+
+	this.getProgression = function(patternSize) {
+		let res = null;
+		if (patternSize) {
+			if (this.patternSizeInfo[patternSize])
+				res = 100 * this.patternSizeInfo[patternSize].candidatesChecked
+							/ this.patternSizeInfo[patternSize].candidates;
+		} else {
+			if (this.currentLevel != null)
+				res = 100 * this.currentLevel.candidatesChecked / this.currentLevel.candidates;
+		}
+		
+		return res;
+	}
+
+	this.getTotalPatternNumber = function() {
+		let res = 0;
+		this.patternSizeInfo.forEach( (d) => {
+			res += d.patternCount;
+		});
+		return res;
+	}
+
+	this.getTotalElapsedTime = function() {
+		let res = 0;
+		this.patternSizeInfo.forEach( (d) => {
+			res += d.elapsedTime;
+		});
+		return res;
+	}
+
+	this.addPattern = function() {
+		if (this.currentLevel != null) {
+			this.currentLevel.patternCount++;
+		}
+	}
+}
 
 
 
