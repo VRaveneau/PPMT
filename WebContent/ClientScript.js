@@ -2260,75 +2260,49 @@ function receivePatternOccurrences(message) {
  * @param {JSON} message The message containing the event types
  */
 function receiveEventTypes(message) {
-	let nbEvents = parseInt(message.size);
+	let nbEvents = message.size;
 	// Hide the message saying that there is no event
 	if (nbEvents > 0)
 		d3.select("#noEvent").classed("hidden", true);
 
-	for (let i = 0; i < nbEvents; i++) {
-		let eventInfo = message[i.toString()].split(";");
-		let eType = "";
-		let eCode = "";
-		let eNbOccs = "";
-		let eCategory = "";
-		let eDescription = "";
-		let eColor;
-		
-		for (let j=0; j < eventInfo.length;j++) {
-			let info = eventInfo[j].split(":");
-			switch(info[0]) {
-			case "code":
-				// Use a temporary code in case we don't have the category yet
-				eCode = shapes[i%shapes.length];
-				break;
-			case "type":
-				eType = info[1];
-				if (!eventTypes.includes(eType))
+	message.eventTypes.forEach( function(evtType) {
+		let eType = evtType.type;
+		if (!eventTypes.includes(eType))
 					eventTypes.push(eType);
-				break;
-			case "nbOccs":
-				eNbOccs = info[1];
-				break;
-			case "category":
-				eCategory = info[1];
-				// Setup the category if it is a new one
-				if (eventTypeCategories.includes(eCategory) == false) {
-					eventTypesByCategory[eCategory] = [];
-					eventTypeCategories.push(eCategory);
-					let catColor = getNextCategoryColor();
-					eventTypeCategoryColors[eCategory] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
-					
-					let categoryRow = d3.select("#categoryTableBody").append("tr");
-					categoryRow.append("td").text(eCategory);
-					let categorySvg = categoryRow.append("td")
-						.append("svg")
-						.attr("width",60)
-						.attr("height", 20);
-					categorySvg.append("rect")
-						.attr("width", 30)
-						.attr("height", 20)
-						.attr("fill",eventTypeCategoryColors[eCategory][0].toString());
-					categorySvg.append("rect")
-						.attr("width", 30)
-						.attr("height", 20)
-						.attr("x",30)
-						.attr("fill",eventTypeCategoryColors[eCategory][1].toString());
-				}
-				break;
-			case "description":
-				eDescription = info[1];
-				break;
-			default:
-			}
+
+		let eNbOccs = evtType.nbOccs;
+		let eDescription = evtType.description;
+		let eCategory = evtType.category;
+		// Setup the category if it is a new one
+		if (eventTypeCategories.includes(eCategory) == false) {
+			eventTypesByCategory[eCategory] = [];
+			eventTypeCategories.push(eCategory);
+			let catColor = getNextCategoryColor();
+			eventTypeCategoryColors[eCategory] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
+			
+			let categoryRow = d3.select("#categoryTableBody").append("tr");
+			categoryRow.append("td").text(eCategory);
+			let categorySvg = categoryRow.append("td")
+				.append("svg")
+				.attr("width",60)
+				.attr("height", 20);
+			categorySvg.append("rect")
+				.attr("width", 30)
+				.attr("height", 20)
+				.attr("fill",eventTypeCategoryColors[eCategory][0].toString());
+			categorySvg.append("rect")
+				.attr("width", 30)
+				.attr("height", 20)
+				.attr("x",30)
+				.attr("fill",eventTypeCategoryColors[eCategory][1].toString());
 		}
-		
+
 		eventTypesByCategory[eCategory].push(eType);
 
-		// Correct the event code now that we have the category
 		// Take the first available shape in this category
-		eCode = shapes[(eventTypesByCategory[eCategory].length - 1)%shapes.length];
+		let eCode = shapes[(eventTypesByCategory[eCategory].length - 1)%shapes.length];
+		let eColor = eventTypeCategoryColors[eCategory];
 		
-		eColor = eventTypeCategoryColors[eCategory];
 		colorList[eType] = eColor;
 		itemShapes[eType] = eCode;
 		
@@ -2338,7 +2312,7 @@ function receiveEventTypes(message) {
 				"nbOccs":eNbOccs,
 				"code":eCode
 		};
-	}
+	});
 	
 	sortEventTypesBySupport(true);
 	
