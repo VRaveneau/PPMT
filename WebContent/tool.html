@@ -275,6 +275,7 @@
 								<p class="algoParameterRecap hidden">Window size: <span id="currentWindow">??</span></p>
 								<!-- <p>Data used: <span id="dataUsed"></span></p>
 								<p>Focusing on: <span id="focus"></span></p> -->
+								<button onclick="toggleExtendedAlgorithmView();" class="clickable">Show more</button>
 							</div>
 							<div>
 								
@@ -364,13 +365,54 @@
 					</div>
 				</div>
 					
-			<div id="tooltip" class="section hidden">
-				<!-- <div class="title">Inspector</div> -->
-				<div class="subtitle">Click somewhere to lock this tooltip</div>
-				<div class="body">
-				Hover over the visualizations to get more information
+				<div id="tooltip" class="section hidden">
+					<!-- <div class="title">Inspector</div> -->
+					<div class="subtitle">Click somewhere to lock this tooltip</div>
+					<div class="body">
+					Hover over the visualizations to get more information
+					</div>
 				</div>
-			</div>
+				<div id="algorithmExtended" class="hidden">
+					<div id="algorithmExtendedMainPanel">
+						<div class="section">
+							<div class="body">
+								<button onclick="toggleExtendedAlgorithmView();" class="clickable">Show less</button>
+								<p class="right-aligned">Total: <spans>XXX</spans> patterns found over <span>YYY time</span></p>
+							</div>
+						</div>
+						<div id="patternSizeTableArea" class="section">
+							<div class="body">
+								<table>
+									<thead>
+										<tr>
+											<th>Size</th>
+											<th>Status</th>
+											<th>Patterns found</th>
+											<th>Candidates checked</th>
+											<th>Progression</th>
+											<th>Elapsed time</th>
+										</tr>
+									</thead>
+									<tbody>
+
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+					<div id="algorithmExtendedSidePanel">
+						<div id="extendedAlgorithmStrategyArea" class="section">
+							<div class="body">
+								plop
+							</div>
+						</div>
+						<div id="algorithmSpeedArea" class="section">
+							<div class="body">
+								plop
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	    <script src="config.js" type="text/javascript" charset="utf-8"></script>

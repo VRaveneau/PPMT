@@ -394,6 +394,9 @@ var runningTaskIndicator;
 // Whether the activity indicator is active or not
 var runningTaskIndicatorState = false;
 
+// Whether the extended algorithm view is shown or not
+var useExtendedAlgorithmView = false;
+
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -482,6 +485,9 @@ function handleKeyPress() {
 	if (!userInputIsDisabled) {
 		let kc = d3.event.key;
 		switch(kc) {
+		case "t":
+			toggleExtendedAlgorithmView();
+			break;
 		case "m":
 			if (debugMode) {
 				console.log("Requesting mem debug");
@@ -4731,6 +4737,18 @@ function getRelevantDisplayMode() {
 		return "events";
 	} else {
 		return "distributions";
+	}
+}
+
+/**
+ * Expands or shrinks the extended algorithm view
+ */
+function toggleExtendedAlgorithmView() {
+	useExtendedAlgorithmView = !useExtendedAlgorithmView;
+	if(useExtendedAlgorithmView) { // Show the extended view
+		d3.select("#algorithmExtended").classed("hidden", false);
+	} else { // Show the shrinked view
+		d3.select("#algorithmExtended").classed("hidden", true);
 	}
 }
 

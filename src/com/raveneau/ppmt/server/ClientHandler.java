@@ -348,6 +348,7 @@ public class ClientHandler {
 		System.out.println("ClientHandler starts to provide pattern occurrences for "+patternId);
     	JsonProvider provider = JsonProvider.provider();
     	
+    	// Useless, the pattern manager is known here
     	Pattern p = dataset.getPatternManager(session).getPattern(Integer.parseInt(patternId));
     	
     	JsonObjectBuilder dataMessage = provider.createObjectBuilder()
