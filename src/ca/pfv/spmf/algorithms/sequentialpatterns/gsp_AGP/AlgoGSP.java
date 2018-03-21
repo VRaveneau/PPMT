@@ -244,6 +244,7 @@ public class AlgoGSP {
 	            	levelEndedWithNoCandidate = true;
 	                break;
 	            }
+	            patternManager.signalCandidatesGenerated(candidateSet.size());
 	            //Otherwise we continue counting the support of each candidate of the set
 	            if (verbose) {
 	                System.out.println(candidateSet.size() + "  Candidates have been created!");

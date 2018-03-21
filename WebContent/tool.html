@@ -377,12 +377,12 @@
 						<div class="section">
 							<div class="body">
 								<button onclick="toggleExtendedAlgorithmView();" class="clickable">Show less</button>
-								<p class="right-aligned">Total: <spans>XXX</spans> patterns found over <span>YYY time</span></p>
+								<p class="right-aligned">Total: <span id="algorithmInfoTotalPatternCount">No</span> patterns found over <span id="algorithmInfoTotalTime">0s</span></p>
 							</div>
 						</div>
 						<div id="patternSizeTableArea" class="section">
 							<div class="body">
-								<table>
+								<table id="patternSizeTable">
 									<thead>
 										<tr>
 											<th>Size</th>
@@ -402,11 +402,11 @@
 					</div>
 					<div id="algorithmExtendedSidePanel">
 						<div id="extendedAlgorithmStrategyArea" class="section">
-							<div class="body">
-								plop
-							</div>
+							<div class="title">Current strategy</div>
+							<div class="body">Not Running</div>
 						</div>
 						<div id="algorithmSpeedArea" class="section">
+							<div class="title">Speed</div>
 							<div class="body">
 								plop
 							</div>

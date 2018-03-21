@@ -1116,6 +1116,11 @@ ul.algorithmTabs li :not(.active):hover {
 	flex: 1 1 0;
 }
 
+#Execution > div:first-of-type {
+	display: flex;
+	flex-direction: column;
+}
+
 #currentAlgorithmWork {
 	font-style: italic;
 	color: grey;
@@ -1199,6 +1204,29 @@ ul.algorithmTabs li :not(.active):hover {
 
 #patternSizeTableArea {
 	
+}
+
+#patternSizeTable tbody tr {
+	text-align: center;
+}
+
+.patternSizeStatus {
+	border: 1px solid black;
+	border-radius: 5px;
+	font-variant: small-caps;
+	font-weight: bold;
+}
+
+.leveldone {
+	background-color: green;
+}
+
+.levelstarted {
+	background-color: dodgerblue;
+}
+
+.levelactive {
+	background-color: orange;
 }
 
 #extendedAlgorithmStrategyArea {

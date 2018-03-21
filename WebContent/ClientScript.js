@@ -482,6 +482,41 @@ function displayServerDebugMessage(message) {
 }
 
 /**
+ * Takes a time duration and returns a string display of it. The returned string
+ * can be in a short format (default), or in a long format
+ * @param {number} time The time duration to format
+ * @param {} long Whether the return string will be short (XX:YY) or not (XXmin YYs)
+ */
+function formatElapsedTimeToString(time, long) {
+	let elapsedMinutes = Math.floor(time/60000);
+	time = time%60000;
+	let elapsedSeconds = Math.floor(time/1000);
+	let result = "";
+
+	if(long) {
+		if (elapsedMinutes > 0) {
+			if (elapsedMinutes < 10)
+				result = "0";
+			result += elapsedMinutes+"min ";
+		}
+		if (elapsedSeconds < 10 && elapsedMinutes > 0)
+			result += "0";
+		result += elapsedSeconds+"s";
+	} else {
+		if (elapsedMinutes < 10)
+			result = "0"+elapsedMinutes+":";
+		else
+			result = elapsedMinutes+":";
+		if (elapsedSeconds < 10)
+			result += "0"+elapsedSeconds;
+		else
+			result += elapsedSeconds;
+	}
+	
+	return result;
+}
+
+/**
  * Manages keyboard input
  */
 function handleKeyPress() {
@@ -1704,16 +1739,16 @@ function processMessage(message/*Compressed*/) {
 		}
 	}
 	if (msg.action === "signal") {
-		if (msg.type === "start") {
-			startAlgorithmRuntime(parseInt(msg.time));
-			addToHistory("Algorithm started");
-		}
-		if (msg.type === "end") {
-			stopAlgorithmRuntime(parseInt(msg.time));
-			addToHistory("Algorithm ended");
-		}
+		if (msg.type === "start")
+			handleAlgorithmStartSignal(msg);
+		if (msg.type === "end")
+			handleAlgorithmEndSignal(msg);
 		if (msg.type === "newLevel")
 			handleNewLevelSignal(parseInt(msg.level));
+		if (msg.type === "levelComplete")
+			handleLevelCompleteSignal(parseInt(msg.level));
+		if (msg.type === "candidatesGenerated")
+			handleCandidatesGeneratedSignal(parseInt(msg.number));
 		if (msg.type === "loading")
 			handleLoadingSignal();
 		if (msg.type === "loaded")
@@ -4026,27 +4061,7 @@ function startAlgorithmRuntime(time) {
 	let clientTime = new Date();
 	algorithmStartTime = new Date(time);
 	startDelayFromServer = algorithmStartTime - clientTime;
-	algorithmTimer = setInterval(function() {
-		let thisTime = new Date();
-		let elapsedTime = thisTime - algorithmStartTime;
-		// Compensate for the delay between the two clocks
-		elapsedTime += startDelayFromServer;
-		let elapsedMinutes = Math.floor(elapsedTime/60000);
-		elapsedTime = elapsedTime%60000;
-		let elapsedSeconds = Math.floor(elapsedTime/1000);
-		// Update the display of the runtime
-		let text = "";
-		if (elapsedMinutes < 10)
-			text = "0"+elapsedMinutes+":";
-		else
-			text = elapsedMinutes+":";
-		if (elapsedSeconds < 10)
-			text += "0"+elapsedSeconds;
-		else
-			text += elapsedSeconds;
-		d3.select("#runtime")
-			.text(text);
-	},1000);
+	algorithmTimer = setInterval(updateAlgorithmStateDisplay, 100);
 }
 
 /**
@@ -4079,6 +4094,112 @@ function stopAlgorithmRuntime(time) {
 	
 	d3.select("#currentAlgorithmWork")
 		.text("(ended)");
+}
+
+/**
+ * Updates the display of the algorithm state
+ */
+function updateAlgorithmStateDisplay() {
+	let thisTime = new Date();
+	let elapsedTime = (algorithmState.isRunning()) ?
+						thisTime - algorithmStartTime :
+						algorithmState.getTotalElapsedTime();
+	// Compensate for the delay between the two clocks
+	if (algorithmState.isRunning()) {
+		elapsedTime += startDelayFromServer;
+		// Update the elapsed time on the current level
+		let timeDiff = elapsedTime - algorithmState.getTotalElapsedTime();
+		algorithmState.addTime(timeDiff);
+	}
+	// Update the extended view
+	// Update the table
+	let table = d3.select("#patternSizeTable");
+	algorithmState.getOrderedLevels().forEach( function(lvl) {
+		let lvlData = algorithmState.getLevel(lvl);
+		let row = d3.select("#patternSizeTableRow"+lvl);
+		if (row.size() > 0) { // The row already exists
+			row.select(".patternSizeStatus")
+				.classed("levelstarted", false)
+				.classed("leveldone", false)
+				.classed("levelactive", false)
+				.classed("level"+lvlData.status, true)
+				.text(lvlData.status);
+			row.select(".patternSizeCount")
+				.text(lvlData.patternCount);
+			row.select(".patternSizeCandidates")
+				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
+			row.select(".patternSizeProgression")
+				.text(algorithmState.getProgression(lvl)+"%");
+			row.select(".patternSizeTime")
+				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
+		} else { // The row doesn't exist yet
+			row = table.select("tbody").append("tr")
+				.property("id", "patternSizeTableRow"+lvl);
+			row.append("td")
+				.text(lvlData.size);
+			row.append("td")
+				.classed("patternSizeStatus", true)
+				.classed("level"+lvlData.status, true)
+				.text(lvlData.status);
+			row.append("td")
+				.classed("patternSizeCount", true)
+				.text(lvlData.patternCount);
+			row.append("td")
+				.classed("patternSizeCandidates", true)
+				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
+			row.append("td")
+				.classed("patternSizeProgression", true)
+				.text(algorithmState.getProgression(lvl)+"%");
+			row.append("td")
+				.classed("patternSizeTime", true)
+				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
+		}
+	});
+	// Update the totals
+	d3.select("#algorithmInfoTotalPatternCount")
+		.text(algorithmState.getTotalPatternNumber());
+	d3.select("#algorithmInfoTotalTime")
+		.text(formatElapsedTimeToString(algorithmState.getTotalElapsedTime(), true));
+	// Update the strategy
+	let strategyTxt = "Not running";
+	if (algorithmState.isRunning()) {
+		if (algorithmState.isUnderSteering()) {
+			strategyTxt = "Steering on "+ (algorithmState.getSteeringTarget()) ?
+											algorithmState.getSteeringTarget() :
+											"something";
+		} else {
+			strategyTxt = "Default (breadth-first search)";
+		}
+	}
+	d3.select("#extendedAlgorithmStrategyArea div.body")
+		.text(strategyTxt);
+	// Update the speed
+		
+	// Update the reduced view
+	// Update the display of the runtime
+	d3.select("#runtime")
+		.text(formatElapsedTimeToString(elapsedTime));
+}
+
+/**
+ * Handles the signal that the algorithm has started on the server
+ * @param {json} msg The received message
+ */
+function handleAlgorithmStartSignal(msg) {
+	startAlgorithmRuntime(parseInt(msg.time));
+	algorithmState.start();
+	addToHistory("Algorithm started");
+}
+
+/**
+ * Handles the signal that the algorithm has ended on the server
+ * @param {json} msg The received message
+ */
+function handleAlgorithmEndSignal(msg) {
+	stopAlgorithmRuntime(parseInt(msg.time));
+	algorithmState.stop();
+	updateAlgorithmStateDisplay();
+	addToHistory("Algorithm ended");
 }
 
 /**
@@ -4129,6 +4250,22 @@ function handleNewLevelSignal(level) {
 	
 	algorithmState.stopLevel();
 	algorithmState.startLevel(level);
+}
+
+/**
+ * Displays the current pattern-size the algorithm is working on
+ * @param {number} level The pattern size
+ */
+function handleLevelCompleteSignal(level) {
+	algorithmState.setLevelComplete(level);
+}
+
+/**
+ * Displays the number of candidates generated for the current algorithm level
+ * @param {number} number The number of candidates
+ */
+function handleCandidatesGeneratedSignal(number) {
+	algorithmState.addGeneratedCandidates(number);
 }
 
 /**
@@ -5518,6 +5655,14 @@ function AlgorithmState() {
 	this.patternSizeInfo = {};
 	this.currentLevel = null;
 
+	this.start = function() {
+		this.running = true;
+	}
+
+	this.stop = function() {
+		this.running = false;
+	}
+
 	this.startLevel = function(pSize) {
 		// Go to a previously started pattern size
 		if (Object.keys(this.patternSizeInfo).includes(pSize)) {
@@ -5547,9 +5692,17 @@ function AlgorithmState() {
 		}
 	};
 
+	this.isRunning = function() {
+		return this.running;
+	}
+
 	this.isUnderSteering = function() {
 		return this.underSteering;
 	};
+
+	this.getSteeringTarget = function() {
+		return this.steeringTarget;
+	}
 
 	this.getProgression = function(patternSize) {
 		let res = null;
@@ -5565,18 +5718,22 @@ function AlgorithmState() {
 		return res;
 	}
 
+	this.getOrderedLevels = function() {
+		return Object.keys(this.patternSizeInfo).sort();
+	}
+
 	this.getTotalPatternNumber = function() {
 		let res = 0;
-		this.patternSizeInfo.forEach( (d) => {
-			res += d.patternCount;
+		Object.keys(this.patternSizeInfo).forEach( (d) => {
+			res += this.patternSizeInfo[d].patternCount;
 		});
 		return res;
 	}
 
 	this.getTotalElapsedTime = function() {
 		let res = 0;
-		this.patternSizeInfo.forEach( (d) => {
-			res += d.elapsedTime;
+		Object.keys(this.patternSizeInfo).forEach( (d) => {
+			res += this.patternSizeInfo[d].elapsedTime;
 		});
 		return res;
 	}
@@ -5584,6 +5741,38 @@ function AlgorithmState() {
 	this.addPattern = function() {
 		if (this.currentLevel != null) {
 			this.currentLevel.patternCount++;
+		}
+	}
+
+	this.addGeneratedCandidates = function(nb) {
+		if (this.currentLevel != null) {
+			this.currentLevel.candidates += nb;
+		}
+	}
+
+	this.addCheckedCandidates = function(nb) {
+		if (this.currentLevel != null) {
+			this.currentLevel.candidatesChecked += nb;
+		}
+	}
+
+	this.setLevelComplete = function(level) {
+		if (this.patternSizeInfo[level]) {
+			this.patternSizeInfo[level].candidatesChecked = this.patternSizeInfo[level].candidates;
+		}
+		if (this.currentLevel && this.currentLevel.size == level)
+			this.stopLevel();
+	}
+
+	this.getLevel = function(patternSize) {
+		if (this.patternSizeInfo[patternSize])
+			return this.patternSizeInfo[patternSize];
+		return null;
+	}
+
+	this.addTime = function(time) {
+		if (this.currentLevel != null) {
+			this.currentLevel.elapsedTime += time;
 		}
 	}
 }
