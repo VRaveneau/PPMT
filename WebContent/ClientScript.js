@@ -400,6 +400,11 @@ var useExtendedAlgorithmView = false;
 // The current state of the algorithm
 var algorithmState = null;
 
+// The id of the pattern corresponding to the pattern list's row under the mouse
+var patternIdUnderMouse = -1;
+// Timeout before hiding the pattern contextual actions
+var patternContextActionsHideTimeout = null;
+
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -458,6 +463,12 @@ var debouncedFilterUserList = _.debounce(filterUserList, 500);
  * @type {function}
  */
 var debouncedFilterPatternList = _.debounce(filterPatternList, 500);
+
+/**
+ * A debounced version of hidePatternContextActions
+ * @type {function}
+ */
+var debouncedHidePatternContextActions = _.debounce(hidePatternContextActions, 500);
 
 /******************************************************************************/
 /*																			  */
@@ -1084,6 +1095,8 @@ function setupTool() {
 	
 	setupAlgorithmSliders();
 	setupPatternSizesChart();
+
+	setupContextActions();
 	
 	d3.select("body").on("keyup", handleKeyPress);
 	d3.select("body").on("mousemove", moveTooltip);
@@ -1470,6 +1483,23 @@ function setupHelpers() {
 		.attr("title", "The minimal support for a pattern to be frequent");
 	d3.select("#helpSize")
 		.attr("title", "Maximum number of event in a pattern");
+}
+
+/**
+ * Setup the contextual actions
+ */
+function setupContextActions() {
+	// Pattern context actions
+	d3.select("#createEventButton")
+		.on("click", function() {
+			if (patternIdUnderMouse >= 0)
+				requestEventTypeCreationFromPattern(patternIdUnderMouse);
+		});
+	d3.select("#prefixSteeringButton")
+		.on("click", function() {
+			if (patternIdUnderMouse >= 0)
+				requestSteeringOnPattern(patternIdUnderMouse);
+		});
 }
 
 /*************************************/
@@ -2828,6 +2858,9 @@ function addPatternToList(message) {
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 					}
+				})
+				.on("mouseover", function() {
+					movePatternContextActionsToRow(pId);
 				});
 			var thisNameCell = thisRow.append("td");
 			
@@ -2897,6 +2930,9 @@ function addPatternToList(message) {
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 					}
+				})
+				.on("mouseover", function() {
+					movePatternContextActionsToRow(pId);
 				});
 			let thisNameCell = thisRow.append("td");
 			for (var k=0; k < pSize; k++) {
@@ -3041,6 +3077,38 @@ function resetDataFilters() {
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+/**
+ * Moves the pattern context actions to a pattern list row and reveals it
+ * @param {number} patternId The id of the pattern
+ */
+function movePatternContextActionsToRow(patternId) {
+	clearTimeout(patternContextActionsHideTimeout);
+
+	let ctxActions = d3.select("#patternContextActions");
+	let rowCell = d3.select("#pattern"+patternId+" td");
+	let boundingRect = rowCell.node().getBoundingClientRect();
+	patternIdUnderMouse = patternId;
+	ctxActions.classed("hidden", false)
+		.style("width", Math.round(boundingRect.width)+"px")
+		.style("left", Math.round(boundingRect.left)+"px")
+		.style("top", `${Math.round(boundingRect.top)}px`);
+}
+
+/**
+ * Starts the countdown before actually hiding the pattern context actions.
+ */
+function prepareToHidePatternContextActions() {
+	patternContextActionsHideTimeout = setTimeout(hidePatternContextActions, 500);
+}
+
+/**
+ * Hides the pattern context actions.
+ */
+function hidePatternContextActions() {
+	patternIdUnderMouse = -1;
+	d3.select("#patternContextActions").classed("hidden", true);
+}
 
 /**
  * Updates the display of the number of pattern discovered, selected and
@@ -4475,6 +4543,9 @@ function createPatternListDisplay() {
 					// Update the number of selected patterns display
 					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 				}
+			})
+			.on("mouseover", function() {
+				movePatternContextActionsToRow(pId);
 			});
 		var thisNameCell = thisRow.append("td");
 			//.classed("dropdown", true);

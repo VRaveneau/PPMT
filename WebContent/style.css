@@ -1140,6 +1140,19 @@ ul.algorithmTabs li :not(.active):hover {
 	font-weight: normal;
 }
 
+#patternContextActions {
+	justify-content: flex-end;
+}
+
+.contextActions {
+	flex-direction: row;
+	position: absolute;
+}
+
+.contextActions:not(.hidden) {
+	display: flex;
+}
+
 /********************************/
 /*		pattern sizes graph		*/
 /********************************/
@@ -1222,11 +1235,11 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 .levelstarted {
-	background-color: dodgerblue;
+	background-color: orange;
 }
 
 .levelactive {
-	background-color: orange;
+	background-color: dodgerblue;
 }
 
 #extendedAlgorithmStrategyArea {
