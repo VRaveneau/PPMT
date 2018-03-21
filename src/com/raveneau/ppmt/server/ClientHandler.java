@@ -409,6 +409,24 @@ public class ClientHandler {
 		sendToSession(session, dataMessage.build());
 	}
 
+	public void signalLevelComplete(int k) {
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "signal")
+				.add("type", "levelComplete")
+				.add("level", k);
+		sendToSession(session, dataMessage.build());
+	}
+	
+	public void signalCandidatesGenerated(int candidatesNumber) {
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "signal")
+				.add("type", "candidatesGenerated")
+				.add("number", candidatesNumber);
+		sendToSession(session, dataMessage.build());
+	}
+
 	public void signalLoadingData() {
 		JsonProvider provider = JsonProvider.provider();
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
