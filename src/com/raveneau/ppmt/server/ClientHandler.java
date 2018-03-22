@@ -515,4 +515,32 @@ public class ClientHandler {
 		dataset.removePatternManagerFromSession(session);
 		patternManager = null;
 	}
+	
+	public void removeEventType(String eventName) {
+		TraceModification modifs = dataset.removeEventType(eventName, session);
+		
+		// Stop the algorithm
+		algorithmHandler.stopMining();
+		
+		// Send the new event types info
+		provideEventTypesInfo();
+		
+		// Create the message to communicate the changes to the client
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "dataAlteration")
+				.add("type", "eventTypeRemoved");
+		
+		JsonArrayBuilder removedIds = provider.createArrayBuilder();
+		for (Integer id : modifs.getRemovedIds())
+			removedIds.add(id.intValue());
+		dataMessage.add("removedIds", removedIds.build());
+				
+		// Send this message
+		sendToSession(session, dataMessage.build());
+		
+		// Remove the now old pattern manager
+		dataset.removePatternManagerFromSession(session);
+		patternManager = null;
+	}
 }
