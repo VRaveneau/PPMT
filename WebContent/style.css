@@ -1467,10 +1467,6 @@ ul.algorithmTabs li :not(.active):hover {
 .fakeBrowserSlider:hover::-webkit-slider-runnable-track {
 	height: 10px;
 }
-
-.fakeBrowserSlider:focus::-webkit-slider-runnable-track {
-	background: #367ebd;
-}
   
 .fakeBrowserSlider::-moz-range-track {
 	width: 100%;
