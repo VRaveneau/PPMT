@@ -1070,6 +1070,7 @@ function createServer() {
  * Initializes the tool once a dataset has been selected
  */
 function setupTool() {
+	setupModalWindows();
 	setupAlgorithmSearchField();
 	setupUserSearchField();
 	
@@ -1492,7 +1493,7 @@ function setupHelpers() {
 }
 
 /**
- * Setup the contextual actions
+ * Sets up the contextual actions
  */
 function setupContextActions() {
 	// Pattern context actions
@@ -1513,6 +1514,18 @@ function setupContextActions() {
 			if (eventTypeUnderMouse != null)
 				requestEventTypeRemoval(eventTypeUnderMouse);
 		});
+}
+
+/**
+ * Sets up the modal windows
+ */
+function setupModalWindows() {
+	d3.select("#modalContent")
+		.on("click", function() {
+			d3.event.stopPropagation();
+		});
+	d3.select("#modalBackground")
+		.on("click", closeModal);
 }
 
 /*************************************/
@@ -5048,10 +5061,21 @@ function getRelevantDisplayMode() {
 function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
+		d3.select("#modalBackground").classed("hidden", false);
 		d3.select("#algorithmExtended").classed("hidden", false);
 	} else { // Show the shrinked view
+		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#algorithmExtended").classed("hidden", true);
 	}
+}
+
+/**
+ * Hides the modal window and its content
+ */
+function closeModal() {
+	useExtendedAlgorithmView = false;
+	d3.select("#modalBackground").classed("hidden", true);
+	d3.select("#algorithmExtended").classed("hidden", true);
 }
 
 /************************************/
