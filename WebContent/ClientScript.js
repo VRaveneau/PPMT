@@ -1632,6 +1632,13 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	d3.select("#currentWindow").text(windowSize);
 	d3.select("#currentSize").text(maxSize+" events");
 	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
+
+	// Update the display of the current parameters in the extended algorithm tab
+	d3.select("#currentSupportExtended").text(minSupport+" occs.");
+	d3.select("#currentGapExtended").text(minGap+"-"+maxGap+" events");
+	d3.select("#currentWindowExtended").text(windowSize);
+	d3.select("#currentSizeExtended").text(maxSize+" events");
+	d3.select("#currentMaxDurationExtended").text(maxDuration/1000+"s");
 }
 
 // TODO Store current parameters in global variables and use them instead of startInitialMining()
