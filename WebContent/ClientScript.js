@@ -4302,6 +4302,7 @@ function updateAlgorithmStateDisplay() {
 		let lvlProgression = algorithmState.getProgression(lvl);
 		let row = d3.select("#patternSizeTableRow"+lvl);
 		if (row.size() > 0) { // The row already exists
+			row.classed("rowactive", lvlData.status == "active");
 			row.select(".patternSizeStatus")
 				.classed("levelstarted", false)
 				.classed("leveldone", false)

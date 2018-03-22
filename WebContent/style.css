@@ -1254,22 +1254,28 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 .patternSizeStatus {
-	border: 1px solid black;
 	border-radius: 5px;
 	font-variant: small-caps;
 	font-weight: bold;
 }
 
 .leveldone {
-	background-color: green;
+	color: green;
+	background-color: lightgreen;
 }
 
 .levelstarted {
-	background-color: orange;
+	color: orange;
+	background-color: lightyellow;
 }
 
 .levelactive {
-	background-color: dodgerblue;
+	color: dodgerblue;
+	background-color: lightblue;
+}
+
+.rowactive {
+	background-color: lightblue;
 }
 
 #extendedAlgorithmStrategyArea {
