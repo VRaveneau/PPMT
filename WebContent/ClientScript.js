@@ -3090,7 +3090,7 @@ function movePatternContextActionsToRow(patternId) {
 	let boundingRect = rowCell.node().getBoundingClientRect();
 	patternIdUnderMouse = patternId;
 	ctxActions.classed("hidden", false)
-		.style("width", Math.round(boundingRect.width)+"px")
+		.style("width", Math.round(boundingRect.width/2)+"px")
 		.style("left", Math.round(boundingRect.left)+"px")
 		.style("top", `${Math.round(boundingRect.top)}px`);
 }
@@ -4233,10 +4233,14 @@ function updateAlgorithmStateDisplay() {
 	let strategyTxt = "Not running";
 	if (algorithmState.isRunning()) {
 		if (algorithmState.isUnderSteering()) {
-			strategyTxt = "Steering on "+
-					(algorithmState.getSteeringTarget()) ?
-						algorithmState.getSteeringTarget()+" "+algorithmState.getSteeringValue() :
-						"something";
+			strategyTxt = "Steering on ";
+			if (algorithmState.getSteeringTarget()) {
+				strategyTxt += algorithmState.getSteeringTarget();
+				if (algorithmState.getSteeringValue())
+					strategyTxt += " "+algorithmState.getSteeringValue();
+			} else {
+				strategyTxt += "something";
+			}
 		} else {
 			strategyTxt = "Default (breadth-first search)";
 		}
