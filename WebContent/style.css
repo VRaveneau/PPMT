@@ -1140,13 +1140,10 @@ ul.algorithmTabs li :not(.active):hover {
 	font-weight: normal;
 }
 
-#patternContextActions {
-	justify-content: flex-end;
-}
-
 .contextActions {
 	flex-direction: row;
 	position: absolute;
+	justify-content: flex-end;
 }
 
 .contextActions:not(.hidden) {

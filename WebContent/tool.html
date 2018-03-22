@@ -84,7 +84,7 @@
 										<th onclick="clickOnEventTypeCategoryHeader()">Category&nbsp;</th>
 									</tr>
 								</thead>
-								<tbody id="eventTableBody">
+								<tbody id="eventTableBody" onmouseout="prepareToHideEventTypeContextActions();">
 								</tbody>
 							</table>
 							<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
@@ -416,6 +416,9 @@
 				<div id="patternContextActions" class="contextActions hidden">
 					<button id="createEventButton" class="clickable">To eventType</button>
 					<button id="prefixSteeringButton" class="clickable">Prefix steering</button>
+				</div>
+				<div id="eventTypeContextActions" class="contextActions hidden">
+					<button id="removeEventTypeButton" class="clickable">Remove</button>
 				</div>
 			</div>
 		</div>

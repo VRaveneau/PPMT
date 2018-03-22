@@ -405,6 +405,12 @@ var patternIdUnderMouse = -1;
 // Timeout before hiding the pattern contextual actions
 var patternContextActionsHideTimeout = null;
 
+// The name of the event type corresponding to the event type list's row under
+// the mouse
+var eventTypeUnderMouse = null;
+// Timeout before hiding the event type contextual actions
+var eventTypeContextActionsHideTimeout = null;
+
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -1500,6 +1506,13 @@ function setupContextActions() {
 			if (patternIdUnderMouse >= 0)
 				requestSteeringOnPattern(patternIdUnderMouse);
 		});
+	
+	// Event type context actions
+	d3.select("#removeEventTypeButton")
+		.on("click", function() {
+			if (eventTypeUnderMouse != null)
+				requestEventTypeRemoval(eventTypeUnderMouse);
+		});
 }
 
 /*************************************/
@@ -1797,6 +1810,11 @@ function processMessage(message/*Compressed*/) {
 			// Restart the mining
 			requestAlgorithmReStart();
 		}
+		if (msg.type === "eventTypeRemoved") {
+			updateDatasetForRemovedEventType(msg.removedIds);
+			// Restart the mining
+			requestAlgorithmReStart();
+		}
 	}
 }
 
@@ -2071,6 +2089,20 @@ function requestEventTypeCreationFromPattern(patternId) {
 			action: "alterDataset",
 			alteration: "createEventTypeFromPattern",
 			patternId: patternId
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests an alteration of the dataset by removing an event type
+ * @param {string} eventName - The name of the event type
+ */
+function requestEventTypeRemoval(eventName) {
+	console.log('requesting the removal of event type '+eventName);
+	let action = {
+			action: "alterDataset",
+			alteration: "removeEventType",
+			eventName: eventName
 	};
 	sendToServer(action);
 }
@@ -3026,7 +3058,6 @@ function resetPatterns() {
  * Updates the data after the creation of a new event type
  * @param {JSON} newEvents New events to add to the data
  * @param {number[]} removedIds Ids of events to be removed
- * TODO Implement it
  */
 function updateDatasetForNewEventType(newEvents, removedIds) {
 	resetDataFilters();
@@ -3066,6 +3097,32 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 }
 
 /**
+ * Updates the data after the removal of an event type
+ * @param {number[]} removedIds Ids of events to be removed
+ */
+function updateDatasetForRemovedEventType(removedIds) {
+	resetDataFilters();
+	dataset.remove(function(d,i) {
+		return removedIds.includes(d.id);
+	});
+	console.log("Removed");
+	// Recreate the dimensions
+	// TODO Do it properly in a function
+	dataDimensions.user.dispose();
+	dataDimensions.time.dispose();
+	dataDimensions.type.dispose();
+	dataDimensions.user = dataset.dimension(function(d) {return d.user;});
+	dataDimensions.time = dataset.dimension(function(d) {return d.start;});
+	dataDimensions.type = dataset.dimension(function(d) {return d.type;});
+	console.log("Recreated");
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+	resetPatterns();
+	console.log("Reset patterns done");
+	addToHistory("Event type removed");
+}
+
+/**
  * Resets all the filters applied to the crossfitler storing the events
  */
 function resetDataFilters() {
@@ -3091,7 +3148,7 @@ function movePatternContextActionsToRow(patternId) {
 	patternIdUnderMouse = patternId;
 	ctxActions.classed("hidden", false)
 		.style("width", Math.round(boundingRect.width/2)+"px")
-		.style("left", Math.round(boundingRect.left)+"px")
+		.style("left", Math.round(boundingRect.left+boundingRect.width/2)+"px")
 		.style("top", `${Math.round(boundingRect.top)}px`);
 }
 
@@ -3108,6 +3165,38 @@ function prepareToHidePatternContextActions() {
 function hidePatternContextActions() {
 	patternIdUnderMouse = -1;
 	d3.select("#patternContextActions").classed("hidden", true);
+}
+
+/**
+ * Moves the event type context actions to an event type list row and reveals it
+ * @param {string} eventType The name of the eventType
+ */
+function moveEventTypeContextActionsToRow(eventType) {
+	clearTimeout(eventTypeContextActionsHideTimeout);
+
+	let ctxActions = d3.select("#eventTypeContextActions");
+	let rowCell = d3.select("#"+eventType+" td");
+	let boundingRect = rowCell.node().getBoundingClientRect();
+	eventTypeUnderMouse = eventType;
+	ctxActions.classed("hidden", false)
+		.style("width", Math.round(boundingRect.width/2)+"px")
+		.style("left", Math.round(boundingRect.left+boundingRect.width/2)+"px")
+		.style("top", `${Math.round(boundingRect.top)}px`);
+}
+
+/**
+ * Starts the countdown before actually hiding the event type context actions.
+ */
+function prepareToHideEventTypeContextActions() {
+	eventTypeContextActionsHideTimeout = setTimeout(hideEventTypeContextActions, 500);
+}
+
+/**
+ * Hides the event type context actions.
+ */
+function hideEventTypeContextActions() {
+	eventTypeUnderMouse = null;
+	d3.select("#eventTypeContextActions").classed("hidden", true);
 }
 
 /**
@@ -3816,6 +3905,9 @@ function createEventTypesListDisplay() {
 				highlightEventTypeRow(eType);
 				setHighlights();
 				timeline.displayData();
+			})
+			.on("mouseover", function() {
+				moveEventTypeContextActionsToRow(eType);
 			});
 		let firstCell = eventRow.append("td")
 			.property("title",eventTypeInformations[eType].description);
