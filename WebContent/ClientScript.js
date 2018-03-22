@@ -400,6 +400,17 @@ var useExtendedAlgorithmView = false;
 // The current state of the algorithm
 var algorithmState = null;
 
+// The id of the pattern corresponding to the pattern list's row under the mouse
+var patternIdUnderMouse = -1;
+// Timeout before hiding the pattern contextual actions
+var patternContextActionsHideTimeout = null;
+
+// The name of the event type corresponding to the event type list's row under
+// the mouse
+var eventTypeUnderMouse = null;
+// Timeout before hiding the event type contextual actions
+var eventTypeContextActionsHideTimeout = null;
+
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -459,6 +470,12 @@ var debouncedFilterUserList = _.debounce(filterUserList, 500);
  */
 var debouncedFilterPatternList = _.debounce(filterPatternList, 500);
 
+/**
+ * A debounced version of hidePatternContextActions
+ * @type {function}
+ */
+var debouncedHidePatternContextActions = _.debounce(hidePatternContextActions, 500);
+
 /******************************************************************************/
 /*																			  */
 /*									Functions								  */
@@ -479,6 +496,41 @@ function displayServerDebugMessage(message) {
 	for (let i=0;i<debugSize;i++)
 		console.log(message["msg"+i.toString()]);
 	console.log("========================");
+}
+
+/**
+ * Takes a time duration and returns a string display of it. The returned string
+ * can be in a short format (default), or in a long format
+ * @param {number} time The time duration to format
+ * @param {} long Whether the return string will be short (XX:YY) or not (XXmin YYs)
+ */
+function formatElapsedTimeToString(time, long) {
+	let elapsedMinutes = Math.floor(time/60000);
+	time = time%60000;
+	let elapsedSeconds = Math.floor(time/1000);
+	let result = "";
+
+	if(long) {
+		if (elapsedMinutes > 0) {
+			if (elapsedMinutes < 10)
+				result = "0";
+			result += elapsedMinutes+"min ";
+		}
+		if (elapsedSeconds < 10 && elapsedMinutes > 0)
+			result += "0";
+		result += elapsedSeconds+"s";
+	} else {
+		if (elapsedMinutes < 10)
+			result = "0"+elapsedMinutes+":";
+		else
+			result = elapsedMinutes+":";
+		if (elapsedSeconds < 10)
+			result += "0"+elapsedSeconds;
+		else
+			result += elapsedSeconds;
+	}
+	
+	return result;
 }
 
 /**
@@ -1049,6 +1101,8 @@ function setupTool() {
 	
 	setupAlgorithmSliders();
 	setupPatternSizesChart();
+
+	setupContextActions();
 	
 	d3.select("body").on("keyup", handleKeyPress);
 	d3.select("body").on("mousemove", moveTooltip);
@@ -1437,6 +1491,30 @@ function setupHelpers() {
 		.attr("title", "Maximum number of event in a pattern");
 }
 
+/**
+ * Setup the contextual actions
+ */
+function setupContextActions() {
+	// Pattern context actions
+	d3.select("#createEventButton")
+		.on("click", function() {
+			if (patternIdUnderMouse >= 0)
+				requestEventTypeCreationFromPattern(patternIdUnderMouse);
+		});
+	d3.select("#prefixSteeringButton")
+		.on("click", function() {
+			if (patternIdUnderMouse >= 0)
+				requestSteeringOnPattern(patternIdUnderMouse);
+		});
+	
+	// Event type context actions
+	d3.select("#removeEventTypeButton")
+		.on("click", function() {
+			if (eventTypeUnderMouse != null)
+				requestEventTypeRemoval(eventTypeUnderMouse);
+		});
+}
+
 /*************************************/
 /*				Logging				 */
 /*************************************/
@@ -1554,6 +1632,13 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	d3.select("#currentWindow").text(windowSize);
 	d3.select("#currentSize").text(maxSize+" events");
 	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
+
+	// Update the display of the current parameters in the extended algorithm tab
+	d3.select("#currentSupportExtended").text(minSupport+" occs.");
+	d3.select("#currentGapExtended").text(minGap+"-"+maxGap+" events");
+	d3.select("#currentWindowExtended").text(windowSize);
+	d3.select("#currentSizeExtended").text(maxSize+" events");
+	d3.select("#currentMaxDurationExtended").text(maxDuration/1000+"s");
 }
 
 // TODO Store current parameters in global variables and use them instead of startInitialMining()
@@ -1704,16 +1789,16 @@ function processMessage(message/*Compressed*/) {
 		}
 	}
 	if (msg.action === "signal") {
-		if (msg.type === "start") {
-			startAlgorithmRuntime(parseInt(msg.time));
-			addToHistory("Algorithm started");
-		}
-		if (msg.type === "end") {
-			stopAlgorithmRuntime(parseInt(msg.time));
-			addToHistory("Algorithm ended");
-		}
+		if (msg.type === "start")
+			handleAlgorithmStartSignal(msg);
+		if (msg.type === "end")
+			handleAlgorithmEndSignal(msg);
 		if (msg.type === "newLevel")
 			handleNewLevelSignal(parseInt(msg.level));
+		if (msg.type === "levelComplete")
+			handleLevelCompleteSignal(parseInt(msg.level));
+		if (msg.type === "candidatesGenerated")
+			handleCandidatesGeneratedSignal(parseInt(msg.number));
 		if (msg.type === "loading")
 			handleLoadingSignal();
 		if (msg.type === "loaded")
@@ -1729,6 +1814,11 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "dataAlteration") {
 		if (msg.type === "eventTypeCreated") {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+			// Restart the mining
+			requestAlgorithmReStart();
+		}
+		if (msg.type === "eventTypeRemoved") {
+			updateDatasetForRemovedEventType(msg.removedIds);
 			// Restart the mining
 			requestAlgorithmReStart();
 		}
@@ -2006,6 +2096,20 @@ function requestEventTypeCreationFromPattern(patternId) {
 			action: "alterDataset",
 			alteration: "createEventTypeFromPattern",
 			patternId: patternId
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests an alteration of the dataset by removing an event type
+ * @param {string} eventName - The name of the event type
+ */
+function requestEventTypeRemoval(eventName) {
+	console.log('requesting the removal of event type '+eventName);
+	let action = {
+			action: "alterDataset",
+			alteration: "removeEventType",
+			eventName: eventName
 	};
 	sendToServer(action);
 }
@@ -2689,6 +2793,7 @@ function selectUsersBasedOnPatternSelection() {
 	});
 
 	setHighlights();
+	refreshUserPatterns();
 }
 
 /**
@@ -2793,6 +2898,9 @@ function addPatternToList(message) {
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 					}
+				})
+				.on("mouseover", function() {
+					movePatternContextActionsToRow(pId);
 				});
 			var thisNameCell = thisRow.append("td");
 			
@@ -2862,6 +2970,9 @@ function addPatternToList(message) {
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 					}
+				})
+				.on("mouseover", function() {
+					movePatternContextActionsToRow(pId);
 				});
 			let thisNameCell = thisRow.append("td");
 			for (var k=0; k < pSize; k++) {
@@ -2949,13 +3060,14 @@ function resetPatterns() {
 	// TODO Keep the initial sessions ?
 	buildUserSessions();
 	refreshUserPatterns();
+	// Reset the algorithm state extended view
+	d3.select("#patternSizeTable tbody").html("");
 }
 
 /**
  * Updates the data after the creation of a new event type
  * @param {JSON} newEvents New events to add to the data
  * @param {number[]} removedIds Ids of events to be removed
- * TODO Implement it
  */
 function updateDatasetForNewEventType(newEvents, removedIds) {
 	resetDataFilters();
@@ -2995,6 +3107,32 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 }
 
 /**
+ * Updates the data after the removal of an event type
+ * @param {number[]} removedIds Ids of events to be removed
+ */
+function updateDatasetForRemovedEventType(removedIds) {
+	resetDataFilters();
+	dataset.remove(function(d,i) {
+		return removedIds.includes(d.id);
+	});
+	console.log("Removed");
+	// Recreate the dimensions
+	// TODO Do it properly in a function
+	dataDimensions.user.dispose();
+	dataDimensions.time.dispose();
+	dataDimensions.type.dispose();
+	dataDimensions.user = dataset.dimension(function(d) {return d.user;});
+	dataDimensions.time = dataset.dimension(function(d) {return d.start;});
+	dataDimensions.type = dataset.dimension(function(d) {return d.type;});
+	console.log("Recreated");
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+	resetPatterns();
+	console.log("Reset patterns done");
+	addToHistory("Event type removed");
+}
+
+/**
  * Resets all the filters applied to the crossfitler storing the events
  */
 function resetDataFilters() {
@@ -3006,6 +3144,70 @@ function resetDataFilters() {
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+/**
+ * Moves the pattern context actions to a pattern list row and reveals it
+ * @param {number} patternId The id of the pattern
+ */
+function movePatternContextActionsToRow(patternId) {
+	clearTimeout(patternContextActionsHideTimeout);
+
+	let ctxActions = d3.select("#patternContextActions");
+	let rowCell = d3.select("#pattern"+patternId+" td");
+	let boundingRect = rowCell.node().getBoundingClientRect();
+	patternIdUnderMouse = patternId;
+	ctxActions.classed("hidden", false)
+		.style("width", Math.round(boundingRect.width/2)+"px")
+		.style("left", Math.round(boundingRect.left+boundingRect.width/2)+"px")
+		.style("top", `${Math.round(boundingRect.top)}px`);
+}
+
+/**
+ * Starts the countdown before actually hiding the pattern context actions.
+ */
+function prepareToHidePatternContextActions() {
+	patternContextActionsHideTimeout = setTimeout(hidePatternContextActions, 500);
+}
+
+/**
+ * Hides the pattern context actions.
+ */
+function hidePatternContextActions() {
+	patternIdUnderMouse = -1;
+	d3.select("#patternContextActions").classed("hidden", true);
+}
+
+/**
+ * Moves the event type context actions to an event type list row and reveals it
+ * @param {string} eventType The name of the eventType
+ */
+function moveEventTypeContextActionsToRow(eventType) {
+	clearTimeout(eventTypeContextActionsHideTimeout);
+
+	let ctxActions = d3.select("#eventTypeContextActions");
+	let rowCell = d3.select("#"+eventType+" td");
+	let boundingRect = rowCell.node().getBoundingClientRect();
+	eventTypeUnderMouse = eventType;
+	ctxActions.classed("hidden", false)
+		.style("width", Math.round(boundingRect.width/2)+"px")
+		.style("left", Math.round(boundingRect.left+boundingRect.width/2)+"px")
+		.style("top", `${Math.round(boundingRect.top)}px`);
+}
+
+/**
+ * Starts the countdown before actually hiding the event type context actions.
+ */
+function prepareToHideEventTypeContextActions() {
+	eventTypeContextActionsHideTimeout = setTimeout(hideEventTypeContextActions, 500);
+}
+
+/**
+ * Hides the event type context actions.
+ */
+function hideEventTypeContextActions() {
+	eventTypeUnderMouse = null;
+	d3.select("#eventTypeContextActions").classed("hidden", true);
+}
 
 /**
  * Updates the display of the number of pattern discovered, selected and
@@ -3713,6 +3915,9 @@ function createEventTypesListDisplay() {
 				highlightEventTypeRow(eType);
 				setHighlights();
 				timeline.displayData();
+			})
+			.on("mouseover", function() {
+				moveEventTypeContextActionsToRow(eType);
 			});
 		let firstCell = eventRow.append("td")
 			.property("title",eventTypeInformations[eType].description);
@@ -4026,27 +4231,7 @@ function startAlgorithmRuntime(time) {
 	let clientTime = new Date();
 	algorithmStartTime = new Date(time);
 	startDelayFromServer = algorithmStartTime - clientTime;
-	algorithmTimer = setInterval(function() {
-		let thisTime = new Date();
-		let elapsedTime = thisTime - algorithmStartTime;
-		// Compensate for the delay between the two clocks
-		elapsedTime += startDelayFromServer;
-		let elapsedMinutes = Math.floor(elapsedTime/60000);
-		elapsedTime = elapsedTime%60000;
-		let elapsedSeconds = Math.floor(elapsedTime/1000);
-		// Update the display of the runtime
-		let text = "";
-		if (elapsedMinutes < 10)
-			text = "0"+elapsedMinutes+":";
-		else
-			text = elapsedMinutes+":";
-		if (elapsedSeconds < 10)
-			text += "0"+elapsedSeconds;
-		else
-			text += elapsedSeconds;
-		d3.select("#runtime")
-			.text(text);
-	},1000);
+	algorithmTimer = setInterval(updateAlgorithmStateDisplay, 100);
 }
 
 /**
@@ -4079,6 +4264,118 @@ function stopAlgorithmRuntime(time) {
 	
 	d3.select("#currentAlgorithmWork")
 		.text("(ended)");
+}
+
+/**
+ * Updates the display of the algorithm state
+ */
+function updateAlgorithmStateDisplay() {
+	let thisTime = new Date();
+	let elapsedTime = (algorithmState.isRunning()) ?
+						thisTime - algorithmStartTime :
+						algorithmState.getTotalElapsedTime();
+	// Compensate for the delay between the two clocks
+	if (algorithmState.isRunning()) {
+		elapsedTime += startDelayFromServer;
+		// Update the elapsed time on the current level
+		let timeDiff = elapsedTime - algorithmState.getTotalElapsedTime();
+		algorithmState.addTime(timeDiff);
+	}
+	// Update the extended view
+	// Update the table
+	let table = d3.select("#patternSizeTable");
+	algorithmState.getOrderedLevels().forEach( function(lvl) {
+		let lvlData = algorithmState.getLevel(lvl);
+		let lvlProgression = algorithmState.getProgression(lvl);
+		let row = d3.select("#patternSizeTableRow"+lvl);
+		if (row.size() > 0) { // The row already exists
+			row.select(".patternSizeStatus")
+				.classed("levelstarted", false)
+				.classed("leveldone", false)
+				.classed("levelactive", false)
+				.classed("level"+lvlData.status, true)
+				.text(lvlData.status);
+			row.select(".patternSizeCount")
+				.text(lvlData.patternCount);
+			row.select(".patternSizeCandidates")
+				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
+			row.select(".patternSizeProgression")
+				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
+			row.select(".patternSizeTime")
+				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
+		} else { // The row doesn't exist yet
+			row = table.select("tbody").append("tr")
+				.property("id", "patternSizeTableRow"+lvl);
+			row.append("td")
+				.text(lvlData.size);
+			row.append("td")
+				.classed("patternSizeStatus", true)
+				.classed("level"+lvlData.status, true)
+				.text(lvlData.status);
+			row.append("td")
+				.classed("patternSizeCount", true)
+				.text(lvlData.patternCount);
+			row.append("td")
+				.classed("patternSizeCandidates", true)
+				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
+			row.append("td")
+				.classed("patternSizeProgression", true)
+				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
+			row.append("td")
+				.classed("patternSizeTime", true)
+				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
+		}
+	});
+	// Update the totals
+	d3.select("#algorithmInfoTotalPatternCount")
+		.text(algorithmState.getTotalPatternNumber());
+	d3.select("#algorithmInfoTotalTime")
+		.text(formatElapsedTimeToString(algorithmState.getTotalElapsedTime(), true));
+	// Update the strategy
+	let strategyTxt = "Not running";
+	if (algorithmState.isRunning()) {
+		if (algorithmState.isUnderSteering()) {
+			strategyTxt = "Steering on ";
+			if (algorithmState.getSteeringTarget()) {
+				strategyTxt += algorithmState.getSteeringTarget();
+				if (algorithmState.getSteeringValue())
+					strategyTxt += " "+algorithmState.getSteeringValue();
+			} else {
+				strategyTxt += "something";
+			}
+		} else {
+			strategyTxt = "Default (breadth-first search)";
+		}
+	}
+	d3.select("#extendedAlgorithmStrategyArea div.body")
+		.text(strategyTxt);
+	// Update the speed
+		
+	// Update the reduced view
+	// Update the display of the runtime
+	d3.select("#runtime")
+		.text(formatElapsedTimeToString(elapsedTime));
+}
+
+/**
+ * Handles the signal that the algorithm has started on the server
+ * @param {json} msg The received message
+ */
+function handleAlgorithmStartSignal(msg) {
+	startAlgorithmRuntime(parseInt(msg.time));
+	algorithmState.start();
+	addToHistory("Algorithm started");
+}
+
+/**
+ * Handles the signal that the algorithm has ended on the server
+ * @param {json} msg The received message
+ */
+function handleAlgorithmEndSignal(msg) {
+	stopAlgorithmRuntime(parseInt(msg.time));
+	algorithmState.stop();
+	updateAlgorithmStateDisplay();
+	addToHistory("Algorithm ended");
 }
 
 /**
@@ -4129,6 +4426,22 @@ function handleNewLevelSignal(level) {
 	
 	algorithmState.stopLevel();
 	algorithmState.startLevel(level);
+}
+
+/**
+ * Displays the current pattern-size the algorithm is working on
+ * @param {number} level The pattern size
+ */
+function handleLevelCompleteSignal(level) {
+	algorithmState.setLevelComplete(level);
+}
+
+/**
+ * Displays the number of candidates generated for the current algorithm level
+ * @param {number} number The number of candidates
+ */
+function handleCandidatesGeneratedSignal(number) {
+	algorithmState.addGeneratedCandidates(number);
 }
 
 /**
@@ -4214,6 +4527,7 @@ function drawPatternSizesChart() {
  */
 function handleSteeringStartSignal(type, value) {
 	d3.select("#focus").text(type+" starting with: "+value);
+	algorithmState.startSteering(type, value);
 }
 
 /**
@@ -4221,6 +4535,7 @@ function handleSteeringStartSignal(type, value) {
  */
 function handleSteeringStopSignal() {
 	d3.select("#focus").text("");
+	algorithmState.stopSteering();
 }
 
 /**
@@ -4338,6 +4653,9 @@ function createPatternListDisplay() {
 					// Update the number of selected patterns display
 					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 				}
+			})
+			.on("mouseover", function() {
+				movePatternContextActionsToRow(pId);
 			});
 		var thisNameCell = thisRow.append("td");
 			//.classed("dropdown", true);
@@ -5515,13 +5833,23 @@ function AlgorithmState() {
 	this.running = false;
 	this.underSteering = false;
 	this.steeringTarget = null;
+	this.steeringValue = null;
 	this.patternSizeInfo = {};
 	this.currentLevel = null;
 
+	this.start = function() {
+		this.running = true;
+	}
+
+	this.stop = function() {
+		this.running = false;
+	}
+
 	this.startLevel = function(pSize) {
 		// Go to a previously started pattern size
-		if (Object.keys(this.patternSizeInfo).includes(pSize)) {
+		if (Object.keys(this.patternSizeInfo).includes(pSize.toString())) {
 			this.currentLevel = this.patternSizeInfo[pSize];
+			this.currentLevel.status = "active";
 		} else { // Start a new pattern size
 			this.patternSizeInfo[pSize] = {
 				size: pSize,
@@ -5538,7 +5866,8 @@ function AlgorithmState() {
 	this.stopLevel = function() {
 		if (this.currentLevel != null) {
 			if (this.currentLevel.candidates == this.currentLevel.candidatesChecked &&
-				!this.isUnderSteering() ) {
+				!this.isUnderSteering() &&
+				this.currentLevel.candidates > 0) {
 				this.currentLevel.status = "done";
 			} else {
 				this.currentLevel.status = "started";
@@ -5547,9 +5876,21 @@ function AlgorithmState() {
 		}
 	};
 
+	this.isRunning = function() {
+		return this.running;
+	}
+
 	this.isUnderSteering = function() {
 		return this.underSteering;
 	};
+
+	this.getSteeringTarget = function() {
+		return this.steeringTarget;
+	}
+
+	this.getSteeringValue = function() {
+		return this.steeringValue;
+	}
 
 	this.getProgression = function(patternSize) {
 		let res = null;
@@ -5565,18 +5906,22 @@ function AlgorithmState() {
 		return res;
 	}
 
+	this.getOrderedLevels = function() {
+		return Object.keys(this.patternSizeInfo).sort();
+	}
+
 	this.getTotalPatternNumber = function() {
 		let res = 0;
-		this.patternSizeInfo.forEach( (d) => {
-			res += d.patternCount;
+		Object.keys(this.patternSizeInfo).forEach( (d) => {
+			res += this.patternSizeInfo[d].patternCount;
 		});
 		return res;
 	}
 
 	this.getTotalElapsedTime = function() {
 		let res = 0;
-		this.patternSizeInfo.forEach( (d) => {
-			res += d.elapsedTime;
+		Object.keys(this.patternSizeInfo).forEach( (d) => {
+			res += this.patternSizeInfo[d].elapsedTime;
 		});
 		return res;
 	}
@@ -5585,6 +5930,50 @@ function AlgorithmState() {
 		if (this.currentLevel != null) {
 			this.currentLevel.patternCount++;
 		}
+	}
+
+	this.addGeneratedCandidates = function(nb) {
+		if (this.currentLevel != null) {
+			this.currentLevel.candidates += nb;
+		}
+	}
+
+	this.addCheckedCandidates = function(nb) {
+		if (this.currentLevel != null) {
+			this.currentLevel.candidatesChecked += nb;
+		}
+	}
+
+	this.setLevelComplete = function(level) {
+		if (this.patternSizeInfo[level]) {
+			this.patternSizeInfo[level].candidatesChecked = this.patternSizeInfo[level].candidates;
+		}
+		if (this.currentLevel && this.currentLevel.size == level)
+			this.stopLevel();
+	}
+
+	this.getLevel = function(patternSize) {
+		if (this.patternSizeInfo[patternSize])
+			return this.patternSizeInfo[patternSize];
+		return null;
+	}
+
+	this.addTime = function(time) {
+		if (this.currentLevel != null) {
+			this.currentLevel.elapsedTime += time;
+		}
+	}
+
+	this.startSteering = function(target, value) {
+		this.underSteering = true;
+		this.steeringTarget = target;
+		this.steeringValue = value;
+	}
+
+	this.stopSteering = function() {
+		this.underSteering = false;
+		this.steeringTarget = null;
+		this.steeringValue = null;
 	}
 }
 
@@ -5768,6 +6157,21 @@ var Timeline = function(elemId, options) {
 		
 		for (var i=0; i < shownUsers.length; i++) {
 			let userName = shownUsers[i];
+
+			// Draw a band in the background if the user is selected
+			if (showUserSessionOption != "selected" && highlightedUsers.includes(userName)) {
+				console.log(userName);
+				let x1 = self.xUsers(self.xUsers.domain()[0]);
+				let x2 = self.xUsers(self.xUsers.domain()[1]);
+				let y = self.yUsers(userName) + self.yUsers.bandwidth()/2;
+				self.canvasUsersContext.beginPath();
+				self.canvasUsersContext.strokeStyle = "lightgrey";
+				self.canvasUsersContext.lineWidth = Math.floor(self.yUsers.bandwidth());
+				self.canvasUsersContext.moveTo(x1,y);
+				self.canvasUsersContext.lineTo(x2,y);
+				self.canvasUsersContext.lineCap = "butt";
+				self.canvasUsersContext.stroke();
+			}
 			
 			userSessions[userName].forEach(function(ses, sesIdx) {
 				let color = sessionColor;

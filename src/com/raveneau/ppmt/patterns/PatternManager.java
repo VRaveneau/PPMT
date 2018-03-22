@@ -215,6 +215,10 @@ public class PatternManager {
 		this.levelExtractionState.put(new Integer(k), ExtractionState.PARTIAL);
 	}
 
+	public void signalCandidatesGenerated(int candidatesNumber) {
+		this.clientHandler.signalCandidatesGenerated(candidatesNumber);
+	}
+
 	/**
 	 * Send to the client a message indicating that the data is being loaded by the algorithm
 	 */
@@ -231,6 +235,7 @@ public class PatternManager {
 	
 	public void signalLevelExtracted(int k) {
 		this.levelExtractionState.put(new Integer(k), ExtractionState.COMPLETE);
+		this.clientHandler.signalLevelComplete(k);
 	}
 	
 	public ExtractionState getPatternExtractionState(Integer patternId) {

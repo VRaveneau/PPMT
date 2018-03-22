@@ -84,7 +84,7 @@
 										<th onclick="clickOnEventTypeCategoryHeader()">Category&nbsp;</th>
 									</tr>
 								</thead>
-								<tbody id="eventTableBody">
+								<tbody id="eventTableBody" onmouseout="prepareToHideEventTypeContextActions();">
 								</tbody>
 							</table>
 							<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
@@ -350,12 +350,12 @@
 											<th onclick="clickOnPatternSizeHeader()">Size&nbsp;↓</th>
 										</tr>
 									</thead>
-									<tbody id="selectedPatternTableBody">
+									<tbody id="selectedPatternTableBody" onmouseout="prepareToHidePatternContextActions();">
 									</tbody>
 									<tr id="patternListSeparator">
 										<td colspan="4"><hr></td>
 									</tr>
-									<tbody id="patternTableBody">
+									<tbody id="patternTableBody" onmouseout="prepareToHidePatternContextActions();">
 									</tbody>
 								</table>
 						
@@ -377,12 +377,12 @@
 						<div class="section">
 							<div class="body">
 								<button onclick="toggleExtendedAlgorithmView();" class="clickable">Show less</button>
-								<p class="right-aligned">Total: <spans>XXX</spans> patterns found over <span>YYY time</span></p>
+								<p class="right-aligned">Total: <span id="algorithmInfoTotalPatternCount">No</span> patterns found over <span id="algorithmInfoTotalTime">0s</span></p>
 							</div>
 						</div>
 						<div id="patternSizeTableArea" class="section">
 							<div class="body">
-								<table>
+								<table id="patternSizeTable">
 									<thead>
 										<tr>
 											<th>Size</th>
@@ -402,16 +402,33 @@
 					</div>
 					<div id="algorithmExtendedSidePanel">
 						<div id="extendedAlgorithmStrategyArea" class="section">
+							<div class="title">Current strategy</div>
+							<div class="body">Not Running</div>
+						</div>
+						<div id="extendedAlgorithmParametersArea" class="section">
+							<div class="title">Current parameters</div>
 							<div class="body">
-								plop
+								<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
+								<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
+								<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
+								<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
+								<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
 							</div>
 						</div>
 						<div id="algorithmSpeedArea" class="section">
+							<div class="title">Speed</div>
 							<div class="body">
 								plop
 							</div>
 						</div>
 					</div>
+				</div>
+				<div id="patternContextActions" class="contextActions hidden">
+					<button id="createEventButton" class="clickable">To eventType</button>
+					<button id="prefixSteeringButton" class="clickable">Prefix steering</button>
+				</div>
+				<div id="eventTypeContextActions" class="contextActions hidden">
+					<button id="removeEventTypeButton" class="clickable">Remove</button>
 				</div>
 			</div>
 		</div>

@@ -1116,6 +1116,11 @@ ul.algorithmTabs li :not(.active):hover {
 	flex: 1 1 0;
 }
 
+#Execution > div:first-of-type {
+	display: flex;
+	flex-direction: column;
+}
+
 #currentAlgorithmWork {
 	font-style: italic;
 	color: grey;
@@ -1135,12 +1140,22 @@ ul.algorithmTabs li :not(.active):hover {
 	font-weight: normal;
 }
 
+.contextActions {
+	flex-direction: row;
+	position: absolute;
+	justify-content: flex-end;
+}
+
+.contextActions:not(.hidden) {
+	display: flex;
+}
+
 /********************************/
 /*		pattern sizes graph		*/
 /********************************/
 
 #patternSizesSvg .bar {
-  fill: #04B7FB;
+  fill: rgb(119, 119, 119);
 }
 
 #patternSizesSvg text.bar {
@@ -1195,18 +1210,40 @@ ul.algorithmTabs li :not(.active):hover {
 	display: flex;
 	flex-direction: column;
 	flex-grow: 2;
+	justify-content: flex-start;
 }
 
 #patternSizeTableArea {
 	
 }
 
+#patternSizeTable tbody tr {
+	text-align: center;
+}
+
+.patternSizeStatus {
+	border: 1px solid black;
+	border-radius: 5px;
+	font-variant: small-caps;
+	font-weight: bold;
+}
+
+.leveldone {
+	background-color: green;
+}
+
+.levelstarted {
+	background-color: orange;
+}
+
+.levelactive {
+	background-color: dodgerblue;
+}
+
 #extendedAlgorithmStrategyArea {
-	flex-grow: 1;
 }
 
 #algorithmSpeedArea {
-	flex-grow: 1;
 }
 
 /********************************/

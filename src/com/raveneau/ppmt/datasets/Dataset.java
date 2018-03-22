@@ -158,7 +158,7 @@ public class Dataset {
 		this.nextEventId = ds.getNextEventId();
 		this.nextEventTypeCode = ds.getNextEventTypeCode();
 		this.global = false;
-		this.parameters = ds.getParameters();
+		this.parameters = new DatasetParameters(ds.getParameters());
 		this.patternManagers = new HashMap<>();
 		this.patternManagers.put(session, new PatternManager(ds.getPatternManager(session)));
 		this.dayBins = new HashMap<>();
@@ -649,16 +649,6 @@ public class Dataset {
 			}
 			
 			res.put(eventsReadable.get(i), infos);
-		}
-		
-		List<String> result = new ArrayList<>();
-		for (String e : res.keySet()) {
-			String s = "type:"+e+";";
-			for (String info : res.get(e).keySet()) {
-				s+=info+":"+res.get(e).get(info)+";";
-			}
-			s = s.substring(0, s.length()-1);
-			result.add(s);
 		}
 		
 		return res;
@@ -1192,8 +1182,6 @@ public class Dataset {
 				System.out.println("Mineable dataset is of size "+result.size());
 			}
 			userCount++;
-
-			System.out.println("Doing user "+userCount);
 			
 			for (Event event : userSequences.get(user)) {	// For each event of the user
 				Date eventDate = event.getStart();
@@ -1388,6 +1376,43 @@ public class Dataset {
 		modifs.setRemovedIds(eventIdToDelete);
 
 		System.out.println("Event type creation done");
+		
+		return modifs;
+	}
+	
+	public TraceModification removeEventType(String eventName, Session session) {
+		System.out.println("Event type "+eventName+" removal started");
+		List<Integer> eventIdToDelete = new ArrayList<>();
+		List<Event> eventsToDelete = new ArrayList<>();
+		TraceModification modifs = new TraceModification();
+		
+		for (Event evt : timeSortedEvents) {
+			if (evt.getType().equals(eventName)) {
+				eventIdToDelete.add(evt.getId());
+				eventsToDelete.add(evt);
+			}
+		}
+
+		System.out.println("Removing events");
+		
+		System.out.println("Nb evt to delete: "+eventsToDelete.size());
+		System.out.println("Size before : "+timeSortedEvents.size());
+		
+		removeEvents(eventsToDelete);
+		modifs.setRemovedIds(eventIdToDelete);
+		
+		System.out.println("Size after : "+timeSortedEvents.size());
+
+		String code = eventsCoded.remove(eventName);
+		
+		System.out.println("Removed the code "+code);
+		
+		parameters.removeEventType('"'+eventName+'"');
+		eventsReadable.remove(code);
+		eventOccs.remove(eventName);
+		events.remove(eventName);
+		
+		System.out.println("Event type removal done");
 		
 		return modifs;
 	}

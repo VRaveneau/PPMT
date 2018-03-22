@@ -14,12 +14,23 @@ import javax.json.spi.JsonProvider;
 public class DatasetParameters {
 	private Map<String, String> eventDescriptions = new HashMap<>();
 	private Map<String, List<String>> eventByCategories = new HashMap<>();
+	private Map<String, String> eventCategories = new HashMap<>();
 	private int nbUsers = 0;
 	private int nbEvents = 0;
 	private int nbEventTypes = 0;
 	private String duration = "";
 	
 	public DatasetParameters() {
+	}
+	
+	public DatasetParameters(DatasetParameters dsp) {
+		nbUsers = dsp.nbUsers;
+		nbEvents = dsp.nbEvents;
+		nbEventTypes = dsp.nbEventTypes;
+		duration = dsp.duration;
+		eventDescriptions = new HashMap<>(dsp.eventDescriptions);
+		eventCategories = new HashMap<>(dsp.eventCategories);
+		eventByCategories = new HashMap<>(dsp.eventByCategories);
 	}
 
 	public Map<String, String> getEventDescriptions() {
@@ -36,6 +47,14 @@ public class DatasetParameters {
 
 	public void setEventByCategories(Map<String, List<String>> eventByCategories) {
 		this.eventByCategories = eventByCategories;
+	}
+
+	public Map<String, String> getEventCategories() {
+		return eventCategories;
+	}
+
+	public void setEventCategories(Map<String, String> eventCategories) {
+		this.eventCategories = eventCategories;
 	}
 	
 	public int getNbUsers() {
@@ -78,6 +97,15 @@ public class DatasetParameters {
 		if (!eventByCategories.containsKey(category))
 			eventByCategories.put(category, new ArrayList<String>());
 		eventByCategories.get(category).add(event);
+		eventCategories.put(event, category);
+	}
+	
+	public void removeEventType(String eventType) {
+		eventDescriptions.remove(eventType);
+		String cat = eventCategories.get(eventType);
+		eventByCategories.get(cat).remove(eventType);
+		eventCategories.remove(eventType);
+		nbEventTypes--;
 	}
 	
 	public JsonObject toJsonObject() {

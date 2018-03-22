@@ -310,6 +310,10 @@ public class SessionHandler {
 	public void createEventTypeFromPattern(int patternId, Session session) {
 		clientHandlers.get(session).createEventTypeFromPattern(patternId);
 	}
+	
+	public void removeEventType(String eventName, Session session) {
+		clientHandlers.get(session).removeEventType(eventName);
+	}
 
 	/**
 	 * Create a user-specific dataset if the user is altering its dataset for the first time
