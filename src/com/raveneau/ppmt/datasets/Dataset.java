@@ -1192,8 +1192,6 @@ public class Dataset {
 				System.out.println("Mineable dataset is of size "+result.size());
 			}
 			userCount++;
-
-			System.out.println("Doing user "+userCount);
 			
 			for (Event event : userSequences.get(user)) {	// For each event of the user
 				Date eventDate = event.getStart();

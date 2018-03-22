@@ -4184,6 +4184,7 @@ function updateAlgorithmStateDisplay() {
 	let table = d3.select("#patternSizeTable");
 	algorithmState.getOrderedLevels().forEach( function(lvl) {
 		let lvlData = algorithmState.getLevel(lvl);
+		let lvlProgression = algorithmState.getProgression(lvl);
 		let row = d3.select("#patternSizeTableRow"+lvl);
 		if (row.size() > 0) { // The row already exists
 			row.select(".patternSizeStatus")
@@ -4197,7 +4198,7 @@ function updateAlgorithmStateDisplay() {
 			row.select(".patternSizeCandidates")
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.select(".patternSizeProgression")
-				.text(algorithmState.getProgression(lvl)+"%");
+				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
 			row.select(".patternSizeTime")
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
 		} else { // The row doesn't exist yet
@@ -4217,7 +4218,7 @@ function updateAlgorithmStateDisplay() {
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.append("td")
 				.classed("patternSizeProgression", true)
-				.text(algorithmState.getProgression(lvl)+"%");
+				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
 			row.append("td")
 				.classed("patternSizeTime", true)
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
@@ -4232,9 +4233,10 @@ function updateAlgorithmStateDisplay() {
 	let strategyTxt = "Not running";
 	if (algorithmState.isRunning()) {
 		if (algorithmState.isUnderSteering()) {
-			strategyTxt = "Steering on "+ (algorithmState.getSteeringTarget()) ?
-											algorithmState.getSteeringTarget() :
-											"something";
+			strategyTxt = "Steering on "+
+					(algorithmState.getSteeringTarget()) ?
+						algorithmState.getSteeringTarget()+" "+algorithmState.getSteeringValue() :
+						"something";
 		} else {
 			strategyTxt = "Default (breadth-first search)";
 		}
@@ -4419,6 +4421,7 @@ function drawPatternSizesChart() {
  */
 function handleSteeringStartSignal(type, value) {
 	d3.select("#focus").text(type+" starting with: "+value);
+	algorithmState.startSteering(type, value);
 }
 
 /**
@@ -4426,6 +4429,7 @@ function handleSteeringStartSignal(type, value) {
  */
 function handleSteeringStopSignal() {
 	d3.select("#focus").text("");
+	algorithmState.stopSteering();
 }
 
 /**
@@ -5723,6 +5727,7 @@ function AlgorithmState() {
 	this.running = false;
 	this.underSteering = false;
 	this.steeringTarget = null;
+	this.steeringValue = null;
 	this.patternSizeInfo = {};
 	this.currentLevel = null;
 
@@ -5736,8 +5741,9 @@ function AlgorithmState() {
 
 	this.startLevel = function(pSize) {
 		// Go to a previously started pattern size
-		if (Object.keys(this.patternSizeInfo).includes(pSize)) {
+		if (Object.keys(this.patternSizeInfo).includes(pSize.toString())) {
 			this.currentLevel = this.patternSizeInfo[pSize];
+			this.currentLevel.status = "active";
 		} else { // Start a new pattern size
 			this.patternSizeInfo[pSize] = {
 				size: pSize,
@@ -5845,6 +5851,18 @@ function AlgorithmState() {
 		if (this.currentLevel != null) {
 			this.currentLevel.elapsedTime += time;
 		}
+	}
+
+	this.startSteering = function(target, value) {
+		this.underSteering = true;
+		this.steeringTarget = target;
+		this.steeringValue = value;
+	}
+
+	this.stopSteering = function() {
+		this.underSteering = false;
+		this.steeringTarget = null;
+		this.steeringValue = null;
 	}
 }
 

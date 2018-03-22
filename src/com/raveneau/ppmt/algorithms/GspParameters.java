@@ -11,7 +11,7 @@ public class GspParameters {
     private int windowSize = 0;
     private long maxDuration = 30000;
     
-    private boolean verbose = false;
+    private boolean verbose = true;
     private boolean outputSequenceIdentifiers = false;
     
 	private boolean hasChanged = false;

@@ -218,6 +218,10 @@ public class AlgoGSP {
         	if (parameters.isTerminationRequested())
         		break;
         	
+            boolean noCandidateFound = false;
+            boolean noFrequentCandidate = false;
+            boolean steeringHasOccurred = false;
+        	
 	        //We repeat the same loop. MAIN LOOP
 	        while (frequentSet != null && 
 	        		!frequentSet.isEmpty() &&
@@ -234,14 +238,16 @@ public class AlgoGSP {
 	            patternManager.signalNewLevel(k);
 	            
 	            //We get the candidate set
-	            if (this.parameters.steeringIsOccurring())
+	            if (this.parameters.steeringIsOccurring()) {
 	            	candidateSet = candidateGenerator.generateCandidatesCombinatory(frequentSet, frequentItems, abstractionCreator, indexationMap, k, this.parameters.getMinSupAbsolute());
-	            else
+	            	steeringHasOccurred = true;
+	            } else
 	            	candidateSet = candidateGenerator.generateCandidates(frequentSet, abstractionCreator, indexationMap, k, this.parameters.getMinSupAbsolute());
 	            frequentSet = null;
 	            //And we break the loop if the set of candidates is empty
 	            if (candidateSet == null) {
 	            	levelEndedWithNoCandidate = true;
+	            	noCandidateFound = true;
 	                break;
 	            }
 	            patternManager.signalCandidatesGenerated(candidateSet.size());
@@ -256,6 +262,9 @@ public class AlgoGSP {
 	            
 	            frequentSet = supportCounter.countSupport(candidateSet, k, this.parameters, /*minSupAbsolute,*/ patternManager/*, maxDuration, minGap, maxGap*/);
 	            
+	            if (supportCounter.steeringHasOccurred())
+	            	steeringHasOccurred = true;
+	            
 	            if (parameters.isTerminationRequested())
 	            	break;
 	            
@@ -263,6 +272,11 @@ public class AlgoGSP {
 	                System.out.println(frequentSet.size() + " frequent patterns\n");
 	            }
 	            
+	            // We break the loop if the set of frequent candidates is empty
+	            if (frequentSet.isEmpty()) {
+	            	noFrequentCandidate = true;
+	                break;
+	            }
 	            
 	            // check the memory usage for statistics
 	            MemoryLogger.getInstance().checkMemory();
@@ -305,10 +319,31 @@ public class AlgoGSP {
 	            } else {
 	            	// if a steering is still occurring
 	            	// ... do nothing ? 
-	            	System.out.println("AlgoGSP : go to level "+(k+1)+", steering at level "+k);
+	            	System.out.println("AlgoGSP : go to level "+(k+1)+", steering at level "+(this.lastLevelCompleted+1));
 	            }
 	            
 	        }
+	        if (noCandidateFound || noFrequentCandidate) {
+	        	if (steeringHasOccurred) {
+	        		// Go back to the next completed level
+			        k = this.lastLevelCompleted;
+			        indexationMap = new HashMap<Item, Set<Pattern>>(this.lastIndexationMapCompleted);
+			        frequentSet = new LinkedHashSet<>(this.lastFrequentSetCompleted);
+			        // stop the occurring steering
+			        this.parameters.stopSteering();
+			        patternManager.sendSteeringEndNotificationToClient();
+			        // reset the fact that steering occured for the support counter
+			        supportCounter.resetSteeringHasOccured();
+			        System.out.println("AlgoGSP: steering ended, going back to level "+(k+1));
+	        	} else {
+	        		patternManager.signalLevelExtracted(k);
+	        		break;
+	        	}
+	        } else {
+	        	System.out.println("!!!!! This shouldn't happen !!!!!");
+	        	System.out.println("Exiting main loop while frequent candidates have been found");
+	        }
+	        /*
 	        if (!levelEndedWithNoCandidate) { // TODO check this test and its consequences
 	        	if (frequentSet == null || frequentSet.isEmpty()) {
 	        		patternManager.signalLevelExtracted(k);
@@ -337,7 +372,7 @@ public class AlgoGSP {
 	        		patternManager.signalLevelExtracted(k);
 	        		break;
 	        	}
-	        }
+	        }*/
         }
         /*When the loop is over, if we were interested in keeping the output in
          * a file, we store the last level found.
