@@ -3060,6 +3060,8 @@ function resetPatterns() {
 	// TODO Keep the initial sessions ?
 	buildUserSessions();
 	refreshUserPatterns();
+	// Reset the algorithm state extended view
+	d3.select("#patternSizeTable tbody").html("");
 }
 
 /**
