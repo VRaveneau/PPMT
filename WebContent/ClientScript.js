@@ -400,6 +400,11 @@ var useExtendedAlgorithmView = false;
 // The current state of the algorithm
 var algorithmState = null;
 
+// The id of the pattern corresponding to the pattern list's row under the mouse
+var patternIdUnderMouse = -1;
+// Timeout before hiding the pattern contextual actions
+var patternContextActionsHideTimeout = null;
+
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -458,6 +463,12 @@ var debouncedFilterUserList = _.debounce(filterUserList, 500);
  * @type {function}
  */
 var debouncedFilterPatternList = _.debounce(filterPatternList, 500);
+
+/**
+ * A debounced version of hidePatternContextActions
+ * @type {function}
+ */
+var debouncedHidePatternContextActions = _.debounce(hidePatternContextActions, 500);
 
 /******************************************************************************/
 /*																			  */
@@ -1084,6 +1095,8 @@ function setupTool() {
 	
 	setupAlgorithmSliders();
 	setupPatternSizesChart();
+
+	setupContextActions();
 	
 	d3.select("body").on("keyup", handleKeyPress);
 	d3.select("body").on("mousemove", moveTooltip);
@@ -1470,6 +1483,23 @@ function setupHelpers() {
 		.attr("title", "The minimal support for a pattern to be frequent");
 	d3.select("#helpSize")
 		.attr("title", "Maximum number of event in a pattern");
+}
+
+/**
+ * Setup the contextual actions
+ */
+function setupContextActions() {
+	// Pattern context actions
+	d3.select("#createEventButton")
+		.on("click", function() {
+			if (patternIdUnderMouse >= 0)
+				requestEventTypeCreationFromPattern(patternIdUnderMouse);
+		});
+	d3.select("#prefixSteeringButton")
+		.on("click", function() {
+			if (patternIdUnderMouse >= 0)
+				requestSteeringOnPattern(patternIdUnderMouse);
+		});
 }
 
 /*************************************/
@@ -2828,6 +2858,9 @@ function addPatternToList(message) {
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 					}
+				})
+				.on("mouseover", function() {
+					movePatternContextActionsToRow(pId);
 				});
 			var thisNameCell = thisRow.append("td");
 			
@@ -2897,6 +2930,9 @@ function addPatternToList(message) {
 						// Update the number of selected patterns display
 						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 					}
+				})
+				.on("mouseover", function() {
+					movePatternContextActionsToRow(pId);
 				});
 			let thisNameCell = thisRow.append("td");
 			for (var k=0; k < pSize; k++) {
@@ -3041,6 +3077,38 @@ function resetDataFilters() {
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+/**
+ * Moves the pattern context actions to a pattern list row and reveals it
+ * @param {number} patternId The id of the pattern
+ */
+function movePatternContextActionsToRow(patternId) {
+	clearTimeout(patternContextActionsHideTimeout);
+
+	let ctxActions = d3.select("#patternContextActions");
+	let rowCell = d3.select("#pattern"+patternId+" td");
+	let boundingRect = rowCell.node().getBoundingClientRect();
+	patternIdUnderMouse = patternId;
+	ctxActions.classed("hidden", false)
+		.style("width", Math.round(boundingRect.width)+"px")
+		.style("left", Math.round(boundingRect.left)+"px")
+		.style("top", `${Math.round(boundingRect.top)}px`);
+}
+
+/**
+ * Starts the countdown before actually hiding the pattern context actions.
+ */
+function prepareToHidePatternContextActions() {
+	patternContextActionsHideTimeout = setTimeout(hidePatternContextActions, 500);
+}
+
+/**
+ * Hides the pattern context actions.
+ */
+function hidePatternContextActions() {
+	patternIdUnderMouse = -1;
+	d3.select("#patternContextActions").classed("hidden", true);
+}
 
 /**
  * Updates the display of the number of pattern discovered, selected and
@@ -4116,6 +4184,7 @@ function updateAlgorithmStateDisplay() {
 	let table = d3.select("#patternSizeTable");
 	algorithmState.getOrderedLevels().forEach( function(lvl) {
 		let lvlData = algorithmState.getLevel(lvl);
+		let lvlProgression = algorithmState.getProgression(lvl);
 		let row = d3.select("#patternSizeTableRow"+lvl);
 		if (row.size() > 0) { // The row already exists
 			row.select(".patternSizeStatus")
@@ -4129,7 +4198,7 @@ function updateAlgorithmStateDisplay() {
 			row.select(".patternSizeCandidates")
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.select(".patternSizeProgression")
-				.text(algorithmState.getProgression(lvl)+"%");
+				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
 			row.select(".patternSizeTime")
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
 		} else { // The row doesn't exist yet
@@ -4149,7 +4218,7 @@ function updateAlgorithmStateDisplay() {
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.append("td")
 				.classed("patternSizeProgression", true)
-				.text(algorithmState.getProgression(lvl)+"%");
+				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
 			row.append("td")
 				.classed("patternSizeTime", true)
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
@@ -4164,9 +4233,10 @@ function updateAlgorithmStateDisplay() {
 	let strategyTxt = "Not running";
 	if (algorithmState.isRunning()) {
 		if (algorithmState.isUnderSteering()) {
-			strategyTxt = "Steering on "+ (algorithmState.getSteeringTarget()) ?
-											algorithmState.getSteeringTarget() :
-											"something";
+			strategyTxt = "Steering on "+
+					(algorithmState.getSteeringTarget()) ?
+						algorithmState.getSteeringTarget()+" "+algorithmState.getSteeringValue() :
+						"something";
 		} else {
 			strategyTxt = "Default (breadth-first search)";
 		}
@@ -4351,6 +4421,7 @@ function drawPatternSizesChart() {
  */
 function handleSteeringStartSignal(type, value) {
 	d3.select("#focus").text(type+" starting with: "+value);
+	algorithmState.startSteering(type, value);
 }
 
 /**
@@ -4358,6 +4429,7 @@ function handleSteeringStartSignal(type, value) {
  */
 function handleSteeringStopSignal() {
 	d3.select("#focus").text("");
+	algorithmState.stopSteering();
 }
 
 /**
@@ -4475,6 +4547,9 @@ function createPatternListDisplay() {
 					// Update the number of selected patterns display
 					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 				}
+			})
+			.on("mouseover", function() {
+				movePatternContextActionsToRow(pId);
 			});
 		var thisNameCell = thisRow.append("td");
 			//.classed("dropdown", true);
@@ -5652,6 +5727,7 @@ function AlgorithmState() {
 	this.running = false;
 	this.underSteering = false;
 	this.steeringTarget = null;
+	this.steeringValue = null;
 	this.patternSizeInfo = {};
 	this.currentLevel = null;
 
@@ -5665,8 +5741,9 @@ function AlgorithmState() {
 
 	this.startLevel = function(pSize) {
 		// Go to a previously started pattern size
-		if (Object.keys(this.patternSizeInfo).includes(pSize)) {
+		if (Object.keys(this.patternSizeInfo).includes(pSize.toString())) {
 			this.currentLevel = this.patternSizeInfo[pSize];
+			this.currentLevel.status = "active";
 		} else { // Start a new pattern size
 			this.patternSizeInfo[pSize] = {
 				size: pSize,
@@ -5774,6 +5851,18 @@ function AlgorithmState() {
 		if (this.currentLevel != null) {
 			this.currentLevel.elapsedTime += time;
 		}
+	}
+
+	this.startSteering = function(target, value) {
+		this.underSteering = true;
+		this.steeringTarget = target;
+		this.steeringValue = value;
+	}
+
+	this.stopSteering = function() {
+		this.underSteering = false;
+		this.steeringTarget = null;
+		this.steeringValue = null;
 	}
 }
 

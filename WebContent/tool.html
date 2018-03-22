@@ -350,12 +350,12 @@
 											<th onclick="clickOnPatternSizeHeader()">Size&nbsp;↓</th>
 										</tr>
 									</thead>
-									<tbody id="selectedPatternTableBody">
+									<tbody id="selectedPatternTableBody" onmouseout="prepareToHidePatternContextActions();">
 									</tbody>
 									<tr id="patternListSeparator">
 										<td colspan="4"><hr></td>
 									</tr>
-									<tbody id="patternTableBody">
+									<tbody id="patternTableBody" onmouseout="prepareToHidePatternContextActions();">
 									</tbody>
 								</table>
 						
@@ -412,6 +412,10 @@
 							</div>
 						</div>
 					</div>
+				</div>
+				<div id="patternContextActions" class="contextActions hidden">
+					<button id="createEventButton" class="clickable">To eventType</button>
+					<button id="prefixSteeringButton" class="clickable">Prefix steering</button>
 				</div>
 			</div>
 		</div>
