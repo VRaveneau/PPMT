@@ -2786,6 +2786,7 @@ function selectUsersBasedOnPatternSelection() {
 	});
 
 	setHighlights();
+	refreshUserPatterns();
 }
 
 /**
@@ -6147,6 +6148,21 @@ var Timeline = function(elemId, options) {
 		
 		for (var i=0; i < shownUsers.length; i++) {
 			let userName = shownUsers[i];
+
+			// Draw a band in the background if the user is selected
+			if (showUserSessionOption != "selected" && highlightedUsers.includes(userName)) {
+				console.log(userName);
+				let x1 = self.xUsers(self.xUsers.domain()[0]);
+				let x2 = self.xUsers(self.xUsers.domain()[1]);
+				let y = self.yUsers(userName) + self.yUsers.bandwidth()/2;
+				self.canvasUsersContext.beginPath();
+				self.canvasUsersContext.strokeStyle = "lightgrey";
+				self.canvasUsersContext.lineWidth = Math.floor(self.yUsers.bandwidth());
+				self.canvasUsersContext.moveTo(x1,y);
+				self.canvasUsersContext.lineTo(x2,y);
+				self.canvasUsersContext.lineCap = "butt";
+				self.canvasUsersContext.stroke();
+			}
 			
 			userSessions[userName].forEach(function(ses, sesIdx) {
 				let color = sessionColor;
