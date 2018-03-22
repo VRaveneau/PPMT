@@ -5760,7 +5760,8 @@ function AlgorithmState() {
 	this.stopLevel = function() {
 		if (this.currentLevel != null) {
 			if (this.currentLevel.candidates == this.currentLevel.candidatesChecked &&
-				!this.isUnderSteering() ) {
+				!this.isUnderSteering() &&
+				this.currentLevel.candidates > 0) {
 				this.currentLevel.status = "done";
 			} else {
 				this.currentLevel.status = "started";
@@ -5779,6 +5780,10 @@ function AlgorithmState() {
 
 	this.getSteeringTarget = function() {
 		return this.steeringTarget;
+	}
+
+	this.getSteeringValue = function() {
+		return this.steeringValue;
 	}
 
 	this.getProgression = function(patternSize) {
