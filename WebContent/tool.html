@@ -225,7 +225,7 @@
 										<span id="showUserSessionsSwitch" class="switchArea">
 											<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button><button type="button" value="some" onclick="showUserSessions('some');">Some users</button></span>
 									</span>
-									<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput"></span>
+									<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput" class="fakeBrowserSlider"></span>
 									<span id="drawIndividualEvents" class="hidden">Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
 									<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" class="clickable" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
 									</div>
