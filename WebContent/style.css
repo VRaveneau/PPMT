@@ -1155,7 +1155,7 @@ ul.algorithmTabs li :not(.active):hover {
 /********************************/
 
 #patternSizesSvg .bar {
-  fill: #04B7FB;
+  fill: rgb(119, 119, 119);
 }
 
 #patternSizesSvg text.bar {
