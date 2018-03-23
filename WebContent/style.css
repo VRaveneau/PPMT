@@ -84,6 +84,10 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	flex: 1;
 }
 
+#patternTable {
+	border-collapse: collapse;
+}
+
 #selectedPatternTableBody {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
@@ -94,6 +98,16 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 
 #patternTableBody {
 	font-weight: normal;
+}
+
+#selectedPatternTableBody tr:hover {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
+}
+
+#patternTableBody tr:hover {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
 }
 
 .section {
@@ -1288,6 +1302,10 @@ ul.algorithmTabs li :not(.active):hover {
 /* 		Event types tabs 		*/
 /********************************/
 
+#eventTable {
+	border-collapse: collapse;
+}
+
 #eventTableBody tr.selectedEventTypeRow {
   /*background: #5C9FB9;*/
   font-weight: bold;
@@ -1299,6 +1317,11 @@ ul.algorithmTabs li :not(.active):hover {
 
 #eventTableBody tr:not(.selectedEventTypeRow) {
 	font-weight: normal;
+}
+
+#eventTableBody tr:hover {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
 }
 
 /********************************/
@@ -1327,6 +1350,10 @@ ul.algorithmTabs li :not(.active):hover {
 	word-wrap: break-word;
 }
 
+#userTable {
+	border-collapse: collapse;
+}
+
 #userTableBody {
 	overflow-y: auto;
 }
@@ -1342,6 +1369,11 @@ ul.algorithmTabs li :not(.active):hover {
 
 #userTableBody tr:not(.selectedUserRow) {
 	font-weight: normal;
+}
+
+#userTableBody tr:hover {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
 }
 
 .area {
