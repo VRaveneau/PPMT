@@ -225,7 +225,7 @@
 										<span id="showUserSessionsSwitch" class="switchArea">
 											<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button><button type="button" value="some" onclick="showUserSessions('some');">Some users</button></span>
 									</span>
-									<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput"></span>
+									<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput" class="fakeBrowserSlider"></span>
 									<span id="drawIndividualEvents" class="hidden">Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
 									<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" class="clickable" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
 									</div>
@@ -372,54 +372,66 @@
 					Hover over the visualizations to get more information
 					</div>
 				</div>
-				<div id="algorithmExtended" class="hidden">
-					<div id="algorithmExtendedMainPanel">
-						<div class="section">
-							<div class="body">
-								<button onclick="toggleExtendedAlgorithmView();" class="clickable">Show less</button>
-								<p class="right-aligned">Total: <span id="algorithmInfoTotalPatternCount">No</span> patterns found over <span id="algorithmInfoTotalTime">0s</span></p>
-							</div>
+				<div id="modalBackground" class="hidden">
+					<div id="modalContent">
+						<div id="modalCloseArea" class="clickable">
+							CLOSE
 						</div>
-						<div id="patternSizeTableArea" class="section">
-							<div class="body">
-								<table id="patternSizeTable">
-									<thead>
-										<tr>
-											<th>Size</th>
-											<th>Status</th>
-											<th>Patterns found</th>
-											<th>Candidates checked</th>
-											<th>Progression</th>
-											<th>Elapsed time</th>
-										</tr>
-									</thead>
-									<tbody>
+						<div id="algorithmExtended" class="modalWindow hidden">
+							<div id="algorithmExtendedMainPanel">
+								<div class="section">
+									<div class="body">
+										<p class="right-aligned">Total: <span id="algorithmInfoTotalPatternCount">No</span> patterns found over <span id="algorithmInfoTotalTime">0s</span></p>
+									</div>
+								</div>
+								<div id="patternSizeTableArea" class="section">
+									<div class="body">
+										<table id="patternSizeTable">
+											<thead>
+												<tr>
+													<th>Size</th>
+													<th>Status</th>
+													<th>Patterns found</th>
+													<th>Candidates checked</th>
+													<th>Progression</th>
+													<th>Elapsed time</th>
+												</tr>
+											</thead>
+											<tbody>
 
-									</tbody>
-								</table>
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+							<div id="algorithmExtendedSidePanel">
+								<div id="extendedAlgorithmStrategyArea" class="section">
+									<div class="title">Current strategy</div>
+									<div class="body">Not Running</div>
+								</div>
+								<div id="extendedAlgorithmParametersArea" class="section">
+									<div class="title">Current parameters</div>
+									<div class="body">
+										<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
+										<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
+										<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
+										<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
+										<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
+									</div>
+								</div>
+								<div id="algorithmSpeedArea" class="section">
+									<div class="title">Speed</div>
+									<div class="body">
+										plop
+									</div>
+								</div>
 							</div>
 						</div>
-					</div>
-					<div id="algorithmExtendedSidePanel">
-						<div id="extendedAlgorithmStrategyArea" class="section">
-							<div class="title">Current strategy</div>
-							<div class="body">Not Running</div>
-						</div>
-						<div id="extendedAlgorithmParametersArea" class="section">
-							<div class="title">Current parameters</div>
-							<div class="body">
-								<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
-								<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
-								<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
-								<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
-								<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
-							</div>
-						</div>
-						<div id="algorithmSpeedArea" class="section">
-							<div class="title">Speed</div>
-							<div class="body">
-								plop
-							</div>
+						<div id="algorithmParametersChange" class="modalWindow hidden">
+							<div>Support</div>
+							<div>Gap</div>
+							<div>Max duration</div>
+							<div>max size</div>
 						</div>
 					</div>
 				</div>

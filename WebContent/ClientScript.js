@@ -164,6 +164,9 @@ var defaultNbUserShown = 15;
 // Number of users shown in the session view
 var nbUserShown = defaultNbUserShown;
 
+// Max number of pattern selected at once
+var maxSelectedPatternNb = 5;
+
 // Number of elements fully displayed in the highlight summary.
 // Beyond this value, only the number of highlighted elements is displayed
 var numberOfDetailedHighlights = 5;
@@ -1070,6 +1073,7 @@ function createServer() {
  * Initializes the tool once a dataset has been selected
  */
 function setupTool() {
+	setupModalWindows();
 	setupAlgorithmSearchField();
 	setupUserSearchField();
 	
@@ -1492,7 +1496,7 @@ function setupHelpers() {
 }
 
 /**
- * Setup the contextual actions
+ * Sets up the contextual actions
  */
 function setupContextActions() {
 	// Pattern context actions
@@ -1513,6 +1517,20 @@ function setupContextActions() {
 			if (eventTypeUnderMouse != null)
 				requestEventTypeRemoval(eventTypeUnderMouse);
 		});
+}
+
+/**
+ * Sets up the modal windows
+ */
+function setupModalWindows() {
+	d3.select("#modalContent")
+		.on("click", function() {
+			d3.event.stopPropagation();
+		});
+	d3.select("#modalBackground")
+		.on("click", closeModal);
+	d3.select("#modalCloseArea")
+		.on("click", closeModal);
 }
 
 /*************************************/
@@ -2871,144 +2889,13 @@ function addPatternToList(message) {
 		}).join(" ");
 	if (pString.includes(properPatternSearchInput) == true) {
 		if (correctPositionInList == -1) { // append at the end of the list
-			let patternList = d3.select("#patternTableBody");
-			let thisRow = patternList.append("tr")
-				.attr("id","pattern"+pId)
-				.classed("clickable", true)
-				.on("click", function() {
-					if (d3.event.shiftKey) { // Shift + click, steering
-						requestSteeringOnPattern(pId);
-						d3.event.stopPropagation();
-					} else { // Normal click, displays the occurrences
-						if (selectedPatternIds.includes(pId)) {
-							let index = selectedPatternIds.indexOf(pId);
-							if (index >= 0)
-								selectedPatternIds.splice(index, 1);
-						} else {
-							selectedPatternIds.push(pId);
-						}
-						if (occurrencesAreKnown(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						//d3.event.stopPropagation();
-						console.log("click on "+pId);
-						createPatternListDisplay();
-						
-						// Update the number of selected patterns display
-						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-					}
-				})
-				.on("mouseover", function() {
-					movePatternContextActionsToRow(pId);
-				});
-			var thisNameCell = thisRow.append("td");
-			
-			for (var k=0; k < pSize; k++) {
-				thisNameCell.append("span")
-					.style("color",colorList[pItems[k]][0].toString())
-					.text(itemShapes[pItems[k]]);
-			}
-			thisNameCell.append("span")
-				.text(" "+pString)
-				.attr("patternId",pId)
-				.classed("patternText", true)
-				.style("display", showPatternText ? "initial" : "none");
-				//.classed("dropdown", true);
-			/*var pSvg = thisNameCell.append("svg")
-				.attr("width", 20*pSize)
-				.attr("height", 20);*/
-	
-			// Create the menu
-			/*
-			var dropMenuDiv = thisNameCell.append("div")
-				.classed("dropdown-content", true)
-				.style("left","0");
-			let steeringP = dropMenuDiv.append("p")
-				.text("Steer on this pattern")
-				.on("click", function() {
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				});*/
-			
-			thisRow.append("td")
-				.text(pSupport);
-			thisRow.append("td")
-				.text(pUsers.length);
-			thisRow.append("td")
-				.text(pSize);
+			document.getElementById("patternTableBody").appendChild(createPatternRow(pId));
 		} else { // append at the right position in the list
 			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
 			//console.log("First unselectedId: "+firstUnselectedId);
-			let patternList = d3.select("#patternTableBody");
-			let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
+			let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
 			
-			let thisRow = d3.select(document.createElement("tr"))
-				.attr("id","pattern"+pId)
-				.classed("clickable", true)
-				.on("click", function() {
-					if (d3.event.shiftKey) { // Shift + click, steering
-						requestSteeringOnPattern(pId);
-						d3.event.stopPropagation();
-					} else { // Normal click, displays the occurrences
-						if (selectedPatternIds.includes(pId)) {
-							let index = selectedPatternIds.indexOf(pId);
-							if (index >= 0)
-								selectedPatternIds.splice(index, 1);
-						} else {
-							selectedPatternIds.push(pId);
-						}
-						
-						if (occurrencesAreKnown(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						//d3.event.stopPropagation();
-						console.log("click on "+pId);
-						createPatternListDisplay();
-	
-						// Update the number of selected patterns display
-						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-					}
-				})
-				.on("mouseover", function() {
-					movePatternContextActionsToRow(pId);
-				});
-			let thisNameCell = thisRow.append("td");
-			for (var k=0; k < pSize; k++) {
-				thisNameCell.append("span")
-					.style("color",colorList[pItems[k]][0].toString())
-					.text(itemShapes[pItems[k]]);
-			}
-			thisNameCell.append("span")
-				.text(" "+pString)
-				.attr("patternId",pId)
-				.classed("patternText", true)
-				.style("display", showPatternText ? "initial" : "none");
-				//.classed("dropdown", true);
-			/*var pSvg = thisNameCell.append("svg")
-				.attr("width", 20*pSize)
-				.attr("height", 20);*/
-	
-			// Create the menu
-			/*let dropMenuDiv = thisNameCell.append("div")
-				.classed("dropdown-content", true)
-				.style("left","0");
-			let steeringP = dropMenuDiv.append("p")
-				.text("Steer on this pattern")
-				.on("click", function() {
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				});*/
-			
-			thisRow.append("td")
-				.text(pSupport);
-			thisRow.append("td")
-				.text(pUsers.length);
-			thisRow.append("td")
-				.text(pSize);
-			
-			firstUnselectedNode.parentNode.insertBefore(thisRow.node(), firstUnselectedNode);
+			firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
 		}
 	}
 	// Update the number of filtered patterns if necessary
@@ -4289,6 +4176,7 @@ function updateAlgorithmStateDisplay() {
 		let lvlProgression = algorithmState.getProgression(lvl);
 		let row = d3.select("#patternSizeTableRow"+lvl);
 		if (row.size() > 0) { // The row already exists
+			row.classed("rowactive", lvlData.status == "active");
 			row.select(".patternSizeStatus")
 				.classed("levelstarted", false)
 				.classed("leveldone", false)
@@ -4600,12 +4488,8 @@ function createPatternListDisplay() {
 	// display the new ones
 	for (var i=0; i < patternIdList.length; i++) {
 		
-		let pSize = patternsInformation[patternIdList[i]][1]
-		let pSupport = patternsInformation[patternIdList[i]][2]
 		let pId = patternIdList[i];
 		let pString = patternsInformation[patternIdList[i]][0];
-		let pItems = patternsInformation[patternIdList[i]][3];
-		let pUsers = patternsInformation[patternIdList[i]][4];
 		
 		let index = selectedPatternIds.indexOf(pId);
 		
@@ -4626,82 +4510,86 @@ function createPatternListDisplay() {
 			patternList = d3.select("#patternTableBody");
 		}
 		
-		let thisRow = patternList.append("tr")
-			.attr("id","pattern"+pId)
-			.classed("clickable",true)
-			.on("click", function() {
-				if (d3.event.shiftKey) { // Shift + click, steering
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				} else { // Normal click, displays the occurrences
-					if (selectedPatternIds.includes(pId)) {
-						let index = selectedPatternIds.indexOf(pId);
-						if (index >= 0)
-							selectedPatternIds.splice(index, 1);
-					} else {
-						selectedPatternIds.push(pId);
-					}
-					
-					if (occurrencesAreKnown(pId) == false)
-						requestPatternOccurrences(pId, currentDatasetName);
-					else
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-					//d3.event.stopPropagation();
-					console.log("click on "+pId);
-					createPatternListDisplay();
-					
-					// Update the number of selected patterns display
-					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-				}
-			})
-			.on("mouseover", function() {
-				movePatternContextActionsToRow(pId);
-			});
-		var thisNameCell = thisRow.append("td");
-			//.classed("dropdown", true);
-		/*var pSvg = thisNameCell.append("svg")
-			.attr("width", 20*pSize)
-			.attr("height", 20);*/
-		for (var k=0; k < pSize; k++) {
-			thisNameCell.append("span")
-				.style("color",colorList[pItems[k]][0].toString())
-				.text(itemShapes[pItems[k]]);
-		}
-		thisNameCell.append("span")
-			.text(" "+pString)
-			.attr("patternId",pId)
-			.classed("patternText", true)
-			.style("display", showPatternText ? "initial" : "none");
-
-		// Create the menu
-		/*var dropMenuDiv = thisNameCell.append("div")
-			.classed("dropdown-content", true)
-			.style("left","0");
-		let steeringP = dropMenuDiv.append("p")
-			.text("Steer on this pattern")
-			.on("click", function() {
-				requestSteeringOnPattern(pId);
-				d3.event.stopPropagation();
-			});*/
-		
-		thisRow.append("td")
-			.text(pSupport);
-		thisRow.append("td")
-			.text(pUsers.length);
-		thisRow.append("td")
-			.text(pSize);
-		/*
-		for (var k = 0; k < pSize; k++) {
-			pSvg.append("path")
-				.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
-				.attr("transform","translate("+(10+20*k)+",10)")
-				.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)")//d3.hsl(parseFloat(eColor),100,50).rgb())
-				.attr("fill","none");
-		}*/
+		patternList.node().appendChild(createPatternRow(pId));
 	}
 	
 	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
+}
+
+function createPatternRow(pId) {
+	let pSize = patternsInformation[pId][1];
+	let pSupport = patternsInformation[pId][2];
+	let pString = patternsInformation[pId][0];
+	let pItems = patternsInformation[pId][3];
+	let pUsers = patternsInformation[pId][4];
+
+	let row = d3.select(document.createElement("tr"))
+		.attr("id","pattern"+pId)
+		.classed("clickable",true)
+		.on("click", function() {
+			if (selectedPatternIds.includes(pId)) {
+				let index = selectedPatternIds.indexOf(pId);
+				if (index >= 0)
+					selectedPatternIds.splice(index, 1);
+			} else {
+				// Select the pattern if the max number is not yet reached
+				if (selectedPatternIds.length < maxSelectedPatternNb) {
+					selectedPatternIds.push(pId);
+				} else {
+					return;
+				}
+			}
+			
+			if (occurrencesAreKnown(pId) == false)
+				requestPatternOccurrences(pId, currentDatasetName);
+			else
+				timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+			//d3.event.stopPropagation();
+			console.log("click on "+pId);
+			createPatternListDisplay();
+			
+			// Update the number of selected patterns display
+			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+		})
+		.on("mouseover", function() {
+			movePatternContextActionsToRow(pId);
+		});
 	
+	let nameCell = row.append("td");
+		//.classed("dropdown", true);
+	/*var pSvg = thisNameCell.append("svg")
+		.attr("width", 20*pSize)
+		.attr("height", 20);*/
+	for (let k=0; k < pSize; k++) {
+		nameCell.append("span")
+			.style("color",colorList[pItems[k]][0].toString())
+			.text(itemShapes[pItems[k]]);
+	}
+	nameCell.append("span")
+		.text(" "+pString)
+		.attr("patternId",pId)
+		.classed("patternText", true)
+		.style("display", showPatternText ? "initial" : "none");
+
+	// Create the menu
+	/*var dropMenuDiv = thisNameCell.append("div")
+		.classed("dropdown-content", true)
+		.style("left","0");
+	let steeringP = dropMenuDiv.append("p")
+		.text("Steer on this pattern")
+		.on("click", function() {
+			requestSteeringOnPattern(pId);
+			d3.event.stopPropagation();
+		});*/
+	
+	row.append("td")
+		.text(pSupport);
+	row.append("td")
+		.text(pUsers.length);
+	row.append("td")
+		.text(pSize);
+	
+	return row.node();
 }
 
 /**
@@ -5048,10 +4936,31 @@ function getRelevantDisplayMode() {
 function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
+		d3.select("#modalBackground").classed("hidden", false);
 		d3.select("#algorithmExtended").classed("hidden", false);
 	} else { // Show the shrinked view
+		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#algorithmExtended").classed("hidden", true);
 	}
+}
+
+/**
+ * Expands or shrinks the algorithm parameters change panel
+ */
+function toggleAlgorithmParametersChange() {
+	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
+	d3.select("#modalBackground").classed("hidden", !isHidden);
+	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
+}
+
+/**
+ * Hides the modal window and its content
+ */
+function closeModal() {
+	useExtendedAlgorithmView = false;
+	d3.select("#modalBackground").classed("hidden", true);
+	d3.select("#algorithmExtended").classed("hidden", true);
+	d3.select("#algorithmParametersChange").classed("hidden", true);
 }
 
 /************************************/
@@ -6010,7 +5919,7 @@ var Timeline = function(elemId, options) {
 		self.xUsers.domain(t.rescaleX(self.xContext).domain());
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
-		self.focus.select(".axis--x")
+		self.patterns.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
@@ -6041,7 +5950,7 @@ var Timeline = function(elemId, options) {
 		self.xUsers.domain(t.rescaleX(self.xContext).domain());
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
-		self.focus.select(".axis--x")
+		self.patterns.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
@@ -6282,19 +6191,20 @@ var Timeline = function(elemId, options) {
 		
 		//console.log("patterns to draw: "+listOfPatternsToDraw);
 		
-		let step = self.marginFocus.size / (idsToDraw.length + 1.0);
+		let step = self.marginPatterns.size / (idsToDraw.length + 1.0);
 		let range = [];
 		for (let i = 0; i< idsToDraw.length + 2; i++)
 			range.push(i*step);
 		
 		
 		self.yPatterns = d3.scaleOrdinal()
-			.domain([""].concat(idsToDraw).concat([""]))
+			//.domain([""].concat(idsToDraw).concat([""]))
+			.domain([""].concat(idsToDraw))
 			.range(range);
 	
-		self.yAxisPatterns = d3.axisRight(self.yPatterns)
+		self.yAxisPatterns = d3.axisLeft(self.yPatterns)
 	        .tickValues(self.yPatterns.domain());
-		self.focus.select("#focusRightAxis").call(self.yAxisPatterns);
+		self.patterns.select("#focusRightAxis").call(self.yAxisPatterns);
 		
 		// Hide the axis if there is no selected pattern or if we are not in distribution mode
 		if (self.displayMode != "distributions" || idsToDraw.length == 0) {
@@ -6352,19 +6262,19 @@ var Timeline = function(elemId, options) {
 							let x1 = self.xFocus(new Date(parseInt(occ[1])));
 							let x2 = self.xFocus(new Date(parseInt(occ[occ.length-1]))); // Last timestamp in the occurrence
 							let y = self.yPatterns(idsToDraw[i]);
-							self.canvasContext.beginPath();
+							self.canvasPatternDistinctContext.beginPath();
 							if (x1 == x2) {
-								self.canvasContext.fillStyle = "black";
-								self.canvasContext.arc(x1,y,1.5,0,2*Math.PI, false);
-								self.canvasContext.fill();
-								//self.canvasContext.closePath();
+								self.canvasPatternDistinctContext.fillStyle = "black";
+								self.canvasPatternDistinctContext.arc(x1,y,1.5,0,2*Math.PI, false);
+								self.canvasPatternDistinctContext.fill();
+								//self.canvasPatternDistinctContext.closePath();
 							} else {
-								self.canvasContext.lineWidth = 3;
-								self.canvasContext.moveTo(x1,y);
-								self.canvasContext.lineTo(x2,y);
-								self.canvasContext.lineCap = "round";
-								self.canvasContext.stroke();
-							    //self.canvasContext.closePath();
+								self.canvasPatternDistinctContext.lineWidth = 3;
+								self.canvasPatternDistinctContext.moveTo(x1,y);
+								self.canvasPatternDistinctContext.lineTo(x2,y);
+								self.canvasPatternDistinctContext.lineCap = "round";
+								self.canvasPatternDistinctContext.stroke();
+							    //self.canvasPatternDistinctContext.closePath();
 							}
 						//}
 					}
@@ -6859,7 +6769,7 @@ var Timeline = function(elemId, options) {
 		self.xUsers.domain(s.map(self.xContext.invert, self.xContext));
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
-		self.focus.select(".axis--x")
+		self.patterns.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
@@ -6989,6 +6899,7 @@ var Timeline = function(elemId, options) {
 		self.canvasContext.clearRect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.hiddenCanvasContext.clearRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
 		self.canvasPatternContext.clearRect(0,0,self.canvasPattern.attr("width"),self.canvasPattern.attr("height"));
+		self.canvasPatternDistinctContext.clearRect(0,0,self.canvasPatternDistinct.attr("width"),self.canvasPatternDistinct.attr("height"));
 		
 		switch(self.displayMode) {
 		case "distributions":
@@ -7238,9 +7149,10 @@ var Timeline = function(elemId, options) {
 	}
 	
 	// Parameters about size and margin of the timeline's parts
-	self.marginFocus = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 250};
-	self.marginContext = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 50};
-	self.marginUsers =  {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 250};
+	self.marginContext = {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 25};
+	self.marginFocus = {"top": 0,"right": 20,"bottom": 10,"left": 50,"size": 225};
+	self.marginPatterns = {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 75};
+	self.marginUsers =  {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 250};
 	
 	self.width = +self.parentNode.clientWidth
 			- Math.max(self.marginFocus.left, self.marginContext.left)
@@ -7248,14 +7160,17 @@ var Timeline = function(elemId, options) {
 	self.widthContext = +self.parentNode.clientWidth
 			- self.marginContext.left
 			- self.marginContext.right;
-	self.heightFocus = self.marginFocus.size//+self.parentNode.clientHeight
-			+ self.marginFocus.top + self.marginFocus.bottom;
 	self.heightContext = self.marginContext.size//+self.parentNode.clientHeight
 			+ self.marginContext.top + self.marginContext.bottom;
+	self.heightFocus = self.marginFocus.size//+self.parentNode.clientHeight
+			+ self.marginFocus.top + self.marginFocus.bottom;
+	self.heightPatterns = self.marginPatterns.size//+self.parentNode.clientHeight
+			+ self.marginPatterns.top + self.marginPatterns.bottom;
 	self.heightUsers = self.marginUsers.size
 			+ self.marginUsers.top + self.marginUsers.bottom;
 	
-	self.height = self.heightFocus
+	self.height = self.heightContext
+		+ self.heightFocus
 		+ self.heightContext
 		+ self.heightUsers
 		+ 5*20;
@@ -7281,6 +7196,15 @@ var Timeline = function(elemId, options) {
 		.style("left",self.marginFocus.left.toString()+"px")
 		.style("height", self.marginFocus.size+"px");	
 	self.canvasContext = self.canvas.node().getContext("2d");
+	
+	self.canvasPatternDistinct = d3.select(self.nodeFocus).append("canvas")
+		.attr("width",self.width)
+		.attr("height",self.marginPatterns.size)
+		.style("position","relative")
+		.style("top",(self.marginPatterns.top + 6).toString()+"px")
+		.style("left",self.marginPatterns.left.toString()+"px")
+		.style("height", self.marginPatterns.size+"px");	
+	self.canvasPatternDistinctContext = self.canvasPatternDistinct.node().getContext("2d");
 
 	self.canvasOverview = d3.select(self.nodeOverview).append("canvas")
 		.attr("width",self.widthContext)
@@ -7334,7 +7258,14 @@ var Timeline = function(elemId, options) {
 		.attr("height",self.heightFocus)
 		.style("position","absolute")
 		.style("top","0")
-		.style("left","0");	
+		.style("left","0");
+
+	self.svgPatterns = d3.select(self.nodeFocus).append("svg")
+		.attr("width",self.parentNode.clientWidth)
+		.attr("height",self.heightPatterns)
+		.style("position","absolute")
+		.style("top",self.heightFocus)
+		.style("left","0");
 	
 	self.svgOverview = d3.select(self.nodeOverview).append("svg")
 		.attr("width",self.parentNode.clientWidth)
@@ -7357,7 +7288,7 @@ var Timeline = function(elemId, options) {
 	self.yFocus = d3.scaleLinear().range([self.marginFocus.size,0]);
 	self.yContext = d3.scaleLinear().range([self.marginContext.size,0]);
 	self.xPatterns = d3.scaleTime().range([0, self.width]);
-	self.yPatterns = d3.scalePoint().range([self.marginFocus.size,0]);
+	self.yPatterns = d3.scalePoint().range([self.marginPatterns.size,0]);
 	self.xUsers = d3.scaleTime().range([0, self.width]);
 	self.yUsers = d3.scaleBand()
 			.range([0, self.marginUsers.size])
@@ -7365,7 +7296,7 @@ var Timeline = function(elemId, options) {
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
 	self.yAxisFocus = d3.axisLeft(self.yFocus);//.tickSizeInner(-self.width);
-	self.yAxisPatterns = d3.axisRight(self.yPatterns).tickSizeInner(-self.width);
+	self.yAxisPatterns = d3.axisLeft(self.yPatterns);//.tickSizeInner(-self.width);
 	self.xAxisUsers = d3.axisBottom(self.xUsers);
 	self.yAxisUsers = d3.axisLeft(self.yUsers);//.tickSizeInner(-self.width);
 	// The brush component of the context part
@@ -7381,6 +7312,13 @@ var Timeline = function(elemId, options) {
 		.extent([[0, 0], [self.width, self.marginFocus.size]])
 		.on("zoom", self.zoomed);
 	
+		// The zoomable rectangle on the patterns part
+	self.zoomPatterns = d3.zoom()
+		.scaleExtent([1, Infinity])
+		.translateExtent([[0, 0], [self.width, self.marginPatterns.size]])
+		.extent([[0, 0], [self.width, self.marginPatterns.size]])
+		.on("zoom", self.zoomed);
+	
 	// The zoomable rectangle on the user part
 	self.zoomUsers = d3.zoom()
 		.scaleExtent([1, Infinity])
@@ -7389,7 +7327,7 @@ var Timeline = function(elemId, options) {
 		.on("zoom", self.zoomedUsers);
 	
 	// Adding the axis to the svg area
-	// focus part of the timeline
+	// Creating the focus part of the timeline
 	self.focus = self.svgFocus.append("g")
 	    .attr("class", "focus")
 	    .attr("transform", "translate("+self.marginFocus.left+","+self.marginFocus.top+")");
@@ -7397,14 +7335,18 @@ var Timeline = function(elemId, options) {
 	self.context = self.svgOverview.append("g")
 	    .attr("class", "context")
 	    .attr("transform", "translate("+self.marginContext.left+","+self.marginContext.top+")");
+	// Creating the pattern part of the timeline
+	self.patterns = self.svgPatterns.append("g")
+	    .attr("class", "patterns")
+	    .attr("transform", "translate("+self.marginPatterns.left+","+self.marginPatterns.top+")");
 	// Creating the users part for the timeline
 	self.users = self.svgUsers.append("g")
 	    .attr("class", "users")
 	    .attr("transform", "translate("+self.marginUsers.left+","+self.marginUsers.top+")");
 	// Creating the xAxis and yAxis for the focus part of the timeline
-	self.focus.append("g")
+	self.patterns.append("g")
 		.attr("class","axis axis--x")
-		.attr("transform", "translate(0," + (self.marginFocus.size + self.marginFocus.top) + ")")
+		.attr("transform", "translate(0," + (self.marginPatterns.size + self.marginPatterns.top) + ")")
 		.call(self.xAxisFocus);
 	self.focus.append("g")
 		.attr("class", "axis axis--y")
@@ -7417,10 +7359,10 @@ var Timeline = function(elemId, options) {
 		.attr("transform", "translate(0," + (self.marginContext.size + self.marginContext.top) + ")")
 		.call(self.xAxisContext);
 	// Creating the yAxis for the pattern part of the timeline
-	self.focus.append("g")
+	self.patterns.append("g")
 		.attr("class", "axis axis--y")
 		.attr("id", "focusRightAxis")
-	    .attr("transform", "translate("+self.width+",0)")
+	    //.attr("transform", "translate("+self.width+",0)")
 		.call(self.yAxisPatterns)
 		.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Creating the xAxis for the users part of the timeline
@@ -7674,6 +7616,14 @@ var Timeline = function(elemId, options) {
 				self.focusOnSession(self.hoveredSession.start, self.hoveredSession.end);
 		});
 	
+	// Creating the zoomable rectangle on the patterns part of the timeline
+	self.zoomRectPatterns = self.svgPatterns.append("rect")
+		.attr("class", "zoom")
+		.attr("width", self.width)
+		.attr("height", self.marginPatterns.size)
+		.attr("transform", "translate(" + self.marginPatterns.left + "," + self.marginPatterns.top + ")")
+		.call(self.zoomPatterns);
+
 	self.context.select(".brush").select(".selection")
 		.attr("fill","white")
 		.attr("stroke","black")
@@ -7732,7 +7682,7 @@ var Timeline = function(elemId, options) {
 		self.xAxisUsers = d3.axisBottom(self.xUsers);
 		//self.yAxisUsers = d3.axisLeft(self.yUsers);
 
-		self.focus.select(".axis--x").call(self.xAxisFocus);
+		self.patterns.select(".axis--x").call(self.xAxisFocus);
 		self.context.select(".axis--x").call(self.xAxisContext);
 		self.users.select(".axis--x").call(self.xAxisUsers);
 		self.users.select(".axis--y").call(self.yAxisUsers);
