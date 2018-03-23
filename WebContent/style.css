@@ -1232,10 +1232,11 @@ ul.algorithmTabs li :not(.active):hover {
 	width: 100%;
 	height: 100%;
 	border-radius: 5px 0px 5px 5px;
+	background-color: #BEC6D3;
 }
 
 /********************************/
-/* 	Extendend algorithm view 	*/
+/* 	Extended algorithm view 	*/
 /********************************/
 
 #algorithmExtended {
@@ -1246,7 +1247,6 @@ ul.algorithmTabs li :not(.active):hover {
 	height: 50%;*/
 	margin: 0px;
 	padding: 0px;
-	background-color: #BEC6D3;/* #e4e7ec;*/
 	flex-direction: row;
 
 	/*z-index: 20;*/
@@ -1274,7 +1274,7 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 #patternSizeTable {
-	border-collapse: collapse;
+	
 }
 
 #patternSizeTable tbody tr {
@@ -1310,6 +1310,20 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 #algorithmSpeedArea {
+}
+
+/********************************/
+/* 	Algorithm parameter change 	*/
+/********************************/
+
+#algorithmParametersChange {
+	margin: 0px;
+	padding: 0px;
+	flex-direction: row;
+}
+
+#algorithmParametersChange:not(.hidden) {
+	display: flex;
 }
 
 /********************************/

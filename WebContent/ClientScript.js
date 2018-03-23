@@ -4945,12 +4945,22 @@ function toggleExtendedAlgorithmView() {
 }
 
 /**
+ * Expands or shrinks the algorithm parameters change panel
+ */
+function toggleAlgorithmParametersChange() {
+	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
+	d3.select("#modalBackground").classed("hidden", !isHidden);
+	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
+}
+
+/**
  * Hides the modal window and its content
  */
 function closeModal() {
 	useExtendedAlgorithmView = false;
 	d3.select("#modalBackground").classed("hidden", true);
 	d3.select("#algorithmExtended").classed("hidden", true);
+	d3.select("#algorithmParametersChange").classed("hidden", true);
 }
 
 /************************************/
