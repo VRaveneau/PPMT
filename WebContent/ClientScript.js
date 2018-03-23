@@ -1529,6 +1529,8 @@ function setupModalWindows() {
 		});
 	d3.select("#modalBackground")
 		.on("click", closeModal);
+	d3.select("#modalCloseArea")
+		.on("click", closeModal);
 }
 
 /*************************************/
