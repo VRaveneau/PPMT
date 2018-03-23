@@ -7137,8 +7137,8 @@ var Timeline = function(elemId, options) {
 	}
 	
 	// Parameters about size and margin of the timeline's parts
-	self.marginContext = {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 50};
-	self.marginFocus = {"top": 0,"right": 20,"bottom": 10,"left": 50,"size": 200};
+	self.marginContext = {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 25};
+	self.marginFocus = {"top": 0,"right": 20,"bottom": 10,"left": 50,"size": 225};
 	self.marginPatterns = {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 75};
 	self.marginUsers =  {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 250};
 	
@@ -7298,6 +7298,13 @@ var Timeline = function(elemId, options) {
 		.scaleExtent([1, Infinity])
 		.translateExtent([[0, 0], [self.width, self.marginFocus.size]])
 		.extent([[0, 0], [self.width, self.marginFocus.size]])
+		.on("zoom", self.zoomed);
+	
+		// The zoomable rectangle on the patterns part
+	self.zoomPatterns = d3.zoom()
+		.scaleExtent([1, Infinity])
+		.translateExtent([[0, 0], [self.width, self.marginPatterns.size]])
+		.extent([[0, 0], [self.width, self.marginPatterns.size]])
 		.on("zoom", self.zoomed);
 	
 	// The zoomable rectangle on the user part
@@ -7597,6 +7604,14 @@ var Timeline = function(elemId, options) {
 				self.focusOnSession(self.hoveredSession.start, self.hoveredSession.end);
 		});
 	
+	// Creating the zoomable rectangle on the patterns part of the timeline
+	self.zoomRectPatterns = self.svgPatterns.append("rect")
+		.attr("class", "zoom")
+		.attr("width", self.width)
+		.attr("height", self.marginPatterns.size)
+		.attr("transform", "translate(" + self.marginPatterns.left + "," + self.marginPatterns.top + ")")
+		.call(self.zoomPatterns);
+
 	self.context.select(".brush").select(".selection")
 		.attr("fill","white")
 		.attr("stroke","black")
