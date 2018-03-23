@@ -6035,7 +6035,7 @@ var Timeline = function(elemId, options) {
 		self.xUsers.domain(t.rescaleX(self.xContext).domain());
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
-		self.focus.select(".axis--x")
+		self.patterns.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
@@ -6066,7 +6066,7 @@ var Timeline = function(elemId, options) {
 		self.xUsers.domain(t.rescaleX(self.xContext).domain());
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
-		self.focus.select(".axis--x")
+		self.patterns.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
@@ -6307,19 +6307,20 @@ var Timeline = function(elemId, options) {
 		
 		//console.log("patterns to draw: "+listOfPatternsToDraw);
 		
-		let step = self.marginFocus.size / (idsToDraw.length + 1.0);
+		let step = self.marginPatterns.size / (idsToDraw.length + 1.0);
 		let range = [];
 		for (let i = 0; i< idsToDraw.length + 2; i++)
 			range.push(i*step);
 		
 		
 		self.yPatterns = d3.scaleOrdinal()
-			.domain([""].concat(idsToDraw).concat([""]))
+			//.domain([""].concat(idsToDraw).concat([""]))
+			.domain([""].concat(idsToDraw))
 			.range(range);
 	
-		self.yAxisPatterns = d3.axisRight(self.yPatterns)
+		self.yAxisPatterns = d3.axisLeft(self.yPatterns)
 	        .tickValues(self.yPatterns.domain());
-		self.focus.select("#focusRightAxis").call(self.yAxisPatterns);
+		self.patterns.select("#focusRightAxis").call(self.yAxisPatterns);
 		
 		// Hide the axis if there is no selected pattern or if we are not in distribution mode
 		if (self.displayMode != "distributions" || idsToDraw.length == 0) {
@@ -6377,19 +6378,19 @@ var Timeline = function(elemId, options) {
 							let x1 = self.xFocus(new Date(parseInt(occ[1])));
 							let x2 = self.xFocus(new Date(parseInt(occ[occ.length-1]))); // Last timestamp in the occurrence
 							let y = self.yPatterns(idsToDraw[i]);
-							self.canvasContext.beginPath();
+							self.canvasPatternDistinctContext.beginPath();
 							if (x1 == x2) {
-								self.canvasContext.fillStyle = "black";
-								self.canvasContext.arc(x1,y,1.5,0,2*Math.PI, false);
-								self.canvasContext.fill();
-								//self.canvasContext.closePath();
+								self.canvasPatternDistinctContext.fillStyle = "black";
+								self.canvasPatternDistinctContext.arc(x1,y,1.5,0,2*Math.PI, false);
+								self.canvasPatternDistinctContext.fill();
+								//self.canvasPatternDistinctContext.closePath();
 							} else {
-								self.canvasContext.lineWidth = 3;
-								self.canvasContext.moveTo(x1,y);
-								self.canvasContext.lineTo(x2,y);
-								self.canvasContext.lineCap = "round";
-								self.canvasContext.stroke();
-							    //self.canvasContext.closePath();
+								self.canvasPatternDistinctContext.lineWidth = 3;
+								self.canvasPatternDistinctContext.moveTo(x1,y);
+								self.canvasPatternDistinctContext.lineTo(x2,y);
+								self.canvasPatternDistinctContext.lineCap = "round";
+								self.canvasPatternDistinctContext.stroke();
+							    //self.canvasPatternDistinctContext.closePath();
 							}
 						//}
 					}
@@ -6884,7 +6885,7 @@ var Timeline = function(elemId, options) {
 		self.xUsers.domain(s.map(self.xContext.invert, self.xContext));
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
-		self.focus.select(".axis--x")
+		self.patterns.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
@@ -7014,6 +7015,7 @@ var Timeline = function(elemId, options) {
 		self.canvasContext.clearRect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.hiddenCanvasContext.clearRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
 		self.canvasPatternContext.clearRect(0,0,self.canvasPattern.attr("width"),self.canvasPattern.attr("height"));
+		self.canvasPatternDistinctContext.clearRect(0,0,self.canvasPatternDistinct.attr("width"),self.canvasPatternDistinct.attr("height"));
 		
 		switch(self.displayMode) {
 		case "distributions":
@@ -7263,8 +7265,9 @@ var Timeline = function(elemId, options) {
 	}
 	
 	// Parameters about size and margin of the timeline's parts
-	self.marginFocus = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 250};
-	self.marginContext = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 50};
+	self.marginContext = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 25};
+	self.marginFocus = {"top": 0,"right": 40,"bottom": 10,"left": 50,"size": 200};
+	self.marginPatterns = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 75};
 	self.marginUsers =  {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 250};
 	
 	self.width = +self.parentNode.clientWidth
@@ -7273,14 +7276,17 @@ var Timeline = function(elemId, options) {
 	self.widthContext = +self.parentNode.clientWidth
 			- self.marginContext.left
 			- self.marginContext.right;
-	self.heightFocus = self.marginFocus.size//+self.parentNode.clientHeight
-			+ self.marginFocus.top + self.marginFocus.bottom;
 	self.heightContext = self.marginContext.size//+self.parentNode.clientHeight
 			+ self.marginContext.top + self.marginContext.bottom;
+	self.heightFocus = self.marginFocus.size//+self.parentNode.clientHeight
+			+ self.marginFocus.top + self.marginFocus.bottom;
+	self.heightPatterns = self.marginPatterns.size//+self.parentNode.clientHeight
+			+ self.marginPatterns.top + self.marginPatterns.bottom;
 	self.heightUsers = self.marginUsers.size
 			+ self.marginUsers.top + self.marginUsers.bottom;
 	
-	self.height = self.heightFocus
+	self.height = self.heightContext
+		+ self.heightFocus
 		+ self.heightContext
 		+ self.heightUsers
 		+ 5*20;
@@ -7306,6 +7312,15 @@ var Timeline = function(elemId, options) {
 		.style("left",self.marginFocus.left.toString()+"px")
 		.style("height", self.marginFocus.size+"px");	
 	self.canvasContext = self.canvas.node().getContext("2d");
+	
+	self.canvasPatternDistinct = d3.select(self.nodeFocus).append("canvas")
+		.attr("width",self.width)
+		.attr("height",self.marginPatterns.size)
+		.style("position","relative")
+		.style("top",(self.marginPatterns.top + 6).toString()+"px")
+		.style("left",self.marginPatterns.left.toString()+"px")
+		.style("height", self.marginPatterns.size+"px");	
+	self.canvasPatternDistinctContext = self.canvasPatternDistinct.node().getContext("2d");
 
 	self.canvasOverview = d3.select(self.nodeOverview).append("canvas")
 		.attr("width",self.widthContext)
@@ -7359,7 +7374,14 @@ var Timeline = function(elemId, options) {
 		.attr("height",self.heightFocus)
 		.style("position","absolute")
 		.style("top","0")
-		.style("left","0");	
+		.style("left","0");
+
+	self.svgPatterns = d3.select(self.nodeFocus).append("svg")
+		.attr("width",self.parentNode.clientWidth)
+		.attr("height",self.heightPatterns)
+		.style("position","absolute")
+		.style("top",self.heightFocus)
+		.style("left","0");
 	
 	self.svgOverview = d3.select(self.nodeOverview).append("svg")
 		.attr("width",self.parentNode.clientWidth)
@@ -7382,7 +7404,7 @@ var Timeline = function(elemId, options) {
 	self.yFocus = d3.scaleLinear().range([self.marginFocus.size,0]);
 	self.yContext = d3.scaleLinear().range([self.marginContext.size,0]);
 	self.xPatterns = d3.scaleTime().range([0, self.width]);
-	self.yPatterns = d3.scalePoint().range([self.marginFocus.size,0]);
+	self.yPatterns = d3.scalePoint().range([self.marginPatterns.size,0]);
 	self.xUsers = d3.scaleTime().range([0, self.width]);
 	self.yUsers = d3.scaleBand()
 			.range([0, self.marginUsers.size])
@@ -7390,7 +7412,7 @@ var Timeline = function(elemId, options) {
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
 	self.yAxisFocus = d3.axisLeft(self.yFocus);//.tickSizeInner(-self.width);
-	self.yAxisPatterns = d3.axisRight(self.yPatterns).tickSizeInner(-self.width);
+	self.yAxisPatterns = d3.axisLeft(self.yPatterns);//.tickSizeInner(-self.width);
 	self.xAxisUsers = d3.axisBottom(self.xUsers);
 	self.yAxisUsers = d3.axisLeft(self.yUsers);//.tickSizeInner(-self.width);
 	// The brush component of the context part
@@ -7414,7 +7436,7 @@ var Timeline = function(elemId, options) {
 		.on("zoom", self.zoomedUsers);
 	
 	// Adding the axis to the svg area
-	// focus part of the timeline
+	// Creating the focus part of the timeline
 	self.focus = self.svgFocus.append("g")
 	    .attr("class", "focus")
 	    .attr("transform", "translate("+self.marginFocus.left+","+self.marginFocus.top+")");
@@ -7422,14 +7444,18 @@ var Timeline = function(elemId, options) {
 	self.context = self.svgOverview.append("g")
 	    .attr("class", "context")
 	    .attr("transform", "translate("+self.marginContext.left+","+self.marginContext.top+")");
+	// Creating the pattern part of the timeline
+	self.patterns = self.svgPatterns.append("g")
+	    .attr("class", "patterns")
+	    .attr("transform", "translate("+self.marginPatterns.left+","+self.marginPatterns.top+")");
 	// Creating the users part for the timeline
 	self.users = self.svgUsers.append("g")
 	    .attr("class", "users")
 	    .attr("transform", "translate("+self.marginUsers.left+","+self.marginUsers.top+")");
 	// Creating the xAxis and yAxis for the focus part of the timeline
-	self.focus.append("g")
+	self.patterns.append("g")
 		.attr("class","axis axis--x")
-		.attr("transform", "translate(0," + (self.marginFocus.size + self.marginFocus.top) + ")")
+		.attr("transform", "translate(0," + (self.marginPatterns.size + self.marginPatterns.top) + ")")
 		.call(self.xAxisFocus);
 	self.focus.append("g")
 		.attr("class", "axis axis--y")
@@ -7442,10 +7468,10 @@ var Timeline = function(elemId, options) {
 		.attr("transform", "translate(0," + (self.marginContext.size + self.marginContext.top) + ")")
 		.call(self.xAxisContext);
 	// Creating the yAxis for the pattern part of the timeline
-	self.focus.append("g")
+	self.patterns.append("g")
 		.attr("class", "axis axis--y")
 		.attr("id", "focusRightAxis")
-	    .attr("transform", "translate("+self.width+",0)")
+	    //.attr("transform", "translate("+self.width+",0)")
 		.call(self.yAxisPatterns)
 		.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Creating the xAxis for the users part of the timeline
@@ -7757,7 +7783,7 @@ var Timeline = function(elemId, options) {
 		self.xAxisUsers = d3.axisBottom(self.xUsers);
 		//self.yAxisUsers = d3.axisLeft(self.yUsers);
 
-		self.focus.select(".axis--x").call(self.xAxisFocus);
+		self.patterns.select(".axis--x").call(self.xAxisFocus);
 		self.context.select(".axis--x").call(self.xAxisContext);
 		self.users.select(".axis--x").call(self.xAxisUsers);
 		self.users.select(".axis--y").call(self.yAxisUsers);
