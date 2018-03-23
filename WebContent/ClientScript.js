@@ -164,6 +164,9 @@ var defaultNbUserShown = 15;
 // Number of users shown in the session view
 var nbUserShown = defaultNbUserShown;
 
+// Max number of pattern selected at once
+var maxSelectedPatternNb = 5;
+
 // Number of elements fully displayed in the highlight summary.
 // Beyond this value, only the number of highlighted elements is displayed
 var numberOfDetailedHighlights = 5;
@@ -2884,144 +2887,13 @@ function addPatternToList(message) {
 		}).join(" ");
 	if (pString.includes(properPatternSearchInput) == true) {
 		if (correctPositionInList == -1) { // append at the end of the list
-			let patternList = d3.select("#patternTableBody");
-			let thisRow = patternList.append("tr")
-				.attr("id","pattern"+pId)
-				.classed("clickable", true)
-				.on("click", function() {
-					if (d3.event.shiftKey) { // Shift + click, steering
-						requestSteeringOnPattern(pId);
-						d3.event.stopPropagation();
-					} else { // Normal click, displays the occurrences
-						if (selectedPatternIds.includes(pId)) {
-							let index = selectedPatternIds.indexOf(pId);
-							if (index >= 0)
-								selectedPatternIds.splice(index, 1);
-						} else {
-							selectedPatternIds.push(pId);
-						}
-						if (occurrencesAreKnown(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						//d3.event.stopPropagation();
-						console.log("click on "+pId);
-						createPatternListDisplay();
-						
-						// Update the number of selected patterns display
-						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-					}
-				})
-				.on("mouseover", function() {
-					movePatternContextActionsToRow(pId);
-				});
-			var thisNameCell = thisRow.append("td");
-			
-			for (var k=0; k < pSize; k++) {
-				thisNameCell.append("span")
-					.style("color",colorList[pItems[k]][0].toString())
-					.text(itemShapes[pItems[k]]);
-			}
-			thisNameCell.append("span")
-				.text(" "+pString)
-				.attr("patternId",pId)
-				.classed("patternText", true)
-				.style("display", showPatternText ? "initial" : "none");
-				//.classed("dropdown", true);
-			/*var pSvg = thisNameCell.append("svg")
-				.attr("width", 20*pSize)
-				.attr("height", 20);*/
-	
-			// Create the menu
-			/*
-			var dropMenuDiv = thisNameCell.append("div")
-				.classed("dropdown-content", true)
-				.style("left","0");
-			let steeringP = dropMenuDiv.append("p")
-				.text("Steer on this pattern")
-				.on("click", function() {
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				});*/
-			
-			thisRow.append("td")
-				.text(pSupport);
-			thisRow.append("td")
-				.text(pUsers.length);
-			thisRow.append("td")
-				.text(pSize);
+			document.getElementById("patternTableBody").appendChild(createPatternRow(pId));
 		} else { // append at the right position in the list
 			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
 			//console.log("First unselectedId: "+firstUnselectedId);
-			let patternList = d3.select("#patternTableBody");
-			let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
+			let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
 			
-			let thisRow = d3.select(document.createElement("tr"))
-				.attr("id","pattern"+pId)
-				.classed("clickable", true)
-				.on("click", function() {
-					if (d3.event.shiftKey) { // Shift + click, steering
-						requestSteeringOnPattern(pId);
-						d3.event.stopPropagation();
-					} else { // Normal click, displays the occurrences
-						if (selectedPatternIds.includes(pId)) {
-							let index = selectedPatternIds.indexOf(pId);
-							if (index >= 0)
-								selectedPatternIds.splice(index, 1);
-						} else {
-							selectedPatternIds.push(pId);
-						}
-						
-						if (occurrencesAreKnown(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						//d3.event.stopPropagation();
-						console.log("click on "+pId);
-						createPatternListDisplay();
-	
-						// Update the number of selected patterns display
-						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-					}
-				})
-				.on("mouseover", function() {
-					movePatternContextActionsToRow(pId);
-				});
-			let thisNameCell = thisRow.append("td");
-			for (var k=0; k < pSize; k++) {
-				thisNameCell.append("span")
-					.style("color",colorList[pItems[k]][0].toString())
-					.text(itemShapes[pItems[k]]);
-			}
-			thisNameCell.append("span")
-				.text(" "+pString)
-				.attr("patternId",pId)
-				.classed("patternText", true)
-				.style("display", showPatternText ? "initial" : "none");
-				//.classed("dropdown", true);
-			/*var pSvg = thisNameCell.append("svg")
-				.attr("width", 20*pSize)
-				.attr("height", 20);*/
-	
-			// Create the menu
-			/*let dropMenuDiv = thisNameCell.append("div")
-				.classed("dropdown-content", true)
-				.style("left","0");
-			let steeringP = dropMenuDiv.append("p")
-				.text("Steer on this pattern")
-				.on("click", function() {
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				});*/
-			
-			thisRow.append("td")
-				.text(pSupport);
-			thisRow.append("td")
-				.text(pUsers.length);
-			thisRow.append("td")
-				.text(pSize);
-			
-			firstUnselectedNode.parentNode.insertBefore(thisRow.node(), firstUnselectedNode);
+			firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
 		}
 	}
 	// Update the number of filtered patterns if necessary
@@ -4614,12 +4486,8 @@ function createPatternListDisplay() {
 	// display the new ones
 	for (var i=0; i < patternIdList.length; i++) {
 		
-		let pSize = patternsInformation[patternIdList[i]][1]
-		let pSupport = patternsInformation[patternIdList[i]][2]
 		let pId = patternIdList[i];
 		let pString = patternsInformation[patternIdList[i]][0];
-		let pItems = patternsInformation[patternIdList[i]][3];
-		let pUsers = patternsInformation[patternIdList[i]][4];
 		
 		let index = selectedPatternIds.indexOf(pId);
 		
@@ -4640,82 +4508,86 @@ function createPatternListDisplay() {
 			patternList = d3.select("#patternTableBody");
 		}
 		
-		let thisRow = patternList.append("tr")
-			.attr("id","pattern"+pId)
-			.classed("clickable",true)
-			.on("click", function() {
-				if (d3.event.shiftKey) { // Shift + click, steering
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				} else { // Normal click, displays the occurrences
-					if (selectedPatternIds.includes(pId)) {
-						let index = selectedPatternIds.indexOf(pId);
-						if (index >= 0)
-							selectedPatternIds.splice(index, 1);
-					} else {
-						selectedPatternIds.push(pId);
-					}
-					
-					if (occurrencesAreKnown(pId) == false)
-						requestPatternOccurrences(pId, currentDatasetName);
-					else
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-					//d3.event.stopPropagation();
-					console.log("click on "+pId);
-					createPatternListDisplay();
-					
-					// Update the number of selected patterns display
-					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-				}
-			})
-			.on("mouseover", function() {
-				movePatternContextActionsToRow(pId);
-			});
-		var thisNameCell = thisRow.append("td");
-			//.classed("dropdown", true);
-		/*var pSvg = thisNameCell.append("svg")
-			.attr("width", 20*pSize)
-			.attr("height", 20);*/
-		for (var k=0; k < pSize; k++) {
-			thisNameCell.append("span")
-				.style("color",colorList[pItems[k]][0].toString())
-				.text(itemShapes[pItems[k]]);
-		}
-		thisNameCell.append("span")
-			.text(" "+pString)
-			.attr("patternId",pId)
-			.classed("patternText", true)
-			.style("display", showPatternText ? "initial" : "none");
-
-		// Create the menu
-		/*var dropMenuDiv = thisNameCell.append("div")
-			.classed("dropdown-content", true)
-			.style("left","0");
-		let steeringP = dropMenuDiv.append("p")
-			.text("Steer on this pattern")
-			.on("click", function() {
-				requestSteeringOnPattern(pId);
-				d3.event.stopPropagation();
-			});*/
-		
-		thisRow.append("td")
-			.text(pSupport);
-		thisRow.append("td")
-			.text(pUsers.length);
-		thisRow.append("td")
-			.text(pSize);
-		/*
-		for (var k = 0; k < pSize; k++) {
-			pSvg.append("path")
-				.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
-				.attr("transform","translate("+(10+20*k)+",10)")
-				.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)")//d3.hsl(parseFloat(eColor),100,50).rgb())
-				.attr("fill","none");
-		}*/
+		patternList.node().appendChild(createPatternRow(pId));
 	}
 	
 	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
+}
+
+function createPatternRow(pId) {
+	let pSize = patternsInformation[pId][1];
+	let pSupport = patternsInformation[pId][2];
+	let pString = patternsInformation[pId][0];
+	let pItems = patternsInformation[pId][3];
+	let pUsers = patternsInformation[pId][4];
+
+	let row = d3.select(document.createElement("tr"))
+		.attr("id","pattern"+pId)
+		.classed("clickable",true)
+		.on("click", function() {
+			if (selectedPatternIds.includes(pId)) {
+				let index = selectedPatternIds.indexOf(pId);
+				if (index >= 0)
+					selectedPatternIds.splice(index, 1);
+			} else {
+				// Select the pattern if the max number is not yet reached
+				if (selectedPatternIds.length < maxSelectedPatternNb) {
+					selectedPatternIds.push(pId);
+				} else {
+					return;
+				}
+			}
+			
+			if (occurrencesAreKnown(pId) == false)
+				requestPatternOccurrences(pId, currentDatasetName);
+			else
+				timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+			//d3.event.stopPropagation();
+			console.log("click on "+pId);
+			createPatternListDisplay();
+			
+			// Update the number of selected patterns display
+			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+		})
+		.on("mouseover", function() {
+			movePatternContextActionsToRow(pId);
+		});
 	
+	let nameCell = row.append("td");
+		//.classed("dropdown", true);
+	/*var pSvg = thisNameCell.append("svg")
+		.attr("width", 20*pSize)
+		.attr("height", 20);*/
+	for (let k=0; k < pSize; k++) {
+		nameCell.append("span")
+			.style("color",colorList[pItems[k]][0].toString())
+			.text(itemShapes[pItems[k]]);
+	}
+	nameCell.append("span")
+		.text(" "+pString)
+		.attr("patternId",pId)
+		.classed("patternText", true)
+		.style("display", showPatternText ? "initial" : "none");
+
+	// Create the menu
+	/*var dropMenuDiv = thisNameCell.append("div")
+		.classed("dropdown-content", true)
+		.style("left","0");
+	let steeringP = dropMenuDiv.append("p")
+		.text("Steer on this pattern")
+		.on("click", function() {
+			requestSteeringOnPattern(pId);
+			d3.event.stopPropagation();
+		});*/
+	
+	row.append("td")
+		.text(pSupport);
+	row.append("td")
+		.text(pUsers.length);
+	row.append("td")
+		.text(pSize);
+	
+	return row.node();
 }
 
 /**
@@ -7265,10 +7137,10 @@ var Timeline = function(elemId, options) {
 	}
 	
 	// Parameters about size and margin of the timeline's parts
-	self.marginContext = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 25};
-	self.marginFocus = {"top": 0,"right": 40,"bottom": 10,"left": 50,"size": 200};
-	self.marginPatterns = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 75};
-	self.marginUsers =  {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 250};
+	self.marginContext = {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 50};
+	self.marginFocus = {"top": 0,"right": 20,"bottom": 10,"left": 50,"size": 200};
+	self.marginPatterns = {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 75};
+	self.marginUsers =  {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 250};
 	
 	self.width = +self.parentNode.clientWidth
 			- Math.max(self.marginFocus.left, self.marginContext.left)
