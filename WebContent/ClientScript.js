@@ -2509,6 +2509,118 @@ function buildUserSessions() {
 }
 
 /**
+ * Builds the event bins according to the given scale
+ * @param {string} binScale The scale of the bins
+ * 
+ * TODO Make it handle correctly the time calculations
+ */
+function buildEventBins(binScale) {
+	// Remove the old dimension
+	if (dataDimensions.bin != null)
+		dataDimensions.bin.dispose();
+	dataDimensions.bin = dataset.dimension( function(d) {
+		let dateStart = new Date(d.start);
+		let dateEnd = new Date(d.start);;
+		switch(binScale) {
+			case "year":
+				dateStart.setMonth(0, 1);
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				dateStart.setHours(0);
+
+				dateEnd.setFullYear(dateStart.getFullYear()+1, 0, 1);
+				dateEnd.setMinutes(0);
+				dateEnd.setSeconds(0);
+				dateEnd.setHours(0);
+				dateEnd = new Date(dateEnd.getTime()-1000);
+				break;
+			case "month":
+				dateStart.setDate(1);
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				dateStart.setHours(0);
+
+				if (dateStart.getMonth() < 11)
+					dateEnd.setMonth(dateStart.getMonth()+1, 1);
+				else {
+					dateEnd.setFullYear(dateStart.getFullYear()+1, 0, 1);
+				}
+				dateEnd.setMinutes(0);
+				dateEnd.setSeconds(0);
+				dateEnd.setHours(0);
+				dateEnd = new Date(dateEnd.getTime()-1000);
+				break;
+			case "halfMonth":
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				dateStart.setHours(0);
+
+				// Get the duration of the month
+				let monthStart = new Date(dateStart.getTime());
+				monthStart.setDate(1);
+				let monthEnd = null;
+				if (monthStart.getMonth() < 11) {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setMonth(monthStart.getMonth()+1);
+				} else {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setFullYear(monthStart.getFullYear()+1, 0, 1);
+				}
+				let monthDuration = monthEnd.getTime() - monthStart.getTime();
+
+				if (dateStart.getTime() < monthStart.getTime() + Math.floor(monthDuration/2))
+					dateStart.setDate(1);
+				else
+					dateStart = new Date(monthStart.getTime() + Math.floor(monthDuration/2));
+				
+				// Add half the month minus 1 second
+				dateEnd = new Date(dateStart.getTime() + Math.floor(monthDuration/2) - 1000);
+				break;
+			case "day": // Incorrect handling of daylight saving times
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				dateStart.setHours(0);
+
+				// Add 1 day minus 1 second
+				dateEnd = new Date(dateStart.getTime() + 1000*60*60*24 - 1000);
+				break;
+			case "halfDay":
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				
+				dateEnd.setMinutes(0);
+				dateEnd.setSeconds(0);
+				if (dateStart.getHours() < 12) {
+					dateStart.setHours(0);
+				} else {
+					dateStart.setHours(12);
+				}
+
+				// Add 12 hours minus 1 second
+				dateEnd = new Date(dateStart.getTime() + 1000*60*60*12 - 1000);
+				break;
+			default:
+		}
+		
+		let key = [dateStart.getFullYear(),
+					dateStart.getMonth()+1,
+					dateStart.getDate()].join("-") + "T" +
+					[dateStart.getHours() > 9 ? dateStart.getHours() : "0"+dateStart.getHours(),
+					dateStart.getMinutes() > 9 ? dateStart.getMinutes() : "0"+dateStart.getMinutes(),
+					dateStart.getSeconds() > 9 ? dateStart.getSeconds() : "0"+dateStart.getSeconds()].join(":") +
+					" - " +
+					[dateEnd.getFullYear(),
+					dateEnd.getMonth()+1,
+					dateEnd.getDate()].join("-") + "T" +
+					[dateEnd.getHours() > 9 ? dateEnd.getHours() : "0"+dateEnd.getHours(),
+					dateEnd.getMinutes() > 9 ? dateEnd.getMinutes() : "0"+dateEnd.getMinutes(),
+					dateEnd.getSeconds() > 9 ? dateEnd.getSeconds() : "0"+dateEnd.getSeconds()].join(":")
+
+		return key;
+	});
+}
+
+/**
  * Sorts the user list according to the number of events in the traces
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
