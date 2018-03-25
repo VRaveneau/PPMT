@@ -250,10 +250,27 @@ var rawData = [];
 var dataset = {};
 /**
  * The dimensions created from the Crossfilter stored in dataset.
- * 
- * TODO document the dimensions (for now : time - user - time)
  */
-var dataDimensions = {};
+var dataDimensions = {
+	time: null,
+	user: null,
+	type: null,
+	bin: {
+		year: null,
+		month: null,
+		halfMonth: null,
+		day: null,
+		halfDay: null,
+	}
+};
+
+var binProperties = {
+	year: null,
+	month: null,
+	halfMonth: null,
+	day: null,
+	halfDay: null,
+}
 // Information about each user (start - end - duration)
 var userProperties = {};
 
@@ -1542,6 +1559,36 @@ function setupEventBinDimensions() {
 	dataDimensions.bin.halfMonth = buildEventBins("halfMonth");
 	dataDimensions.bin.day = buildEventBins("day");
 	dataDimensions.bin.halfDay = buildEventBins("halfDay");
+	
+	function reduceAdd(prev, val, nf) {
+		prev.eventCount++;
+		if (prev.users.hasOwnProperty(val.user)) {
+			prev.users[val.user]++;
+		} else
+			prev.users[val.user] = 1;
+		if (prev.events.hasOwnProperty(val.type)) {
+			prev.events[val.type]++;
+		} else
+			prev.events[val.type] = 1;
+		return prev;
+	}
+
+	function reduceRemove(prev, val, nf) {
+		prev.eventCount--;
+		prev.users[val.user]--;
+		prev.events[val.type]--;
+		return prev;
+	}
+
+	function reduceInitial() {
+		return {eventCount:0, users:{}, events:{}};
+	}
+
+	binProperties.halfDay = dataDimensions.bin.halfDay.group().reduce(reduceAdd, reduceRemove, reduceInitial);
+	binProperties.day = dataDimensions.bin.day.group().reduce(reduceAdd, reduceRemove, reduceInitial);
+	binProperties.halfMonth = dataDimensions.bin.halfMonth.group().reduce(reduceAdd, reduceRemove, reduceInitial);
+	binProperties.month = dataDimensions.bin.month.group().reduce(reduceAdd, reduceRemove, reduceInitial);
+	binProperties.year = dataDimensions.bin.year.group().reduce(reduceAdd, reduceRemove, reduceInitial);
 }
 
 /*************************************/
@@ -2286,10 +2333,9 @@ function receiveEvents(eventsCompressed) {
 		console.log("Creating crossfilter at "+new Date());
 		dataset = crossfilter(rawData);
 		console.log("Crossfilter created at "+new Date());
-		dataDimensions["user"] = dataset.dimension(function(d) {return d.user;});
-		dataDimensions["time"] = dataset.dimension(function(d) {return d.start;});
-		dataDimensions["type"] = dataset.dimension(function(d) {return d.type;});
-		dataDimensions["bin"] = {};
+		dataDimensions.user = dataset.dimension(function(d) {return d.user;});
+		dataDimensions.time = dataset.dimension(function(d) {return d.start;});
+		dataDimensions.type = dataset.dimension(function(d) {return d.type;});
 		setupEventBinDimensions();
 		console.log("Dimensions created at "+new Date());
 		rawData = null;
