@@ -1533,6 +1533,17 @@ function setupModalWindows() {
 		.on("click", closeModal);
 }
 
+/**
+ * Creates all the dimensions associated  with the event bins
+ */
+function setupEventBinDimensions() {
+	dataDimensions.bin.year = buildEventBins("year");
+	dataDimensions.bin.month = buildEventBins("month");
+	dataDimensions.bin.halfMonth = buildEventBins("halfMonth");
+	dataDimensions.bin.day = buildEventBins("day");
+	dataDimensions.bin.halfDay = buildEventBins("halfDay");
+}
+
 /*************************************/
 /*				Logging				 */
 /*************************************/
@@ -2278,6 +2289,8 @@ function receiveEvents(eventsCompressed) {
 		dataDimensions["user"] = dataset.dimension(function(d) {return d.user;});
 		dataDimensions["time"] = dataset.dimension(function(d) {return d.start;});
 		dataDimensions["type"] = dataset.dimension(function(d) {return d.type;});
+		dataDimensions["bin"] = {};
+		setupEventBinDimensions();
 		console.log("Dimensions created at "+new Date());
 		rawData = null;
 		console.log("raw data removed");
@@ -2459,7 +2472,8 @@ function buildUserSessions() {
 	dataDimensions.time.filterAll();
 	userSessions = {};
 
-	dataDimensions.user.group().all().forEach( function(grp) {
+	let userGroups = dataDimensions.user.group();
+	userGroups.all().forEach( function(grp) {
 		let u = grp.key;
 		// Consider only the events of the current user
 		dataDimensions.user.filterExact(u);
@@ -2496,6 +2510,7 @@ function buildUserSessions() {
 
 		nbOfSession += userSessions[u].length;
 	});
+	userGroups.dispose();
 	// Add the number of sessions as an information about the dataset
 	datasetInfo.nbSessions = nbOfSession;
 	// Restore the initial time filter
@@ -2511,14 +2526,12 @@ function buildUserSessions() {
 /**
  * Builds the event bins according to the given scale
  * @param {string} binScale The scale of the bins
+ * @returns The created dimension
  * 
  * TODO Make it handle correctly the time calculations
  */
 function buildEventBins(binScale) {
-	// Remove the old dimension
-	if (dataDimensions.bin != null)
-		dataDimensions.bin.dispose();
-	dataDimensions.bin = dataset.dimension( function(d) {
+	let dim = dataset.dimension( function(d) {
 		let dateStart = new Date(d.start);
 		let dateEnd = new Date(d.start);;
 		switch(binScale) {
@@ -2618,6 +2631,8 @@ function buildEventBins(binScale) {
 
 		return key;
 	});
+
+	return dim;
 }
 
 /**
@@ -2903,7 +2918,9 @@ function sortEventTypesByCategory(decreasing=false) {
  * Computes the maximum number of event present at a same time in the dataset
  */
 function computeMaxEventAtOneTime() {
-	maxEventAtOneTime = dataDimensions.time.group().top(1)[0].value;
+	let timeGroup = dataDimensions.time.group();
+	maxEventAtOneTime = timeGroup.top(1)[0].value;
+	timeGroup.dispose();
 }
 
 /**
@@ -3089,15 +3106,6 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	});
 	dataset.add(toAdd);
 	console.log("Added");
-	// Recreate the dimensions
-	// TODO Do it properly in a function
-	dataDimensions.user.dispose();
-	dataDimensions.time.dispose();
-	dataDimensions.type.dispose();
-	dataDimensions.user = dataset.dimension(function(d) {return d.user;});
-	dataDimensions.time = dataset.dimension(function(d) {return d.start;});
-	dataDimensions.type = dataset.dimension(function(d) {return d.type;});
-	console.log("Recreated");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	resetPatterns();
@@ -3115,15 +3123,6 @@ function updateDatasetForRemovedEventType(removedIds) {
 		return removedIds.includes(d.id);
 	});
 	console.log("Removed");
-	// Recreate the dimensions
-	// TODO Do it properly in a function
-	dataDimensions.user.dispose();
-	dataDimensions.time.dispose();
-	dataDimensions.type.dispose();
-	dataDimensions.user = dataset.dimension(function(d) {return d.user;});
-	dataDimensions.time = dataset.dimension(function(d) {return d.start;});
-	dataDimensions.type = dataset.dimension(function(d) {return d.type;});
-	console.log("Recreated");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	resetPatterns();
@@ -3138,6 +3137,9 @@ function resetDataFilters() {
 	dataDimensions.time.filterAll();
 	dataDimensions.type.filterAll();
 	dataDimensions.user.filterAll();
+	Object.keys(dataDimensions.bin).forEach(function(key) {
+		dataDimensions.bin[key].filterAll();
+	});
 }
 
 /************************************/
