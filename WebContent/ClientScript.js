@@ -164,6 +164,9 @@ var defaultNbUserShown = 15;
 // Number of users shown in the session view
 var nbUserShown = defaultNbUserShown;
 
+// Max number of pattern selected at once
+var maxSelectedPatternNb = 5;
+
 // Number of elements fully displayed in the highlight summary.
 // Beyond this value, only the number of highlighted elements is displayed
 var numberOfDetailedHighlights = 5;
@@ -247,10 +250,50 @@ var rawData = [];
 var dataset = {};
 /**
  * The dimensions created from the Crossfilter stored in dataset.
- * 
- * TODO document the dimensions (for now : time - user - time)
  */
-var dataDimensions = {};
+var dataDimensions = {
+	time: null,
+	user: null,
+	type: null,
+	bin: {
+		year: null,
+		month: null,
+		halfMonth: null,
+		day: null,
+		halfDay: null,
+	}
+};
+/**
+ * The event bins created from the Crossfilter stored in dataset
+ */
+var eventBins = {
+	year: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
+	month: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
+	halfMonth: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
+	day: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
+	halfDay: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
+}
+
 // Information about each user (start - end - duration)
 var userProperties = {};
 
@@ -319,8 +362,6 @@ var runningTaskIndicatorNumber = 0;
 /*************************************/
 //
 var patternsLoaded = false;
-//
-var patternsReceived = false;
 // Whether debug mode is active or not
 var debugMode = false;
 // Whether the pointer target is visible or not in the focus view
@@ -1070,6 +1111,7 @@ function createServer() {
  * Initializes the tool once a dataset has been selected
  */
 function setupTool() {
+	setupModalWindows();
 	setupAlgorithmSearchField();
 	setupUserSearchField();
 	
@@ -1492,7 +1534,7 @@ function setupHelpers() {
 }
 
 /**
- * Setup the contextual actions
+ * Sets up the contextual actions
  */
 function setupContextActions() {
 	// Pattern context actions
@@ -1513,6 +1555,63 @@ function setupContextActions() {
 			if (eventTypeUnderMouse != null)
 				requestEventTypeRemoval(eventTypeUnderMouse);
 		});
+}
+
+/**
+ * Sets up the modal windows
+ */
+function setupModalWindows() {
+	d3.select("#modalContent")
+		.on("click", function() {
+			d3.event.stopPropagation();
+		});
+	d3.select("#modalBackground")
+		.on("click", closeModal);
+	d3.select("#modalCloseArea")
+		.on("click", closeModal);
+}
+
+/**
+ * Creates all the dimensions associated  with the event bins
+ */
+function setupEventBinDimensions() {
+	eventBins.year.data = buildEventBins("year");
+	eventBins.month.data = buildEventBins("month");
+	eventBins.halfMonth.data = buildEventBins("halfMonth");
+	eventBins.day.data = buildEventBins("day");
+	eventBins.halfDay.data = buildEventBins("halfDay");
+	
+	function reduceAdd(prev, val, nf) {
+		prev.eventCount++;
+		if (prev.users.hasOwnProperty(val.user)) {
+			prev.users[val.user]++;
+		} else
+			prev.users[val.user] = 1;
+		if (prev.events.hasOwnProperty(val.type)) {
+			prev.events[val.type]++;
+		} else
+			prev.events[val.type] = 1;
+		if (prev.aDateInside == null)
+			prev.aDateInside = val.start;
+		return prev;
+	}
+
+	function reduceRemove(prev, val, nf) {
+		prev.eventCount--;
+		prev.users[val.user]--;
+		prev.events[val.type]--;
+		return prev;
+	}
+
+	function reduceInitial() {
+		return {eventCount:0, users:{}, events:{}, aDateInside:null};
+	}
+
+	eventBins.halfDay.data.reduce(reduceAdd, reduceRemove, reduceInitial);
+	eventBins.day.data.reduce(reduceAdd, reduceRemove, reduceInitial);
+	eventBins.halfMonth.data.reduce(reduceAdd, reduceRemove, reduceInitial);
+	eventBins.month.data.reduce(reduceAdd, reduceRemove, reduceInitial);
+	eventBins.year.data.reduce(reduceAdd, reduceRemove, reduceInitial);
 }
 
 /*************************************/
@@ -1738,10 +1837,6 @@ function processMessage(message/*Compressed*/) {
 			receiveUserList(msg);
 		if (msg.type === "userTrace")
 			receiveUserTrace(msg); // No longer used, function deleted, to be removed
-		if (msg.type === "bin") {
-			console.log("receiving bins");
-			receiveDataBins(msg);
-		}
 		if (msg.type === "patterns")
 			receiveAllPatterns(msg);
 		if (msg.type === "events")
@@ -1919,114 +2014,6 @@ function requestPatternOccurrences(patternId, datasetName) {
 			object: "patternOccs",
 			dataset: datasetName,
 			patternId: patternId
-	};
-	sendToServer(action);
-}
-
-/**
- * Asks for the event bins for a given dataset, at a given scale
- * @param {string} datasetName - Name of the dataset
- * @param {string} distributionScale - Scale of the distribution we want.
- * Expected values are "year", "month", "halfMonth", "day" or "halfDay"
- */
-function requestRelevantBins(datasetName, distributionScale) {
-	switch(distributionScale) {
-	case "year":
-		requestYearBins(datasetName);
-		break;
-	case "month":
-		requestMonthBins(datasetName);
-		break;
-	case "halfMonth":
-		requestHalfMonthBins(datasetName);
-		break;
-	case "day":
-		requestDayBins(datasetName);
-		break;
-	case "halfDay":
-		requestHalfDayBins(datasetName);
-		break;
-	default:
-		console.log("Unexpected distribution :" + distributionScale);
-	}
-}
-
-/**
- * Asks for the event bins in a given dataset, at year scale
- * Equivalent as requestRelevantBins(datasetName, "year")
- * @param {string} datasetName - Name of the dataset
- */
-function requestYearBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "year",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-/**
- * Asks for the event bins in a given dataset, at month scale
- * Equivalent as requestRelevantBins(datasetName, "month")
- * @param {string} datasetName - Name of the dataset
- */
-function requestMonthBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "month",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-/**
- * Asks for the event bins in a given dataset, at half month scale
- * Equivalent as requestRelevantBins(datasetName, "halfMonth")
- * @param {string} datasetName - Name of the dataset
- */
-function requestHalfMonthBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "halfMonth",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-/**
- * Asks for the event bins in a given dataset, at day scale
- * Equivalent as requestRelevantBins(datasetName, "day")
- * @param {string} datasetName - Name of the dataset
- */
-function requestDayBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "day",
-			dataset: datasetName
-	};
-	sendToServer(action);
-}
-
-/**
- * Asks for the event bins in a given dataset, at half day scale
- * Equivalent as requestRelevantBins(datasetName, "halfDay")
- * @param {string} datasetName - Name of the dataset
- */
-function requestHalfDayBins(datasetName) {
-	var action = {
-			action: "request",
-			object: "data",
-			shape: "bin",
-			scale: "halfDay",
-			dataset: datasetName
 	};
 	sendToServer(action);
 }
@@ -2250,6 +2237,7 @@ function receiveEvents(eventsCompressed) {
 	// All events of the dataset are received
 	if (datasetInfo["numberOfEvents"] == nbEventsReceived) {
 		lastEventReceived = new Date();
+		enableCentralOverlay("Preparing the data for the exploration...");
 		console.log(nbEventsReceived+" events received between");
 		console.log(firstEventReceived);
 		console.log("and");
@@ -2257,20 +2245,21 @@ function receiveEvents(eventsCompressed) {
 		console.log("Creating crossfilter at "+new Date());
 		dataset = crossfilter(rawData);
 		console.log("Crossfilter created at "+new Date());
-		dataDimensions["user"] = dataset.dimension(function(d) {return d.user;});
-		dataDimensions["time"] = dataset.dimension(function(d) {return d.start;});
-		dataDimensions["type"] = dataset.dimension(function(d) {return d.type;});
+		dataDimensions.user = dataset.dimension(function(d) {return d.user;});
+		dataDimensions.time = dataset.dimension(function(d) {return d.start;});
+		dataDimensions.type = dataset.dimension(function(d) {return d.type;});
+		setupEventBinDimensions();
 		console.log("Dimensions created at "+new Date());
 		rawData = null;
 		console.log("raw data removed");
 		addToHistory("Dataset "+datasetInfo.name+" received");
 		buildUserSessions();
 		computeMaxEventAtOneTime();
-		disableCentralOverlay();
-		requestRelevantBins(currentDatasetName, timeline.getRelevantDistributionScale());
+		timeline.displayData();
 		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
 		dataDimensions.time.filterRange(currentTimeFilter);
 		startInitialMining();
+		disableCentralOverlay();
 	}
 }
 
@@ -2303,45 +2292,6 @@ function receivePatternDistributionPerUser(message) {
 	// Commented because it makes the page freeze or crash when too many patterns arrive
 	// TODO redraw only if visible changes (new patterns in the displayed tooltip)
 	//timeline.drawUsersPatterns();
-}
-
-/**
- * Receives the message describing the binned events, stores and displays them
- * @param {JSON} message - The message containing the bins
- */
-function receiveDataBins(message) {
-	var bins = [];
-	var pBins = [];
-	
-	var binNumber = parseInt(message.number);
-	for (var i = 0; i < binNumber; i++) {
-		let bin = [];
-		let pbin = [];
-		bin.push(message["year"+i]);
-		bin.push(message["start"+i]);
-		bin.push(message["end"+i]);
-		bin.push(message["value"+i]);
-		bin.push(message["users"+i]);
-		bin.push(message["events"+i]);
-		bin.push(message["occs"+i]);
-		
-		pbin.push(message["year"+i]);
-		pbin.push(message["start"+i]);
-		pbin.push(message["end"+i]);
-		pbin.push(message["value"+i]);
-		pbin.push(message["users"+i]);
-		pbin.push(message["events"+i]);
-		pbin.push(message["occs"+i]);
-		
-		bins.push(bin);
-		pBins.push(pbin);
-	}
-	
-	timeline.setBins(bins);
-	timeline.displayData();
-	timeline.binTransformed = false;
-	if (patternsReceived)
-		timeline.drawPatternBins(pBins);
 }
 
 /**
@@ -2441,7 +2391,8 @@ function buildUserSessions() {
 	dataDimensions.time.filterAll();
 	userSessions = {};
 
-	dataDimensions.user.group().all().forEach( function(grp) {
+	let userGroups = dataDimensions.user.group();
+	userGroups.all().forEach( function(grp) {
 		let u = grp.key;
 		// Consider only the events of the current user
 		dataDimensions.user.filterExact(u);
@@ -2478,6 +2429,7 @@ function buildUserSessions() {
 
 		nbOfSession += userSessions[u].length;
 	});
+	userGroups.dispose();
 	// Add the number of sessions as an information about the dataset
 	datasetInfo.nbSessions = nbOfSession;
 	// Restore the initial time filter
@@ -2488,6 +2440,303 @@ function buildUserSessions() {
 	displayDatasetInfo();
 	// Refresh the user list display
 	createUserListDisplay();
+}
+
+/**
+ * Builds the event bins according to the given scale
+ * @param {string} binScale The scale of the bins
+ * @returns The created dimension
+ * 
+ * TODO Make it handle correctly the time calculations
+ */
+function buildEventBins(binScale) {
+	let grp = dataDimensions.time.group( function(d) {
+		let dateStart = new Date(d);
+		switch(binScale) {
+			case "year":
+				dateStart.setMonth(0, 1);
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				dateStart.setHours(0);
+				break;
+			case "month":
+				dateStart.setDate(1);
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				dateStart.setHours(0);
+				break;
+			case "halfMonth":
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				dateStart.setHours(0);
+
+				// Get the duration of the month
+				let monthStart = new Date(dateStart.getTime());
+				monthStart.setDate(1);
+				let monthEnd = null;
+				if (monthStart.getMonth() < 11) {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setMonth(monthStart.getMonth()+1);
+				} else {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setFullYear(monthStart.getFullYear()+1, 0, 1);
+				}
+				let monthDuration = monthEnd.getTime() - monthStart.getTime();
+
+				if (dateStart.getTime() < monthStart.getTime() + Math.floor(monthDuration/2))
+					dateStart.setDate(1);
+				else
+					dateStart = new Date(monthStart.getTime() + Math.floor(monthDuration/2));
+				break;
+			case "day": // Incorrect handling of daylight saving times
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				dateStart.setHours(0);
+				break;
+			case "halfDay":
+				dateStart.setMinutes(0);
+				dateStart.setSeconds(0);
+				
+				if (dateStart.getHours() < 12) {
+					dateStart.setHours(0);
+				} else {
+					dateStart.setHours(12);
+				}
+				break;
+			default:
+		}
+
+		return dateStart.getTime();;
+	});
+
+	switch(binScale) {
+		case "year":
+			eventBins.year.getStart = function(time) {
+				let date = new Date(time);
+				date.setMonth(0, 1);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.year.getEnd = function(time) {
+				let date = new Date(time);
+				date.setFullYear(date.getFullYear()+1, 0, 1);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+				date = new Date(date.getTime()-1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		case "month":
+			eventBins.month.getStart = function(time) {
+				let date = new Date(time);
+				date.setDate(1);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.month.getEnd = function(time) {
+				let date = new Date(time);
+				if (date.getMonth() < 11)
+					date.setMonth(date.getMonth()+1, 1);
+				else {
+					date.setFullYear(date.getFullYear()+1, 0, 1);
+				}
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+				date = new Date(date.getTime()-1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		case "halfMonth":
+			eventBins.halfMonth.getStart = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				// Get the duration of the month
+				let monthStart = new Date(date.getTime());
+				monthStart.setDate(1);
+				let monthEnd = null;
+				if (monthStart.getMonth() < 11) {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setMonth(monthStart.getMonth()+1);
+				} else {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setFullYear(monthStart.getFullYear()+1, 0, 1);
+				}
+				let monthDuration = monthEnd.getTime() - monthStart.getTime();
+
+				if (date.getTime() < monthStart.getTime() + Math.floor(monthDuration/2))
+					date.setDate(1);
+				else
+					date = new Date(monthStart.getTime() + Math.floor(monthDuration/2));
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.halfMonth.getEnd = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				// Get the duration of the month
+				let monthStart = new Date(date.getTime());
+				monthStart.setDate(1);
+				let monthEnd = null;
+				if (monthStart.getMonth() < 11) {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setMonth(monthStart.getMonth()+1);
+				} else {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setFullYear(monthStart.getFullYear()+1, 0, 1);
+				}
+				let monthDuration = monthEnd.getTime() - monthStart.getTime();
+
+				if (date.getTime() < monthStart.getTime() + Math.floor(monthDuration/2))
+					date.setDate(1);
+				else
+					date = new Date(monthStart.getTime() + Math.floor(monthDuration/2));
+				
+				// Add half the month minus 1 second
+				date = new Date(date.getTime() + Math.floor(monthDuration/2) - 1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		case "day":
+			eventBins.day.getStart = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.day.getEnd = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+				// Add 1 day minus 1 second
+				date = new Date(date.getTime() + 1000*60*60*24 - 1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		case "halfDay":
+			eventBins.halfDay.getStart = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+
+				if (date.getHours() < 12) {
+					date.setHours(0);
+				} else {
+					date.setHours(12);
+				}
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.halfDay.getEnd = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+
+				if (date.getHours() < 12) {
+					date.setHours(0);
+				} else {
+					date.setHours(12);
+				}
+				// Add 12 hours minus 1 second
+				date = new Date(date.getTime() + 1000*60*60*12 - 1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		default:
+	}
+
+	return grp;
 }
 
 /**
@@ -2773,7 +3022,9 @@ function sortEventTypesByCategory(decreasing=false) {
  * Computes the maximum number of event present at a same time in the dataset
  */
 function computeMaxEventAtOneTime() {
-	maxEventAtOneTime = dataDimensions.time.group().top(1)[0].value;
+	let timeGroup = dataDimensions.time.group();
+	maxEventAtOneTime = timeGroup.top(1)[0].value;
+	timeGroup.dispose();
 }
 
 /**
@@ -2871,144 +3122,13 @@ function addPatternToList(message) {
 		}).join(" ");
 	if (pString.includes(properPatternSearchInput) == true) {
 		if (correctPositionInList == -1) { // append at the end of the list
-			let patternList = d3.select("#patternTableBody");
-			let thisRow = patternList.append("tr")
-				.attr("id","pattern"+pId)
-				.classed("clickable", true)
-				.on("click", function() {
-					if (d3.event.shiftKey) { // Shift + click, steering
-						requestSteeringOnPattern(pId);
-						d3.event.stopPropagation();
-					} else { // Normal click, displays the occurrences
-						if (selectedPatternIds.includes(pId)) {
-							let index = selectedPatternIds.indexOf(pId);
-							if (index >= 0)
-								selectedPatternIds.splice(index, 1);
-						} else {
-							selectedPatternIds.push(pId);
-						}
-						if (occurrencesAreKnown(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						//d3.event.stopPropagation();
-						console.log("click on "+pId);
-						createPatternListDisplay();
-						
-						// Update the number of selected patterns display
-						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-					}
-				})
-				.on("mouseover", function() {
-					movePatternContextActionsToRow(pId);
-				});
-			var thisNameCell = thisRow.append("td");
-			
-			for (var k=0; k < pSize; k++) {
-				thisNameCell.append("span")
-					.style("color",colorList[pItems[k]][0].toString())
-					.text(itemShapes[pItems[k]]);
-			}
-			thisNameCell.append("span")
-				.text(" "+pString)
-				.attr("patternId",pId)
-				.classed("patternText", true)
-				.style("display", showPatternText ? "initial" : "none");
-				//.classed("dropdown", true);
-			/*var pSvg = thisNameCell.append("svg")
-				.attr("width", 20*pSize)
-				.attr("height", 20);*/
-	
-			// Create the menu
-			/*
-			var dropMenuDiv = thisNameCell.append("div")
-				.classed("dropdown-content", true)
-				.style("left","0");
-			let steeringP = dropMenuDiv.append("p")
-				.text("Steer on this pattern")
-				.on("click", function() {
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				});*/
-			
-			thisRow.append("td")
-				.text(pSupport);
-			thisRow.append("td")
-				.text(pUsers.length);
-			thisRow.append("td")
-				.text(pSize);
+			document.getElementById("patternTableBody").appendChild(createPatternRow(pId));
 		} else { // append at the right position in the list
 			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
 			//console.log("First unselectedId: "+firstUnselectedId);
-			let patternList = d3.select("#patternTableBody");
-			let firstUnselectedNode = d3.select("#pattern"+patternIdList[firstUnselectedId]).node();
+			let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
 			
-			let thisRow = d3.select(document.createElement("tr"))
-				.attr("id","pattern"+pId)
-				.classed("clickable", true)
-				.on("click", function() {
-					if (d3.event.shiftKey) { // Shift + click, steering
-						requestSteeringOnPattern(pId);
-						d3.event.stopPropagation();
-					} else { // Normal click, displays the occurrences
-						if (selectedPatternIds.includes(pId)) {
-							let index = selectedPatternIds.indexOf(pId);
-							if (index >= 0)
-								selectedPatternIds.splice(index, 1);
-						} else {
-							selectedPatternIds.push(pId);
-						}
-						
-						if (occurrencesAreKnown(pId) == false)
-							requestPatternOccurrences(pId, currentDatasetName);
-						else
-							timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						//d3.event.stopPropagation();
-						console.log("click on "+pId);
-						createPatternListDisplay();
-	
-						// Update the number of selected patterns display
-						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-					}
-				})
-				.on("mouseover", function() {
-					movePatternContextActionsToRow(pId);
-				});
-			let thisNameCell = thisRow.append("td");
-			for (var k=0; k < pSize; k++) {
-				thisNameCell.append("span")
-					.style("color",colorList[pItems[k]][0].toString())
-					.text(itemShapes[pItems[k]]);
-			}
-			thisNameCell.append("span")
-				.text(" "+pString)
-				.attr("patternId",pId)
-				.classed("patternText", true)
-				.style("display", showPatternText ? "initial" : "none");
-				//.classed("dropdown", true);
-			/*var pSvg = thisNameCell.append("svg")
-				.attr("width", 20*pSize)
-				.attr("height", 20);*/
-	
-			// Create the menu
-			/*let dropMenuDiv = thisNameCell.append("div")
-				.classed("dropdown-content", true)
-				.style("left","0");
-			let steeringP = dropMenuDiv.append("p")
-				.text("Steer on this pattern")
-				.on("click", function() {
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				});*/
-			
-			thisRow.append("td")
-				.text(pSupport);
-			thisRow.append("td")
-				.text(pUsers.length);
-			thisRow.append("td")
-				.text(pSize);
-			
-			firstUnselectedNode.parentNode.insertBefore(thisRow.node(), firstUnselectedNode);
+			firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
 		}
 	}
 	// Update the number of filtered patterns if necessary
@@ -3090,15 +3210,6 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	});
 	dataset.add(toAdd);
 	console.log("Added");
-	// Recreate the dimensions
-	// TODO Do it properly in a function
-	dataDimensions.user.dispose();
-	dataDimensions.time.dispose();
-	dataDimensions.type.dispose();
-	dataDimensions.user = dataset.dimension(function(d) {return d.user;});
-	dataDimensions.time = dataset.dimension(function(d) {return d.start;});
-	dataDimensions.type = dataset.dimension(function(d) {return d.type;});
-	console.log("Recreated");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	resetPatterns();
@@ -3116,15 +3227,6 @@ function updateDatasetForRemovedEventType(removedIds) {
 		return removedIds.includes(d.id);
 	});
 	console.log("Removed");
-	// Recreate the dimensions
-	// TODO Do it properly in a function
-	dataDimensions.user.dispose();
-	dataDimensions.time.dispose();
-	dataDimensions.type.dispose();
-	dataDimensions.user = dataset.dimension(function(d) {return d.user;});
-	dataDimensions.time = dataset.dimension(function(d) {return d.start;});
-	dataDimensions.type = dataset.dimension(function(d) {return d.type;});
-	console.log("Recreated");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	resetPatterns();
@@ -4289,6 +4391,7 @@ function updateAlgorithmStateDisplay() {
 		let lvlProgression = algorithmState.getProgression(lvl);
 		let row = d3.select("#patternSizeTableRow"+lvl);
 		if (row.size() > 0) { // The row already exists
+			row.classed("rowactive", lvlData.status == "active");
 			row.select(".patternSizeStatus")
 				.classed("levelstarted", false)
 				.classed("leveldone", false)
@@ -4600,12 +4703,8 @@ function createPatternListDisplay() {
 	// display the new ones
 	for (var i=0; i < patternIdList.length; i++) {
 		
-		let pSize = patternsInformation[patternIdList[i]][1]
-		let pSupport = patternsInformation[patternIdList[i]][2]
 		let pId = patternIdList[i];
 		let pString = patternsInformation[patternIdList[i]][0];
-		let pItems = patternsInformation[patternIdList[i]][3];
-		let pUsers = patternsInformation[patternIdList[i]][4];
 		
 		let index = selectedPatternIds.indexOf(pId);
 		
@@ -4626,82 +4725,86 @@ function createPatternListDisplay() {
 			patternList = d3.select("#patternTableBody");
 		}
 		
-		let thisRow = patternList.append("tr")
-			.attr("id","pattern"+pId)
-			.classed("clickable",true)
-			.on("click", function() {
-				if (d3.event.shiftKey) { // Shift + click, steering
-					requestSteeringOnPattern(pId);
-					d3.event.stopPropagation();
-				} else { // Normal click, displays the occurrences
-					if (selectedPatternIds.includes(pId)) {
-						let index = selectedPatternIds.indexOf(pId);
-						if (index >= 0)
-							selectedPatternIds.splice(index, 1);
-					} else {
-						selectedPatternIds.push(pId);
-					}
-					
-					if (occurrencesAreKnown(pId) == false)
-						requestPatternOccurrences(pId, currentDatasetName);
-					else
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-					//d3.event.stopPropagation();
-					console.log("click on "+pId);
-					createPatternListDisplay();
-					
-					// Update the number of selected patterns display
-					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-				}
-			})
-			.on("mouseover", function() {
-				movePatternContextActionsToRow(pId);
-			});
-		var thisNameCell = thisRow.append("td");
-			//.classed("dropdown", true);
-		/*var pSvg = thisNameCell.append("svg")
-			.attr("width", 20*pSize)
-			.attr("height", 20);*/
-		for (var k=0; k < pSize; k++) {
-			thisNameCell.append("span")
-				.style("color",colorList[pItems[k]][0].toString())
-				.text(itemShapes[pItems[k]]);
-		}
-		thisNameCell.append("span")
-			.text(" "+pString)
-			.attr("patternId",pId)
-			.classed("patternText", true)
-			.style("display", showPatternText ? "initial" : "none");
-
-		// Create the menu
-		/*var dropMenuDiv = thisNameCell.append("div")
-			.classed("dropdown-content", true)
-			.style("left","0");
-		let steeringP = dropMenuDiv.append("p")
-			.text("Steer on this pattern")
-			.on("click", function() {
-				requestSteeringOnPattern(pId);
-				d3.event.stopPropagation();
-			});*/
-		
-		thisRow.append("td")
-			.text(pSupport);
-		thisRow.append("td")
-			.text(pUsers.length);
-		thisRow.append("td")
-			.text(pSize);
-		/*
-		for (var k = 0; k < pSize; k++) {
-			pSvg.append("path")
-				.attr("d",d3.symbol().type(itemShapes[pItems[k]]).size(function(d) {return 100;}))
-				.attr("transform","translate("+(10+20*k)+",10)")
-				.attr("stroke", "hsl("+colorList[pItems[k]]+",100%,50%)")//d3.hsl(parseFloat(eColor),100,50).rgb())
-				.attr("fill","none");
-		}*/
+		patternList.node().appendChild(createPatternRow(pId));
 	}
 	
 	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
+}
+
+function createPatternRow(pId) {
+	let pSize = patternsInformation[pId][1];
+	let pSupport = patternsInformation[pId][2];
+	let pString = patternsInformation[pId][0];
+	let pItems = patternsInformation[pId][3];
+	let pUsers = patternsInformation[pId][4];
+
+	let row = d3.select(document.createElement("tr"))
+		.attr("id","pattern"+pId)
+		.classed("clickable",true)
+		.on("click", function() {
+			if (selectedPatternIds.includes(pId)) {
+				let index = selectedPatternIds.indexOf(pId);
+				if (index >= 0)
+					selectedPatternIds.splice(index, 1);
+			} else {
+				// Select the pattern if the max number is not yet reached
+				if (selectedPatternIds.length < maxSelectedPatternNb) {
+					selectedPatternIds.push(pId);
+				} else {
+					return;
+				}
+			}
+			
+			if (occurrencesAreKnown(pId) == false)
+				requestPatternOccurrences(pId, currentDatasetName);
+			else
+				timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+			//d3.event.stopPropagation();
+			console.log("click on "+pId);
+			createPatternListDisplay();
+			
+			// Update the number of selected patterns display
+			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+		})
+		.on("mouseover", function() {
+			movePatternContextActionsToRow(pId);
+		});
 	
+	let nameCell = row.append("td");
+		//.classed("dropdown", true);
+	/*var pSvg = thisNameCell.append("svg")
+		.attr("width", 20*pSize)
+		.attr("height", 20);*/
+	for (let k=0; k < pSize; k++) {
+		nameCell.append("span")
+			.style("color",colorList[pItems[k]][0].toString())
+			.text(itemShapes[pItems[k]]);
+	}
+	nameCell.append("span")
+		.text(" "+pString)
+		.attr("patternId",pId)
+		.classed("patternText", true)
+		.style("display", showPatternText ? "initial" : "none");
+
+	// Create the menu
+	/*var dropMenuDiv = thisNameCell.append("div")
+		.classed("dropdown-content", true)
+		.style("left","0");
+	let steeringP = dropMenuDiv.append("p")
+		.text("Steer on this pattern")
+		.on("click", function() {
+			requestSteeringOnPattern(pId);
+			d3.event.stopPropagation();
+		});*/
+	
+	row.append("td")
+		.text(pSupport);
+	row.append("td")
+		.text(pUsers.length);
+	row.append("td")
+		.text(pSize);
+	
+	return row.node();
 }
 
 /**
@@ -5048,10 +5151,31 @@ function getRelevantDisplayMode() {
 function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
+		d3.select("#modalBackground").classed("hidden", false);
 		d3.select("#algorithmExtended").classed("hidden", false);
 	} else { // Show the shrinked view
+		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#algorithmExtended").classed("hidden", true);
 	}
+}
+
+/**
+ * Expands or shrinks the algorithm parameters change panel
+ */
+function toggleAlgorithmParametersChange() {
+	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
+	d3.select("#modalBackground").classed("hidden", !isHidden);
+	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
+}
+
+/**
+ * Hides the modal window and its content
+ */
+function closeModal() {
+	useExtendedAlgorithmView = false;
+	d3.select("#modalBackground").classed("hidden", true);
+	d3.select("#algorithmExtended").classed("hidden", true);
+	d3.select("#algorithmParametersChange").classed("hidden", true);
 }
 
 /************************************/
@@ -5992,9 +6116,6 @@ var Timeline = function(elemId, options) {
 	self.nodeFocus = document.getElementById('tl_focus');
 	self.nodeUsers = document.getElementById('tl_users');
 	self.nodeSelectedUsers = document.getElementById('tl_selectedUsers');
-
-	self.bins = [];
-	self.patternBins = [];
 	
 	self.drawEvents = function() {
 		console.log("Calling temporary draw events");
@@ -6010,7 +6131,7 @@ var Timeline = function(elemId, options) {
 		self.xUsers.domain(t.rescaleX(self.xContext).domain());
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
-		self.focus.select(".axis--x")
+		self.patterns.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
@@ -6041,7 +6162,7 @@ var Timeline = function(elemId, options) {
 		self.xUsers.domain(t.rescaleX(self.xContext).domain());
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
-		self.focus.select(".axis--x")
+		self.patterns.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
@@ -6282,19 +6403,20 @@ var Timeline = function(elemId, options) {
 		
 		//console.log("patterns to draw: "+listOfPatternsToDraw);
 		
-		let step = self.marginFocus.size / (idsToDraw.length + 1.0);
+		let step = self.marginPatterns.size / (idsToDraw.length + 1.0);
 		let range = [];
 		for (let i = 0; i< idsToDraw.length + 2; i++)
 			range.push(i*step);
 		
 		
 		self.yPatterns = d3.scaleOrdinal()
-			.domain([""].concat(idsToDraw).concat([""]))
+			//.domain([""].concat(idsToDraw).concat([""]))
+			.domain([""].concat(idsToDraw))
 			.range(range);
 	
-		self.yAxisPatterns = d3.axisRight(self.yPatterns)
+		self.yAxisPatterns = d3.axisLeft(self.yPatterns)
 	        .tickValues(self.yPatterns.domain());
-		self.focus.select("#focusRightAxis").call(self.yAxisPatterns);
+		self.patterns.select("#focusRightAxis").call(self.yAxisPatterns);
 		
 		// Hide the axis if there is no selected pattern or if we are not in distribution mode
 		if (self.displayMode != "distributions" || idsToDraw.length == 0) {
@@ -6352,19 +6474,19 @@ var Timeline = function(elemId, options) {
 							let x1 = self.xFocus(new Date(parseInt(occ[1])));
 							let x2 = self.xFocus(new Date(parseInt(occ[occ.length-1]))); // Last timestamp in the occurrence
 							let y = self.yPatterns(idsToDraw[i]);
-							self.canvasContext.beginPath();
+							self.canvasPatternDistinctContext.beginPath();
 							if (x1 == x2) {
-								self.canvasContext.fillStyle = "black";
-								self.canvasContext.arc(x1,y,1.5,0,2*Math.PI, false);
-								self.canvasContext.fill();
-								//self.canvasContext.closePath();
+								self.canvasPatternDistinctContext.fillStyle = "black";
+								self.canvasPatternDistinctContext.arc(x1,y,1.5,0,2*Math.PI, false);
+								self.canvasPatternDistinctContext.fill();
+								//self.canvasPatternDistinctContext.closePath();
 							} else {
-								self.canvasContext.lineWidth = 3;
-								self.canvasContext.moveTo(x1,y);
-								self.canvasContext.lineTo(x2,y);
-								self.canvasContext.lineCap = "round";
-								self.canvasContext.stroke();
-							    //self.canvasContext.closePath();
+								self.canvasPatternDistinctContext.lineWidth = 3;
+								self.canvasPatternDistinctContext.moveTo(x1,y);
+								self.canvasPatternDistinctContext.lineTo(x2,y);
+								self.canvasPatternDistinctContext.lineCap = "round";
+								self.canvasPatternDistinctContext.stroke();
+							    //self.canvasPatternDistinctContext.closePath();
 							}
 						//}
 					}
@@ -6435,135 +6557,110 @@ var Timeline = function(elemId, options) {
 		console.log(idsToDraw.length+" patterns drawn")
 	}
 	
-	self.setBins = function(bins) {
-		self.bins = bins;
-	}
-	
 	self.displayColorsInBins = false;
 	self.displayFullHeightBins = false;
 	
-	self.drawBins = function(bins) {
-		
-		console.log("drawing bins");
-		self.setBins(bins);
-		//[[year,start,end,value]...]
-		
-		// Adjust the focus part of the timeline to the new data
-		//self.xFocus.domain(d3.extent(csvData, function(d) { return d.time; }));
-		var maxHeight = 0.0;//1999999.0;
+	self.drawBins = function() {
+		let bins = eventBins[self.distributionScale];
+		console.log("drawing new bins");
+
+		var maxHeight = 0.0;
 		
 		// Adjust the y axis to the max height
 		if (self.displayFullHeightBins == true) 
 			maxHeight = 100.0;
 		else {
-			for (var iBin=0; iBin < bins.length; iBin++) {
-				if (parseInt(bins[iBin][3]) > maxHeight)
-					maxHeight = parseFloat(bins[iBin][3]);
-			}
+			bins.data.all().forEach(function(bin) {
+				if (bin.value.eventCount > maxHeight)
+					maxHeight = bin.value.eventCount;
+			});
 		}
-		
-		var maxBin = 0;
-		for (var iBin=0; iBin < bins.length; iBin++) {
-			if (parseInt(bins[iBin][3]) > maxBin)
-				maxBin = parseFloat(bins[iBin][3]);
-		}
-		
 		
 		self.yFocus.domain([0.0, maxHeight/*+1.0*/]);
 		self.focus.select(".axis--y")
-	      .call(self.yAxisFocus);
-			//.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
+		  .call(self.yAxisFocus);
 		
-		/* commented since it is already done in displayData()
-		self.canvasContext.fillStyle = "#fff";
-		self.canvasContext.rect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
-		self.canvasContext.fill();
-		
-		self.hiddenCanvasContext.fillStyle = "#fff";
-		self.hiddenCanvasContext.fillRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
-		*/
 		self.colorToData = {};
 		let nextColor = 1;
 		
-		for (var iBin=0; iBin < bins.length; iBin++) {
+		bins.data.all().forEach(function(bin) {
 			self.canvasContext.beginPath();
-		    var x = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][1]));
-		    var x2 = self.xFocus(d3.timeParse('%Y-%m-%d %H:%M:%S')(bins[iBin][2]));
-		    
-		    if (self.displayColorsInBins == true) {
+			let binStart = bins.getStart(bin.value.aDateInside);
+			let binEnd = bins.getEnd(bin.value.aDateInside);
+		    let x = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart));
+			let x2 = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd));
+			
+			if (self.displayColorsInBins == true) {
 			    /*
 			     * Deduce the decomposition in multiple bars from bins[iBin]
 			     * Structure : [year,start,end,nbEvents,user1;user2;...,???,type1:nbOcc;type2:nbOcc;...]
 			     */
-			    var colorsProportion = {}; // nbOccs for each color
-			    var eventTypesAssociatedToColor = {}; // nbOccs per event for each color
-			    var eventsInfo = bins[iBin][6].split(";");
-			    for (var t=0 ; t < eventsInfo.length ; t++) {
-			    	var details = eventsInfo[t].split(":");
-			    	// TODO fix the agavue situation
-			    	var eColor = getCurrentEventColor(details[0]).toString();
-			    	//var eColor = getEventColorForAgavue(details[0]);
+			    let colorsProportion = {}; // nbOccs for each color
+				let eventTypesAssociatedToColor = {}; // nbOccs per event for each color
+				
+				Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;}).forEach(function(et) {
+			    	// TODO fix the agavue situation --> Still needed ?
+			    	let eColor = getCurrentEventColor(et).toString();
 			    	if (!colorsProportion[eColor]) {
-			    		colorsProportion[eColor] = parseInt(details[1]);
+			    		colorsProportion[eColor] = bin.value.events[et];
 			    		eventTypesAssociatedToColor[eColor] = [];
 			    	} else {
-			    		colorsProportion[eColor] += parseInt(details[1]);
+			    		colorsProportion[eColor] += bin.value.events[et];
 			    	}
-		    		eventTypesAssociatedToColor[eColor].push(eventsInfo[t]);
-			    }
-			    var evtNbr = parseInt(bins[iBin][3]);
-			    var colorsFound = Object.keys(colorsProportion);
-			    /*for (var t =0; t < colorsFound.length; t++) {
-			    	colorsProportion[colorsFound[t]] /= (evtNbr*0.1);
-			    }*/
+		    		eventTypesAssociatedToColor[eColor].push(et);
+				});
+
+			    let evtNbr = bin.value.eventCount;
+				let colorsFound = Object.keys(colorsProportion);
+				
 			    colorsFound.sort(function(a,b) {
 			    	return colorsProportion[a] - colorsProportion[b];
 			    });
 			    
 			    // draw each of the coloured sections of the bar
-			    var cumulatedHeight = 0;
-			    var y;
-			    var binHeight;
-			    for (var t = 0; t < colorsFound.length; t++) {
-				    //var y = self.yFocus(maxHeight-parseInt(bins[iBin][3]));
-				    //var binHeight = self.yFocus(parseInt(bins[iBin][3]));
-				    var y = 0;
-				    var binHeight = 0;
-				    
-				    if (self.displayFullHeightBins == true) {
-				    	y = self.yFocus(maxHeight - (colorsProportion[colorsFound[t]] * maxHeight) / parseInt(bins[iBin][3]));
-				    	binHeight = self.yFocus(cumulatedHeight + (colorsProportion[colorsFound[t]] * maxHeight) / parseInt(bins[iBin][3]));
+			    let cumulatedHeight = 0;
+			    let y;
+				let binHeight;
+				
+				colorsFound.forEach(function(color) {
+					let y = 0;
+					let binHeight = 0;
+
+					if (self.displayFullHeightBins == true) {
+				    	y = self.yFocus(maxHeight - (colorsProportion[color] * maxHeight) / bin.value.eventCount);
+				    	binHeight = self.yFocus(cumulatedHeight + (colorsProportion[color] * maxHeight) / bin.value.eventCount);
 				    } else {
-				    	y = self.yFocus(maxHeight-colorsProportion[colorsFound[t]]);
-					    binHeight = self.yFocus(cumulatedHeight + colorsProportion[colorsFound[t]]);
-				    }
-				    //self.canvasContext.fillStyle = "lightblue";//node.attr("fillStyle");
-				    self.canvasContext.fillStyle = colorsFound[t].toString();
+				    	y = self.yFocus(maxHeight-colorsProportion[color]);
+					    binHeight = self.yFocus(cumulatedHeight + colorsProportion[color]);
+					}
+					
+				    self.canvasContext.fillStyle = color.toString();
 				    self.canvasContext.fillRect(x, binHeight, x2-x, y);
 				    self.canvasContext.lineWidth = 0.25;
 				    self.canvasContext.strokeStyle = "black";
 				    self.canvasContext.stroke();
 				    //  self.canvasContext.fillRect(x, binHeight, x2-x, y);
-				    self.canvasContext.closePath();
-				    
-				    // Attributing a color to data link for the hidden canvas
-				    var color = [];
+					self.canvasContext.closePath();
+					
+					// Attributing a color to data link for the hidden canvas
+				    let hiddenColor = [];
 				    // via http://stackoverflow.com/a/15804183
 				    if(nextColor < 16777215){
-				    	color.push(nextColor & 0xff); // R
-				    	color.push((nextColor & 0xff00) >> 8); // G 
-				    	color.push((nextColor & 0xff0000) >> 16); // B
+				    	hiddenColor.push(nextColor & 0xff); // R
+				    	hiddenColor.push((nextColor & 0xff00) >> 8); // G 
+				    	hiddenColor.push((nextColor & 0xff0000) >> 16); // B
 	
 				    	nextColor += 1;
 				    } else {
 				    	console.log('Warning : too many colors needed for the main hidden canvas');
 				    }
 				    
-				    let eventTypesColors = [];
-				    let splitEventTypes = bins[iBin][5].split(";");
-				    for (let idx = 0 ; idx < splitEventTypes.length; idx++) {
-				    	eventTypesColors.push(splitEventTypes[idx]+":"+colorsFound[t]);
-				    }
+					let eventTypesColors = [];
+					
+					let splitEventTypes = Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;});
+					splitEventTypes.forEach(function(et) {
+						eventTypesColors.push(et+":"+getEventColor(et));
+					});
 				    
 				    /* Create the info we want in the tooltip
 				    * Structure : [year,
@@ -6577,32 +6674,37 @@ var Timeline = function(elemId, options) {
 				    * type1:hslColorValue1;type2:hslColorValue1;...]
 				   	*/
 				    let subBinInfo = [];
-				    subBinInfo.push(bins[iBin][0]);
-				    subBinInfo.push(bins[iBin][1]);
-				    subBinInfo.push(bins[iBin][2]);
-				    subBinInfo.push(bins[iBin][3]);
-				    subBinInfo.push(bins[iBin][4]);
-				    subBinInfo.push(bins[iBin][5]);
-				    subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
-				    subBinInfo.push(colorsProportion[colorsFound[t]]);
-				    subBinInfo.push(eventTypesColors.join(';'));//subBinInfo.push(colorsFound[t]);
-				    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;//bins[iBin];
-				    
+				    subBinInfo.push(binStart.split("-")[0]); // year
+				    subBinInfo.push(binStart);
+					subBinInfo.push(binEnd);
+					subBinInfo.push(bin.value.eventCount);
+				    subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
+					subBinInfo.push(splitEventTypes.join(";"));
+					let nbOccsPerType = [];
+					eventTypesAssociatedToColor[color].forEach(function(et) {
+						nbOccsPerType.push(et+":"+bin.value.events[et]);
+					});
+				    subBinInfo.push(nbOccsPerType.join(';'));
+				    subBinInfo.push(colorsProportion[color]);
+				    subBinInfo.push(eventTypesColors.join(';'));
+				    self.colorToData["rgb("+hiddenColor.join(',')+")"] = subBinInfo;
+					
 				    // Drawing on the hidden canvas for the tooltip
 					self.hiddenCanvasContext.beginPath();
-				    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
+				    self.hiddenCanvasContext.fillStyle = "rgb("+hiddenColor.join(',')+")";//node.attr("fillStyle");
 				    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
 				    self.hiddenCanvasContext.closePath();
 				    
 				    if (self.displayFullHeightBins == true) {
-				    	cumulatedHeight += (colorsProportion[colorsFound[t]] * maxHeight) / parseInt(bins[iBin][3]);
+				    	cumulatedHeight += (colorsProportion[color] * maxHeight) / bin.value.eventCount;
 				    } else {
-				    	cumulatedHeight += colorsProportion[colorsFound[t]];
+				    	cumulatedHeight += colorsProportion[color];
 				    }
-			    }
-		    } else {
-		    	y = self.yFocus(maxHeight-parseFloat(bins[iBin][3]));
-		    	binHeight = self.yFocus(parseFloat(bins[iBin][3]));
+				});
+
+		    } else { // Draw the full bin without dividing it
+		    	y = self.yFocus(maxHeight-bin.value.eventCount);
+		    	binHeight = self.yFocus(bin.value.eventCount);
 			    self.canvasContext.fillStyle = "#04B7FB";
 			    self.canvasContext.fillRect(x, binHeight, x2-x, y);
 			    self.canvasContext.lineWidth = 0.25;
@@ -6625,11 +6727,10 @@ var Timeline = function(elemId, options) {
 			    }
 			    
 			    let eventTypesColors = [];
-			    let splitEventTypes = bins[iBin][5].split(";");
-			    for (let idx = 0 ; idx < splitEventTypes.length; idx++) {
-			    	let thisEventColor = 
-			    	eventTypesColors.push(splitEventTypes[idx]+":"+getEventColor(splitEventTypes[idx]));
-			    }
+				let splitEventTypes = Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;});
+				splitEventTypes.forEach(function(et) {
+					eventTypesColors.push(et+":"+getEventColor(et));
+				});
 			    
 			    /* Create the info we want in the tooltip
 			    * Structure : [year,
@@ -6643,16 +6744,20 @@ var Timeline = function(elemId, options) {
 			    * type1:hslColorValue1;type2:hslColorValue1;...]
 			   	*/
 			    let subBinInfo = [];
-			    subBinInfo.push(bins[iBin][0]);
-			    subBinInfo.push(bins[iBin][1]);
-			    subBinInfo.push(bins[iBin][2]);
-			    subBinInfo.push(bins[iBin][3]);
-			    subBinInfo.push(bins[iBin][4]);
-			    subBinInfo.push(bins[iBin][5]);
-			    subBinInfo.push(bins[iBin][6]);// subBinInfo.push(eventTypesAssociatedToColor[colorsFound[t]].join(';'));
-			    subBinInfo.push(bins[iBin][3]);// subBinInfo.push(colorsProportion[colorsFound[t]]);
-			    subBinInfo.push(eventTypesColors.join(';'));//subBinInfo.push(colorsFound[t]);
-			    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;//bins[iBin];
+			    subBinInfo.push(binStart.split("-")[0]); // year
+			    subBinInfo.push(binStart);
+			    subBinInfo.push(binEnd);
+			    subBinInfo.push(bin.value.eventCount);
+			    subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
+				subBinInfo.push(splitEventTypes.join(";"));
+				let nbOccsPerType = [];
+				splitEventTypes.forEach(function(et) {
+					nbOccsPerType.push(et+":"+bin.value.events[et]);
+				});
+			    subBinInfo.push(nbOccsPerType.join(";"));
+			    subBinInfo.push(bin.value.eventCount);
+			    subBinInfo.push(eventTypesColors.join(';'));
+			    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;
 			    
 			    // Drawing on the hidden canvas for the tooltip
 				self.hiddenCanvasContext.beginPath();
@@ -6660,39 +6765,10 @@ var Timeline = function(elemId, options) {
 			    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
 			    self.hiddenCanvasContext.closePath();
 		    }
-		    /*
-		    // Attributing a color to data link
-		    var color = [];
-		    // via http://stackoverflow.com/a/15804183
-		    if(nextColor < 16777215){
-		    	color.push(nextColor & 0xff); // R
-		    	color.push((nextColor & 0xff00) >> 8); // G 
-		    	color.push((nextColor & 0xff0000) >> 16); // B
+		});
 
-		    	nextColor += 1;
-		    }
-		    self.colorToData["rgb("+color.join(',')+")"] = bins[iBin];
-		    
-		    // Drawing on the hiddenCanvas
-		    y = self.yFocus(maxHeight-parseInt(bins[iBin][3]));
-		    binHeight = self.yFocus(parseInt(bins[iBin][3]));
-		    
-			self.hiddenCanvasContext.beginPath();
-		    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
-		    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
-		    self.hiddenCanvasContext.closePath();*/
-		    
-		    // Drawing the text
-		    /*self.canvasContext.fillStyle = "black";
-		    self.canvasContext.textAlign = "center";
-		    self.canvasContext.textBaseline = "middle";
-		    self.canvasContext.fillText(
-		    		bins[iBin][3],				// text
-		    		x+(x2-x)/2,						// x
-		    		binHeight+y/2);*/		// y
-		}
+		self.drawContextBins();
 		
-		self.drawContextBins(bins);
 		/*self.canvasOverviewContext.fillStyle = "#fff";
 		self.canvasOverviewContext.rect(0,0,self.canvasOverview.attr("width"),self.canvasOverview.attr("height"));
 		self.canvasOverviewContext.fill();
@@ -6728,21 +6804,129 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.drawCurrentBins = function() {
-		self.drawBins(self.bins);
-		self.drawPatternBins(self.patternBins);
+		self.drawBins();
 	};
 	
 	self.binTransformed = false;
 	
-	self.drawPatternBinsFromData = function() {
-		self.drawPatternBins(self.bins);
-	};
-	
 	self.drawContextBinsFromData = function() {
-		self.drawContextBins(self.bins);
+		self.drawContextBins();
 	}
 
-	self.drawContextBins = function(bins) {
+	self.drawContextBins = function() {
+		// Avoid drawing if there is no events or distribution scale
+		if (!self.distributionScale || !eventBins[self.distributionScale].data) {
+			console.log("Not drawing context bins, it would fail anyway");
+			if (self.distributionScale)
+				console.log("Distribution scale: "+self.distributionScale);
+			return;
+		}
+		let bins = eventBins[self.distributionScale];
+
+		let maxBin = 0;
+
+		bins.data.all().forEach(function(bin) {
+			if (bin.value.eventCount > maxBin)
+				maxBin = bin.value.eventCount;
+		});
+
+		self.canvasOverviewContext.fillStyle = "#fff";
+		self.canvasOverviewContext.rect(0,0,self.canvasOverview.attr("width"),self.canvasOverview.attr("height"));
+		self.canvasOverviewContext.fill();
+
+		self.yContext.domain([0.0, maxBin+1.0]);
+		
+		let area = d3.area()
+		    .x(function(d) { return d[0]; })
+		    .y0(self.heightContext)
+		    .y1(function(d) { return d[1]; })
+		    .context(self.canvasOverviewContext);
+		
+		let dataBeforeBrush = [];
+		let dataUnderBrush = [];
+		let dataAfterBrush = [];
+		
+		bins.data.all().forEach(function(bin) {
+			let thisData = [];
+			
+			let beforeBrushStart = false;
+			let beforeBrushEnd = false;
+
+			let brushStartTime = self.xFocus.domain()[0];
+			let brushEndTime = self.xFocus.domain()[1];
+
+			let binStartTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getStart(bin.value.aDateInside));
+			let binValue = bin.value.eventCount;
+			thisData.push(self.xContext(binStartTime));
+			thisData.push(self.yContext(binValue));
+			if (binStartTime < brushStartTime) {
+				dataBeforeBrush.push(thisData);
+				beforeBrushStart = true;
+			} else if (binStartTime > brushEndTime)
+				dataAfterBrush.push(thisData);
+			else {
+				dataUnderBrush.push(thisData);
+				beforeBrushEnd = true;
+			}
+
+			let binEndTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getEnd(bin.value.aDateInside));
+			thisData = [];
+			
+			thisData.push(self.xContext(binEndTime));
+			thisData.push(self.yContext(binValue));
+
+			if (binEndTime < brushStartTime)
+				dataBeforeBrush.push(thisData);
+			else if (binEndTime > brushEndTime) {
+				if (beforeBrushEnd) {
+					let brushEndData = [];
+					brushEndData.push(self.xContext(brushEndTime));
+					brushEndData.push(self.yContext(binValue));
+					dataUnderBrush.push(brushEndData);
+					dataAfterBrush.push(brushEndData);
+				} else if (beforeBrushStart) {
+					let brushStartData = [];
+					brushStartData.push(self.xContext(brushStartTime));
+					brushStartData.push(self.yContext(binValue));
+					let brushEndData = [];
+					brushEndData.push(self.xContext(brushEndTime));
+					brushEndData.push(self.yContext(binValue));
+					dataBeforeBrush.push(brushStartData);
+					dataUnderBrush.push(brushStartData);
+					dataUnderBrush.push(brushEndData);
+					dataAfterBrush.push(brushEndData);
+				}
+				dataAfterBrush.push(thisData);
+			} else {
+				if (beforeBrushStart) {
+					let brushStartData = [];
+					brushStartData.push(self.xContext(brushStartTime));
+					brushStartData.push(self.yContext(binValue));
+					dataBeforeBrush.push(brushStartData);
+					dataUnderBrush.push(brushStartData);
+				}
+				dataUnderBrush.push(thisData);
+			}
+		});
+		
+		self.canvasOverviewContext.beginPath();
+		area(dataBeforeBrush);
+		self.canvasOverviewContext.fillStyle = "lightgrey";
+		self.canvasOverviewContext.strokeStyle = "lightgrey";
+		self.canvasOverviewContext.fill();
+		self.canvasOverviewContext.beginPath();
+		area(dataUnderBrush);
+		self.canvasOverviewContext.fillStyle = "#04B7FB";
+		self.canvasOverviewContext.strokeStyle = "#04B7FB";
+		self.canvasOverviewContext.fill();
+		self.canvasOverviewContext.beginPath();
+		area(dataAfterBrush);
+		self.canvasOverviewContext.fillStyle = "lightgrey";
+		self.canvasOverviewContext.strokeStyle = "lightgrey";
+		self.canvasOverviewContext.fill();
+	};
+
+	self.drawContextBinsOld = function(bins) {
 		let maxBin = 0;
 		for (let iBin=0; iBin < bins.length; iBin++) {
 			if (parseInt(bins[iBin][3]) > maxBin)
@@ -6859,7 +7043,7 @@ var Timeline = function(elemId, options) {
 		self.xUsers.domain(s.map(self.xContext.invert, self.xContext));
 		/*self.focus.select(".area")
 			.attr("d", self.areaFocus);*/
-		self.focus.select(".axis--x")
+		self.patterns.select(".axis--x")
 			.call(self.xAxisFocus);
 		self.users.select(".axis--x")
 			.call(self.xAxisUsers);
@@ -6961,25 +7145,30 @@ var Timeline = function(elemId, options) {
 		}
 		
 		if (displayDistributionIsFine == false) {
-			self.distributionScale = self.getRelevantDistributionScale();
-			requestRelevantBins(currentDatasetName, self.distributionScale);
-			switch(self.distributionScale) {
+			let relevantDistributionScale = self.getRelevantDistributionScale();
+			switch(relevantDistributionScale) {
 			case "halfDay":
 				d3.select("#zoomInfoHalfDay").classed("currentZoom", true);
+				self.distributionScale = "halfDay";
 				break;
 			case "day":
 				d3.select("#zoomInfoDay").classed("currentZoom", true);
+				self.distributionScale = "day";
 				break;
 			case "halfMonth":
 				d3.select("#zoomInfoHalfMonth").classed("currentZoom", true);
+				self.distributionScale = "halfMonth";
 				break;
 			case "month":
 				d3.select("#zoomInfoMonth").classed("currentZoom", true);
+				self.distributionScale = "month";
 				break;
 			case "year":
 				d3.select("#zoomInfoYear").classed("currentZoom", true);
+				self.distributionScale = "year";
 				break;
 			default:
+				console.log("Relevant distribution scale is unknown, keeping the last one");
 			}
 		}
 		
@@ -6989,10 +7178,11 @@ var Timeline = function(elemId, options) {
 		self.canvasContext.clearRect(0,0,self.canvas.attr("width"),self.canvas.attr("height"));
 		self.hiddenCanvasContext.clearRect(0,0,self.hiddenCanvas.attr("width"),self.hiddenCanvas.attr("height"));
 		self.canvasPatternContext.clearRect(0,0,self.canvasPattern.attr("width"),self.canvasPattern.attr("height"));
+		self.canvasPatternDistinctContext.clearRect(0,0,self.canvasPatternDistinct.attr("width"),self.canvasPatternDistinct.attr("height"));
 		
 		switch(self.displayMode) {
 		case "distributions":
-			self.drawBins(self.bins);
+			self.drawBins();
 			self.drawPatternOccurrences();
 			break;
 		case "events":
@@ -7008,7 +7198,6 @@ var Timeline = function(elemId, options) {
 		self.drawUsersPatterns();
 		
 		//self.drawUsers();
-		//self.drawPatternBins(self.patternBins);
 		//stopRunningTaskIndicator();
 	};
 	
@@ -7238,9 +7427,10 @@ var Timeline = function(elemId, options) {
 	}
 	
 	// Parameters about size and margin of the timeline's parts
-	self.marginFocus = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 250};
-	self.marginContext = {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 50};
-	self.marginUsers =  {"top": 0,"right": 40,"bottom": 20,"left": 50,"size": 250};
+	self.marginContext = {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 25};
+	self.marginFocus = {"top": 0,"right": 20,"bottom": 10,"left": 50,"size": 225};
+	self.marginPatterns = {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 75};
+	self.marginUsers =  {"top": 0,"right": 20,"bottom": 20,"left": 50,"size": 250};
 	
 	self.width = +self.parentNode.clientWidth
 			- Math.max(self.marginFocus.left, self.marginContext.left)
@@ -7248,14 +7438,17 @@ var Timeline = function(elemId, options) {
 	self.widthContext = +self.parentNode.clientWidth
 			- self.marginContext.left
 			- self.marginContext.right;
-	self.heightFocus = self.marginFocus.size//+self.parentNode.clientHeight
-			+ self.marginFocus.top + self.marginFocus.bottom;
 	self.heightContext = self.marginContext.size//+self.parentNode.clientHeight
 			+ self.marginContext.top + self.marginContext.bottom;
+	self.heightFocus = self.marginFocus.size//+self.parentNode.clientHeight
+			+ self.marginFocus.top + self.marginFocus.bottom;
+	self.heightPatterns = self.marginPatterns.size//+self.parentNode.clientHeight
+			+ self.marginPatterns.top + self.marginPatterns.bottom;
 	self.heightUsers = self.marginUsers.size
 			+ self.marginUsers.top + self.marginUsers.bottom;
 	
-	self.height = self.heightFocus
+	self.height = self.heightContext
+		+ self.heightFocus
 		+ self.heightContext
 		+ self.heightUsers
 		+ 5*20;
@@ -7281,6 +7474,15 @@ var Timeline = function(elemId, options) {
 		.style("left",self.marginFocus.left.toString()+"px")
 		.style("height", self.marginFocus.size+"px");	
 	self.canvasContext = self.canvas.node().getContext("2d");
+	
+	self.canvasPatternDistinct = d3.select(self.nodeFocus).append("canvas")
+		.attr("width",self.width)
+		.attr("height",self.marginPatterns.size)
+		.style("position","relative")
+		.style("top",(self.marginPatterns.top + 6).toString()+"px")
+		.style("left",self.marginPatterns.left.toString()+"px")
+		.style("height", self.marginPatterns.size+"px");	
+	self.canvasPatternDistinctContext = self.canvasPatternDistinct.node().getContext("2d");
 
 	self.canvasOverview = d3.select(self.nodeOverview).append("canvas")
 		.attr("width",self.widthContext)
@@ -7334,7 +7536,14 @@ var Timeline = function(elemId, options) {
 		.attr("height",self.heightFocus)
 		.style("position","absolute")
 		.style("top","0")
-		.style("left","0");	
+		.style("left","0");
+
+	self.svgPatterns = d3.select(self.nodeFocus).append("svg")
+		.attr("width",self.parentNode.clientWidth)
+		.attr("height",self.heightPatterns)
+		.style("position","absolute")
+		.style("top",self.heightFocus)
+		.style("left","0");
 	
 	self.svgOverview = d3.select(self.nodeOverview).append("svg")
 		.attr("width",self.parentNode.clientWidth)
@@ -7357,7 +7566,7 @@ var Timeline = function(elemId, options) {
 	self.yFocus = d3.scaleLinear().range([self.marginFocus.size,0]);
 	self.yContext = d3.scaleLinear().range([self.marginContext.size,0]);
 	self.xPatterns = d3.scaleTime().range([0, self.width]);
-	self.yPatterns = d3.scalePoint().range([self.marginFocus.size,0]);
+	self.yPatterns = d3.scalePoint().range([self.marginPatterns.size,0]);
 	self.xUsers = d3.scaleTime().range([0, self.width]);
 	self.yUsers = d3.scaleBand()
 			.range([0, self.marginUsers.size])
@@ -7365,7 +7574,7 @@ var Timeline = function(elemId, options) {
 	self.xAxisFocus = d3.axisBottom(self.xFocus);
 	self.xAxisContext = d3.axisBottom(self.xContext);
 	self.yAxisFocus = d3.axisLeft(self.yFocus);//.tickSizeInner(-self.width);
-	self.yAxisPatterns = d3.axisRight(self.yPatterns).tickSizeInner(-self.width);
+	self.yAxisPatterns = d3.axisLeft(self.yPatterns);//.tickSizeInner(-self.width);
 	self.xAxisUsers = d3.axisBottom(self.xUsers);
 	self.yAxisUsers = d3.axisLeft(self.yUsers);//.tickSizeInner(-self.width);
 	// The brush component of the context part
@@ -7381,6 +7590,13 @@ var Timeline = function(elemId, options) {
 		.extent([[0, 0], [self.width, self.marginFocus.size]])
 		.on("zoom", self.zoomed);
 	
+		// The zoomable rectangle on the patterns part
+	self.zoomPatterns = d3.zoom()
+		.scaleExtent([1, Infinity])
+		.translateExtent([[0, 0], [self.width, self.marginPatterns.size]])
+		.extent([[0, 0], [self.width, self.marginPatterns.size]])
+		.on("zoom", self.zoomed);
+	
 	// The zoomable rectangle on the user part
 	self.zoomUsers = d3.zoom()
 		.scaleExtent([1, Infinity])
@@ -7389,7 +7605,7 @@ var Timeline = function(elemId, options) {
 		.on("zoom", self.zoomedUsers);
 	
 	// Adding the axis to the svg area
-	// focus part of the timeline
+	// Creating the focus part of the timeline
 	self.focus = self.svgFocus.append("g")
 	    .attr("class", "focus")
 	    .attr("transform", "translate("+self.marginFocus.left+","+self.marginFocus.top+")");
@@ -7397,14 +7613,18 @@ var Timeline = function(elemId, options) {
 	self.context = self.svgOverview.append("g")
 	    .attr("class", "context")
 	    .attr("transform", "translate("+self.marginContext.left+","+self.marginContext.top+")");
+	// Creating the pattern part of the timeline
+	self.patterns = self.svgPatterns.append("g")
+	    .attr("class", "patterns")
+	    .attr("transform", "translate("+self.marginPatterns.left+","+self.marginPatterns.top+")");
 	// Creating the users part for the timeline
 	self.users = self.svgUsers.append("g")
 	    .attr("class", "users")
 	    .attr("transform", "translate("+self.marginUsers.left+","+self.marginUsers.top+")");
 	// Creating the xAxis and yAxis for the focus part of the timeline
-	self.focus.append("g")
+	self.patterns.append("g")
 		.attr("class","axis axis--x")
-		.attr("transform", "translate(0," + (self.marginFocus.size + self.marginFocus.top) + ")")
+		.attr("transform", "translate(0," + (self.marginPatterns.size + self.marginPatterns.top) + ")")
 		.call(self.xAxisFocus);
 	self.focus.append("g")
 		.attr("class", "axis axis--y")
@@ -7417,10 +7637,10 @@ var Timeline = function(elemId, options) {
 		.attr("transform", "translate(0," + (self.marginContext.size + self.marginContext.top) + ")")
 		.call(self.xAxisContext);
 	// Creating the yAxis for the pattern part of the timeline
-	self.focus.append("g")
+	self.patterns.append("g")
 		.attr("class", "axis axis--y")
 		.attr("id", "focusRightAxis")
-	    .attr("transform", "translate("+self.width+",0)")
+	    //.attr("transform", "translate("+self.width+",0)")
 		.call(self.yAxisPatterns)
 		.selectAll(".tick line").attr("stroke","lightblue").attr("stroke-width","0.5");
 	// Creating the xAxis for the users part of the timeline
@@ -7674,6 +7894,14 @@ var Timeline = function(elemId, options) {
 				self.focusOnSession(self.hoveredSession.start, self.hoveredSession.end);
 		});
 	
+	// Creating the zoomable rectangle on the patterns part of the timeline
+	self.zoomRectPatterns = self.svgPatterns.append("rect")
+		.attr("class", "zoom")
+		.attr("width", self.width)
+		.attr("height", self.marginPatterns.size)
+		.attr("transform", "translate(" + self.marginPatterns.left + "," + self.marginPatterns.top + ")")
+		.call(self.zoomPatterns);
+
 	self.context.select(".brush").select(".selection")
 		.attr("fill","white")
 		.attr("stroke","black")
@@ -7732,7 +7960,7 @@ var Timeline = function(elemId, options) {
 		self.xAxisUsers = d3.axisBottom(self.xUsers);
 		//self.yAxisUsers = d3.axisLeft(self.yUsers);
 
-		self.focus.select(".axis--x").call(self.xAxisFocus);
+		self.patterns.select(".axis--x").call(self.xAxisFocus);
 		self.context.select(".axis--x").call(self.xAxisContext);
 		self.users.select(".axis--x").call(self.xAxisUsers);
 		self.users.select(".axis--y").call(self.yAxisUsers);

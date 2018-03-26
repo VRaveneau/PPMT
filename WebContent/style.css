@@ -71,7 +71,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 #nbUserShownInput {
 	position: absolute;
 	transform: rotate(90deg);
-	right: -90px;
+	right: -115px;
 	top: 146px;
 	width: 250px;
 	z-index: 10;
@@ -84,6 +84,10 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	flex: 1;
 }
 
+#patternTable {
+	border-collapse: collapse;
+}
+
 #selectedPatternTableBody {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
@@ -94,6 +98,16 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 
 #patternTableBody {
 	font-weight: normal;
+}
+
+#selectedPatternTableBody tr:hover {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
+}
+
+#patternTableBody tr:hover {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
 }
 
 .section {
@@ -1178,22 +1192,64 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 /********************************/
-/* 	Extendend algorithm view 	*/
+/* 			Modal window 		*/
+/********************************/
+
+#modalBackground {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width: 100%;
+	height: 100%;
+
+	z-index: 10;
+
+	background-color: rgba(0, 0, 0, 0.568);
+}
+
+#modalContent {
+	position: absolute;
+	max-height: 60%;
+	max-width: 60%;
+	margin: auto;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+}
+
+#modalCloseArea {
+	position: absolute;
+	right: -40px;
+	top: 0px;
+	width: 40px;
+	height: 40px;
+	background-color: #BEC6D3;
+	border-radius: 0px 5px 5px 0px;
+}
+
+.modalWindow {
+	width: 100%;
+	height: 100%;
+	border-radius: 5px 0px 5px 5px;
+	background-color: #BEC6D3;
+}
+
+/********************************/
+/* 	Extended algorithm view 	*/
 /********************************/
 
 #algorithmExtended {
-	position: absolute;
-	right:0;
+	/*position: absolute;
+	left:50%;
 
 	width: 50%;
-	height: 50%;
+	height: 50%;*/
 	margin: 0px;
 	padding: 0px;
-	background-color: #BEC6D3;/* #e4e7ec;*/
 	flex-direction: row;
 
-	z-index: 10;
-	border-radius: 5px;
+	/*z-index: 20;*/
 }
 
 #algorithmExtended:not(.hidden) {
@@ -1217,27 +1273,37 @@ ul.algorithmTabs li :not(.active):hover {
 	
 }
 
+#patternSizeTable {
+	
+}
+
 #patternSizeTable tbody tr {
 	text-align: center;
 }
 
 .patternSizeStatus {
-	border: 1px solid black;
 	border-radius: 5px;
 	font-variant: small-caps;
 	font-weight: bold;
 }
 
 .leveldone {
-	background-color: green;
+	color: green;
+	background-color: lightgreen;
 }
 
 .levelstarted {
-	background-color: orange;
+	color: orange;
+	background-color: lightyellow;
 }
 
 .levelactive {
-	background-color: dodgerblue;
+	color: dodgerblue;
+	background-color: lightblue;
+}
+
+.rowactive {
+	background-color: lightblue;
 }
 
 #extendedAlgorithmStrategyArea {
@@ -1247,8 +1313,26 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 /********************************/
+/* 	Algorithm parameter change 	*/
+/********************************/
+
+#algorithmParametersChange {
+	margin: 0px;
+	padding: 0px;
+	flex-direction: row;
+}
+
+#algorithmParametersChange:not(.hidden) {
+	display: flex;
+}
+
+/********************************/
 /* 		Event types tabs 		*/
 /********************************/
+
+#eventTable {
+	border-collapse: collapse;
+}
 
 #eventTableBody tr.selectedEventTypeRow {
   /*background: #5C9FB9;*/
@@ -1261,6 +1345,11 @@ ul.algorithmTabs li :not(.active):hover {
 
 #eventTableBody tr:not(.selectedEventTypeRow) {
 	font-weight: normal;
+}
+
+#eventTableBody tr:hover {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
 }
 
 /********************************/
@@ -1289,6 +1378,10 @@ ul.algorithmTabs li :not(.active):hover {
 	word-wrap: break-word;
 }
 
+#userTable {
+	border-collapse: collapse;
+}
+
 #userTableBody {
 	overflow-y: auto;
 }
@@ -1304,6 +1397,11 @@ ul.algorithmTabs li :not(.active):hover {
 
 #userTableBody tr:not(.selectedUserRow) {
 	font-weight: normal;
+}
+
+#userTableBody tr:hover {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
 }
 
 .area {
@@ -1347,6 +1445,126 @@ ul.algorithmTabs li :not(.active):hover {
 /********************/
 /*	Sliders			*/
 /********************/
+ /* Remove default styles*/
+.fakeBrowserSlider {
+	-webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+	width: 100%; /* Specific width is required for Firefox. */
+	background: transparent; /* Otherwise white in Chrome */
+}
+
+.fakeBrowserSlider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+}
+
+.fakeBrowserSlider:focus {
+	outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+}
+
+.fakeBrowserSlider::-ms-track {
+	width: 100%;
+	cursor: pointer;
+  
+	/* Hides the slider so custom styles can be added */
+	background: transparent; 
+	border-color: transparent;
+	color: transparent;
+}
+
+/* Style the thumb */
+
+/* Special styling for WebKit/Blink */
+.fakeBrowserSlider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	/*border: 1px solid #000000;*/
+	height: 8.4px;
+	width: 20px;/*16px;*/
+	border-radius: 10px;
+	background: rgba(95, 94, 94, 0.76);
+	cursor: pointer;
+	margin-top: -1px;
+	/*margin-top: -14px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+	/*box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
+}
+
+.fakeBrowserSlider:hover::-webkit-slider-thumb {
+	height: 10px;
+}
+
+/* All the same stuff for Firefox */
+.fakeBrowserSlider::-moz-range-thumb {
+	box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+	border: 1px solid #000000;
+	height: 36px;
+	width: 16px;
+	border-radius: 3px;
+	background: #ffffff;
+	cursor: pointer;
+}
+  
+/* All the same stuff for IE */
+.fakeBrowserSlider::-ms-thumb {
+	box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+	border: 1px solid #000000;
+	height: 36px;
+	width: 16px;
+	border-radius: 3px;
+	background: #ffffff;
+	cursor: pointer;
+}
+
+/* Style the track */
+
+.fakeBrowserSlider::-webkit-slider-runnable-track {
+	width: 100%;
+	height: 8.4px;
+	cursor: pointer;
+	/*box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;*/
+	background: white;/* #3071a9;*/
+	border-radius: 2px;
+	border: 0.2px solid lightgray;
+}
+
+.fakeBrowserSlider:hover::-webkit-slider-runnable-track {
+	height: 10px;
+}
+  
+.fakeBrowserSlider::-moz-range-track {
+	width: 100%;
+	height: 8.4px;
+	cursor: pointer;
+	box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+	background: #3071a9;
+	border-radius: 5px;
+	border: 0.2px solid #010101;
+}
+  
+.fakeBrowserSlider::-ms-track {
+	width: 100%;
+	height: 8.4px;
+	cursor: pointer;
+	background: transparent;
+	border-color: transparent;
+	border-width: 16px 0;
+	color: transparent;
+}
+.fakeBrowserSlider::-ms-fill-lower {
+	background: #2a6495;
+	border: 0.2px solid #010101;
+	border-radius: 2.6px;
+	box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+.fakeBrowserSlider:focus::-ms-fill-lower {
+	background: #3071a9;
+}
+.fakeBrowserSlider::-ms-fill-upper {
+	background: #3071a9;
+	border: 0.2px solid #010101;
+	border-radius: 2.6px;
+	box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+}
+.fakeBrowserSlider:focus::-ms-fill-upper {
+	background: #367ebd;
+}
 
 #sliderSupportArea, #sliderGapArea, #sliderWindowArea, #sliderSizeArea {
 	height: 100px;
