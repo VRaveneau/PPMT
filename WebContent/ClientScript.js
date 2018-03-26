@@ -816,7 +816,9 @@ function formatDate(date) {
 			monthsNames[date.getMonth()],
 			date.getDate()+",",
 			date.getFullYear()+",",
-			date.getHours()+":"+date.getMinutes()+":"+date.getSeconds()
+			(date.getHours() < 10 ? "0" : "")+date.getHours()+":"+
+			(date.getMinutes() < 10 ? "0" : "")+date.getMinutes()+":"+
+			(date.getSeconds() < 10 ? "0" : "")+date.getSeconds()
 		];
 		
 		return parts.join(" ");
@@ -2134,8 +2136,8 @@ function receiveDatasetInfo(message) {
 	datasetInfo["numberOfDifferentEvents"] = message.numberOfDifferentEvents;
 	datasetInfo["numberOfEvents"] = message.nbEvents;
 	datasetInfo["users"] = message.users;
-	datasetInfo["firstEvent"] = message.firstEvent;
-	datasetInfo["lastEvent"] = message.lastEvent;
+	datasetInfo["firstEvent"] = new Date(message.firstEvent);
+	datasetInfo["lastEvent"] = new Date(message.lastEvent);
 	datasetInfo["name"] = message.name;
 	
 	displayDatasetInfo();
@@ -2181,20 +2183,15 @@ function receiveUserList(message) {
 
 /**
  * Receives some events and store them in memory
- * @param {JSON} eventsCompressed - The events and information about them
+ * @param {JSON} events - The events and information about them
  */
-function receiveEvents(eventsCompressed) {
-	//var dataCompressed = LZString.decompressFromUTF16(eventsCompressed.data);
-	//var events = JSON.parse(dataCompressed);
-	
-	let events = eventsCompressed;//JSON.parse(eventsCompressed.data);
-	
-	let nbEventsInMessage = parseInt(events.numberOfEvents);
+function receiveEvents(events) {
+	let nbEventsInMessage = events.numberOfEvents;
 	if (nbEventsReceived == 0)
 		firstEventReceived = new Date();
-	for (let i=0; i < nbEventsInMessage; i++) {
-		let evt = events.events[i];
-		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(evt.start);
+
+	events.events.forEach(function(evt) {
+		let time = new Date(evt.start);
 		let evtObj = {
 			"id": evt.id,
 			"type": evt.type,
@@ -2205,7 +2202,8 @@ function receiveEvents(eventsCompressed) {
 		};
 		// Add the event to the array later used to create the crossfilter
 		rawData.push(evtObj);
-	}
+	});
+
 	nbEventsReceived += nbEventsInMessage;
 	enableCentralOverlay("Receiving all the events... ("+nbEventsReceived+" out of "+datasetInfo["numberOfEvents"]+")");
 	
@@ -2250,9 +2248,10 @@ function receivePatternDistributionPerUser(message) {
 		
 		theseOccs.forEach(function(o) {
 			let idx = 0;
+			let occTimestamp = new Date(o);
 			for (idx = 0; idx < thisUserSessions.length; idx++) {
-				if (thisUserSessions[idx].start <= Number(o) &&
-					thisUserSessions[idx].end >= Number(o)) {
+				if (thisUserSessions[idx].start <= occTimestamp &&
+					thisUserSessions[idx].end >= occTimestamp) {
 					if (thisUserSessions[idx].count.hasOwnProperty(message.patternId)) {
 						thisUserSessions[idx].count[message.patternId] += 1;
 					} else {
@@ -3172,7 +3171,7 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	console.log("Removed");
 	let toAdd = [];
 	newEvents.forEach(function(evt) {
-		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(evt.start);
+		let time = new Date(evt.start);
 		let evtObj = {
 			"id": evt.id,
 			"type": evt.type,
@@ -6430,8 +6429,8 @@ var Timeline = function(elemId, options) {
 						// Only draw the occurrence if it belongs to a selected user
 						// To uncomment when "only show highlighted" will impact the bin view
 						//if (highlightedUsers.length == 0 || highlightedUsers.includes(occ[0])) {
-							let x1 = self.xFocus(new Date(parseInt(occ[1])));
-							let x2 = self.xFocus(new Date(parseInt(occ[occ.length-1]))); // Last timestamp in the occurrence
+							let x1 = self.xFocus(new Date(occ[1]));
+							let x2 = self.xFocus(new Date(occ[occ.length-1])); // Last timestamp in the occurrence
 							let y = self.yPatterns(idsToDraw[i]);
 							self.canvasPatternDistinctContext.beginPath();
 							if (x1 == x2) {
@@ -6465,11 +6464,11 @@ var Timeline = function(elemId, options) {
 							self.canvasPatternContext.beginPath();
 							self.canvasPatternContext.lineWidth = 5;
 							self.canvasPatternContext.lineCap = "round";
-							let x1 = self.xFocus(new Date(parseInt(occ[1])));
+							let x1 = self.xFocus(new Date(occ[1]));
 							let y1 = self.yFocus(patternItems[0]) + self.yFocus.bandwidth()/2;
 							self.canvasPatternContext.moveTo(x1,y1);
 							for (let evtIdx=2; evtIdx < occ.length; evtIdx++) { // for each event inside the occurrence
-								let x2 = self.xFocus(new Date(parseInt(occ[evtIdx])));
+								let x2 = self.xFocus(new Date(occ[evtIdx]));
 								let y2 = self.yFocus(patternItems[evtIdx-1]) + self.yFocus.bandwidth()/2;
 								self.canvasPatternContext.lineTo(x2,y2);
 								x1 = x2;
@@ -7878,26 +7877,10 @@ var Timeline = function(elemId, options) {
 		focusOnTimePeriod(start-5*1000, end+5*1000);
 	}
 	
-	self.updateContextBounds = function(start, end) {
+	self.updateContextBounds = function(startDate, endDate) {
 		console.log("Updating context bounds");
-		
-		// Extract information from the date, for the Agavue date format
-		// 	This format is "Sun Mar 31 01:32:10 CET 2013"
-		var startDate = start.split(" ");
-		var endDate = end.split(" ");
-		var startString = startDate[0]+" "
-			+startDate[1]+" "
-			+startDate[2]+" "
-			+startDate[3]+" "
-			+startDate[5];
-		var endString = endDate[0]+" "
-			+endDate[1]+" "
-			+endDate[2]+" "
-			+endDate[3]+" "
-			+endDate[5];
-		var timeFormat = d3.timeParse('%a %b %d %H:%M:%S %Y'); // See if the timeline's timeParse can be used instead ?
-		var startTime = d3.timeSecond.offset(timeFormat(startString),-1);
-		var endTime = d3.timeSecond.offset(timeFormat(endString),1);
+		let startTime = d3.timeSecond.offset(startDate, -1);
+		let endTime = d3.timeSecond.offset(endDate, 1);
 		self.xFocus = d3.scaleTime()
 			.domain([startTime,endTime])
 			.range([0,self.width]);

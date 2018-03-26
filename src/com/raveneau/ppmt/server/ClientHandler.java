@@ -161,7 +161,7 @@ public class ClientHandler {
     			eventArray = provider.createArrayBuilder();
     			nbEventsInMessage = 0;
     		}
-    		eventArray.add(e.toJsonObject()); //TODO Update the date handling
+    		eventArray.add(e.toJsonObject());
 			//dataMessage.add(Integer.toString(nbEventsInMessage), e.toString());
     		nbEventsInMessage++;
     	}
@@ -178,8 +178,8 @@ public class ClientHandler {
 		System.out.println("requesting infos");
 		
 		// date of first and last events
-		String firstEvent = dataset.getFirstEvent(); //TODO Update the date handling
-		String lastEvent = dataset.getLastEvent(); //TODO Update the date handling
+		String firstEvent = utcDateFormat.format(dataset.getFirstEventDate());
+		String lastEvent = utcDateFormat.format(dataset.getLastEventDate());
 		// list of events
 		List<String> events = dataset.getEventList();
 		// Number of events
@@ -319,8 +319,8 @@ public class ClientHandler {
     			relevantUsers += u+";";
     			String theseOccs = "";
     			for (long[] ts: occs) {
-    				// TODO send the timestamp between the occ's first and second events, might as well be the start
-    				theseOccs += String.valueOf(ts[0]+(ts[1]-ts[0])/2)+";"; //TODO Update the date handling
+    				// TODO currently sends the timestamp between the occ's first and second events, might as well be the start
+    				theseOccs += utcDateFormat.format(ts[0]+(ts[1]-ts[0])/2)+";";
     			}
     			distributionMessage.add(u, theseOccs.substring(0, theseOccs.length()-1));
     		}
@@ -360,7 +360,7 @@ public class ClientHandler {
     		long[] ts = o.getTimestamps();
 
     		for (int idx =0; idx < ts.length; idx++) {
-    			occ += ";"+ts[idx]; //TODO Update the date handling
+    			occ += ";"+utcDateFormat.format(ts[idx]);
     		}
     		
 			dataMessage.add(Integer.toString(patternCount), occ);
@@ -493,7 +493,7 @@ public class ClientHandler {
 		
 		JsonArrayBuilder newEvents = provider.createArrayBuilder();
 		for (Event e : modifs.getNewEvents()) {
-			newEvents.add(e.toJsonObject()); //TODO Update the date handling
+			newEvents.add(e.toJsonObject());
 		}
 		dataMessage.add("newEvents", newEvents.build());
 				
