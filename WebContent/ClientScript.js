@@ -1102,6 +1102,9 @@ function createServer() {
 			return new WebSocketServer(config.websocketAdress,
 				processOpen, processClose, processError, processMessage);
 			break;
+		case "local":
+			return new LocalServer(processOpen, processClose, processError, processMessage);
+			break;
 		default:
 			// TODO raise an error or ask to choose a local dataset ?
 			console.error("!! The requested server type (" + config.serverType +
@@ -1799,15 +1802,16 @@ function processError(message) {
  * Should at least contain the "action" property
  */
 function processMessage(message/*Compressed*/) {
+    var msg = message.data;
 	// Update the last received date display
 	d3.select("#lastReceivedTimeDisplay span")
 		.text(formatDate(new Date()));
 	//console.log("Receive from server => " + message.data + "\n");
 	//var message = LZString.decompressFromUTF16(messageCompressed.data);
-	var msg = JSON.parse(message.data);
-	//console.log("Receive message on " + new Date());
-	//console.log(msg);
-	
+    if (typeof msg === "string") {
+	    msg = JSON.parse(msg);
+    };
+
 	if (msg.action === "add") {
 		addPatternToList(msg);
 	}
