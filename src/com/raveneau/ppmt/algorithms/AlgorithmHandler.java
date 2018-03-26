@@ -1,12 +1,7 @@
 package com.raveneau.ppmt.algorithms;
 
-import javax.websocket.Session;
-
-import com.raveneau.ppmt.datasets.Dataset;
-import com.raveneau.ppmt.datasets.DatasetManager;
 import com.raveneau.ppmt.events.SteeringListener;
 import com.raveneau.ppmt.server.ClientHandler;
-import com.raveneau.ppmt.server.SessionHandler;
 
 public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 

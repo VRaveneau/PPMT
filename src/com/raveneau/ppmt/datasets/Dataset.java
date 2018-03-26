@@ -6,11 +6,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.AbstractCollection;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -19,25 +18,22 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.json.spi.JsonProvider;
 import javax.websocket.Session;
 
-import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.events.Event;
 import com.raveneau.ppmt.patterns.Occurrence;
 import com.raveneau.ppmt.patterns.Pattern;
 import com.raveneau.ppmt.patterns.PatternManager;
-import com.raveneau.ppmt.server.SessionHandler;
-import com.sun.xml.bind.v2.model.util.ArrayInfoUtil;
 
 public class Dataset {
 	/**
@@ -86,6 +82,8 @@ public class Dataset {
 	private DatasetParameters parameters = new DatasetParameters();;
 	
 	private Map<Session,PatternManager> patternManagers = new HashMap<>();
+
+	private DateFormat utcDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 	
 	//private Map<String,List<Map<String,String>>> registeredSequences = null;
 	
@@ -109,6 +107,8 @@ public class Dataset {
 		this.name = name;
 		this.inputPath = inputPath+"/"+name+".csv";
 		this.inputPathParameters = inputPath+"/"+name+".json";
+		
+		utcDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 		
 		loadParameters();
 		
@@ -152,6 +152,8 @@ public class Dataset {
 		this.parameters = new DatasetParameters(ds.getParameters());
 		this.patternManagers = new HashMap<>();
 		this.patternManagers.put(session, new PatternManager(ds.getPatternManager(session)));
+
+		utcDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 	
 	private Date getDateInEvent(String event) {
@@ -548,6 +550,19 @@ public class Dataset {
 		return df.format(eventDate);//eventDate.toString();
 	}
 	
+	/**
+	 * Returns the first event in the trace of a given user
+	 * @param user The user
+	 * @return
+	 */
+	public Date getFirstEventDate(String user) {
+		return userSequences.get(user).first().getStart();
+	}
+	
+	public Date getLastEventDate(String user) {
+		return userSequences.get(user).last().getStart();
+	}
+	
 	public List<String> getUsers() {
 		return new ArrayList<>(userSequences.keySet());
 	}
@@ -631,8 +646,8 @@ public class Dataset {
 			return JsonProvider.provider().createObjectBuilder()
 					.add("name", username)
 					.add("eventNumber", trace.size())
-					.add("firstEventDate", getFirstEvent(username))
-					.add("lastEventDate", getLastEvent(username))
+					.add("firstEventDate", utcDateFormat.format(getFirstEventDate(username)))
+					.add("lastEventDate", utcDateFormat.format(getLastEventDate(username)))
 					.build();
 		}
 		return null;

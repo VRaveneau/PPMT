@@ -7,13 +7,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.json.Json;
-import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
-import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonString;
-import javax.json.JsonValue;
-import javax.json.spi.JsonProvider;
 
 public class Pattern {
 

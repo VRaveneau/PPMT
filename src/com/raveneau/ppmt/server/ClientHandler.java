@@ -1,10 +1,12 @@
 package com.raveneau.ppmt.server;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -33,12 +35,16 @@ public class ClientHandler {
 	private PatternManager patternManager = null;
 	private Dataset dataset = null;
 	private EventListenerList listeners = new EventListenerList();
+
+	private DateFormat utcDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 	
 	public ClientHandler(SessionHandler sessionHandler, Session session) {
 		super();
 		this.sessionHandler = sessionHandler;
 		this.session = session;
 		addSteeringListener(algorithmHandler);
+		
+		utcDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 	
 	public ClientHandler(SessionHandler sessionHandler, Session session, Dataset dataset) {
@@ -47,6 +53,8 @@ public class ClientHandler {
 		this.session = session;
 		this.dataset = dataset;
 		addSteeringListener(algorithmHandler);
+		
+		utcDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 
 	public SessionHandler getSessionHandler() {
@@ -128,26 +136,6 @@ public class ClientHandler {
     	}
     }
 	
-	public void provideYearBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
-	public void provideMonthBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
-	public void provideHalfMonthBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
-	public void provideDayBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
-	public void provideHalfDayBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
 	public void provideData() {
     	System.out.println("Client starts to provide data");
     	JsonProvider provider = JsonProvider.provider();
@@ -190,8 +178,8 @@ public class ClientHandler {
 		System.out.println("requesting infos");
 		
 		// date of first and last events
-		String firstEvent = dataset.getFirstEvent();
-		String lastEvent = dataset.getLastEvent();
+		String firstEvent = utcDateFormat.format(dataset.getFirstEventDate());
+		String lastEvent = utcDateFormat.format(dataset.getLastEventDate());
 		// list of events
 		List<String> events = dataset.getEventList();
 		// Number of events
@@ -331,8 +319,8 @@ public class ClientHandler {
     			relevantUsers += u+";";
     			String theseOccs = "";
     			for (long[] ts: occs) {
-    				// TODO send the timestamp between the occ's first and second events, might as well be the start
-    				theseOccs += String.valueOf(ts[0]+(ts[1]-ts[0])/2)+";";
+    				// TODO currently sends the timestamp between the occ's first and second events, might as well be the start
+    				theseOccs += utcDateFormat.format(ts[0]+(ts[1]-ts[0])/2)+";";
     			}
     			distributionMessage.add(u, theseOccs.substring(0, theseOccs.length()-1));
     		}
@@ -372,7 +360,7 @@ public class ClientHandler {
     		long[] ts = o.getTimestamps();
 
     		for (int idx =0; idx < ts.length; idx++) {
-    			occ += ";"+ts[idx];
+    			occ += ";"+utcDateFormat.format(ts[idx]);
     		}
     		
 			dataMessage.add(Integer.toString(patternCount), occ);
@@ -383,11 +371,12 @@ public class ClientHandler {
 	}
 
 	public void signalStart(long start) {
+		
 		JsonProvider provider = JsonProvider.provider();
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "signal")
 				.add("type", "start")
-				.add("time", start);
+				.add("time", utcDateFormat.format(new Date(start)));
 		sendToSession(session, dataMessage.build());
 	}
 
@@ -396,7 +385,7 @@ public class ClientHandler {
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "signal")
 				.add("type", "end")
-				.add("time", end);
+				.add("time", utcDateFormat.format(new Date(end)));
 		sendToSession(session, dataMessage.build());
 	}
 
