@@ -187,7 +187,7 @@ public class PatternManager {
 	
 	/**
 	 * Send to the client a message indicating that the algorithm is starting
-	 * @param start The time (in ms) at which teh algorithm started
+	 * @param start The time (in ms) at which the algorithm started
 	 */
 	public void signalStart(long start) {
 		this.clientHandler.signalStart(start);

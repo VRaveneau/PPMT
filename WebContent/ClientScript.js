@@ -2161,34 +2161,9 @@ function receiveUserList(message) {
 		let userInfo = message.users[i];
 		let infoToSave = [userInfo.name, userInfo.eventNumber]; // name and nbEvents
 		userList.push(userInfo.name);
-		// Date format : yyyy-MM-dd HH:mm:ss
-		let startDate = userInfo.firstEventDate.split(" ");
-		let part1 = startDate[0].split("-");
-		let part2 = startDate[1].split(":");
-		let d1 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		let endDate = userInfo.lastEventDate.split(" ");
-		part1 = endDate[0].split("-");
-		part2 = endDate[1].split(":");
-		let d2 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let endCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		let endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		// Calculates the duration of the trace
-		let minutes = 1000 * 60;
-		let hours = minutes * 60;
-		let days = hours * 24;
-		let years = days * 365;
+		let d1 = new Date(userInfo.firstEventDate);
+		let d2 = new Date(userInfo.lastEventDate);
+		// Calculate the duration of the trace
 		let endTime = d2.getTime();
 		let startTime = d1.getTime();
 		let timeDiff = endTime-startTime;
@@ -4172,7 +4147,7 @@ function createUserListDisplay() {
 		var hours = minutes * 60;
 		var days = hours * 24;
 		var years = days * 365;
-		var timeDiff = parseInt(thisUser[2]);
+		var timeDiff = thisUser[2];
 		
 		var result = "";
 		var tdText = "";
@@ -4206,28 +4181,10 @@ function createUserListDisplay() {
 			userRow.append("td").text("??");
 		}
 		
-
-		// Date format : yyyy-MM-dd HH:mm:ss
-		let startDate = thisUser[3].split(" ");
-		let part1 = startDate[0].split("-");
-		let part2 = startDate[1].split(":");
-		let d1 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		let endDate = thisUser[4].split(" ");
-		part1 = endDate[0].split("-");
-		part2 = endDate[1].split(":");
-		let d2 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		let d1 = new Date(thisUser[3]);
+		let startDateFormated = d1.getDate()+"/"+(d1.getMonth()+1)+"/"+(d1.getFullYear().toString().substring(2,4));
+		let d2 = new Date(thisUser[4]);
+		let endDateFormated = d2.getDate()+"/"+(d2.getMonth()+1)+"/"+(d2.getFullYear().toString().substring(2,4));
 		
 		userRow.append("td").text(startDateFormated);  // start
 		userRow.append("td").text(endDateFormated); // end
@@ -4465,7 +4422,8 @@ function updateAlgorithmStateDisplay() {
  * @param {json} msg The received message
  */
 function handleAlgorithmStartSignal(msg) {
-	startAlgorithmRuntime(parseInt(msg.time));
+	let dateUTC = new Date(msg.time);
+	startAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.start();
 	addToHistory("Algorithm started");
 }
@@ -4475,7 +4433,8 @@ function handleAlgorithmStartSignal(msg) {
  * @param {json} msg The received message
  */
 function handleAlgorithmEndSignal(msg) {
-	stopAlgorithmRuntime(parseInt(msg.time));
+	let dateUTC = new Date(msg.time);
+	stopAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.stop();
 	updateAlgorithmStateDisplay();
 	addToHistory("Algorithm ended");

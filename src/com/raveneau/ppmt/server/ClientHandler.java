@@ -1,8 +1,12 @@
 package com.raveneau.ppmt.server;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -31,12 +35,16 @@ public class ClientHandler {
 	private PatternManager patternManager = null;
 	private Dataset dataset = null;
 	private EventListenerList listeners = new EventListenerList();
+
+	private DateFormat utcDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 	
 	public ClientHandler(SessionHandler sessionHandler, Session session) {
 		super();
 		this.sessionHandler = sessionHandler;
 		this.session = session;
 		addSteeringListener(algorithmHandler);
+		
+		utcDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 	
 	public ClientHandler(SessionHandler sessionHandler, Session session, Dataset dataset) {
@@ -45,6 +53,8 @@ public class ClientHandler {
 		this.session = session;
 		this.dataset = dataset;
 		addSteeringListener(algorithmHandler);
+		
+		utcDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 
 	public SessionHandler getSessionHandler() {
@@ -257,7 +267,7 @@ public class ClientHandler {
     	// provide the user list
     	JsonArrayBuilder userArrayBuilder = provider.createArrayBuilder();
     	for (String u : dataset.getUsers())
-    		userArrayBuilder.add(dataset.getInfoOnUserToJson(u)); //TODO Update the date handling
+    		userArrayBuilder.add(dataset.getInfoOnUserToJson(u));
     	JsonArray userArray = userArrayBuilder.build();
     	
     	JsonObjectBuilder dataMessageBuilder = null;
@@ -361,11 +371,12 @@ public class ClientHandler {
 	}
 
 	public void signalStart(long start) {
+		
 		JsonProvider provider = JsonProvider.provider();
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "signal")
 				.add("type", "start")
-				.add("time", start); //TODO Update the date handling
+				.add("time", utcDateFormat.format(new Date(start)));
 		sendToSession(session, dataMessage.build());
 	}
 
@@ -374,7 +385,7 @@ public class ClientHandler {
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "signal")
 				.add("type", "end")
-				.add("time", end); //TODO Update the date handling
+				.add("time", utcDateFormat.format(new Date(end)));
 		sendToSession(session, dataMessage.build());
 	}
 
