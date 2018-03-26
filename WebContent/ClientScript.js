@@ -816,7 +816,9 @@ function formatDate(date) {
 			monthsNames[date.getMonth()],
 			date.getDate()+",",
 			date.getFullYear()+",",
-			date.getHours()+":"+date.getMinutes()+":"+date.getSeconds()
+			(date.getHours() < 10 ? "0" : "")+date.getHours()+":"+
+			(date.getMinutes() < 10 ? "0" : "")+date.getMinutes()+":"+
+			(date.getSeconds() < 10 ? "0" : "")+date.getSeconds()
 		];
 		
 		return parts.join(" ");
@@ -1099,6 +1101,9 @@ function createServer() {
 		case "websocket":
 			return new WebSocketServer(config.websocketAdress,
 				processOpen, processClose, processError, processMessage);
+			break;
+		case "local":
+			return new LocalServer(processOpen, processClose, processError, processMessage);
 			break;
 		default:
 			// TODO raise an error or ask to choose a local dataset ?
@@ -1797,15 +1802,16 @@ function processError(message) {
  * Should at least contain the "action" property
  */
 function processMessage(message/*Compressed*/) {
+    var msg = message.data;
 	// Update the last received date display
 	d3.select("#lastReceivedTimeDisplay span")
 		.text(formatDate(new Date()));
 	//console.log("Receive from server => " + message.data + "\n");
 	//var message = LZString.decompressFromUTF16(messageCompressed.data);
-	var msg = JSON.parse(message.data);
-	//console.log("Receive message on " + new Date());
-	//console.log(msg);
-	
+    if (typeof msg === "string") {
+	    msg = JSON.parse(msg);
+    };
+
 	if (msg.action === "add") {
 		addPatternToList(msg);
 	}
@@ -2134,8 +2140,8 @@ function receiveDatasetInfo(message) {
 	datasetInfo["numberOfDifferentEvents"] = message.numberOfDifferentEvents;
 	datasetInfo["numberOfEvents"] = message.nbEvents;
 	datasetInfo["users"] = message.users;
-	datasetInfo["firstEvent"] = message.firstEvent;
-	datasetInfo["lastEvent"] = message.lastEvent;
+	datasetInfo["firstEvent"] = new Date(message.firstEvent);
+	datasetInfo["lastEvent"] = new Date(message.lastEvent);
 	datasetInfo["name"] = message.name;
 	
 	displayDatasetInfo();
@@ -2161,34 +2167,9 @@ function receiveUserList(message) {
 		let userInfo = message.users[i];
 		let infoToSave = [userInfo.name, userInfo.eventNumber]; // name and nbEvents
 		userList.push(userInfo.name);
-		// Date format : yyyy-MM-dd HH:mm:ss
-		let startDate = userInfo.firstEventDate.split(" ");
-		let part1 = startDate[0].split("-");
-		let part2 = startDate[1].split(":");
-		let d1 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let startCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		let endDate = userInfo.lastEventDate.split(" ");
-		part1 = endDate[0].split("-");
-		part2 = endDate[1].split(":");
-		let d2 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let endCustomKey = part1[0]+part1[1]+part1[2]+part2[0]+part2[1]+part2[2];
-		let endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		// Calculates the duration of the trace
-		let minutes = 1000 * 60;
-		let hours = minutes * 60;
-		let days = hours * 24;
-		let years = days * 365;
+		let d1 = new Date(userInfo.firstEventDate);
+		let d2 = new Date(userInfo.lastEventDate);
+		// Calculate the duration of the trace
 		let endTime = d2.getTime();
 		let startTime = d1.getTime();
 		let timeDiff = endTime-startTime;
@@ -2206,20 +2187,15 @@ function receiveUserList(message) {
 
 /**
  * Receives some events and store them in memory
- * @param {JSON} eventsCompressed - The events and information about them
+ * @param {JSON} events - The events and information about them
  */
-function receiveEvents(eventsCompressed) {
-	//var dataCompressed = LZString.decompressFromUTF16(eventsCompressed.data);
-	//var events = JSON.parse(dataCompressed);
-	
-	let events = eventsCompressed;//JSON.parse(eventsCompressed.data);
-	
-	let nbEventsInMessage = parseInt(events.numberOfEvents);
+function receiveEvents(events) {
+	let nbEventsInMessage = events.numberOfEvents;
 	if (nbEventsReceived == 0)
 		firstEventReceived = new Date();
-	for (let i=0; i < nbEventsInMessage; i++) {
-		let evt = events.events[i];
-		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(evt.start);
+
+	events.events.forEach(function(evt) {
+		let time = new Date(evt.start);
 		let evtObj = {
 			"id": evt.id,
 			"type": evt.type,
@@ -2230,7 +2206,8 @@ function receiveEvents(eventsCompressed) {
 		};
 		// Add the event to the array later used to create the crossfilter
 		rawData.push(evtObj);
-	}
+	});
+
 	nbEventsReceived += nbEventsInMessage;
 	enableCentralOverlay("Receiving all the events... ("+nbEventsReceived+" out of "+datasetInfo["numberOfEvents"]+")");
 	
@@ -2275,9 +2252,10 @@ function receivePatternDistributionPerUser(message) {
 		
 		theseOccs.forEach(function(o) {
 			let idx = 0;
+			let occTimestamp = new Date(o);
 			for (idx = 0; idx < thisUserSessions.length; idx++) {
-				if (thisUserSessions[idx].start <= Number(o) &&
-					thisUserSessions[idx].end >= Number(o)) {
+				if (thisUserSessions[idx].start <= occTimestamp &&
+					thisUserSessions[idx].end >= occTimestamp) {
 					if (thisUserSessions[idx].count.hasOwnProperty(message.patternId)) {
 						thisUserSessions[idx].count[message.patternId] += 1;
 					} else {
@@ -3197,7 +3175,7 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	console.log("Removed");
 	let toAdd = [];
 	newEvents.forEach(function(evt) {
-		let time = d3.timeParse('%Y-%m-%d %H:%M:%S')(evt.start);
+		let time = new Date(evt.start);
 		let evtObj = {
 			"id": evt.id,
 			"type": evt.type,
@@ -4172,7 +4150,7 @@ function createUserListDisplay() {
 		var hours = minutes * 60;
 		var days = hours * 24;
 		var years = days * 365;
-		var timeDiff = parseInt(thisUser[2]);
+		var timeDiff = thisUser[2];
 		
 		var result = "";
 		var tdText = "";
@@ -4206,28 +4184,10 @@ function createUserListDisplay() {
 			userRow.append("td").text("??");
 		}
 		
-
-		// Date format : yyyy-MM-dd HH:mm:ss
-		let startDate = thisUser[3].split(" ");
-		let part1 = startDate[0].split("-");
-		let part2 = startDate[1].split(":");
-		let d1 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let startDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
-		let endDate = thisUser[4].split(" ");
-		part1 = endDate[0].split("-");
-		part2 = endDate[1].split(":");
-		let d2 = new Date(parseInt(part1[0]),
-				parseInt(part1[1]),
-				parseInt(part1[2]),
-				parseInt(part2[0]),
-				parseInt(part2[1]),
-				parseInt(part2[2]));
-		let endDateFormated = part1[1]+"/"+part1[2]+"/"+part1[0].substring(2,4);//+" "+part2[0]+":"+part2[1]+":"+part2[2];
+		let d1 = new Date(thisUser[3]);
+		let startDateFormated = d1.getDate()+"/"+(d1.getMonth()+1)+"/"+(d1.getFullYear().toString().substring(2,4));
+		let d2 = new Date(thisUser[4]);
+		let endDateFormated = d2.getDate()+"/"+(d2.getMonth()+1)+"/"+(d2.getFullYear().toString().substring(2,4));
 		
 		userRow.append("td").text(startDateFormated);  // start
 		userRow.append("td").text(endDateFormated); // end
@@ -4465,7 +4425,8 @@ function updateAlgorithmStateDisplay() {
  * @param {json} msg The received message
  */
 function handleAlgorithmStartSignal(msg) {
-	startAlgorithmRuntime(parseInt(msg.time));
+	let dateUTC = new Date(msg.time);
+	startAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.start();
 	addToHistory("Algorithm started");
 }
@@ -4475,7 +4436,8 @@ function handleAlgorithmStartSignal(msg) {
  * @param {json} msg The received message
  */
 function handleAlgorithmEndSignal(msg) {
-	stopAlgorithmRuntime(parseInt(msg.time));
+	let dateUTC = new Date(msg.time);
+	stopAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.stop();
 	updateAlgorithmStateDisplay();
 	addToHistory("Algorithm ended");
@@ -6471,8 +6433,8 @@ var Timeline = function(elemId, options) {
 						// Only draw the occurrence if it belongs to a selected user
 						// To uncomment when "only show highlighted" will impact the bin view
 						//if (highlightedUsers.length == 0 || highlightedUsers.includes(occ[0])) {
-							let x1 = self.xFocus(new Date(parseInt(occ[1])));
-							let x2 = self.xFocus(new Date(parseInt(occ[occ.length-1]))); // Last timestamp in the occurrence
+							let x1 = self.xFocus(new Date(occ[1]));
+							let x2 = self.xFocus(new Date(occ[occ.length-1])); // Last timestamp in the occurrence
 							let y = self.yPatterns(idsToDraw[i]);
 							self.canvasPatternDistinctContext.beginPath();
 							if (x1 == x2) {
@@ -6506,11 +6468,11 @@ var Timeline = function(elemId, options) {
 							self.canvasPatternContext.beginPath();
 							self.canvasPatternContext.lineWidth = 5;
 							self.canvasPatternContext.lineCap = "round";
-							let x1 = self.xFocus(new Date(parseInt(occ[1])));
+							let x1 = self.xFocus(new Date(occ[1]));
 							let y1 = self.yFocus(patternItems[0]) + self.yFocus.bandwidth()/2;
 							self.canvasPatternContext.moveTo(x1,y1);
 							for (let evtIdx=2; evtIdx < occ.length; evtIdx++) { // for each event inside the occurrence
-								let x2 = self.xFocus(new Date(parseInt(occ[evtIdx])));
+								let x2 = self.xFocus(new Date(occ[evtIdx]));
 								let y2 = self.yFocus(patternItems[evtIdx-1]) + self.yFocus.bandwidth()/2;
 								self.canvasPatternContext.lineTo(x2,y2);
 								x1 = x2;
@@ -7919,26 +7881,10 @@ var Timeline = function(elemId, options) {
 		focusOnTimePeriod(start-5*1000, end+5*1000);
 	}
 	
-	self.updateContextBounds = function(start, end) {
+	self.updateContextBounds = function(startDate, endDate) {
 		console.log("Updating context bounds");
-		
-		// Extract information from the date, for the Agavue date format
-		// 	This format is "Sun Mar 31 01:32:10 CET 2013"
-		var startDate = start.split(" ");
-		var endDate = end.split(" ");
-		var startString = startDate[0]+" "
-			+startDate[1]+" "
-			+startDate[2]+" "
-			+startDate[3]+" "
-			+startDate[5];
-		var endString = endDate[0]+" "
-			+endDate[1]+" "
-			+endDate[2]+" "
-			+endDate[3]+" "
-			+endDate[5];
-		var timeFormat = d3.timeParse('%a %b %d %H:%M:%S %Y'); // See if the timeline's timeParse can be used instead ?
-		var startTime = d3.timeSecond.offset(timeFormat(startString),-1);
-		var endTime = d3.timeSecond.offset(timeFormat(endString),1);
+		let startTime = d3.timeSecond.offset(startDate, -1);
+		let endTime = d3.timeSecond.offset(endDate, 1);
 		self.xFocus = d3.scaleTime()
 			.domain([startTime,endTime])
 			.range([0,self.width]);

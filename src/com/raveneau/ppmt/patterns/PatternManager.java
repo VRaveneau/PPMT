@@ -5,13 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.websocket.Session;
-
 import com.raveneau.ppmt.algorithms.SteeringTypes;
-import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.server.ClientHandler;
-import com.raveneau.ppmt.server.SessionHandler;
-
 import java.util.List;
 
 public class PatternManager {
@@ -192,7 +187,7 @@ public class PatternManager {
 	
 	/**
 	 * Send to the client a message indicating that the algorithm is starting
-	 * @param start The time (in ms) at which teh algorithm started
+	 * @param start The time (in ms) at which the algorithm started
 	 */
 	public void signalStart(long start) {
 		this.clientHandler.signalStart(start);

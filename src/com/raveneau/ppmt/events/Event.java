@@ -1,9 +1,11 @@
 package com.raveneau.ppmt.events;
 
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
@@ -17,6 +19,8 @@ public class Event implements Comparable<Event>{
 	private Date start;
 	private Date end;
 	private List<String> properties;
+
+	private DateFormat utcDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 	
 	public Event(int id, String type, String user, Date start, Date end, List<String> properties) {
 		super();
@@ -26,6 +30,7 @@ public class Event implements Comparable<Event>{
 		this.start = start;
 		this.end = end;
 		this.properties = properties;
+		utcDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 	
 	public Event(Event origin) {
@@ -36,6 +41,7 @@ public class Event implements Comparable<Event>{
 		this.start = origin.getStart();
 		this.end = origin.getEnd();
 		this.properties = new ArrayList<>(origin.getProperties());
+		utcDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 
 	public int getId() {
@@ -104,14 +110,13 @@ public class Event implements Comparable<Event>{
 	}
 	
 	public JsonObject toJsonObject() {
-		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		JsonProvider provider = JsonProvider.provider();
 		JsonObjectBuilder builder = provider.createObjectBuilder()
 				.add("type", type)
 				.add("id", id)
-				.add("start", df.format(start))
+				.add("start", utcDateFormat.format(start))
 				.add("user", user)
-				.add("end", (end != null) ? df.format(end) : "");
+				.add("end", (end != null) ? utcDateFormat.format(end) : "");
 		JsonArrayBuilder propBuilder = provider.createArrayBuilder();
 		for(String prop : properties)
 				propBuilder.add(prop);
