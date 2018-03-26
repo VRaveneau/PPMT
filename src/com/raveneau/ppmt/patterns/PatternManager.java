@@ -5,13 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.websocket.Session;
-
 import com.raveneau.ppmt.algorithms.SteeringTypes;
-import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.server.ClientHandler;
-import com.raveneau.ppmt.server.SessionHandler;
-
 import java.util.List;
 
 public class PatternManager {

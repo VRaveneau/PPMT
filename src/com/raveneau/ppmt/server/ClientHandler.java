@@ -1,8 +1,6 @@
 package com.raveneau.ppmt.server;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -128,26 +126,6 @@ public class ClientHandler {
     	}
     }
 	
-	public void provideYearBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
-	public void provideMonthBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
-	public void provideHalfMonthBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
-	public void provideDayBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
-	public void provideHalfDayBins() {
-    	// TODO Implement the behavior from SessionHandler or defer to the client (or do everything in the Dataset)
-    }
-	
 	public void provideData() {
     	System.out.println("Client starts to provide data");
     	JsonProvider provider = JsonProvider.provider();
@@ -173,7 +151,7 @@ public class ClientHandler {
     			eventArray = provider.createArrayBuilder();
     			nbEventsInMessage = 0;
     		}
-    		eventArray.add(e.toJsonObject());
+    		eventArray.add(e.toJsonObject()); //TODO Update the date handling
 			//dataMessage.add(Integer.toString(nbEventsInMessage), e.toString());
     		nbEventsInMessage++;
     	}
@@ -190,8 +168,8 @@ public class ClientHandler {
 		System.out.println("requesting infos");
 		
 		// date of first and last events
-		String firstEvent = dataset.getFirstEvent();
-		String lastEvent = dataset.getLastEvent();
+		String firstEvent = dataset.getFirstEvent(); //TODO Update the date handling
+		String lastEvent = dataset.getLastEvent(); //TODO Update the date handling
 		// list of events
 		List<String> events = dataset.getEventList();
 		// Number of events
@@ -279,7 +257,7 @@ public class ClientHandler {
     	// provide the user list
     	JsonArrayBuilder userArrayBuilder = provider.createArrayBuilder();
     	for (String u : dataset.getUsers())
-    		userArrayBuilder.add(dataset.getInfoOnUserToJson(u));
+    		userArrayBuilder.add(dataset.getInfoOnUserToJson(u)); //TODO Update the date handling
     	JsonArray userArray = userArrayBuilder.build();
     	
     	JsonObjectBuilder dataMessageBuilder = null;
@@ -332,7 +310,7 @@ public class ClientHandler {
     			String theseOccs = "";
     			for (long[] ts: occs) {
     				// TODO send the timestamp between the occ's first and second events, might as well be the start
-    				theseOccs += String.valueOf(ts[0]+(ts[1]-ts[0])/2)+";";
+    				theseOccs += String.valueOf(ts[0]+(ts[1]-ts[0])/2)+";"; //TODO Update the date handling
     			}
     			distributionMessage.add(u, theseOccs.substring(0, theseOccs.length()-1));
     		}
@@ -372,7 +350,7 @@ public class ClientHandler {
     		long[] ts = o.getTimestamps();
 
     		for (int idx =0; idx < ts.length; idx++) {
-    			occ += ";"+ts[idx];
+    			occ += ";"+ts[idx]; //TODO Update the date handling
     		}
     		
 			dataMessage.add(Integer.toString(patternCount), occ);
@@ -387,7 +365,7 @@ public class ClientHandler {
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "signal")
 				.add("type", "start")
-				.add("time", start);
+				.add("time", start); //TODO Update the date handling
 		sendToSession(session, dataMessage.build());
 	}
 
@@ -396,7 +374,7 @@ public class ClientHandler {
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "signal")
 				.add("type", "end")
-				.add("time", end);
+				.add("time", end); //TODO Update the date handling
 		sendToSession(session, dataMessage.build());
 	}
 
@@ -504,7 +482,7 @@ public class ClientHandler {
 		
 		JsonArrayBuilder newEvents = provider.createArrayBuilder();
 		for (Event e : modifs.getNewEvents()) {
-			newEvents.add(e.toJsonObject());
+			newEvents.add(e.toJsonObject()); //TODO Update the date handling
 		}
 		dataMessage.add("newEvents", newEvents.build());
 				

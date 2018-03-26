@@ -8,9 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.AbstractCollection;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -25,19 +23,15 @@ import java.util.TreeSet;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.json.spi.JsonProvider;
 import javax.websocket.Session;
 
-import com.diogoduailibe.lzstring4j.LZString;
 import com.raveneau.ppmt.events.Event;
 import com.raveneau.ppmt.patterns.Occurrence;
 import com.raveneau.ppmt.patterns.Pattern;
 import com.raveneau.ppmt.patterns.PatternManager;
-import com.raveneau.ppmt.server.SessionHandler;
-import com.sun.xml.bind.v2.model.util.ArrayInfoUtil;
 
 public class Dataset {
 	/**
