@@ -91,35 +91,6 @@ public class ServerEndpointPPMT {
 			  			sessionHandler.providePatternOccurrences(Integer.toString(jsonMessage.getInt("patternId")), jsonMessage.getString("dataset"),session);
 						break;
 						
-					case "data":
-						if ("bin".equals(jsonMessage.getString("shape"))) {
-							switch(jsonMessage.getString("scale")) {
-								case "year":
-									sessionHandler.provideYearBins(jsonMessage.getString("dataset"),session);
-									break;
-									
-								case "month":
-									sessionHandler.provideMonthBins(jsonMessage.getString("dataset"),session);
-									break;
-									
-								case "halfMonth":
-									sessionHandler.provideHalfMonthBins(jsonMessage.getString("dataset"),session);
-									break;
-									
-								case "day":
-									sessionHandler.provideDayBins(jsonMessage.getString("dataset"),session);
-									break;
-									
-								case "halfDay":
-									sessionHandler.provideHalfDayBins(jsonMessage.getString("dataset"),session);
-									break;
-									
-								default:
-									System.out.println("User requests an incorrect scale of bin: " + jsonMessage.getString("scale"));
-							}
-			  			}
-						break;
-						
 					default:
 						System.out.println("User requests an incorrect object: " + jsonMessage.getString("object"));
 				}
