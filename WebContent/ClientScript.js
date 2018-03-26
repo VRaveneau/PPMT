@@ -263,14 +263,37 @@ var dataDimensions = {
 		halfDay: null,
 	}
 };
-
-var binProperties = {
-	year: null,
-	month: null,
-	halfMonth: null,
-	day: null,
-	halfDay: null,
+/**
+ * The event bins created from the Crossfilter stored in dataset
+ */
+var eventBins = {
+	year: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
+	month: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
+	halfMonth: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
+	day: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
+	halfDay: {
+		data: null,
+		getStart: null,
+		getEnd: null
+	},
 }
+
 // Information about each user (start - end - duration)
 var userProperties = {};
 
@@ -1552,11 +1575,11 @@ function setupModalWindows() {
  * Creates all the dimensions associated  with the event bins
  */
 function setupEventBinDimensions() {
-	dataDimensions.bin.year = buildEventBins("year");
-	dataDimensions.bin.month = buildEventBins("month");
-	dataDimensions.bin.halfMonth = buildEventBins("halfMonth");
-	dataDimensions.bin.day = buildEventBins("day");
-	dataDimensions.bin.halfDay = buildEventBins("halfDay");
+	eventBins.year.data = buildEventBins("year");
+	eventBins.month.data = buildEventBins("month");
+	eventBins.halfMonth.data = buildEventBins("halfMonth");
+	eventBins.day.data = buildEventBins("day");
+	eventBins.halfDay.data = buildEventBins("halfDay");
 	
 	function reduceAdd(prev, val, nf) {
 		prev.eventCount++;
@@ -1568,6 +1591,8 @@ function setupEventBinDimensions() {
 			prev.events[val.type]++;
 		} else
 			prev.events[val.type] = 1;
+		if (prev.aDateInside == null)
+			prev.aDateInside = val.start;
 		return prev;
 	}
 
@@ -1579,14 +1604,14 @@ function setupEventBinDimensions() {
 	}
 
 	function reduceInitial() {
-		return {eventCount:0, users:{}, events:{}};
+		return {eventCount:0, users:{}, events:{}, aDateInside:null};
 	}
 
-	binProperties.halfDay = dataDimensions.bin.halfDay.group().reduce(reduceAdd, reduceRemove, reduceInitial);
-	binProperties.day = dataDimensions.bin.day.group().reduce(reduceAdd, reduceRemove, reduceInitial);
-	binProperties.halfMonth = dataDimensions.bin.halfMonth.group().reduce(reduceAdd, reduceRemove, reduceInitial);
-	binProperties.month = dataDimensions.bin.month.group().reduce(reduceAdd, reduceRemove, reduceInitial);
-	binProperties.year = dataDimensions.bin.year.group().reduce(reduceAdd, reduceRemove, reduceInitial);
+	eventBins.halfDay.data.reduce(reduceAdd, reduceRemove, reduceInitial);
+	eventBins.day.data.reduce(reduceAdd, reduceRemove, reduceInitial);
+	eventBins.halfMonth.data.reduce(reduceAdd, reduceRemove, reduceInitial);
+	eventBins.month.data.reduce(reduceAdd, reduceRemove, reduceInitial);
+	eventBins.year.data.reduce(reduceAdd, reduceRemove, reduceInitial);
 }
 
 /*************************************/
@@ -2425,37 +2450,20 @@ function buildUserSessions() {
  * TODO Make it handle correctly the time calculations
  */
 function buildEventBins(binScale) {
-	let dim = dataset.dimension( function(d) {
-		let dateStart = new Date(d.start);
-		let dateEnd = new Date(d.start);;
+	let grp = dataDimensions.time.group( function(d) {
+		let dateStart = new Date(d);
 		switch(binScale) {
 			case "year":
 				dateStart.setMonth(0, 1);
 				dateStart.setMinutes(0);
 				dateStart.setSeconds(0);
 				dateStart.setHours(0);
-
-				dateEnd.setFullYear(dateStart.getFullYear()+1, 0, 1);
-				dateEnd.setMinutes(0);
-				dateEnd.setSeconds(0);
-				dateEnd.setHours(0);
-				dateEnd = new Date(dateEnd.getTime()-1000);
 				break;
 			case "month":
 				dateStart.setDate(1);
 				dateStart.setMinutes(0);
 				dateStart.setSeconds(0);
 				dateStart.setHours(0);
-
-				if (dateStart.getMonth() < 11)
-					dateEnd.setMonth(dateStart.getMonth()+1, 1);
-				else {
-					dateEnd.setFullYear(dateStart.getFullYear()+1, 0, 1);
-				}
-				dateEnd.setMinutes(0);
-				dateEnd.setSeconds(0);
-				dateEnd.setHours(0);
-				dateEnd = new Date(dateEnd.getTime()-1000);
 				break;
 			case "halfMonth":
 				dateStart.setMinutes(0);
@@ -2479,54 +2487,256 @@ function buildEventBins(binScale) {
 					dateStart.setDate(1);
 				else
 					dateStart = new Date(monthStart.getTime() + Math.floor(monthDuration/2));
-				
-				// Add half the month minus 1 second
-				dateEnd = new Date(dateStart.getTime() + Math.floor(monthDuration/2) - 1000);
 				break;
 			case "day": // Incorrect handling of daylight saving times
 				dateStart.setMinutes(0);
 				dateStart.setSeconds(0);
 				dateStart.setHours(0);
-
-				// Add 1 day minus 1 second
-				dateEnd = new Date(dateStart.getTime() + 1000*60*60*24 - 1000);
 				break;
 			case "halfDay":
 				dateStart.setMinutes(0);
 				dateStart.setSeconds(0);
 				
-				dateEnd.setMinutes(0);
-				dateEnd.setSeconds(0);
 				if (dateStart.getHours() < 12) {
 					dateStart.setHours(0);
 				} else {
 					dateStart.setHours(12);
 				}
-
-				// Add 12 hours minus 1 second
-				dateEnd = new Date(dateStart.getTime() + 1000*60*60*12 - 1000);
 				break;
 			default:
 		}
-		
-		let key = [dateStart.getFullYear(),
-					dateStart.getMonth()+1,
-					dateStart.getDate()].join("-") + "T" +
-					[dateStart.getHours() > 9 ? dateStart.getHours() : "0"+dateStart.getHours(),
-					dateStart.getMinutes() > 9 ? dateStart.getMinutes() : "0"+dateStart.getMinutes(),
-					dateStart.getSeconds() > 9 ? dateStart.getSeconds() : "0"+dateStart.getSeconds()].join(":") +
-					" - " +
-					[dateEnd.getFullYear(),
-					dateEnd.getMonth()+1,
-					dateEnd.getDate()].join("-") + "T" +
-					[dateEnd.getHours() > 9 ? dateEnd.getHours() : "0"+dateEnd.getHours(),
-					dateEnd.getMinutes() > 9 ? dateEnd.getMinutes() : "0"+dateEnd.getMinutes(),
-					dateEnd.getSeconds() > 9 ? dateEnd.getSeconds() : "0"+dateEnd.getSeconds()].join(":")
 
-		return key;
+		return dateStart.getTime();;
 	});
 
-	return dim;
+	switch(binScale) {
+		case "year":
+			eventBins.year.getStart = function(time) {
+				let date = new Date(time);
+				date.setMonth(0, 1);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.year.getEnd = function(time) {
+				let date = new Date(time);
+				date.setFullYear(date.getFullYear()+1, 0, 1);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+				date = new Date(date.getTime()-1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		case "month":
+			eventBins.month.getStart = function(time) {
+				let date = new Date(time);
+				date.setDate(1);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.month.getEnd = function(time) {
+				let date = new Date(time);
+				if (date.getMonth() < 11)
+					date.setMonth(date.getMonth()+1, 1);
+				else {
+					date.setFullYear(date.getFullYear()+1, 0, 1);
+				}
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+				date = new Date(date.getTime()-1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		case "halfMonth":
+			eventBins.halfMonth.getStart = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				// Get the duration of the month
+				let monthStart = new Date(date.getTime());
+				monthStart.setDate(1);
+				let monthEnd = null;
+				if (monthStart.getMonth() < 11) {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setMonth(monthStart.getMonth()+1);
+				} else {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setFullYear(monthStart.getFullYear()+1, 0, 1);
+				}
+				let monthDuration = monthEnd.getTime() - monthStart.getTime();
+
+				if (date.getTime() < monthStart.getTime() + Math.floor(monthDuration/2))
+					date.setDate(1);
+				else
+					date = new Date(monthStart.getTime() + Math.floor(monthDuration/2));
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.halfMonth.getEnd = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				// Get the duration of the month
+				let monthStart = new Date(date.getTime());
+				monthStart.setDate(1);
+				let monthEnd = null;
+				if (monthStart.getMonth() < 11) {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setMonth(monthStart.getMonth()+1);
+				} else {
+					monthEnd = new Date(monthStart.getTime());
+					monthEnd.setFullYear(monthStart.getFullYear()+1, 0, 1);
+				}
+				let monthDuration = monthEnd.getTime() - monthStart.getTime();
+
+				if (date.getTime() < monthStart.getTime() + Math.floor(monthDuration/2))
+					date.setDate(1);
+				else
+					date = new Date(monthStart.getTime() + Math.floor(monthDuration/2));
+				
+				// Add half the month minus 1 second
+				date = new Date(date.getTime() + Math.floor(monthDuration/2) - 1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		case "day":
+			eventBins.day.getStart = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.day.getEnd = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+				date.setHours(0);
+				// Add 1 day minus 1 second
+				date = new Date(date.getTime() + 1000*60*60*24 - 1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		case "halfDay":
+			eventBins.halfDay.getStart = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+
+				if (date.getHours() < 12) {
+					date.setHours(0);
+				} else {
+					date.setHours(12);
+				}
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			};
+			eventBins.halfDay.getEnd = function(time) {
+				let date = new Date(time);
+				date.setMinutes(0);
+				date.setSeconds(0);
+
+				if (date.getHours() < 12) {
+					date.setHours(0);
+				} else {
+					date.setHours(12);
+				}
+				// Add 12 hours minus 1 second
+				date = new Date(date.getTime() + 1000*60*60*12 - 1000);
+
+				let stringOutput = [
+					date.getFullYear(),
+					date.getMonth()+1,
+					date.getDate()].join("-") + "T" +
+					[date.getHours() > 9 ? date.getHours() : "0"+date.getHours(),
+					date.getMinutes() > 9 ? date.getMinutes() : "0"+date.getMinutes(),
+					date.getSeconds() > 9 ? date.getSeconds() : "0"+date.getSeconds()].join(":");
+				return stringOutput;
+			}
+			break;
+		default:
+	}
+
+	return grp;
 }
 
 /**
@@ -3031,9 +3241,6 @@ function resetDataFilters() {
 	dataDimensions.time.filterAll();
 	dataDimensions.type.filterAll();
 	dataDimensions.user.filterAll();
-	Object.keys(dataDimensions.bin).forEach(function(key) {
-		dataDimensions.bin[key].filterAll();
-	});
 }
 
 /************************************/
@@ -6354,11 +6561,8 @@ var Timeline = function(elemId, options) {
 	self.displayFullHeightBins = false;
 	
 	self.drawBins = function() {
-		let bins = binProperties[self.distributionScale].all();
+		let bins = eventBins[self.distributionScale];
 		console.log("drawing new bins");
-		// Save the current time filter
-		let initialTimeFilter = currentTimeFilter;
-		dataDimensions.time.filterAll();
 
 		var maxHeight = 0.0;
 		
@@ -6366,7 +6570,7 @@ var Timeline = function(elemId, options) {
 		if (self.displayFullHeightBins == true) 
 			maxHeight = 100.0;
 		else {
-			bins.forEach(function(bin) {
+			bins.data.all().forEach(function(bin) {
 				if (bin.value.eventCount > maxHeight)
 					maxHeight = bin.value.eventCount;
 			});
@@ -6379,11 +6583,10 @@ var Timeline = function(elemId, options) {
 		self.colorToData = {};
 		let nextColor = 1;
 		
-		bins.forEach(function(bin) {
+		bins.data.all().forEach(function(bin) {
 			self.canvasContext.beginPath();
-			let keyParts = bin.key.split(" - ");
-			let binStart = keyParts[0];
-			let binEnd = keyParts[1];
+			let binStart = bins.getStart(bin.value.aDateInside);
+			let binEnd = bins.getEnd(bin.value.aDateInside);
 		    let x = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart));
 			let x2 = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd));
 			
@@ -6563,9 +6766,6 @@ var Timeline = function(elemId, options) {
 			    self.hiddenCanvasContext.closePath();
 		    }
 		});
-		
-		// Restore the initial time filter
-		dataDimensions.time.filterRange(initialTimeFilter);
 
 		self.drawContextBins();
 		
@@ -6615,21 +6815,17 @@ var Timeline = function(elemId, options) {
 
 	self.drawContextBins = function() {
 		// Avoid drawing if there is no events or distribution scale
-		if (!self.distributionScale || !binProperties[self.distributionScale]) {
+		if (!self.distributionScale || !eventBins[self.distributionScale].data) {
 			console.log("Not drawing context bins, it would fail anyway");
 			if (self.distributionScale)
 				console.log("Distribution scale: "+self.distributionScale);
 			return;
 		}
-		let bins = binProperties[self.distributionScale].all();
-
-		// Save the current time filter
-		let initialTimeFilter = currentTimeFilter;
-		dataDimensions.time.filterAll();
+		let bins = eventBins[self.distributionScale];
 
 		let maxBin = 0;
 
-		bins.forEach(function(bin) {
+		bins.data.all().forEach(function(bin) {
 			if (bin.value.eventCount > maxBin)
 				maxBin = bin.value.eventCount;
 		});
@@ -6650,7 +6846,7 @@ var Timeline = function(elemId, options) {
 		let dataUnderBrush = [];
 		let dataAfterBrush = [];
 		
-		bins.forEach(function(bin) {
+		bins.data.all().forEach(function(bin) {
 			let thisData = [];
 			
 			let beforeBrushStart = false;
@@ -6659,7 +6855,7 @@ var Timeline = function(elemId, options) {
 			let brushStartTime = self.xFocus.domain()[0];
 			let brushEndTime = self.xFocus.domain()[1];
 
-			let binStartTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bin.key.split(" - ")[0]);
+			let binStartTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getStart(bin.value.aDateInside));
 			let binValue = bin.value.eventCount;
 			thisData.push(self.xContext(binStartTime));
 			thisData.push(self.yContext(binValue));
@@ -6673,7 +6869,7 @@ var Timeline = function(elemId, options) {
 				beforeBrushEnd = true;
 			}
 
-			let binEndTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bin.key.split(" - ")[1]);
+			let binEndTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getEnd(bin.value.aDateInside));
 			thisData = [];
 			
 			thisData.push(self.xContext(binEndTime));
@@ -6728,9 +6924,6 @@ var Timeline = function(elemId, options) {
 		self.canvasOverviewContext.fillStyle = "lightgrey";
 		self.canvasOverviewContext.strokeStyle = "lightgrey";
 		self.canvasOverviewContext.fill();
-		
-		// Restore the initial time filter
-		dataDimensions.time.filterRange(initialTimeFilter);
 	};
 
 	self.drawContextBinsOld = function(bins) {
