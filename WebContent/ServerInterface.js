@@ -187,18 +187,23 @@ class LocalServer extends ServerInterface {
         });
     }
     request_userList(params) {
+        let _this = this;
         let userInfo = _(this._dataset).countBy("actor");
         this.sendAnswer({
             "action": "data",
             "type": "userList",
             "size": userInfo.size(),
-            "users": userInfo.map((count, name) => {return {
-                "name": name.replace(/[^a-zA-Z0-9]/g, "_"),
-                "eventNumber": count,
-                "firstEventDate": new Date().toISOString(),
-                "lastEventDate": new Date().toISOString()
-            }
-                                                   }).value()
+            "users": userInfo.map((count, name) => {
+                var range = d3.extent(_.map(_.filter(_this._dataset, function (i) {
+                    return i.actor == name;
+                }), "_stored"));
+                return {
+                    "name": name.replace(/[^a-zA-Z0-9]/g, "_"),
+                    "eventNumber": count,
+                    "firstEventDate": new Date(range[0]).toISOString(),
+                    "lastEventDate": new Date(range[1]).toISOString()
+                }
+            }).value()
         })
     }
     sendMessage(msg) {
