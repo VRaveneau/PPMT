@@ -39,7 +39,7 @@ function receiveDatasetList(message) {
 			.classed("clickable", true);
 		card.on("click",function() {
 			// Redirect to the tool with the selected dataset
-			location.href = "tool.html?ds="+dsName;
+			location.href = "tool.html?data="+dsName;
 		});
 		card.append("p")
 			.classed("name", true)

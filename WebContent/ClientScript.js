@@ -1086,7 +1086,7 @@ function init() {
 	}
 
 	// If a dataset is given as parameters, open the websocket to ask for it
-	if (pageParameters.ds) {
+	if (pageParameters.data) {
 		server.connect();
 
 		setupTool();
@@ -1781,7 +1781,7 @@ function processOpen(message) {
 	}, 10*60*1000); // every 10 minutes
 
 	// Ask if the target dataset is available
-	requestDatasetValidation(pageParameters.ds);
+	requestDatasetValidation(pageParameters.data);
 }
 
 /**
