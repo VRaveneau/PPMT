@@ -140,8 +140,8 @@ class LocalServer extends ServerInterface {
         return {
             "id": _.uniqueId("o"),
 			"type": event.verb,
-			"start": event._stored.replace("T", " ").substr(0, 19),
-			"end": event._stored.replace("T", " ").substr(0, 19),
+			"start": event._stored,
+			"end": event._stored,
 			"user": event.actor.replace(/[^a-zA-Z0-9]/g, "_"),
 			"properties": [ JSON.stringify(event, null, 4) ]
         }
@@ -195,8 +195,8 @@ class LocalServer extends ServerInterface {
             "users": userInfo.map((count, name) => {return {
                 "name": name.replace(/[^a-zA-Z0-9]/g, "_"),
                 "eventNumber": count,
-                "firstEventDate": new Date().toISOString().replace("T", " ").substr(0, 19),
-                "lastEventDate": new Date().toISOString().replace("T", " ").substr(0, 19)
+                "firstEventDate": new Date().toISOString(),
+                "lastEventDate": new Date().toISOString()
             }
                                                    }).value()
         })
