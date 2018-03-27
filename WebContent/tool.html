@@ -382,11 +382,6 @@
 						</div>
 						<div id="algorithmExtended" class="section hidden">
 							<div id="algorithmExtendedMainPanel">
-								<div class="section">
-									<div class="body">
-										<p class="right-aligned">Total: <span id="algorithmInfoTotalPatternCount">No</span> patterns found over <span id="algorithmInfoTotalTime">0s</span></p>
-									</div>
-								</div>
 								<div id="patternSizeTableArea" class="section">
 									<div class="body">
 										<table id="patternSizeTable">
@@ -401,7 +396,16 @@
 												</tr>
 											</thead>
 											<tbody>
-
+												<tr id="patternSizeTableTotal">
+													<td>TOTAL</td>
+													<td>Not started</td>
+													<td>0</td>
+													<td>0</td>
+													<td>0%</td>
+													<td>0s</td>
+												</tr>
+											</tbody>
+											<tbody id="patternSizeTableContent">
 											</tbody>
 										</table>
 									</div>
@@ -420,6 +424,7 @@
 										<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
 										<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
 										<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
+										<button onclick="toggleAlgorithmParametersChange();" class="clickable">Change parameters</button>
 									</div>
 								</div>
 								<div id="algorithmSpeedArea" class="section">

@@ -4375,7 +4375,7 @@ function updateAlgorithmStateDisplay() {
 			row.classed("rowactive", lvlData.status == "active");
 			row.select(".patternSizeStatus")
 				.classed("levelstarted", false)
-				.classed("leveldone", false)
+				.classed("levelcomplete", false)
 				.classed("levelactive", false)
 				.classed("level"+lvlData.status, true)
 				.text(lvlData.status);
@@ -4388,7 +4388,7 @@ function updateAlgorithmStateDisplay() {
 			row.select(".patternSizeTime")
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
 		} else { // The row doesn't exist yet
-			row = table.select("tbody").append("tr")
+			row = table.select("#patternSizeTableContent").append("tr")
 				.property("id", "patternSizeTableRow"+lvl);
 			row.append("td")
 				.text(lvlData.size);
@@ -4410,11 +4410,31 @@ function updateAlgorithmStateDisplay() {
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
 		}
 	});
-	// Update the totals
-	d3.select("#algorithmInfoTotalPatternCount")
-		.text(algorithmState.getTotalPatternNumber());
-	d3.select("#algorithmInfoTotalTime")
-		.text(formatElapsedTimeToString(algorithmState.getTotalElapsedTime(), true));
+	// Update the total row
+	d3.select("#patternSizeTableTotal").selectAll("td").each(function(d,i) {
+		switch(i) {
+			case 1:// status
+				if (algorithmState.isRunning()) {
+					d3.select(this).text("Running");	
+				} else {
+					d3.select(this).text("Complete").classed("levelcomplete", true);
+				}
+				break;
+			case 2:// patterns found
+				d3.select(this).text(algorithmState.getTotalPatternNumber());
+				break;
+			case 3:// candidates checked
+
+				break;
+			case 4:// progression
+
+				break;
+			case 5:// elapsed time
+				d3.select(this).text(formatElapsedTimeToString(algorithmState.getTotalElapsedTime(), true));
+				break;
+			default:
+		}
+	});
 	// Update the strategy
 	let strategyTxt = "Not running";
 	if (algorithmState.isRunning()) {
@@ -5150,8 +5170,9 @@ function toggleExtendedAlgorithmView() {
 function toggleAlgorithmParametersChange() {
 	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
 	d3.select("#modalBackground").classed("hidden", !isHidden);
+	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
-	d3.select("#modalTitle").text(isHidden ? "" : "Algorithm parameters modification");
+	d3.select("#modalTitle").text(!isHidden ? "" : "Algorithm parameters modification");
 }
 
 /**
@@ -5979,7 +6000,7 @@ function AlgorithmState() {
 			if (this.currentLevel.candidates == this.currentLevel.candidatesChecked &&
 				!this.isUnderSteering() &&
 				this.currentLevel.candidates > 0) {
-				this.currentLevel.status = "done";
+				this.currentLevel.status = "complete";
 			} else {
 				this.currentLevel.status = "started";
 			}

@@ -1276,11 +1276,16 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 #patternSizeTable {
-	
+	border-collapse: collapse;
 }
 
 #patternSizeTable tbody tr {
 	text-align: center;
+}
+
+#patternSizeTableTotal td {
+	border-bottom: 1px solid black;
+	font-weight: bolder;
 }
 
 .patternSizeStatus {
@@ -1289,7 +1294,7 @@ ul.algorithmTabs li :not(.active):hover {
 	font-weight: bold;
 }
 
-.leveldone {
+.levelcomplete {
 	color: green;
 	/*background-color: lightgreen;*/
 }
@@ -1309,6 +1314,10 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 #extendedAlgorithmStrategyArea {
+}
+
+#extendedAlgorithmParametersArea button {
+	width: 100%;
 }
 
 #algorithmSpeedArea {
