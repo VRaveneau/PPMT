@@ -100,16 +100,6 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	font-weight: normal;
 }
 
-#selectedPatternTableBody tr:hover {
-	border-top: 1px solid black;
-	border-bottom: 1px solid black;
-}
-
-#patternTableBody tr:hover {
-	border-top: 1px solid black;
-	border-bottom: 1px solid black;
-}
-
 .section {
 	margin: 5px;
 	background-color: white;
@@ -1158,10 +1148,17 @@ ul.algorithmTabs li :not(.active):hover {
 	flex-direction: row;
 	position: absolute;
 	justify-content: flex-end;
+	pointer-events: none;
+	border: 1px solid black;
+	border-radius: 3px;
 }
 
 .contextActions:not(.hidden) {
 	display: flex;
+}
+
+.contextActions button {
+	pointer-events: all;
 }
 
 /********************************/
@@ -1345,11 +1342,6 @@ ul.algorithmTabs li :not(.active):hover {
 
 #eventTableBody tr:not(.selectedEventTypeRow) {
 	font-weight: normal;
-}
-
-#eventTableBody tr:hover {
-	border-top: 1px solid black;
-	border-bottom: 1px solid black;
 }
 
 /********************************/

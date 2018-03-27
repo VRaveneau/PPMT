@@ -452,6 +452,9 @@ var eventTypeUnderMouse = null;
 // Timeout before hiding the event type contextual actions
 var eventTypeContextActionsHideTimeout = null;
 
+// Whether the context action menus can be hidden or not
+var contextActionCanBeHidden = true;
+
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -1560,6 +1563,10 @@ function setupContextActions() {
 			if (eventTypeUnderMouse != null)
 				requestEventTypeRemoval(eventTypeUnderMouse);
 		});
+	
+	d3.selectAll(".contextActions button")
+		.on("mouseover", preventContextActionFromHiding)
+		.on("mouseout", allowContextActionToHide);
 }
 
 /**
@@ -3225,6 +3232,14 @@ function resetDataFilters() {
 /*			HCI manipulation		*/
 /************************************/
 
+function preventContextActionFromHiding() {
+	contextActionCanBeHidden = false;
+}
+
+function allowContextActionToHide() {
+	contextActionCanBeHidden = true;
+}
+
 /**
  * Moves the pattern context actions to a pattern list row and reveals it
  * @param {number} patternId The id of the pattern
@@ -3237,9 +3252,10 @@ function movePatternContextActionsToRow(patternId) {
 	let boundingRect = rowCell.node().getBoundingClientRect();
 	patternIdUnderMouse = patternId;
 	ctxActions.classed("hidden", false)
-		.style("width", Math.round(boundingRect.width/2)+"px")
-		.style("left", Math.round(boundingRect.left+boundingRect.width/2)+"px")
-		.style("top", `${Math.round(boundingRect.top)}px`);
+		.style("width", boundingRect.width+"px")
+		.style("left", boundingRect.left+"px")
+		.style("top", `${boundingRect.top}px`)
+		.style("height", boundingRect.height+"px");
 }
 
 /**
@@ -3253,8 +3269,10 @@ function prepareToHidePatternContextActions() {
  * Hides the pattern context actions.
  */
 function hidePatternContextActions() {
-	patternIdUnderMouse = -1;
-	d3.select("#patternContextActions").classed("hidden", true);
+	if (contextActionCanBeHidden) {
+		patternIdUnderMouse = -1;
+		d3.select("#patternContextActions").classed("hidden", true);
+	}
 }
 
 /**
@@ -3269,9 +3287,10 @@ function moveEventTypeContextActionsToRow(eventType) {
 	let boundingRect = rowCell.node().getBoundingClientRect();
 	eventTypeUnderMouse = eventType;
 	ctxActions.classed("hidden", false)
-		.style("width", Math.round(boundingRect.width/2)+"px")
-		.style("left", Math.round(boundingRect.left+boundingRect.width/2)+"px")
-		.style("top", `${Math.round(boundingRect.top)}px`);
+		.style("width", boundingRect.width+"px")
+		.style("left", boundingRect.left+"px")
+		.style("top", `${boundingRect.top}px`)
+		.style("height", boundingRect.height+"px");
 }
 
 /**
@@ -3285,8 +3304,10 @@ function prepareToHideEventTypeContextActions() {
  * Hides the event type context actions.
  */
 function hideEventTypeContextActions() {
-	eventTypeUnderMouse = null;
-	d3.select("#eventTypeContextActions").classed("hidden", true);
+	if (contextActionCanBeHidden) {
+		eventTypeUnderMouse = null;
+		d3.select("#eventTypeContextActions").classed("hidden", true);
+	}
 }
 
 /**
