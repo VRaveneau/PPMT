@@ -130,7 +130,7 @@ public class DatasetManager {
 	}
 	
 	private void updateDatasetList(File folder) {
-		System.out.println("searchign for datasets in "+folder.getAbsolutePath()); //$NON-NLS-1$
+		System.out.println("searching for datasets in "+folder.getAbsolutePath()); //$NON-NLS-1$
 		for (File fileEntry : folder.listFiles()) {
 	        if (fileEntry.isDirectory()) {
 	        	updateDatasetList(fileEntry);
