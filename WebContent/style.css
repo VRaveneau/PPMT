@@ -1289,21 +1289,21 @@ ul.algorithmTabs li :not(.active):hover {
 
 .leveldone {
 	color: green;
-	background-color: lightgreen;
+	/*background-color: lightgreen;*/
 }
 
 .levelstarted {
 	color: orange;
-	background-color: lightyellow;
+	/*background-color: lightyellow;*/
 }
 
 .levelactive {
 	color: dodgerblue;
-	background-color: lightblue;
+	/*background-color: lightblue;*/
 }
 
 .rowactive {
-	background-color: lightblue;
+	font-weight: bold;
 }
 
 #extendedAlgorithmStrategyArea {
