@@ -5134,10 +5134,12 @@ function getRelevantDisplayMode() {
 function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
-		d3.select("#modalBackground").classed("hidden", false);
 		d3.select("#algorithmExtended").classed("hidden", false);
+		d3.select("#modalTitle").text("Current algorithm state");
+		d3.select("#modalBackground").classed("hidden", false);
 	} else { // Show the shrinked view
 		d3.select("#modalBackground").classed("hidden", true);
+		d3.select("#modalTitle").text("");
 		d3.select("#algorithmExtended").classed("hidden", true);
 	}
 }
@@ -5149,6 +5151,7 @@ function toggleAlgorithmParametersChange() {
 	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
 	d3.select("#modalBackground").classed("hidden", !isHidden);
 	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
+	d3.select("#modalTitle").text(isHidden ? "" : "Algorithm parameters modification");
 }
 
 /**
@@ -5157,6 +5160,7 @@ function toggleAlgorithmParametersChange() {
 function closeModal() {
 	useExtendedAlgorithmView = false;
 	d3.select("#modalBackground").classed("hidden", true);
+	d3.select("#modalTitle").text("");
 	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", true);
 }
