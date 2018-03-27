@@ -6111,7 +6111,7 @@ var Timeline = function(elemId, options) {
 		self.zoomRectUsers.property("__zoom", t);  // Manually save the transform to clear the saved old transform
 		console.log(this);
 		
-		self.drawContextBinsFromData();
+		self.drawContextBins();
 	};
 	
 	self.zoomedUsers = function() {
@@ -6141,7 +6141,7 @@ var Timeline = function(elemId, options) {
 			.call(self.brush.move, self.xUsers.range().map(t.invertX, t));
 		self.zoomRect.property("__zoom", t);  // Manually save the transform to clear the saved old transform
 		
-		self.drawContextBinsFromData();
+		self.drawContextBins();
 	};
 	
 	self.drawUsersPatterns = function() {
@@ -6770,10 +6770,6 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.binTransformed = false;
-	
-	self.drawContextBinsFromData = function() {
-		self.drawContextBins();
-	}
 
 	self.drawContextBins = function() {
 		// Avoid drawing if there is no events or distribution scale
@@ -6798,94 +6794,62 @@ var Timeline = function(elemId, options) {
 
 		self.yContext.domain([0.0, maxBin+1.0]);
 		
-		let area = d3.area()
-		    .x(function(d) { return d[0]; })
-		    .y0(self.heightContext)
-		    .y1(function(d) { return d[1]; })
-		    .context(self.canvasOverviewContext);
-		
-		let dataBeforeBrush = [];
-		let dataUnderBrush = [];
-		let dataAfterBrush = [];
+		let brushStartTime = self.xFocus.domain()[0];
+		let brushEndTime = self.xFocus.domain()[1];
+
+		let fillStyle = {
+			underBrush: "#04B7FB",
+			outOfBrush: "lightgrey"
+		};
 		
 		bins.data.all().forEach(function(bin) {
-			let thisData = [];
-			
-			let beforeBrushStart = false;
-			let beforeBrushEnd = false;
-
-			let brushStartTime = self.xFocus.domain()[0];
-			let brushEndTime = self.xFocus.domain()[1];
-
+			self.canvasOverviewContext.beginPath();
 			let binStartTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getStart(bin.value.aDateInside));
-			let binValue = bin.value.eventCount;
-			thisData.push(self.xContext(binStartTime));
-			thisData.push(self.yContext(binValue));
-			if (binStartTime < brushStartTime) {
-				dataBeforeBrush.push(thisData);
-				beforeBrushStart = true;
-			} else if (binStartTime > brushEndTime)
-				dataAfterBrush.push(thisData);
-			else {
-				dataUnderBrush.push(thisData);
-				beforeBrushEnd = true;
-			}
-
 			let binEndTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getEnd(bin.value.aDateInside));
-			thisData = [];
+		    let x = self.xContext(binStartTime);
+			let x2 = self.xContext(binEndTime);
+			let y = self.yContext(maxBin-bin.value.eventCount);
 			
-			thisData.push(self.xContext(binEndTime));
-			thisData.push(self.yContext(binValue));
+			binHeight = self.yContext(bin.value.eventCount);
 
-			if (binEndTime < brushStartTime)
-				dataBeforeBrush.push(thisData);
-			else if (binEndTime > brushEndTime) {
-				if (beforeBrushEnd) {
-					let brushEndData = [];
-					brushEndData.push(self.xContext(brushEndTime));
-					brushEndData.push(self.yContext(binValue));
-					dataUnderBrush.push(brushEndData);
-					dataAfterBrush.push(brushEndData);
-				} else if (beforeBrushStart) {
-					let brushStartData = [];
-					brushStartData.push(self.xContext(brushStartTime));
-					brushStartData.push(self.yContext(binValue));
-					let brushEndData = [];
-					brushEndData.push(self.xContext(brushEndTime));
-					brushEndData.push(self.yContext(binValue));
-					dataBeforeBrush.push(brushStartData);
-					dataUnderBrush.push(brushStartData);
-					dataUnderBrush.push(brushEndData);
-					dataAfterBrush.push(brushEndData);
-				}
-				dataAfterBrush.push(thisData);
-			} else {
-				if (beforeBrushStart) {
-					let brushStartData = [];
-					brushStartData.push(self.xContext(brushStartTime));
-					brushStartData.push(self.yContext(binValue));
-					dataBeforeBrush.push(brushStartData);
-					dataUnderBrush.push(brushStartData);
-				}
-				dataUnderBrush.push(thisData);
+			// Draw the full bin outside of the brush
+			if (binEndTime < brushStartTime || binStartTime > brushEndTime) {
+				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
+				self.canvasOverviewContext.fillRect(x, binHeight, x2-x, y);
+			} else 
+			// Draw the full bin under the brush
+			if (binStartTime >= brushStartTime && binEndTime <= brushEndTime) {
+				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
+				self.canvasOverviewContext.fillRect(x, binHeight, x2-x, y);
+			} else
+			// The brush start is over the bin
+			if (binStartTime < brushStartTime && binEndTime < brushEndTime) {
+				let xBrushStart = self.xContext(brushStartTime);
+				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
+				self.canvasOverviewContext.fillRect(x, binHeight, xBrushStart-x, y);
+				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
+				self.canvasOverviewContext.fillRect(xBrushStart, binHeight, x2-xBrushStart, y);
+			} else
+			// The brush end is over the bin
+			if (binStartTime > brushStartTime && binEndTime > brushEndTime) {
+				let xBrushEnd = self.xContext(brushEndTime);
+				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
+				self.canvasOverviewContext.fillRect(x, binHeight, xBrushEnd-x, y);
+				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
+				self.canvasOverviewContext.fillRect(xBrushEnd, binHeight, x2-xBrushEnd, y);
+			} else {// The bin is over the brush
+				let xBrushStart = self.xContext(brushStartTime);
+				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
+				self.canvasOverviewContext.fillRect(x, binHeight, xBrushStart-x, y);
+
+				let xBrushEnd = self.xContext(brushEndTime);
+				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
+				self.canvasOverviewContext.fillRect(xBrushStart, binHeight, xBrushEnd-xBrushStart, y);
+
+				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
+				self.canvasOverviewContext.fillRect(xBrushEnd, binHeight, x2-xBrushEnd, y);
 			}
 		});
-		
-		self.canvasOverviewContext.beginPath();
-		area(dataBeforeBrush);
-		self.canvasOverviewContext.fillStyle = "lightgrey";
-		self.canvasOverviewContext.strokeStyle = "lightgrey";
-		self.canvasOverviewContext.fill();
-		self.canvasOverviewContext.beginPath();
-		area(dataUnderBrush);
-		self.canvasOverviewContext.fillStyle = "#04B7FB";
-		self.canvasOverviewContext.strokeStyle = "#04B7FB";
-		self.canvasOverviewContext.fill();
-		self.canvasOverviewContext.beginPath();
-		area(dataAfterBrush);
-		self.canvasOverviewContext.fillStyle = "lightgrey";
-		self.canvasOverviewContext.strokeStyle = "lightgrey";
-		self.canvasOverviewContext.fill();
 	};
 
 	self.drawContextBinsOld = function(bins) {
@@ -7026,7 +6990,7 @@ var Timeline = function(elemId, options) {
 			.call(self.zoomUsers.transform, d3.zoomIdentity.scale(self.width / (s[1] - s[0]))
 			.translate(-s[0], 0));
 		
-		self.drawContextBinsFromData();
+		self.drawContextBins();
 
 		// draw the custom brush handles
 		//self.brushHandles.attr("display", null).attr("transform", function(d, i) { return "translate(" + [ s[i], - self.marginContext.size / 4] + ")"; });
