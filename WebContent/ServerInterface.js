@@ -140,8 +140,8 @@ class LocalServer extends ServerInterface {
         return {
             "id": _.uniqueId("o"),
 			"type": event.verb,
-			"start": event._stored.replace("T", " ").substr(0, 19),
-			"end": event._stored.replace("T", " ").substr(0, 19),
+			"start": event._stored,
+			"end": event._stored,
 			"user": event.actor.replace(/[^a-zA-Z0-9]/g, "_"),
 			"properties": [ JSON.stringify(event, null, 4) ]
         }
@@ -152,7 +152,7 @@ class LocalServer extends ServerInterface {
             "numberOfSequences": 0,
 	        "numberOfDifferentEvents": _.uniqBy(this._dataset, "verb").length,
 	        "nbEvents": this._dataset.length,
-	        "users": _.uniqBy(this._dataset, "actor"),
+	        "users": _.uniq(_.map(this._dataset, "actor")),
 	        "firstEvent": this._dataset[0]._stored,
 	        "lastEvent": this._dataset[this._dataset.length - 1]._stored,
 	        "name": "dataset",
@@ -187,18 +187,23 @@ class LocalServer extends ServerInterface {
         });
     }
     request_userList(params) {
+        let _this = this;
         let userInfo = _(this._dataset).countBy("actor");
         this.sendAnswer({
             "action": "data",
             "type": "userList",
             "size": userInfo.size(),
-            "users": userInfo.map((count, name) => {return {
-                "name": name.replace(/[^a-zA-Z0-9]/g, "_"),
-                "eventNumber": count,
-                "firstEventDate": new Date().toISOString().replace("T", " ").substr(0, 19),
-                "lastEventDate": new Date().toISOString().replace("T", " ").substr(0, 19)
-            }
-                                                   }).value()
+            "users": userInfo.map((count, name) => {
+                var range = d3.extent(_.map(_.filter(_this._dataset, function (i) {
+                    return i.actor == name;
+                }), "_stored"));
+                return {
+                    "name": name.replace(/[^a-zA-Z0-9]/g, "_"),
+                    "eventNumber": count,
+                    "firstEventDate": new Date(range[0]).toISOString(),
+                    "lastEventDate": new Date(range[1]).toISOString()
+                }
+            }).value()
         })
     }
     sendMessage(msg) {
