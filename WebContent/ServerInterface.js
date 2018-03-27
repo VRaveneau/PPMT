@@ -152,7 +152,7 @@ class LocalServer extends ServerInterface {
             "numberOfSequences": 0,
 	        "numberOfDifferentEvents": _.uniqBy(this._dataset, "verb").length,
 	        "nbEvents": this._dataset.length,
-	        "users": _.uniqBy(this._dataset, "actor"),
+	        "users": _.uniq(_.map(this._dataset, "actor")),
 	        "firstEvent": this._dataset[0]._stored,
 	        "lastEvent": this._dataset[this._dataset.length - 1]._stored,
 	        "name": "dataset",
