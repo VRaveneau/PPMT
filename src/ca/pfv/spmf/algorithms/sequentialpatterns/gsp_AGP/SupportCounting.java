@@ -93,7 +93,7 @@ class SupportCounting {
         	if (parameters.isTerminationRequested())
         		break;
         	
-        	if (checkedCandidates++ % 100 == 0)
+        	if (checkedCandidates++ % 10 == 0)
         		patternManager.sendCandidateCheckNotification(checkedCandidates);
         	
         	List<String> candidateItems = new ArrayList<>();
@@ -105,6 +105,7 @@ class SupportCounting {
         	if (candidatePotentialId != null) {
         		if (patternManager.getPatternExtractionState(candidatePotentialId) == ExtractionState.COMPLETE) {
                     putInIndexationMap(candidate);
+                    result.add(candidate);
         			continue;
         		}
         	}
