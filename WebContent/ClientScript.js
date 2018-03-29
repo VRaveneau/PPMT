@@ -1934,11 +1934,15 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "dataAlteration") {
 		if (msg.type === "eventTypeCreated") {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+			updateDatasetInfo();
+			displayDatasetInfo();
 			// Restart the mining
 			requestAlgorithmReStart();
 		}
 		if (msg.type === "eventTypeRemoved") {
 			updateDatasetForRemovedEventType(msg.removedIds);
+			updateDatasetInfo();
+			displayDatasetInfo();
 			// Restart the mining
 			requestAlgorithmReStart();
 		}
@@ -2387,6 +2391,23 @@ function receiveEventTypes(message) {
 /************************************/
 /*		Data manipulation			*/
 /************************************/
+
+/**
+ * Updates the information about the dataset from the actual data
+ * @param {bool} buildSessions Whether the sessions will be rebuilt or not
+ */
+function updateDatasetInfo(buildSessions = false) {
+	datasetInfo["numberOfSequences"] = dataDimensions.user.group().size();
+	datasetInfo["numberOfDifferentEvents"] = dataDimensions.type.group().size();
+	datasetInfo["numberOfEvents"] = dataset.size();
+	datasetInfo["users"] = _.map(dataDimensions.user.group().all(), (d)=>d.key);
+	datasetInfo["firstEvent"] = new Date(dataDimensions.time.bottom(1)[0].start);
+	datasetInfo["lastEvent"] = new Date(dataDimensions.time.top(1)[0].start);
+	if (buildSessions)
+		buildUserSessions();
+	else
+		datasetInfo.nbSessions = _.reduce(userSessions, (sum, val) => sum+val.length, 0);
+}
 
 /**
  * Builds the user sessions based on the value of sessionInactivityLimit
