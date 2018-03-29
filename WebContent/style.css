@@ -1433,13 +1433,15 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 .zoomInfoSpan {
-	color: lightgrey;
-	font-style: italic;
+
 }
 
 .zoomInfoSpan.currentZoom {
 	color: black;
 	font-style: normal;
+	font-weight: bold;
+	border: 1px solid black;
+	border-radius: 3px;
 }
 
 /********************/
