@@ -105,6 +105,7 @@ class SupportCounting {
         	if (candidatePotentialId != null) {
         		if (patternManager.getPatternExtractionState(candidatePotentialId) == ExtractionState.COMPLETE) {
                     putInIndexationMap(candidate);
+                    result.add(candidate);
         			continue;
         		}
         	}
