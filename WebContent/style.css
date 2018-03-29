@@ -1337,6 +1337,31 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 /********************************/
+/* 	Action confirmation modal 	*/
+/********************************/
+
+#actionConfirmation {
+	padding: 0px;
+	flex-direction: column;
+	justify-content: space-around;
+	width: 50%;
+	height: 20%;
+	align-self: center;
+}
+
+#actionConfirmation:not(.hidden) {
+	display: flex;
+}
+
+#actionConfirmation div {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-around;
+
+	text-align: center;
+}
+
+/********************************/
 /* 		Event types tabs 		*/
 /********************************/
 

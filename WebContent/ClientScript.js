@@ -1566,14 +1566,14 @@ function setupContextActions() {
 	d3.select("#removeEventTypeButton")
 		.on("click", function() {
 			if (eventTypeUnderMouse != null)
-				requestEventTypeRemoval(eventTypeUnderMouse);
+				askConfirmationToRemoveEventType(eventTypeUnderMouse);
 		});
 	
 	// User context actions
 	d3.select("#removeUserButton")
 		.on("click", function() {
 			if (userUnderMouse != null)
-				requestUserRemoval(userUnderMouse);
+				askConfirmationToRemoveUser(userUnderMouse);
 		});
 	
 	d3.selectAll(".contextActions button")
@@ -3310,6 +3310,32 @@ function resetDataFilters() {
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+function askConfirmationToRemoveEventType(eventTypeName) {
+	showConfirmationModal();
+	d3.select("#modalTitle")
+		.text("Confirm event type removal");
+	d3.select("#actionConfirmation div")
+		.text("Confirm the removal of all '"+eventTypeName+"' events ?");
+	d3.select("#confirmationConfirm")
+		.on("click", function() {
+			requestEventTypeRemoval(eventTypeName);
+			closeModal();
+		});
+}
+
+function askConfirmationToRemoveUser(userName) {
+	showConfirmationModal();
+	d3.select("#modalTitle")
+		.text("Confirm user removal");
+	d3.select("#actionConfirmation div")
+		.text("Confirm the removal of every event of user '"+userName+"' ?");
+	d3.select("#confirmationConfirm")
+		.on("click", function() {
+			requestUserRemoval(userName);
+			closeModal();
+		});
+}
 
 function preventContextActionFromHiding() {
 	contextActionCanBeHidden = false;
@@ -5288,6 +5314,7 @@ function toggleAlgorithmParametersChange() {
 	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
 	d3.select("#modalBackground").classed("hidden", !isHidden);
 	d3.select("#algorithmExtended").classed("hidden", true);
+	d3.select("#actionConfirmation").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
 	d3.select("#modalTitle").text(!isHidden ? "" : "Algorithm parameters modification");
 }
@@ -5301,6 +5328,15 @@ function closeModal() {
 	d3.select("#modalTitle").text("");
 	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", true);
+	d3.select("#actionConfirmation").classed("hidden", true);
+}
+
+function showConfirmationModal() {
+	d3.select("#modalBackground").classed("hidden", false);
+	d3.select("#modalTitle").text("Action confirmation");
+	d3.select("#algorithmExtended").classed("hidden", true);
+	d3.select("#algorithmParametersChange").classed("hidden", true);
+	d3.select("#actionConfirmation").classed("hidden", false);
 }
 
 /************************************/
