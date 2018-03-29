@@ -1938,9 +1938,12 @@ function processMessage(message/*Compressed*/) {
 		if (msg.type === "eventTypeRemoved") {
 			updateDatasetForRemovedEventType(msg.removedIds, msg.removedEvent);
 		}
+		if (msg.type === "userRemoved") {
+			updateDatasetForRemovedUser(msg.removedIds, msg.removedUser);
+		}
 		updateDatasetInfo();
 		displayDatasetInfo();
-		//createUserListDisplay();
+		createUserListDisplay();
 		//createEventTypesListDisplay();
 		// Restart the mining
 		requestAlgorithmReStart();
@@ -3260,6 +3263,7 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 /**
  * Updates the data after the removal of an event type
  * @param {number[]} removedIds Ids of events to be removed
+ * @param {string} removedEvent The name of the removed event type
  */
 function updateDatasetForRemovedEventType(removedIds, removedEvent) {
 	resetDataFilters();
@@ -3272,6 +3276,26 @@ function updateDatasetForRemovedEventType(removedIds, removedEvent) {
 	resetPatterns();
 	console.log("Reset patterns done");
 	addToHistory("Event type "+removedEvent+" removed");
+}
+
+/**
+ * Updates the data after the removal of a user
+ * @param {number[]} removedIds Ids of events to be removed
+ * @param {string} removedUser The name of the removed user
+ */
+function updateDatasetForRemovedUser(removedIds, removedUser) {
+	resetDataFilters();
+	dataset.remove(function(d,i) {
+		return removedIds.includes(d.id);
+	});
+	console.log("Removed");
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+	let userInfoIndex = userInformations.findIndex((d)=>d[0]==removedUser);
+	userInformations.splice(userInfoIndex, 1);
+	resetPatterns();
+	console.log("Reset patterns done");
+	addToHistory("User "+removedUser+" removed");
 }
 
 /**

@@ -108,6 +108,10 @@ public class DatasetParameters {
 		nbEventTypes--;
 	}
 	
+	public void removeUser(String userName) {
+		nbUsers--;
+	}
+	
 	public JsonObject toJsonObject() {
 		JsonProvider provider = JsonProvider.provider();
 		

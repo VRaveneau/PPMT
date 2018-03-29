@@ -179,6 +179,10 @@ public class SessionHandler {
 	public void removeEventType(String eventName, Session session) {
 		clientHandlers.get(session).removeEventType(eventName);
 	}
+	
+	public void removeUser(String userName, Session session) {
+		clientHandlers.get(session).removeUser(userName);
+	}
 
 	/**
 	 * Create a user-specific dataset if the user is altering its dataset for the first time

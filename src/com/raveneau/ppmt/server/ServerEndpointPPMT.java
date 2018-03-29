@@ -114,6 +114,9 @@ public class ServerEndpointPPMT {
 					case "removeEventType" :
 						sessionHandler.removeEventType(jsonMessage.getString("eventName"), session);
 						break;
+					case "removeUser" :
+						sessionHandler.removeUser(jsonMessage.getString("userName"), session);
+						break;
 					default:
 						System.out.println("Unknwon dataset alteration : " + jsonMessage.getString("alteration"));
 				}

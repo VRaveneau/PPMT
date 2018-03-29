@@ -533,4 +533,33 @@ public class ClientHandler {
 		dataset.removePatternManagerFromSession(session);
 		patternManager = null;
 	}
+	
+	public void removeUser(String userName) {
+		TraceModification modifs = dataset.removeUser(userName, session);
+		
+		// Stop the algorithm
+		algorithmHandler.stopMining();
+		
+		// Send the new event types info
+		provideEventTypes();
+		
+		// Create the message to communicate the changes to the client
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "dataAlteration")
+				.add("type", "userRemoved")
+				.add("removedUser", userName);
+		
+		JsonArrayBuilder removedIds = provider.createArrayBuilder();
+		for (Integer id : modifs.getRemovedIds())
+			removedIds.add(id.intValue());
+		dataMessage.add("removedIds", removedIds.build());
+				
+		// Send this message
+		sendToSession(session, dataMessage.build());
+		
+		// Remove the now old pattern manager
+		dataset.removePatternManagerFromSession(session);
+		patternManager = null;
+	}
 }
