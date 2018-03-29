@@ -1934,18 +1934,16 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "dataAlteration") {
 		if (msg.type === "eventTypeCreated") {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
-			updateDatasetInfo();
-			displayDatasetInfo();
-			// Restart the mining
-			requestAlgorithmReStart();
 		}
 		if (msg.type === "eventTypeRemoved") {
 			updateDatasetForRemovedEventType(msg.removedIds);
-			updateDatasetInfo();
-			displayDatasetInfo();
-			// Restart the mining
-			requestAlgorithmReStart();
 		}
+		updateDatasetInfo();
+		displayDatasetInfo();
+		//createUserListDisplay();
+		//createEventTypesListDisplay();
+		// Restart the mining
+		requestAlgorithmReStart();
 	}
 }
 

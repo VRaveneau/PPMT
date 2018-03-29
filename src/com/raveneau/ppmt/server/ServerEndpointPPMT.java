@@ -78,7 +78,7 @@ public class ServerEndpointPPMT {
 						
 					case "eventTypes":
 						System.out.println("user requests event types on the "+jsonMessage.getString("dataset")+" dataset");
-			  			sessionHandler.provideEventTypesInfo(jsonMessage.getString("dataset"),session);
+			  			sessionHandler.provideEventTypes(jsonMessage.getString("dataset"),session);
 						break;
 						
 					case "userList":

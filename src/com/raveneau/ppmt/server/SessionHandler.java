@@ -73,8 +73,8 @@ public class SessionHandler {
 	}
 
     // TODO see if the datasetName is still needed
-	public void provideEventTypesInfo(String datasetName, Session session) {
-		clientHandlers.get(session).provideEventTypesInfo();
+	public void provideEventTypes(String datasetName, Session session) {
+		clientHandlers.get(session).provideEventTypes();
 	}
 
 	public void requestSteeringOnPattern(int patternId, Session session) {

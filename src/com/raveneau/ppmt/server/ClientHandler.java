@@ -207,7 +207,7 @@ public class ClientHandler {
 		sendToSession(session, dataMessage.build());
 	}
 
-	public void provideEventTypesInfo() {
+	public void provideEventTypes() {
 		JsonObjectBuilder dataMessage = null;
 		JsonProvider provider = JsonProvider.provider();
 		
@@ -478,7 +478,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypesInfo();
+		provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
@@ -512,7 +512,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypesInfo();
+		provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
