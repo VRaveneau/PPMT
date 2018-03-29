@@ -1927,6 +1927,8 @@ function processMessage(message/*Compressed*/) {
 			handleSteeringStartSignal(msg.steeringType, msg.value);
 		if (msg.type === "steeringStop")
 			handleSteeringStopSignal();
+		if (msg.type == "candidateCheck")
+			handleCandidateCheckSignal(msg.number);
 	}
 	if (msg.action === "datasetList") {
 		receiveDatasetList(msg);
@@ -3224,7 +3226,8 @@ function resetPatterns() {
 	buildUserSessions();
 	refreshUserPatterns();
 	// Reset the algorithm state extended view
-	d3.select("#patternSizeTable tbody").html("");
+	d3.select("#patternSizeTableContent").html("");
+	algorithmState = new AlgorithmState();
 }
 
 /**
@@ -4527,7 +4530,7 @@ function updateAlgorithmStateDisplay() {
 			row.select(".patternSizeCandidates")
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.select(".patternSizeProgression")
-				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
+				.text(isNaN(lvlProgression) ? "---" : parseFloat(lvlProgression).toFixed(2)+"%");
 			row.select(".patternSizeTime")
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
 		} else { // The row doesn't exist yet
@@ -4547,7 +4550,7 @@ function updateAlgorithmStateDisplay() {
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.append("td")
 				.classed("patternSizeProgression", true)
-				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
+				.text(isNaN(lvlProgression) ? "---" : parseFloat(lvlProgression).toFixed(2)+"%");
 			row.append("td")
 				.classed("patternSizeTime", true)
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
@@ -4567,7 +4570,7 @@ function updateAlgorithmStateDisplay() {
 				d3.select(this).text(algorithmState.getTotalPatternNumber());
 				break;
 			case 3:// candidates checked
-
+				d3.select(this).text(algorithmState.getTotalCandidatesChecked());
 				break;
 			case 4:// progression
 
@@ -4785,6 +4788,14 @@ function handleSteeringStartSignal(type, value) {
 function handleSteeringStopSignal() {
 	d3.select("#focus").text("");
 	algorithmState.stopSteering();
+}
+
+/**
+ * Updates the number of checked candidates for the current level
+ * @param {number} numberOfCandidates The number of checked candidates
+ */
+function handleCandidateCheckSignal(numberOfCandidates) {
+	algorithmState.updateCheckedCandidates(numberOfCandidates);
 }
 
 /**
@@ -6121,6 +6132,7 @@ function AlgorithmState() {
 	this.steeringValue = null;
 	this.patternSizeInfo = {};
 	this.currentLevel = null;
+	this.totalCandidatesChecked = 0;
 
 	this.start = function() {
 		this.running = true;
@@ -6177,6 +6189,10 @@ function AlgorithmState() {
 		return this.steeringValue;
 	}
 
+	this.getTotalCandidatesChecked = function() {
+		return this.totalCandidatesChecked;
+	}
+
 	this.getProgression = function(patternSize) {
 		let res = null;
 		if (patternSize) {
@@ -6226,12 +6242,21 @@ function AlgorithmState() {
 	this.addCheckedCandidates = function(nb) {
 		if (this.currentLevel != null) {
 			this.currentLevel.candidatesChecked += nb;
+			this.totalCandidatesChecked += nb;
+		}
+	}
+
+	this.updateCheckedCandidates = function(nb) {
+		if (this.currentLevel != null) {
+			let diff = nb - this.currentLevel.candidatesChecked;
+			this.currentLevel.candidatesChecked += diff;
+			this.totalCandidatesChecked += diff;
 		}
 	}
 
 	this.setLevelComplete = function(level) {
 		if (this.patternSizeInfo[level]) {
-			this.patternSizeInfo[level].candidatesChecked = this.patternSizeInfo[level].candidates;
+			this.updateCheckedCandidates(this.patternSizeInfo[level].candidates);
 		}
 		if (this.currentLevel && this.currentLevel.size == level)
 			this.stopLevel();

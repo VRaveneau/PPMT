@@ -449,6 +449,15 @@ public class ClientHandler {
 				.add("type", "steeringStop");
 		sendToSession(session, dataMessage.build());
 	}
+
+	public void signalCandidateCheck(int numberOfCandidates) {
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "signal")
+				.add("type", "candidateCheck")
+				.add("number", numberOfCandidates);
+		sendToSession(session, dataMessage.build());
+	}
 	
 	public void profileDatasetSize() {
 		System.out.println("Profiling ds"); 

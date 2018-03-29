@@ -256,4 +256,8 @@ public class PatternManager {
 	public void sendSteeringEndNotificationToClient() {
 		this.clientHandler.signalSteeringStop();
 	}
+	
+	public void sendCandidateCheckNotification(int numberOfCandidates) {
+		this.clientHandler.signalCandidateCheck(numberOfCandidates);
+	}
 }
