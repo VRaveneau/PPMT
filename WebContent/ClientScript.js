@@ -452,6 +452,11 @@ var eventTypeUnderMouse = null;
 // Timeout before hiding the event type contextual actions
 var eventTypeContextActionsHideTimeout = null;
 
+// The name of the user corresponding to the user list's row under the mouse
+var userUnderMouse = null;
+// Timeout before hiding the user contextual actions
+var userContextActionsHideTimeout = null;
+
 // Whether the context action menus can be hidden or not
 var contextActionCanBeHidden = true;
 
@@ -1564,6 +1569,13 @@ function setupContextActions() {
 				requestEventTypeRemoval(eventTypeUnderMouse);
 		});
 	
+	// User context actions
+	d3.select("#removeUserButton")
+		.on("click", function() {
+			if (userUnderMouse != null)
+				requestUserRemoval(userUnderMouse);
+		});
+	
 	d3.selectAll(".contextActions button")
 		.on("mouseover", preventContextActionFromHiding)
 		.on("mouseout", allowContextActionToHide);
@@ -2110,6 +2122,20 @@ function requestEventTypeRemoval(eventName) {
 			action: "alterDataset",
 			alteration: "removeEventType",
 			eventName: eventName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests an alteration of the dataset by removing a user
+ * @param {string} userName - The name of the user
+ */
+function requestUserRemoval(userName) {
+	console.log('requesting the removal of user '+userName);
+	let action = {
+			action: "alterDataset",
+			alteration: "removeUser",
+			userName: userName
 	};
 	sendToServer(action);
 }
@@ -3311,6 +3337,41 @@ function hideEventTypeContextActions() {
 }
 
 /**
+ * Moves the user context actions to a user list row and reveals it
+ * @param {string} user The id of the user
+ */
+function moveUserContextActionsToRow(user) {
+	clearTimeout(userContextActionsHideTimeout);
+
+	let ctxActions = d3.select("#userContextActions");
+	let rowCell = d3.select("#u"+user+" td");
+	let boundingRect = rowCell.node().getBoundingClientRect();
+	userUnderMouse = user;
+	ctxActions.classed("hidden", false)
+		.style("width", boundingRect.width+"px")
+		.style("left", boundingRect.left+"px")
+		.style("top", `${boundingRect.top}px`)
+		.style("height", boundingRect.height+"px");
+}
+
+/**
+ * Starts the countdown before actually hiding the user context actions.
+ */
+function prepareToHideUserContextActions() {
+	userContextActionsHideTimeout = setTimeout(hideUserContextActions, 500);
+}
+
+/**
+ * Hides the user context actions.
+ */
+function hideUserContextActions() {
+	if (contextActionCanBeHidden) {
+		userUnderMouse = null;
+		d3.select("#userContextActions").classed("hidden", true);
+	}
+}
+
+/**
  * Updates the display of the number of pattern discovered, selected and
  * filtered
  */
@@ -4230,6 +4291,9 @@ function createUserListDisplay() {
 				timeline.displayData();
 				//d3.event.stopPropagation();
 			}
+		})
+		.on("mouseover", function() {
+			moveUserContextActionsToRow(thisUserName);
 		});
 	}
 }

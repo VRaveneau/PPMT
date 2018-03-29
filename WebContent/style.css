@@ -1404,11 +1404,6 @@ ul.algorithmTabs li :not(.active):hover {
 	font-weight: normal;
 }
 
-#userTableBody tr:hover {
-	border-top: 1px solid black;
-	border-bottom: 1px solid black;
-}
-
 .area {
   fill: steelblue;
   clip-path: url(#clip);
