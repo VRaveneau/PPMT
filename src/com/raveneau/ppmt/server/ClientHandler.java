@@ -518,7 +518,8 @@ public class ClientHandler {
 		JsonProvider provider = JsonProvider.provider();
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "dataAlteration")
-				.add("type", "eventTypeRemoved");
+				.add("type", "eventTypeRemoved")
+				.add("removedEvent", eventName);
 		
 		JsonArrayBuilder removedIds = provider.createArrayBuilder();
 		for (Integer id : modifs.getRemovedIds())

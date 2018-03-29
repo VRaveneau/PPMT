@@ -1936,7 +1936,7 @@ function processMessage(message/*Compressed*/) {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
 		}
 		if (msg.type === "eventTypeRemoved") {
-			updateDatasetForRemovedEventType(msg.removedIds);
+			updateDatasetForRemovedEventType(msg.removedIds, msg.removedEvent);
 		}
 		updateDatasetInfo();
 		displayDatasetInfo();
@@ -3261,7 +3261,7 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
  * Updates the data after the removal of an event type
  * @param {number[]} removedIds Ids of events to be removed
  */
-function updateDatasetForRemovedEventType(removedIds) {
+function updateDatasetForRemovedEventType(removedIds, removedEvent) {
 	resetDataFilters();
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
@@ -3271,7 +3271,7 @@ function updateDatasetForRemovedEventType(removedIds) {
 	dataDimensions.time.filterRange(currentTimeFilter);
 	resetPatterns();
 	console.log("Reset patterns done");
-	addToHistory("Event type removed");
+	addToHistory("Event type "+removedEvent+" removed");
 }
 
 /**
