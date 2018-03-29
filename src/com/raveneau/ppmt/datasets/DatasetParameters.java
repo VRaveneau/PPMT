@@ -29,7 +29,7 @@ public class DatasetParameters {
 		nbEventTypes = dsp.nbEventTypes;
 		duration = dsp.duration;
 		eventDescriptions = new HashMap<>(dsp.eventDescriptions);
-		eventCategories = new HashMap<>(dsp.eventCategories);
+		eventCategories = new HashMap<>(dsp.getEventCategories());
 		eventByCategories = new HashMap<>(dsp.eventByCategories);
 	}
 

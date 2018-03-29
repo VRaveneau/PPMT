@@ -2328,6 +2328,16 @@ function receivePatternOccurrences(message) {
  */
 function receiveEventTypes(message) {
 	let nbEvents = message.size;
+	
+	// Reset existing information about the event types
+	eventTypeInformations = {};
+	eventTypes = [];
+	colorList = [];
+	itemShapes = [];
+	Object.keys(eventTypesByCategory).forEach(function (category) {
+		eventTypesByCategory[category] = [];
+	});
+	
 	// Hide the message saying that there is no event
 	if (nbEvents > 0)
 		d3.select("#noEvent").classed("hidden", true);
