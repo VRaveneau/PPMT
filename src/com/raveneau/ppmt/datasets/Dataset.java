@@ -1030,4 +1030,34 @@ public class Dataset {
 		
 		return modifs;
 	}
+	
+	public TraceModification removeUser(String userName, Session session) {
+		System.out.println("Usere "+userName+" removal started");
+		List<Integer> eventIdToDelete = new ArrayList<>();
+		List<Event> eventsToDelete = new ArrayList<>();
+		TraceModification modifs = new TraceModification();
+		
+		for (Event evt : timeSortedEvents) {
+			if (evt.getUser().equals(userName)) {
+				eventIdToDelete.add(evt.getId());
+				eventsToDelete.add(evt);
+			}
+		}
+
+		System.out.println("Removing events");
+		
+		System.out.println("Nb evt to delete: "+eventsToDelete.size());
+		System.out.println("Size before : "+timeSortedEvents.size());
+		
+		removeEvents(eventsToDelete);
+		modifs.setRemovedIds(eventIdToDelete);
+		
+		System.out.println("Size after : "+timeSortedEvents.size());
+		
+		parameters.removeUser(userName);
+		
+		System.out.println("User removal done");
+		
+		return modifs;
+	}
 }

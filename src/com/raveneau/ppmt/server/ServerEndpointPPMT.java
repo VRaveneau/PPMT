@@ -78,7 +78,7 @@ public class ServerEndpointPPMT {
 						
 					case "eventTypes":
 						System.out.println("user requests event types on the "+jsonMessage.getString("dataset")+" dataset");
-			  			sessionHandler.provideEventTypesInfo(jsonMessage.getString("dataset"),session);
+			  			sessionHandler.provideEventTypes(jsonMessage.getString("dataset"),session);
 						break;
 						
 					case "userList":
@@ -113,6 +113,9 @@ public class ServerEndpointPPMT {
 						break;
 					case "removeEventType" :
 						sessionHandler.removeEventType(jsonMessage.getString("eventName"), session);
+						break;
+					case "removeUser" :
+						sessionHandler.removeUser(jsonMessage.getString("userName"), session);
 						break;
 					default:
 						System.out.println("Unknwon dataset alteration : " + jsonMessage.getString("alteration"));

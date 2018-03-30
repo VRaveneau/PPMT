@@ -86,10 +86,16 @@ class SupportCounting {
         indexationMap.clear();
         Set<Pattern> result = new LinkedHashSet<Pattern>();
         
+        int checkedCandidates = 0;
+        
         //For each candidate
         for (Pattern candidate : candidateSet) {
         	if (parameters.isTerminationRequested())
         		break;
+        	
+        	if (checkedCandidates++ % 10 == 0)
+        		patternManager.sendCandidateCheckNotification(checkedCandidates);
+        	
         	List<String> candidateItems = new ArrayList<>();
         	for (ItemAbstractionPair abstractionPair : candidate.getElements()) {
         		candidateItems.add(abstractionPair.getItem().getId().toString());
@@ -99,6 +105,7 @@ class SupportCounting {
         	if (candidatePotentialId != null) {
         		if (patternManager.getPatternExtractionState(candidatePotentialId) == ExtractionState.COMPLETE) {
                     putInIndexationMap(candidate);
+                    result.add(candidate);
         			continue;
         		}
         	}

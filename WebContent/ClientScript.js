@@ -452,6 +452,11 @@ var eventTypeUnderMouse = null;
 // Timeout before hiding the event type contextual actions
 var eventTypeContextActionsHideTimeout = null;
 
+// The name of the user corresponding to the user list's row under the mouse
+var userUnderMouse = null;
+// Timeout before hiding the user contextual actions
+var userContextActionsHideTimeout = null;
+
 // Whether the context action menus can be hidden or not
 var contextActionCanBeHidden = true;
 
@@ -1561,7 +1566,14 @@ function setupContextActions() {
 	d3.select("#removeEventTypeButton")
 		.on("click", function() {
 			if (eventTypeUnderMouse != null)
-				requestEventTypeRemoval(eventTypeUnderMouse);
+				askConfirmationToRemoveEventType(eventTypeUnderMouse);
+		});
+	
+	// User context actions
+	d3.select("#removeUserButton")
+		.on("click", function() {
+			if (userUnderMouse != null)
+				askConfirmationToRemoveUser(userUnderMouse);
 		});
 	
 	d3.selectAll(".contextActions button")
@@ -1915,6 +1927,8 @@ function processMessage(message/*Compressed*/) {
 			handleSteeringStartSignal(msg.steeringType, msg.value);
 		if (msg.type === "steeringStop")
 			handleSteeringStopSignal();
+		if (msg.type == "candidateCheck")
+			handleCandidateCheckSignal(msg.number);
 	}
 	if (msg.action === "datasetList") {
 		receiveDatasetList(msg);
@@ -1922,14 +1936,19 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "dataAlteration") {
 		if (msg.type === "eventTypeCreated") {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
-			// Restart the mining
-			requestAlgorithmReStart();
 		}
 		if (msg.type === "eventTypeRemoved") {
-			updateDatasetForRemovedEventType(msg.removedIds);
-			// Restart the mining
-			requestAlgorithmReStart();
+			updateDatasetForRemovedEventType(msg.removedIds, msg.removedEvent);
 		}
+		if (msg.type === "userRemoved") {
+			updateDatasetForRemovedUser(msg.removedIds, msg.removedUser);
+		}
+		updateDatasetInfo();
+		displayDatasetInfo();
+		createUserListDisplay();
+		//createEventTypesListDisplay();
+		// Restart the mining
+		requestAlgorithmReStart();
 	}
 }
 
@@ -2110,6 +2129,20 @@ function requestEventTypeRemoval(eventName) {
 			action: "alterDataset",
 			alteration: "removeEventType",
 			eventName: eventName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests an alteration of the dataset by removing a user
+ * @param {string} userName - The name of the user
+ */
+function requestUserRemoval(userName) {
+	console.log('requesting the removal of user '+userName);
+	let action = {
+			action: "alterDataset",
+			alteration: "removeUser",
+			userName: userName
 	};
 	sendToServer(action);
 }
@@ -2300,6 +2333,16 @@ function receivePatternOccurrences(message) {
  */
 function receiveEventTypes(message) {
 	let nbEvents = message.size;
+	
+	// Reset existing information about the event types
+	eventTypeInformations = {};
+	eventTypes = [];
+	colorList = [];
+	itemShapes = [];
+	Object.keys(eventTypesByCategory).forEach(function (category) {
+		eventTypesByCategory[category] = [];
+	});
+	
 	// Hide the message saying that there is no event
 	if (nbEvents > 0)
 		d3.select("#noEvent").classed("hidden", true);
@@ -2361,6 +2404,23 @@ function receiveEventTypes(message) {
 /************************************/
 /*		Data manipulation			*/
 /************************************/
+
+/**
+ * Updates the information about the dataset from the actual data
+ * @param {bool} buildSessions Whether the sessions will be rebuilt or not
+ */
+function updateDatasetInfo(buildSessions = false) {
+	datasetInfo["numberOfSequences"] = dataDimensions.user.group().size();
+	datasetInfo["numberOfDifferentEvents"] = dataDimensions.type.group().size();
+	datasetInfo["numberOfEvents"] = dataset.size();
+	datasetInfo["users"] = _.map(dataDimensions.user.group().all(), (d)=>d.key);
+	datasetInfo["firstEvent"] = new Date(dataDimensions.time.bottom(1)[0].start);
+	datasetInfo["lastEvent"] = new Date(dataDimensions.time.top(1)[0].start);
+	if (buildSessions)
+		buildUserSessions();
+	else
+		datasetInfo.nbSessions = _.reduce(userSessions, (sum, val) => sum+val.length, 0);
+}
 
 /**
  * Builds the user sessions based on the value of sessionInactivityLimit
@@ -3166,7 +3226,8 @@ function resetPatterns() {
 	buildUserSessions();
 	refreshUserPatterns();
 	// Reset the algorithm state extended view
-	d3.select("#patternSizeTable tbody").html("");
+	d3.select("#patternSizeTableContent").html("");
+	algorithmState = new AlgorithmState();
 }
 
 /**
@@ -3205,8 +3266,9 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 /**
  * Updates the data after the removal of an event type
  * @param {number[]} removedIds Ids of events to be removed
+ * @param {string} removedEvent The name of the removed event type
  */
-function updateDatasetForRemovedEventType(removedIds) {
+function updateDatasetForRemovedEventType(removedIds, removedEvent) {
 	resetDataFilters();
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
@@ -3216,7 +3278,27 @@ function updateDatasetForRemovedEventType(removedIds) {
 	dataDimensions.time.filterRange(currentTimeFilter);
 	resetPatterns();
 	console.log("Reset patterns done");
-	addToHistory("Event type removed");
+	addToHistory("Event type "+removedEvent+" removed");
+}
+
+/**
+ * Updates the data after the removal of a user
+ * @param {number[]} removedIds Ids of events to be removed
+ * @param {string} removedUser The name of the removed user
+ */
+function updateDatasetForRemovedUser(removedIds, removedUser) {
+	resetDataFilters();
+	dataset.remove(function(d,i) {
+		return removedIds.includes(d.id);
+	});
+	console.log("Removed");
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+	let userInfoIndex = userInformations.findIndex((d)=>d[0]==removedUser);
+	userInformations.splice(userInfoIndex, 1);
+	resetPatterns();
+	console.log("Reset patterns done");
+	addToHistory("User "+removedUser+" removed");
 }
 
 /**
@@ -3231,6 +3313,32 @@ function resetDataFilters() {
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+function askConfirmationToRemoveEventType(eventTypeName) {
+	showConfirmationModal();
+	d3.select("#modalTitle")
+		.text("Confirm event type removal");
+	d3.select("#actionConfirmation div")
+		.text("Confirm the removal of all '"+eventTypeName+"' events ?");
+	d3.select("#confirmationConfirm")
+		.on("click", function() {
+			requestEventTypeRemoval(eventTypeName);
+			closeModal();
+		});
+}
+
+function askConfirmationToRemoveUser(userName) {
+	showConfirmationModal();
+	d3.select("#modalTitle")
+		.text("Confirm user removal");
+	d3.select("#actionConfirmation div")
+		.text("Confirm the removal of every event of user '"+userName+"' ?");
+	d3.select("#confirmationConfirm")
+		.on("click", function() {
+			requestUserRemoval(userName);
+			closeModal();
+		});
+}
 
 function preventContextActionFromHiding() {
 	contextActionCanBeHidden = false;
@@ -3307,6 +3415,41 @@ function hideEventTypeContextActions() {
 	if (contextActionCanBeHidden) {
 		eventTypeUnderMouse = null;
 		d3.select("#eventTypeContextActions").classed("hidden", true);
+	}
+}
+
+/**
+ * Moves the user context actions to a user list row and reveals it
+ * @param {string} user The id of the user
+ */
+function moveUserContextActionsToRow(user) {
+	clearTimeout(userContextActionsHideTimeout);
+
+	let ctxActions = d3.select("#userContextActions");
+	let rowCell = d3.select("#u"+user+" td");
+	let boundingRect = rowCell.node().getBoundingClientRect();
+	userUnderMouse = user;
+	ctxActions.classed("hidden", false)
+		.style("width", boundingRect.width+"px")
+		.style("left", boundingRect.left+"px")
+		.style("top", `${boundingRect.top}px`)
+		.style("height", boundingRect.height+"px");
+}
+
+/**
+ * Starts the countdown before actually hiding the user context actions.
+ */
+function prepareToHideUserContextActions() {
+	userContextActionsHideTimeout = setTimeout(hideUserContextActions, 500);
+}
+
+/**
+ * Hides the user context actions.
+ */
+function hideUserContextActions() {
+	if (contextActionCanBeHidden) {
+		userUnderMouse = null;
+		d3.select("#userContextActions").classed("hidden", true);
 	}
 }
 
@@ -3416,18 +3559,18 @@ function openAlgorithmTab(evt, tabName) {
 	// Hide all elements with class="algorithmTabContent"
 	tabcontent = document.getElementsByClassName("algorithmTabContent");
 	for (i = 0; i < tabcontent.length; i++) {
-		tabcontent[i].style.display = "none";
+		d3.select(tabcontent[i]).classed("hidden", true);
 	}
 	
 	// Remove the "active" class from all elements with class="algorithmTabLink"
 	tablinks = document.getElementsByClassName("algorithmTabLink");
 	for (i = 0; i < tablinks.length; i++) {
-		tablinks[i].className = tablinks[i].className.replace(" active", "");
+		d3.select(tablinks[i]).classed("active", false);
 	}
 	
 	// Show the current tab, and add an "active" class to the link that opened it
-	document.getElementById(tabName).style.display = "flex";
-	evt.currentTarget.className += " active";
+	d3.select("#"+tabName).classed("hidden", false);
+	d3.select(evt.currentTarget).classed("active", true);
 }
 
 /**
@@ -4230,6 +4373,9 @@ function createUserListDisplay() {
 				timeline.displayData();
 				//d3.event.stopPropagation();
 			}
+		})
+		.on("mouseover", function() {
+			moveUserContextActionsToRow(thisUserName);
 		});
 	}
 }
@@ -4378,13 +4524,13 @@ function updateAlgorithmStateDisplay() {
 				.classed("levelcomplete", false)
 				.classed("levelactive", false)
 				.classed("level"+lvlData.status, true)
-				.text(lvlData.status);
+				.text(algorithmState.getVerboseStatus(lvlData.status));
 			row.select(".patternSizeCount")
 				.text(lvlData.patternCount);
 			row.select(".patternSizeCandidates")
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.select(".patternSizeProgression")
-				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
+				.text(isNaN(lvlProgression) ? "---" : parseFloat(lvlProgression).toFixed(2)+"%");
 			row.select(".patternSizeTime")
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
 		} else { // The row doesn't exist yet
@@ -4395,7 +4541,7 @@ function updateAlgorithmStateDisplay() {
 			row.append("td")
 				.classed("patternSizeStatus", true)
 				.classed("level"+lvlData.status, true)
-				.text(lvlData.status);
+				.text(algorithmState.getVerboseStatus(lvlData.status));
 			row.append("td")
 				.classed("patternSizeCount", true)
 				.text(lvlData.patternCount);
@@ -4404,7 +4550,7 @@ function updateAlgorithmStateDisplay() {
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.append("td")
 				.classed("patternSizeProgression", true)
-				.text(isNaN(lvlProgression) ? "---" : lvlProgression+"%");
+				.text(isNaN(lvlProgression) ? "---" : parseFloat(lvlProgression).toFixed(2)+"%");
 			row.append("td")
 				.classed("patternSizeTime", true)
 				.text(formatElapsedTimeToString(lvlData.elapsedTime, true));
@@ -4414,17 +4560,15 @@ function updateAlgorithmStateDisplay() {
 	d3.select("#patternSizeTableTotal").selectAll("td").each(function(d,i) {
 		switch(i) {
 			case 1:// status
-				if (algorithmState.isRunning()) {
-					d3.select(this).text("Running");	
-				} else {
-					d3.select(this).text("Complete").classed("levelcomplete", true);
-				}
+				d3.select(this)
+					.text(algorithmState.getGlobalStatus())
+					.classed("levelcomplete", !algorithmState.isRunning());
 				break;
 			case 2:// patterns found
 				d3.select(this).text(algorithmState.getTotalPatternNumber());
 				break;
 			case 3:// candidates checked
-
+				d3.select(this).text(algorithmState.getTotalCandidatesChecked());
 				break;
 			case 4:// progression
 
@@ -4642,6 +4786,14 @@ function handleSteeringStartSignal(type, value) {
 function handleSteeringStopSignal() {
 	d3.select("#focus").text("");
 	algorithmState.stopSteering();
+}
+
+/**
+ * Updates the number of checked candidates for the current level
+ * @param {number} numberOfCandidates The number of checked candidates
+ */
+function handleCandidateCheckSignal(numberOfCandidates) {
+	algorithmState.updateCheckedCandidates(numberOfCandidates);
 }
 
 /**
@@ -5157,10 +5309,17 @@ function toggleExtendedAlgorithmView() {
 		d3.select("#algorithmExtended").classed("hidden", false);
 		d3.select("#modalTitle").text("Current algorithm state");
 		d3.select("#modalBackground").classed("hidden", false);
+		// Move the graph into the extended view
+		document.getElementById("extendedPatternSizesChart")
+			.appendChild(d3.select("#patternSizesSvg").node());
+		
 	} else { // Show the shrinked view
 		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#modalTitle").text("");
 		d3.select("#algorithmExtended").classed("hidden", true);
+		// Move the graph out of the extended view
+		document.getElementById("patternSizesChart")
+			.appendChild(d3.select("#patternSizesSvg").node());
 	}
 }
 
@@ -5169,8 +5328,10 @@ function toggleExtendedAlgorithmView() {
  */
 function toggleAlgorithmParametersChange() {
 	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
+	if (useExtendedAlgorithmView)
+		toggleExtendedAlgorithmView();
 	d3.select("#modalBackground").classed("hidden", !isHidden);
-	d3.select("#algorithmExtended").classed("hidden", true);
+	d3.select("#actionConfirmation").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
 	d3.select("#modalTitle").text(!isHidden ? "" : "Algorithm parameters modification");
 }
@@ -5179,11 +5340,20 @@ function toggleAlgorithmParametersChange() {
  * Hides the modal window and its content
  */
 function closeModal() {
-	useExtendedAlgorithmView = false;
+	if (useExtendedAlgorithmView)
+		toggleExtendedAlgorithmView();
 	d3.select("#modalBackground").classed("hidden", true);
 	d3.select("#modalTitle").text("");
+	d3.select("#algorithmParametersChange").classed("hidden", true);
+	d3.select("#actionConfirmation").classed("hidden", true);
+}
+
+function showConfirmationModal() {
+	d3.select("#modalBackground").classed("hidden", false);
+	d3.select("#modalTitle").text("Action confirmation");
 	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", true);
+	d3.select("#actionConfirmation").classed("hidden", false);
 }
 
 /************************************/
@@ -5968,13 +6138,17 @@ function AlgorithmState() {
 	this.steeringValue = null;
 	this.patternSizeInfo = {};
 	this.currentLevel = null;
+	this.totalCandidatesChecked = 0;
+	this.globalStatus = "Not started";
 
 	this.start = function() {
 		this.running = true;
+		this.globalStatus = "Running";
 	}
 
 	this.stop = function() {
 		this.running = false;
+		this.globalStatus = "Complete";
 	}
 
 	this.startLevel = function(pSize) {
@@ -6022,6 +6196,10 @@ function AlgorithmState() {
 
 	this.getSteeringValue = function() {
 		return this.steeringValue;
+	}
+
+	this.getTotalCandidatesChecked = function() {
+		return this.totalCandidatesChecked;
 	}
 
 	this.getProgression = function(patternSize) {
@@ -6073,12 +6251,21 @@ function AlgorithmState() {
 	this.addCheckedCandidates = function(nb) {
 		if (this.currentLevel != null) {
 			this.currentLevel.candidatesChecked += nb;
+			this.totalCandidatesChecked += nb;
+		}
+	}
+
+	this.updateCheckedCandidates = function(nb) {
+		if (this.currentLevel != null) {
+			let diff = nb - this.currentLevel.candidatesChecked;
+			this.currentLevel.candidatesChecked += diff;
+			this.totalCandidatesChecked += diff;
 		}
 	}
 
 	this.setLevelComplete = function(level) {
 		if (this.patternSizeInfo[level]) {
-			this.patternSizeInfo[level].candidatesChecked = this.patternSizeInfo[level].candidates;
+			this.updateCheckedCandidates(this.patternSizeInfo[level].candidates);
 		}
 		if (this.currentLevel && this.currentLevel.size == level)
 			this.stopLevel();
@@ -6106,6 +6293,27 @@ function AlgorithmState() {
 		this.underSteering = false;
 		this.steeringTarget = null;
 		this.steeringValue = null;
+	}
+
+	this.getVerboseStatus = function(shortStatus) {
+		let result = shortStatus;
+		switch(shortStatus) {
+			case "complete":
+				result = "Completely extracted";
+				break;
+			case "started":
+				result = "Started in a steering";
+				break;
+			case "active":
+				result = "Currently extracting";
+				break;
+			default:
+		}
+		return result;
+	}
+
+	this.getGlobalStatus = function() {
+		return this.globalStatus;
 	}
 }
 
