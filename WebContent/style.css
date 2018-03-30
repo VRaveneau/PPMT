@@ -1082,15 +1082,14 @@ ul.algorithmTabs li :not(.active):hover {
 
 /* Style the tab content */
 .algorithmTabContent {
-    display: none;
     padding: 6px 12px;
     border-top: 1px solid grey;
     overflow: auto;
     flex: 1;
 }
 
-.defaultAlgorithmTab {
-	display: block;
+.algorithmTabContent:not(.hidden) {
+	display: grid;
 }
 
 #List {
@@ -1112,17 +1111,31 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 #Execution {
-	display: flex;
-	flex-direction: row;
+	grid-template-columns: 4fr 6fr;
+	grid-gap: 5px;
+	grid-template-areas: 
+		"parameters 		graph"
+		"changeParameters 	graph"
+		"showMore 			showMore"
+
 }
 
-#Execution > div {
-	flex: 1 1 0;
-}
-
-#Execution > div:first-of-type {
+#algorithmParameters {
+	grid-area: parameters;
 	display: flex;
 	flex-direction: column;
+}
+
+#patternSizesChart {
+	grid-area: graph;
+}
+
+#algorithmChangeParametersBtn {
+	grid-area: changeParameters;
+}
+
+#algorithmShowMoreBtn {
+	grid-area: showMore;
 }
 
 #currentAlgorithmWork {
@@ -1255,13 +1268,17 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 #algorithmExtended:not(.hidden) {
-	display: flex;
+    display: grid;
+    grid-template-columns: 8fr 2fr;
 }
 
 #algorithmExtendedMainPanel {
-	display: flex;
-	flex-direction: column;
 	flex-grow: 8;
+
+	display: grid;
+	grid-template-columns: 6fr 2fr;
+	grid-template-areas: 
+		"table extendedPatternChart"
 }
 
 #algorithmExtendedSidePanel {
@@ -1272,7 +1289,11 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 #patternSizeTableArea {
-	
+	grid-area: table;
+}
+
+#extendedPatternSizesChart {
+	grid-area: extendedPatternChart;
 }
 
 #patternSizeTable {

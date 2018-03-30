@@ -3559,18 +3559,18 @@ function openAlgorithmTab(evt, tabName) {
 	// Hide all elements with class="algorithmTabContent"
 	tabcontent = document.getElementsByClassName("algorithmTabContent");
 	for (i = 0; i < tabcontent.length; i++) {
-		tabcontent[i].style.display = "none";
+		d3.select(tabcontent[i]).classed("hidden", true);
 	}
 	
 	// Remove the "active" class from all elements with class="algorithmTabLink"
 	tablinks = document.getElementsByClassName("algorithmTabLink");
 	for (i = 0; i < tablinks.length; i++) {
-		tablinks[i].className = tablinks[i].className.replace(" active", "");
+		d3.select(tablinks[i]).classed("active", false);
 	}
 	
 	// Show the current tab, and add an "active" class to the link that opened it
-	document.getElementById(tabName).style.display = "flex";
-	evt.currentTarget.className += " active";
+	d3.select("#"+tabName).classed("hidden", false);
+	d3.select(evt.currentTarget).classed("active", true);
 }
 
 /**
@@ -4524,7 +4524,7 @@ function updateAlgorithmStateDisplay() {
 				.classed("levelcomplete", false)
 				.classed("levelactive", false)
 				.classed("level"+lvlData.status, true)
-				.text(lvlData.status);
+				.text(algorithmState.getVerboseStatus(lvlData.status));
 			row.select(".patternSizeCount")
 				.text(lvlData.patternCount);
 			row.select(".patternSizeCandidates")
@@ -4541,7 +4541,7 @@ function updateAlgorithmStateDisplay() {
 			row.append("td")
 				.classed("patternSizeStatus", true)
 				.classed("level"+lvlData.status, true)
-				.text(lvlData.status);
+				.text(algorithmState.getVerboseStatus(lvlData.status));
 			row.append("td")
 				.classed("patternSizeCount", true)
 				.text(lvlData.patternCount);
@@ -4560,11 +4560,9 @@ function updateAlgorithmStateDisplay() {
 	d3.select("#patternSizeTableTotal").selectAll("td").each(function(d,i) {
 		switch(i) {
 			case 1:// status
-				if (algorithmState.isRunning()) {
-					d3.select(this).text("Running");	
-				} else {
-					d3.select(this).text("Complete").classed("levelcomplete", true);
-				}
+				d3.select(this)
+					.text(algorithmState.getGlobalStatus())
+					.classed("levelcomplete", !algorithmState.isRunning());
 				break;
 			case 2:// patterns found
 				d3.select(this).text(algorithmState.getTotalPatternNumber());
@@ -5311,10 +5309,17 @@ function toggleExtendedAlgorithmView() {
 		d3.select("#algorithmExtended").classed("hidden", false);
 		d3.select("#modalTitle").text("Current algorithm state");
 		d3.select("#modalBackground").classed("hidden", false);
+		// Move the graph into the extended view
+		document.getElementById("extendedPatternSizesChart")
+			.appendChild(d3.select("#patternSizesSvg").node());
+		
 	} else { // Show the shrinked view
 		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#modalTitle").text("");
 		d3.select("#algorithmExtended").classed("hidden", true);
+		// Move the graph out of the extended view
+		document.getElementById("patternSizesChart")
+			.appendChild(d3.select("#patternSizesSvg").node());
 	}
 }
 
@@ -5323,8 +5328,9 @@ function toggleExtendedAlgorithmView() {
  */
 function toggleAlgorithmParametersChange() {
 	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
+	if (useExtendedAlgorithmView)
+		toggleExtendedAlgorithmView();
 	d3.select("#modalBackground").classed("hidden", !isHidden);
-	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#actionConfirmation").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
 	d3.select("#modalTitle").text(!isHidden ? "" : "Algorithm parameters modification");
@@ -5334,10 +5340,10 @@ function toggleAlgorithmParametersChange() {
  * Hides the modal window and its content
  */
 function closeModal() {
-	useExtendedAlgorithmView = false;
+	if (useExtendedAlgorithmView)
+		toggleExtendedAlgorithmView();
 	d3.select("#modalBackground").classed("hidden", true);
 	d3.select("#modalTitle").text("");
-	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", true);
 	d3.select("#actionConfirmation").classed("hidden", true);
 }
@@ -6133,13 +6139,16 @@ function AlgorithmState() {
 	this.patternSizeInfo = {};
 	this.currentLevel = null;
 	this.totalCandidatesChecked = 0;
+	this.globalStatus = "Not started";
 
 	this.start = function() {
 		this.running = true;
+		this.globalStatus = "Running";
 	}
 
 	this.stop = function() {
 		this.running = false;
+		this.globalStatus = "Complete";
 	}
 
 	this.startLevel = function(pSize) {
@@ -6284,6 +6293,27 @@ function AlgorithmState() {
 		this.underSteering = false;
 		this.steeringTarget = null;
 		this.steeringValue = null;
+	}
+
+	this.getVerboseStatus = function(shortStatus) {
+		let result = shortStatus;
+		switch(shortStatus) {
+			case "complete":
+				result = "Completely extracted";
+				break;
+			case "started":
+				result = "Started in a steering";
+				break;
+			case "active":
+				result = "Currently extracting";
+				break;
+			default:
+		}
+		return result;
+	}
+
+	this.getGlobalStatus = function() {
+		return this.globalStatus;
 	}
 }
 
