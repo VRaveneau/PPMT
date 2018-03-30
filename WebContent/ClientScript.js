@@ -5309,10 +5309,17 @@ function toggleExtendedAlgorithmView() {
 		d3.select("#algorithmExtended").classed("hidden", false);
 		d3.select("#modalTitle").text("Current algorithm state");
 		d3.select("#modalBackground").classed("hidden", false);
+		// Move the graph into the extended view
+		document.getElementById("extendedPatternSizesChart")
+			.appendChild(d3.select("#patternSizesSvg").node());
+		
 	} else { // Show the shrinked view
 		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#modalTitle").text("");
 		d3.select("#algorithmExtended").classed("hidden", true);
+		// Move the graph out of the extended view
+		document.getElementById("patternSizesChart")
+			.appendChild(d3.select("#patternSizesSvg").node());
 	}
 }
 
@@ -5321,8 +5328,9 @@ function toggleExtendedAlgorithmView() {
  */
 function toggleAlgorithmParametersChange() {
 	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
+	if (useExtendedAlgorithmView)
+		toggleExtendedAlgorithmView();
 	d3.select("#modalBackground").classed("hidden", !isHidden);
-	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#actionConfirmation").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
 	d3.select("#modalTitle").text(!isHidden ? "" : "Algorithm parameters modification");
@@ -5332,10 +5340,10 @@ function toggleAlgorithmParametersChange() {
  * Hides the modal window and its content
  */
 function closeModal() {
-	useExtendedAlgorithmView = false;
+	if (useExtendedAlgorithmView)
+		toggleExtendedAlgorithmView();
 	d3.select("#modalBackground").classed("hidden", true);
 	d3.select("#modalTitle").text("");
-	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", true);
 	d3.select("#actionConfirmation").classed("hidden", true);
 }

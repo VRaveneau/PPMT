@@ -1268,13 +1268,17 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 #algorithmExtended:not(.hidden) {
-	display: flex;
+    display: grid;
+    grid-template-columns: 8fr 2fr;
 }
 
 #algorithmExtendedMainPanel {
-	display: flex;
-	flex-direction: column;
 	flex-grow: 8;
+
+	display: grid;
+	grid-template-columns: 6fr 2fr;
+	grid-template-areas: 
+		"table extendedPatternChart"
 }
 
 #algorithmExtendedSidePanel {
@@ -1285,7 +1289,11 @@ ul.algorithmTabs li :not(.active):hover {
 }
 
 #patternSizeTableArea {
-	
+	grid-area: table;
+}
+
+#extendedPatternSizesChart {
+	grid-area: extendedPatternChart;
 }
 
 #patternSizeTable {
