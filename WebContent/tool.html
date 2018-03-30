@@ -265,8 +265,8 @@
 							<li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Algorithm')">Mining</a></li>
 						</ul>
 					
-						<div id="Execution" class="algorithmTabContent defaultAlgorithmTab">
-							<div>
+						<div id="Execution" class="algorithmTabContent">
+							<div id="algorithmParameters">
 								<p>Runtime: <span id="runtime">00:00</span> <span id="currentAlgorithmWork">(Algorithm not running)</span></p>
 								<p class="algoParameterRecap">Min. support: <span id="currentSupport">??</span></p>
 								<p class="algoParameterRecap">Gap interval: <span id="currentGap">??</span></p>
@@ -275,11 +275,12 @@
 								<p class="algoParameterRecap hidden">Window size: <span id="currentWindow">??</span></p>
 								<!-- <p>Data used: <span id="dataUsed"></span></p>
 								<p>Focusing on: <span id="focus"></span></p> -->
-								<button onclick="toggleExtendedAlgorithmView();" class="clickable">Show more</button>
 							</div>
-							<div>
+							<div id="patternSizesChart">
 								
 							</div>
+							<button id="algorithmChangeParametersBtn" onclick="toggleAlgorithmParametersChange();" class="clickable">Change parameters</button>
+							<button id="algorithmShowMoreBtn" onclick="toggleExtendedAlgorithmView();" class="clickable">Show more</button>
 						</div>
 						<!--
 						<div id="Metrics" class="algorithmTabContent">
@@ -289,7 +290,7 @@
 							</div>
 						</div>
 						-->
-						<div id="Algorithm" class="algorithmTabContent">
+						<div id="Algorithm" class="hidden algorithmTabContent">
 							<div id="sliderSupportArea">
 								<p>Min. support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
 								<br>

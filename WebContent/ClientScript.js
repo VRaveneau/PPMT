@@ -3559,18 +3559,18 @@ function openAlgorithmTab(evt, tabName) {
 	// Hide all elements with class="algorithmTabContent"
 	tabcontent = document.getElementsByClassName("algorithmTabContent");
 	for (i = 0; i < tabcontent.length; i++) {
-		tabcontent[i].style.display = "none";
+		d3.select(tabcontent[i]).classed("hidden", true);
 	}
 	
 	// Remove the "active" class from all elements with class="algorithmTabLink"
 	tablinks = document.getElementsByClassName("algorithmTabLink");
 	for (i = 0; i < tablinks.length; i++) {
-		tablinks[i].className = tablinks[i].className.replace(" active", "");
+		d3.select(tablinks[i]).classed("active", false);
 	}
 	
 	// Show the current tab, and add an "active" class to the link that opened it
-	document.getElementById(tabName).style.display = "flex";
-	evt.currentTarget.className += " active";
+	d3.select("#"+tabName).classed("hidden", false);
+	d3.select(evt.currentTarget).classed("active", true);
 }
 
 /**
