@@ -4524,7 +4524,7 @@ function updateAlgorithmStateDisplay() {
 				.classed("levelcomplete", false)
 				.classed("levelactive", false)
 				.classed("level"+lvlData.status, true)
-				.text(lvlData.status);
+				.text(algorithmState.getVerboseStatus(lvlData.status));
 			row.select(".patternSizeCount")
 				.text(lvlData.patternCount);
 			row.select(".patternSizeCandidates")
@@ -4541,7 +4541,7 @@ function updateAlgorithmStateDisplay() {
 			row.append("td")
 				.classed("patternSizeStatus", true)
 				.classed("level"+lvlData.status, true)
-				.text(lvlData.status);
+				.text(algorithmState.getVerboseStatus(lvlData.status));
 			row.append("td")
 				.classed("patternSizeCount", true)
 				.text(lvlData.patternCount);
@@ -6284,6 +6284,23 @@ function AlgorithmState() {
 		this.underSteering = false;
 		this.steeringTarget = null;
 		this.steeringValue = null;
+	}
+
+	this.getVerboseStatus = function(shortStatus) {
+		let result = shortStatus;
+		switch(shortStatus) {
+			case "complete":
+				result = "Completely extracted";
+				break;
+			case "started":
+				result = "Started in a steering";
+				break;
+			case "active":
+				result = "Currently extracting";
+				break;
+			default:
+		}
+		return result;
 	}
 }
 
