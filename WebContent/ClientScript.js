@@ -4560,11 +4560,9 @@ function updateAlgorithmStateDisplay() {
 	d3.select("#patternSizeTableTotal").selectAll("td").each(function(d,i) {
 		switch(i) {
 			case 1:// status
-				if (algorithmState.isRunning()) {
-					d3.select(this).text("Running");	
-				} else {
-					d3.select(this).text("Complete").classed("levelcomplete", true);
-				}
+				d3.select(this)
+					.text(algorithmState.getGlobalStatus())
+					.classed("levelcomplete", !algorithmState.isRunning());
 				break;
 			case 2:// patterns found
 				d3.select(this).text(algorithmState.getTotalPatternNumber());
@@ -6133,13 +6131,16 @@ function AlgorithmState() {
 	this.patternSizeInfo = {};
 	this.currentLevel = null;
 	this.totalCandidatesChecked = 0;
+	this.globalStatus = "Not started";
 
 	this.start = function() {
 		this.running = true;
+		this.globalStatus = "Running";
 	}
 
 	this.stop = function() {
 		this.running = false;
+		this.globalStatus = "Complete";
 	}
 
 	this.startLevel = function(pSize) {
@@ -6301,6 +6302,10 @@ function AlgorithmState() {
 			default:
 		}
 		return result;
+	}
+
+	this.getGlobalStatus = function() {
+		return this.globalStatus;
 	}
 }
 
