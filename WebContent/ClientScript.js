@@ -2436,7 +2436,7 @@ function buildUserSessions() {
 	dataDimensions.time.filterAll();
 	userSessions = {};
 
-	let userGroups = dataDimensions.user.group();
+	let userGroups = dataDimensions.user.group().dispose();
 	userGroups.all().forEach( function(grp) {
 		let u = grp.key;
 		// Consider only the events of the current user
@@ -2474,7 +2474,6 @@ function buildUserSessions() {
 
 		nbOfSession += userSessions[u].length;
 	});
-	userGroups.dispose();
 	// Add the number of sessions as an information about the dataset
 	datasetInfo.nbSessions = nbOfSession;
 	// Restore the initial time filter
@@ -3067,9 +3066,8 @@ function sortEventTypesByCategory(decreasing=false) {
  * Computes the maximum number of event present at a same time in the dataset
  */
 function computeMaxEventAtOneTime() {
-	let timeGroup = dataDimensions.time.group();
+	let timeGroup = dataDimensions.time.group().dispose();
 	maxEventAtOneTime = timeGroup.top(1)[0].value;
-	timeGroup.dispose();
 }
 
 /**
