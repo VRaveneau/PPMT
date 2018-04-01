@@ -148,20 +148,22 @@
 				<div id="middle">
 				
 					<div id="top" class="section">
-						<div id="highlightResetButtons">
-							<button onclick="clearUserSelection();" class="clickable">Reset users</button>
-							<button onclick="clearEventTypeSelection();" class="clickable">Reset event types</button>
-						</div>
-						<div class="title">Current highlights</div>
+						<!--<div class="title">Current highlights</div>-->
 						<div class="body">
 							<!-- Activity indicator, disabled for now
 							<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
 								<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
 							</svg> -->
 							<!-- <p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p> -->
-							<div class="leftAligned no-margin-top no-margin-bottom" id="userHighlight">No user</div>
-							<div class="leftAligned lastItem no-margin-top no-margin-bottom" id="eventTypeHighlight">No event type</div>
-							<div class="rightAligned"></div>
+							<div id="userHighlight" onmousemove="moveTooltipOnHighlights('users');">
+								0 highlighted user
+							</div>
+							<div id="eventTypeHighlight" onmousemove="moveTooltipOnHighlights('eventTypes');">
+								0 highlighted event type
+							</div>
+							<div id="patternHighlight" onmousemove="moveTooltipOnHighlights('patterns');">
+								0 selected pattern
+							</div>
 						</div>
 					</div>
 				

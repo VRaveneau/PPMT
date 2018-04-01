@@ -830,6 +830,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	margin-bottom: 0px;
 }
 
+#top .body {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	text-align: center;
+}
+
 /************************************/
 /*	Override d3 default settings	*/
 /************************************/

@@ -1160,8 +1160,8 @@ function setupTool() {
 	setupContextActions();
 	
 	d3.select("body").on("keyup", handleKeyPress);
-	d3.select("body").on("mousemove", moveTooltip);
-	d3.select("body").on("click", switchTooltipLock);
+	d3.select("#center").on("mousemove", moveTooltip);
+	d3.select("#center").on("click", switchTooltipLock);
 	d3.select("#tooltip").on("mouseleave", prepareToLeaveTooltip);
 	d3.select("#tooltip").on("mouseenter", enterTooltip);
 	
@@ -3980,7 +3980,7 @@ function setHighlights() {
 	userDisplayArea = d3.select("#userHighlight");
 	
 	if (highlightedUsers.length == 0) {
-		userDisplayArea.text("No user");
+		userDisplayArea.text("0 highlighted user");
 	} else {
 		if (highlightedUsers.length <= numberOfDetailedHighlights) {
 			userDisplayArea.text("Users ");
@@ -4001,7 +4001,7 @@ function setHighlights() {
 						.text(" ");
 			}
 		} else {
-			userDisplayArea.text(highlightedUsers.length +" users");
+			userDisplayArea.text(highlightedUsers.length +" highlighted users");
 		}
 	}
 	
@@ -4014,7 +4014,7 @@ function setHighlights() {
 	eventTypeDisplayArea = d3.select(eventTypeDisplayArea);
 	
 	if (highlightedEventTypes.length == 0) {
-		eventTypeDisplayArea.text("No event type");
+		eventTypeDisplayArea.text("0 highlighted event type");
 	} else {
 		if (highlightedEventTypes.length <= numberOfDetailedHighlights) {
 			eventTypeDisplayArea.text("Events ");
@@ -4040,10 +4040,18 @@ function setHighlights() {
 						.text(" ");
 			}
 		} else {
-			eventTypeDisplayArea.text(highlightedEventTypes.length +" event types");
+			eventTypeDisplayArea.text(highlightedEventTypes.length +" highlighted event types");
 		}
 	}
 
+	// removing the potential old pattern highlights
+	let patternDisplayArea = document.getElementById("patternHighlight");
+	while (patternDisplayArea.firstChild) {
+		patternDisplayArea.removeChild(patternDisplayArea.firstChild);
+	}
+	patternDisplayArea = d3.select(patternDisplayArea);
+	
+	patternDisplayArea.text(selectedPatternIds.length +" selected patterns");
 }
 
 /**
@@ -4896,6 +4904,7 @@ function createPatternRow(pId) {
 			
 			// Update the number of selected patterns display
 			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+			setHighlights();
 		})
 		.on("mouseover", function() {
 			movePatternContextActionsToRow(pId);
@@ -5357,273 +5366,401 @@ function changeTooltip(data, origin) {
 		
 		switch(origin) {
 		case "general":
-			/* Structure : 
-			 * [year,
-		     * start,
-		     * end,
-		     * nbEventsInBin,
-		     * user1;user2;...,
-		     * type1;type2;...,
-		     * type1:nbOcc;type2:nbOcc;...
-		     * nbEventsInSubBin,
-			 * type1:hslColorValue1;type2:hslColorValue1;...]
-		   	 */
-			switch(timeline.displayMode) {
-			case "distributions":
-				switch(timeline.distributionScale) {
-				case "year":
-					//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
-				case "month":
-				case "halfMonth":
-				case "day":
-				case "halfDay":
-					let nbUsers = data[4].split(";").length;
-					let nbOccs = data[6].split(';');
-					//console.log("pre-sort: "+nbOccs);
-					nbOccs.sort(function(a,b) {
-						let aVal = parseInt(a.split(":")[1]);
-						let bVal = parseInt(b.split(":")[1]);
-						return bVal - aVal;	// sort in descending order
-					});
-					//console.log("post-sort: "+nbOccs);
-					area.append("p")
-						.text("From "+data[1]+" to "+data[2]);
-					area.append("p")
-						.text(data[3]+" events across "+nbUsers+" users");
-					area.append("p")
-						.text(data[7]+" in this subpart:");
-					
-					let ttTable = area.append("table");
-					let ttTableHead = ttTable.append("thead").append("tr");
-					if (nbOccs.length > 1) {
-						ttTableHead.append("th")
-							.text(nbOccs.length + " event types");
-					} else {
-						ttTableHead.append("th")
-							.text(nbOccs.length + " event type");
-					}
-					ttTableHead.append("th")
-						.text("Support");
-					ttTableHead.append("th")
-						.text("% of this bin");
-					let ttTableBody = ttTable.append("tbody");
-					
-					for (let i = 0; i < nbOccs.length; i++) {
-						let ttTableRow = ttTableBody.append("tr");
-						
-						let occ = nbOccs[i].split(":");
-						let percentage = parseInt(occ[1])/parseInt(data[3]);
-						
-						let hslValues = data[8].split(";");
-						let hslValue = 0;
-						for (let idx = 0; idx < hslValues.length; idx++) {
-							if (hslValues[idx].split(":")[0] == occ[0]) {
-								hslValue = parseInt(hslValues[idx].split(":")[1]);
-								break;
-							}
-						}
-						
-						ttTableRow.classed("clickable", true)
-							.classed("bold", highlightedEventTypes.includes(occ[0]))
-							.on("click", function() {
-								highlightEventTypeRow(occ[0]);
-								d3.select(this)
-									.classed("bold", highlightedEventTypes.includes(occ[0]));
-								setHighlights();
-								timeline.displayData();
-							});
-						
-						let ttFirstCell = ttTableRow.append("td");
-						ttFirstCell.append("span")
-							.style("color",colorList[occ[0]][0].toString())
-							.text(itemShapes[occ[0]]);
-						ttFirstCell.append("span").text(" "+occ[0]);
-						ttTableRow.append("td").text(occ[1]);
-						ttTableRow.append("td").text((percentage*100).toPrecision(3)+"%");
-					}
-				}
-				break;
-			case "events":
-					let typeLine = area.append("p")
-						.classed("clickable", true)
-						.classed("bold", highlightedEventTypes.includes(data.type))
-						.text("Type: ")
-						.on("click", function() {
-							highlightEventTypeRow(data.type);
-							d3.select(this)
-								.classed("bold", highlightedEventTypes.includes(data.type));
-							setHighlights();
-							timeline.displayData();
-						});
-					typeLine.append("span")
-						.style("color",colorList[data.type][0])
-						.text(itemShapes[data.type]);
-					typeLine.append("span")
-						.text(" "+data.type);
-					area.append("p")
-						.text("Time: " + formatDate(new Date(data.start)));
-					area.append("p")
-						.classed("clickable", true)
-						.classed("bold", highlightedUsers.includes(data.user))
-						.text("User: " + data.user)
-						.on("click", function() {
-							highlightUserRow(data.user);
-							d3.select(this)
-								.classed("bold", highlightedUsers.includes(data.user));
-							setHighlights();
-							timeline.displayData();
-						});
-					area.append("p")
-						.text("Properties:");
-					for(let i = 0; i < data.properties.length; i++)
-						area.append("p")
-							.classed("tooltipEventProperty", true)
-							.text(data.properties[i]);
-			}
+			displayGeneralTooltip(data);
 			break;
 		case "session":
-			/* Structure of data : 
-			 * ["user",
-			 * 	nbrOfPatternsInSession, (-1 if no session)
-			 * 	sessionStart,
-			 * 	sessionEnd,
-			 * 	"patternId: number"]
-		   	 */
-			
-			area.append("p")
-				.classed("clickable", true)
-				.classed("bold", highlightedUsers.includes(data[0]))
-				.text("User " + data[0])
-				.on("click", function() {
-					highlightUserRow(data[0]);
-					d3.select(this)
-						.classed("bold", highlightedUsers.includes(data[0]));
-					setHighlights();
-					timeline.displayData();
-				});
-			
-			let dateStart = "";
-			let dateEnd = "";
-			let duration = (data[3] - data[2]) / 1000; // In seconds
-			let dS = duration % 60;
-			let dM = Math.floor(duration / 60);
-			let dH = Math.floor(dM / 60);
-			dM = dM % 60;
-			let durationString = "";
-			if (dH > 0)
-				durationString += dH + "h ";
-			if (dM > 0 || dH > 0)
-				durationString += dM + "m ";
-			durationString += dS + "s";
-			
-			switch(data[1]) {
-			case -1:/*
-				area.append("p")
-					.text("No session");*/
-				break;
-			case 0:
-				dateStart = new Date(data[2]);
-				dateEnd = new Date(data[3]);
-				area.append("p")
-					.text(data[4]+" events");
-				area.append("p")
-					.text("Session duration: "+durationString);
-				area.append("p")
-					.text("Session start: "+formatDate(dateStart));
-				area.append("p")
-					.text("Session end: "+formatDate(dateEnd));
-				area.append("hr");
-				area.append("p")
-					.text("No pattern in this session");
-				break;
-			default:
-				dateStart = new Date(data[2]);
-				dateEnd = new Date(data[3]);
-				area.append("p")
-				.text(data[4]+" events");
-			area.append("p")
-				.text("Session duration: "+durationString);
-				area.append("p")
-					.text("Session start: "+formatDate(dateStart));
-				area.append("p")
-					.text("Session end:  "+formatDate(dateEnd));
-				area.append("hr");
-				area.append("p")
-					.text("Show patterns' text: ")
-				  .append("input")
-				  	.attr("type", "checkbox")
-				  	.property("checked", true)
-				  	.classed("clickable", true)
-				  	.on("change", function() {
-				  		if (d3.select(this).property("checked")) {
-				  			d3.selectAll(".tooltipPatternText")
-				  				.classed("hidden", false);
-				  		} else {
-				  			d3.selectAll(".tooltipPatternText")
-			  					.classed("hidden", true);
-				  		}
-				  	});
-				let ttTable = area.append("table");
-				let ttTableHead = ttTable.append("thead").append("tr");
-				if (data[1] > 1) {
-					ttTableHead.append("th")
-						.text(data[1] + " patterns");
-				} else {
-					ttTableHead.append("th")
-						.text(data[1] + " pattern");
-				}
-				ttTableHead.append("th")
-					.text("Support (here"+String.fromCharCode(160)+"/"+String.fromCharCode(160)+"total)"); // Use non-breaking spaces
-				let ttTableBody = ttTable.append("tbody");
-				for (let pIdx = 5; pIdx < data.length; pIdx++) {
-					let thisData = data[pIdx].split(":");
-					let pId = Number(thisData[0].trim());
-					let evtTypes = patternsInformation[pId][3];
-					let ttTableRow = ttTableBody.append("tr")
-						.classed("clickable", true)
-						.classed("bold", selectedPatternIds.includes(pId))
-						.on("click", function() {
-							if (selectedPatternIds.includes(pId)) {
-								let index = selectedPatternIds.indexOf(pId);
-								if (index >= 0)
-									selectedPatternIds.splice(index, 1);
-								d3.select(this).classed("bold", false);
-							} else {
-								selectedPatternIds.push(pId);
-								d3.select(this).classed("bold", true);
-							}
-							if (occurrencesAreKnown(pId) == false)
-								requestPatternOccurrences(pId, currentDatasetName);
-							else
-								timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-							//d3.event.stopPropagation();
-							console.log("click on "+pId);
-							createPatternListDisplay();
-							
-							// Update the number of selected patterns display
-							d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-						});
-					let firstCell = ttTableRow.append("td");
-					for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
-						firstCell.append("span")
-							.style("color", colorList[evtTypes[tIdx]][0])
-							.text(itemShapes[evtTypes[tIdx]]);
-					}
-					firstCell.append("span")
-						.classed("tooltipPatternText", true)
-						.text(" " + patternsInformation[pId][0]);
-					ttTableRow.append("td")
-						.text(thisData[1].trim() + " / " + patternsInformation[pId][2]);
-				}
-			}
-			
+			displaySessionTooltip(data);
 			break;
+		case "highlights":
+			displayHighlightsTooltip(data);
 		default:
 		}
 		
 		tooltipHasContent = true;
 		tooltip.property("scrollTop",0);
 		tooltip.classed("hidden", false);
+	}
+}
+
+/**
+ * Displays the tooltip when its data comes from the "all users" view
+ * @param {JSON} data The data to display
+ */
+function displayGeneralTooltip(data) {
+	let area = d3.select("#tooltip").select(".body");
+	area.html("")
+		.style("text-align", "left");
+
+	/* Structure : 
+	* [year,
+	* start,
+	* end,
+	* nbEventsInBin,
+	* user1;user2;...,
+	* type1;type2;...,
+	* type1:nbOcc;type2:nbOcc;...
+	* nbEventsInSubBin,
+	* type1:hslColorValue1;type2:hslColorValue1;...]
+	*/
+	switch(timeline.displayMode) {
+	case "distributions":
+		switch(timeline.distributionScale) {
+		case "year":
+			//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
+		case "month":
+		case "halfMonth":
+		case "day":
+		case "halfDay":
+			let nbUsers = data[4].split(";").length;
+			let nbOccs = data[6].split(';');
+			//console.log("pre-sort: "+nbOccs);
+			nbOccs.sort(function(a,b) {
+				let aVal = parseInt(a.split(":")[1]);
+				let bVal = parseInt(b.split(":")[1]);
+				return bVal - aVal;	// sort in descending order
+			});
+			//console.log("post-sort: "+nbOccs);
+			area.append("p")
+				.text("From "+data[1]+" to "+data[2]);
+			area.append("p")
+				.text(data[3]+" events across "+nbUsers+" users");
+			area.append("p")
+				.text(data[7]+" in this subpart:");
+			
+			let ttTable = area.append("table");
+			let ttTableHead = ttTable.append("thead").append("tr");
+			if (nbOccs.length > 1) {
+				ttTableHead.append("th")
+					.text(nbOccs.length + " event types");
+			} else {
+				ttTableHead.append("th")
+					.text(nbOccs.length + " event type");
+			}
+			ttTableHead.append("th")
+				.text("Support");
+			ttTableHead.append("th")
+				.text("% of this bin");
+			let ttTableBody = ttTable.append("tbody");
+			
+			for (let i = 0; i < nbOccs.length; i++) {
+				let ttTableRow = ttTableBody.append("tr");
+				
+				let occ = nbOccs[i].split(":");
+				let percentage = parseInt(occ[1])/parseInt(data[3]);
+				
+				let hslValues = data[8].split(";");
+				let hslValue = 0;
+				for (let idx = 0; idx < hslValues.length; idx++) {
+					if (hslValues[idx].split(":")[0] == occ[0]) {
+						hslValue = parseInt(hslValues[idx].split(":")[1]);
+						break;
+					}
+				}
+				
+				ttTableRow.classed("clickable", true)
+					.classed("bold", highlightedEventTypes.includes(occ[0]))
+					.on("click", function() {
+						highlightEventTypeRow(occ[0]);
+						d3.select(this)
+							.classed("bold", highlightedEventTypes.includes(occ[0]));
+						setHighlights();
+						timeline.displayData();
+					});
+				
+				let ttFirstCell = ttTableRow.append("td");
+				ttFirstCell.append("span")
+					.style("color",colorList[occ[0]][0].toString())
+					.text(itemShapes[occ[0]]);
+				ttFirstCell.append("span").text(" "+occ[0]);
+				ttTableRow.append("td").text(occ[1]);
+				ttTableRow.append("td").text((percentage*100).toPrecision(3)+"%");
+			}
+		}
+		break;
+	case "events":
+			let typeLine = area.append("p")
+				.classed("clickable", true)
+				.classed("bold", highlightedEventTypes.includes(data.type))
+				.text("Type: ")
+				.on("click", function() {
+					highlightEventTypeRow(data.type);
+					d3.select(this)
+						.classed("bold", highlightedEventTypes.includes(data.type));
+					setHighlights();
+					timeline.displayData();
+				});
+			typeLine.append("span")
+				.style("color",colorList[data.type][0])
+				.text(itemShapes[data.type]);
+			typeLine.append("span")
+				.text(" "+data.type);
+			area.append("p")
+				.text("Time: " + formatDate(new Date(data.start)));
+			area.append("p")
+				.classed("clickable", true)
+				.classed("bold", highlightedUsers.includes(data.user))
+				.text("User: " + data.user)
+				.on("click", function() {
+					highlightUserRow(data.user);
+					d3.select(this)
+						.classed("bold", highlightedUsers.includes(data.user));
+					setHighlights();
+					timeline.displayData();
+				});
+			area.append("p")
+				.text("Properties:");
+			for(let i = 0; i < data.properties.length; i++)
+				area.append("p")
+					.classed("tooltipEventProperty", true)
+					.text(data.properties[i]);
+	}
+}
+
+/**
+ * Displays the tooltip when its data comes from the "session" view
+ * @param {JSON} data The data to display
+ */
+function displaySessionTooltip(data) {
+	let area = d3.select("#tooltip").select(".body");
+	area.html("")
+		.style("text-align", "left");
+
+	/* Structure of data : 
+	* ["user",
+	* 	nbrOfPatternsInSession, (-1 if no session)
+	* 	sessionStart,
+	* 	sessionEnd,
+	* 	"patternId: number"]
+	*/
+
+	area.append("p")
+		.classed("clickable", true)
+		.classed("bold", highlightedUsers.includes(data[0]))
+		.text("User " + data[0])
+		.on("click", function() {
+			highlightUserRow(data[0]);
+			d3.select(this)
+				.classed("bold", highlightedUsers.includes(data[0]));
+			setHighlights();
+			timeline.displayData();
+		});
+	
+	let dateStart = "";
+	let dateEnd = "";
+	let duration = (data[3] - data[2]) / 1000; // In seconds
+	let dS = duration % 60;
+	let dM = Math.floor(duration / 60);
+	let dH = Math.floor(dM / 60);
+	dM = dM % 60;
+	let durationString = "";
+	if (dH > 0)
+		durationString += dH + "h ";
+	if (dM > 0 || dH > 0)
+		durationString += dM + "m ";
+	durationString += dS + "s";
+	
+	switch(data[1]) {
+	case -1:/*
+		area.append("p")
+			.text("No session");*/
+		break;
+	case 0:
+		dateStart = new Date(data[2]);
+		dateEnd = new Date(data[3]);
+		area.append("p")
+			.text(data[4]+" events");
+		area.append("p")
+			.text("Session duration: "+durationString);
+		area.append("p")
+			.text("Session start: "+formatDate(dateStart));
+		area.append("p")
+			.text("Session end: "+formatDate(dateEnd));
+		area.append("hr");
+		area.append("p")
+			.text("No pattern in this session");
+		break;
+	default:
+		dateStart = new Date(data[2]);
+		dateEnd = new Date(data[3]);
+		area.append("p")
+		.text(data[4]+" events");
+	area.append("p")
+		.text("Session duration: "+durationString);
+		area.append("p")
+			.text("Session start: "+formatDate(dateStart));
+		area.append("p")
+			.text("Session end:  "+formatDate(dateEnd));
+		area.append("hr");
+		area.append("p")
+			.text("Show patterns' text: ")
+			.append("input")
+				.attr("type", "checkbox")
+				.property("checked", true)
+				.classed("clickable", true)
+				.on("change", function() {
+					if (d3.select(this).property("checked")) {
+						d3.selectAll(".tooltipPatternText")
+							.classed("hidden", false);
+					} else {
+						d3.selectAll(".tooltipPatternText")
+							.classed("hidden", true);
+					}
+				});
+		let ttTable = area.append("table");
+		let ttTableHead = ttTable.append("thead").append("tr");
+		if (data[1] > 1) {
+			ttTableHead.append("th")
+				.text(data[1] + " patterns");
+		} else {
+			ttTableHead.append("th")
+				.text(data[1] + " pattern");
+		}
+		ttTableHead.append("th")
+			.text("Support (here"+String.fromCharCode(160)+"/"+String.fromCharCode(160)+"total)"); // Use non-breaking spaces
+		let ttTableBody = ttTable.append("tbody");
+		for (let pIdx = 5; pIdx < data.length; pIdx++) {
+			let thisData = data[pIdx].split(":");
+			let pId = Number(thisData[0].trim());
+			let evtTypes = patternsInformation[pId][3];
+			let ttTableRow = ttTableBody.append("tr")
+				.classed("clickable", true)
+				.classed("bold", selectedPatternIds.includes(pId))
+				.on("click", function() {
+					if (selectedPatternIds.includes(pId)) {
+						let index = selectedPatternIds.indexOf(pId);
+						if (index >= 0)
+							selectedPatternIds.splice(index, 1);
+						d3.select(this).classed("bold", false);
+					} else {
+						selectedPatternIds.push(pId);
+						d3.select(this).classed("bold", true);
+					}
+					if (occurrencesAreKnown(pId) == false)
+						requestPatternOccurrences(pId, currentDatasetName);
+					else
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+					//d3.event.stopPropagation();
+					console.log("click on "+pId);
+					createPatternListDisplay();
+					
+					// Update the number of selected patterns display
+					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+				});
+			let firstCell = ttTableRow.append("td");
+			for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
+				firstCell.append("span")
+					.style("color", colorList[evtTypes[tIdx]][0])
+					.text(itemShapes[evtTypes[tIdx]]);
+			}
+			firstCell.append("span")
+				.classed("tooltipPatternText", true)
+				.text(" " + patternsInformation[pId][0]);
+			ttTableRow.append("td")
+				.text(thisData[1].trim() + " / " + patternsInformation[pId][2]);
+		}
+	}
+}
+
+/**
+ * Displays the tooltip when its data comes from the "highlights summary" view
+ * @param {string} target The kind of highlight to display
+ */
+function displayHighlightsTooltip(target) {
+	let area = d3.select("#tooltip").select(".body");
+	area.html("")
+		.style("text-align", "center");
+	switch(target) {
+		case "users":
+			if (highlightedUsers.length > 0) {
+				area.append("button")
+					.on("click", function() {
+						clearUserSelection();
+						displayHighlightsTooltip(target);
+					})
+					.classed("clickable", true)
+					.text("Reset user selection");
+			}
+			area.append("p")
+				.text(highlightedUsers.length + " highlighted users :");
+			highlightedUsers.forEach(function(usr) {
+				area.append("p")
+					.append("span")
+					.classed("clickable", true)
+					.classed("highlightButton", true)
+					.text(usr)
+					.on("click", function() {
+						highlightUserRow(usr);
+						setHighlights();
+						timeline.displayData();
+						displayHighlightsTooltip("users");
+					});
+			});
+			break;
+		case "eventTypes":
+			if (highlightedEventTypes.length > 0) {
+				area.append("button")
+					.on("click", function() {
+						clearEventTypeSelection();
+						displayHighlightsTooltip(target);
+					})
+					.classed("clickable", true)
+					.text("Reset event type selection");
+			}
+			area.append("p")
+				.text(highlightedEventTypes.length + " highlighted event types :");
+			highlightedEventTypes.forEach(function(type) {
+				area.append("p")
+					.append("span")
+					.classed("clickable", true)
+					.classed("highlightButton", true)
+					.style("color", colorList[type][0].toString())
+					.text(itemShapes[type])
+					.on("click", function() {
+						highlightEventTypeRow(type);
+						setHighlights();
+						timeline.displayData();
+						displayHighlightsTooltip("eventTypes");
+					})
+					.append("span")
+					.style("color", "black")
+					.text("\u00A0"+type);
+			});
+			break;
+		case "patterns":
+			area.append("p")
+				.text(selectedPatternIds.length + " selected patterns :");
+			selectedPatternIds.forEach(function(patternId) {
+				let pSize = patternsInformation[patternId][1];
+				let pString = patternsInformation[patternId][0];
+				let pItems = patternsInformation[patternId][3];
+
+				let row = area.append("p")
+					.classed("clickable",true)
+					.on("click", function() {
+						let index = selectedPatternIds.indexOf(patternId);
+						selectedPatternIds.splice(index, 1);
+						
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+						//d3.event.stopPropagation();
+						console.log("click on "+patternId);
+						createPatternListDisplay();
+						setHighlights();
+						displayHighlightsTooltip("patterns");
+						
+						// Update the number of selected patterns display
+						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+					});
+				for (let k=0; k < pSize; k++) {
+					row.append("span")
+						.style("color",colorList[pItems[k]][0].toString())
+						.text(itemShapes[pItems[k]]);
+				}
+				row.append("span")
+					.text(" "+pString)
+					.attr("patternId",patternId);
+			});
+			break;
+		default:
 	}
 }
 
@@ -5678,6 +5815,34 @@ function moveTooltip() {
 		newPosY = 0;
 	tooltip.style("left", newPosX+"px")
 		.style("top", newPosY+"px");
+}
+
+function moveTooltipOnHighlights(target) {
+	let posX = 0;
+	let posY = 0;
+	let clientRect = null;
+	let tooltipWidth = document.getElementById("tooltip").getBoundingClientRect().width;
+	switch(target) {
+		case "users":
+			clientRect = document.getElementById("userHighlight").getBoundingClientRect();
+			posX = Math.floor(clientRect.x + clientRect.width/2 - tooltipWidth/2);
+			posY = clientRect.bottom;
+			break;
+		case "eventTypes":
+			clientRect = document.getElementById("eventTypeHighlight").getBoundingClientRect();
+			posX = Math.floor(clientRect.x + clientRect.width/2 - tooltipWidth/2);
+			posY = clientRect.bottom;
+			break;
+		case "patterns":
+			clientRect = document.getElementById("patternHighlight").getBoundingClientRect();
+			posX = Math.floor(clientRect.x + clientRect.width/2 - tooltipWidth/2);
+			posY = clientRect.bottom;
+			break;
+		default:
+	}
+	tooltip.style("left", posX+"px")
+		.style("top", posY+5+"px");
+	changeTooltip(target, "highlights");
 }
 
 /**
