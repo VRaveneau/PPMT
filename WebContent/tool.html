@@ -33,109 +33,114 @@
 			</div>
 			<div id="tool">
 			
-				<div id="left">
-					
+				<div id="left">		
 					<div id="data" class="section">
-					
 						<div class="title">Data</div>
-						
-						<ul class="controlTabs">
-							<li><a href="javascript:void(0)" class="controlTabLink active" onclick="openControlTab(event, 'Trace')">Trace</a></li>
-							<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Event types</a></li>
-							<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
-							<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Categories')">Categories</a></li>
-						</ul>
-						
-						<div id="Trace" class="controlTabContent defaultControlTab">
-							<!-- Info on trace -->
-							<div class="subsection">
-								<div class="title">This dataset</div>
-								<div class="body" id="datasetInfo">
-								
-								</div>
+						<div class="body tabContainer">
+							
+							<div class="tabHeader active" onclick="openControlTab(event, 'Trace')">
+								Trace
 							</div>
-							<!-- <hr>
-							<p>You can:</p>
-							<button type="button" class='trace-action-button'>Create event</button>
-							<button type="button" class='trace-action-button'>Delete event</button>
-							<button type="button" class='trace-action-button'>Truncate trace</button>
-							<button type="button" class='trace-action-button'>Delete user</button> -->
-							<hr>
-							<!-- history -->
-							<div class="subsection">
-								<div class="title">Analysis history</div>
-								<div class="body" id="history">
-								
-								</div>
+							<div class="tabHeader" onclick="openControlTab(event, 'Events')">
+								Event types
 							</div>
-						</div>
-						
-						<div id="Events" class="controlTabContent">
-							<div class="left-aligned">
-								Show descriptions:
-								<input type="checkbox" class="clickable" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
+							<div class="tabHeader" onclick="openControlTab(event, 'Users')">
+								Users
 							</div>
-						
-							<table id="eventTable">
-								<thead>
-									<tr class="clickable">
-										<th onclick="clickOnEventTypeNameHeader()">Event&nbsp;type&nbsp;</th>
-										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeSupportHeader()">Support&nbsp;↑</th>
-										<th onclick="clickOnEventTypeCategoryHeader()">Category&nbsp;</th>
-									</tr>
-								</thead>
-								<tbody id="eventTableBody" onmouseout="prepareToHideEventTypeContextActions();">
-								</tbody>
-							</table>
-							<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
-						</div>
-						
-						<div id="Users" class="controlTabContent">
-							<form>
-								<div class="searchBarArea">
-									<div class="searchFieldArea">
-										&nbsp;
-										<input type="text" class="searchField" placeholder="Write user names here">
-										<input type="text" class="hidden" disabled>
-										<div class="suggestionDiv"></div>
+							<div class="tabHeader" onclick="openControlTab(event, 'Categories')">
+								Categories
+							</div>
+							
+							<div id="Trace" class="tabContent">
+								<!-- Info on trace -->
+								<div class="subsection">
+									<div class="title">This dataset</div>
+									<div class="body" id="datasetInfo">
+									
 									</div>
 								</div>
-							</form>
+								<!-- <hr>
+								<p>You can:</p>
+								<button type="button" class='trace-action-button'>Create event</button>
+								<button type="button" class='trace-action-button'>Delete event</button>
+								<button type="button" class='trace-action-button'>Truncate trace</button>
+								<button type="button" class='trace-action-button'>Delete user</button> -->
+								<hr>
+								<!-- history -->
+								<div class="subsection">
+									<div class="title">Analysis history</div>
+									<div class="body" id="history">
+									
+									</div>
+								</div>
+							</div>
 							
-							<div id="userTableArea">
-								<table id="userTable">
+							<div id="Events" class="tabContent hidden">
+								<div class="left-aligned">
+									Show descriptions:
+									<input type="checkbox" class="clickable" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
+								</div>
+							
+								<table id="eventTable">
 									<thead>
 										<tr class="clickable">
-											<th onclick="clickOnUserNameHeader()">User&nbsp;</th>
-											<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
-											<th onclick="clickOnUserDurationHeader()">Duration&nbsp;</th>
-											<th onclick="clickOnUserNbSessionsHeader()">Nb&nbsp;sessions&nbsp;</th>
-											<th onclick="clickOnUserStartHeader()">Start&nbsp;</th>
-											<th onclick="clickOnUserEndHeader()">End&nbsp;</th>
+											<th onclick="clickOnEventTypeNameHeader()">Event&nbsp;type&nbsp;</th>
+											<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeSupportHeader()">Support&nbsp;↑</th>
+											<th onclick="clickOnEventTypeCategoryHeader()">Category&nbsp;</th>
 										</tr>
 									</thead>
-									<tbody id="userTableBody" onmouseout="prepareToHideUserContextActions();">
+									<tbody id="eventTableBody" onmouseout="prepareToHideEventTypeContextActions();">
 									</tbody>
 								</table>
+								<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
+							</div>
+							
+							<div id="Users" class="tabContent hidden">
+								<form>
+									<div class="searchBarArea">
+										<div class="searchFieldArea">
+											&nbsp;
+											<input type="text" class="searchField" placeholder="Write user names here">
+											<input type="text" class="hidden" disabled>
+											<div class="suggestionDiv"></div>
+										</div>
+									</div>
+								</form>
+								
+								<div id="userTableArea">
+									<table id="userTable">
+										<thead>
+											<tr class="clickable">
+												<th onclick="clickOnUserNameHeader()">User&nbsp;</th>
+												<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
+												<th onclick="clickOnUserDurationHeader()">Duration&nbsp;</th>
+												<th onclick="clickOnUserNbSessionsHeader()">Nb&nbsp;sessions&nbsp;</th>
+												<th onclick="clickOnUserStartHeader()">Start&nbsp;</th>
+												<th onclick="clickOnUserEndHeader()">End&nbsp;</th>
+											</tr>
+										</thead>
+										<tbody id="userTableBody" onmouseout="prepareToHideUserContextActions();">
+										</tbody>
+									</table>
+								</div>
+							</div>
+							
+							<div id="Categories" class="tabContent hidden">
+								<div id="categoryTableArea">
+									<table id="categoryTable">
+										<thead>
+											<tr>
+												<th onclick="clickOnCategoryNameHeader()">Category</th>
+												<!-- <th id="eventsPerCategoryColumn" onclick="clickOnCategoryNbEventsHeader()">Nb events</th> -->
+												<th>Color</th>
+											</tr>
+										</thead>
+										<tbody id="categoryTableBody">
+										</tbody>
+									</table>
+								</div>
 							</div>
 						</div>
-						
-						<div id="Categories" class="controlTabContent">
-							<div id="categoryTableArea">
-								<table id="categoryTable">
-									<thead>
-										<tr>
-											<th onclick="clickOnCategoryNameHeader()">Category</th>
-											<!-- <th id="eventsPerCategoryColumn" onclick="clickOnCategoryNbEventsHeader()">Nb events</th> -->
-											<th>Color</th>
-										</tr>
-									</thead>
-									<tbody id="categoryTableBody">
-									</tbody>
-								</table>
-							</div>
-						</div>
-					
 					</div>
 					
 				</div>
@@ -259,57 +264,54 @@
 				
 					<div id="algorithmInfo" class="section">
 						<div class="title">Algorithm</div>
-						<ul class="algorithmTabs">
-							<li><a href="javascript:void(0)" class="algorithmTabLink active" onclick="openAlgorithmTab(event, 'Execution')">Execution</a></li>
-							<!-- <li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Metrics')">Metrics</a></li> -->
-							<li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Algorithm')">Mining</a></li>
-						</ul>
-					
-						<div id="Execution" class="algorithmTabContent">
-							<div id="algorithmParameters">
-								<p>Runtime: <span id="runtime">00:00</span> <span id="currentAlgorithmWork">(Algorithm not running)</span></p>
-								<p class="algoParameterRecap">Min. support: <span id="currentSupport">??</span></p>
-								<p class="algoParameterRecap">Gap interval: <span id="currentGap">??</span></p>
-								<p class="algoParameterRecap">Max. duration: <span id="currentMaxDuration">??</span></p>
-								<p class="algoParameterRecap">Max. size: <span id="currentSize">??</span></p>
-								<p class="algoParameterRecap hidden">Window size: <span id="currentWindow">??</span></p>
-								<!-- <p>Data used: <span id="dataUsed"></span></p>
-								<p>Focusing on: <span id="focus"></span></p> -->
+						<div class="body tabContainer">
+
+							<div class="tabHeader active" onclick="openAlgorithmTab(event, 'Execution')">
+								Execution
 							</div>
-							<div id="patternSizesChart">
-								
+							<div class="tabHeader" onclick="openAlgorithmTab(event, 'Algorithm')">
+								Mining
 							</div>
-							<button id="algorithmChangeParametersBtn" onclick="toggleAlgorithmParametersChange();" class="clickable">Change parameters</button>
-							<button id="algorithmShowMoreBtn" onclick="toggleExtendedAlgorithmView();" class="clickable">Show more</button>
-						</div>
-						<!--
-						<div id="Metrics" class="algorithmTabContent">
-							<p>Pattern sizes' distribution:</p>
-							<div id="patternSizeDistribution">
-							
+						
+							<div id="Execution" class="tabContent">
+								<div id="algorithmParameters">
+									<p>Runtime: <span id="runtime">00:00</span> <span id="currentAlgorithmWork">(Algorithm not running)</span></p>
+									<p class="algoParameterRecap">Min. support: <span id="currentSupport">??</span></p>
+									<p class="algoParameterRecap">Gap interval: <span id="currentGap">??</span></p>
+									<p class="algoParameterRecap">Max. duration: <span id="currentMaxDuration">??</span></p>
+									<p class="algoParameterRecap">Max. size: <span id="currentSize">??</span></p>
+									<p class="algoParameterRecap hidden">Window size: <span id="currentWindow">??</span></p>
+									<!-- <p>Data used: <span id="dataUsed"></span></p>
+									<p>Focusing on: <span id="focus"></span></p> -->
+								</div>
+								<div id="patternSizesChart">
+									
+								</div>
+								<button id="algorithmChangeParametersBtn" onclick="toggleAlgorithmParametersChange();" class="clickable">Change parameters</button>
+								<button id="algorithmShowMoreBtn" onclick="toggleExtendedAlgorithmView();" class="clickable">Show more</button>
 							</div>
-						</div>
-						-->
-						<div id="Algorithm" class="hidden algorithmTabContent">
-							<div id="sliderSupportArea">
-								<p>Min. support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
-								<br>
-								<div id="sliderSupport"></div>
-							</div>
-							<div id="sliderGapArea">
-								<p>Min. and max. gap:<span class="iconHelper" id="helpGap" title="Number of events in the pattern that don't belong to it">&nbsp;&nbsp;(?)</span></p>
-								<br>
-								<div id="sliderGap"></div>
-							</div>
-							<div id="sliderWindowArea">
-								<p>Window:<span class="iconHelper" id="helpWindow">&nbsp;&nbsp;(?)</span></p>
-								<br>
-								<div id="sliderWindow"></div>
-							</div>
-							<div id="sliderSizeArea">
-								<p>Max. size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
-								<br>
-								<div id="sliderSize"></div>
+
+							<div id="Algorithm" class="hidden tabContent">
+								<div id="sliderSupportArea">
+									<p>Min. support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
+									<br>
+									<div id="sliderSupport"></div>
+								</div>
+								<div id="sliderGapArea">
+									<p>Min. and max. gap:<span class="iconHelper" id="helpGap" title="Number of events in the pattern that don't belong to it">&nbsp;&nbsp;(?)</span></p>
+									<br>
+									<div id="sliderGap"></div>
+								</div>
+								<div id="sliderWindowArea">
+									<p>Window:<span class="iconHelper" id="helpWindow">&nbsp;&nbsp;(?)</span></p>
+									<br>
+									<div id="sliderWindow"></div>
+								</div>
+								<div id="sliderSizeArea">
+									<p>Max. size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
+									<br>
+									<div id="sliderSize"></div>
+								</div>
 							</div>
 						</div>
 					</div>

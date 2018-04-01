@@ -3527,23 +3527,12 @@ function displayDatasetInfo() {
  * @param {string} tabName The name of the tab that has been clicked
  */
 function openControlTab(evt, tabName) {
-    let i, tabcontent, tablinks;
-
-    // Hide all elements with class="controlTabContent"
-    tabcontent = document.getElementsByClassName("controlTabContent");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
-
-    // Remove the "active" class from all elements with class="controlTabLink"
-    tablinks = document.getElementsByClassName("controlTabLink");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-
-    // Show the current tab, and add an "active" class to the link that opened it
-    document.getElementById(tabName).style.display = "flex";
-    evt.currentTarget.className += " active";
+	d3.selectAll("#data .tabContent").classed("hidden", true);
+	d3.select("#data .active").classed("active", false);
+	
+	// Show the current tab, and add an "active" class to the header that opened it
+	d3.select("#"+tabName).classed("hidden", false);
+	d3.select(evt.currentTarget).classed("active", true);
 }
 
 /**
@@ -3552,21 +3541,10 @@ function openControlTab(evt, tabName) {
  * @param {string} tabName The name of the tab that has been clicked
  */
 function openAlgorithmTab(evt, tabName) {
-	let i, tabcontent, tablinks;
+	d3.selectAll("#algorithmInfo .tabContent").classed("hidden", true);
+	d3.select("#algorithmInfo .active").classed("active", false);
 	
-	// Hide all elements with class="algorithmTabContent"
-	tabcontent = document.getElementsByClassName("algorithmTabContent");
-	for (i = 0; i < tabcontent.length; i++) {
-		d3.select(tabcontent[i]).classed("hidden", true);
-	}
-	
-	// Remove the "active" class from all elements with class="algorithmTabLink"
-	tablinks = document.getElementsByClassName("algorithmTabLink");
-	for (i = 0; i < tablinks.length; i++) {
-		d3.select(tablinks[i]).classed("active", false);
-	}
-	
-	// Show the current tab, and add an "active" class to the link that opened it
+	// Show the current tab, and add an "active" class to the header that opened it
 	d3.select("#"+tabName).classed("hidden", false);
 	d3.select(evt.currentTarget).classed("active", true);
 }

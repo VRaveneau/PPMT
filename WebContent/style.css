@@ -194,6 +194,64 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	/*left: 0px;*/
 }
 
+.tabContainer {
+	display: grid;
+    grid-template-columns: repeat(6, minmax(max-content,1fr));
+}
+
+.tabHeader {
+	grid-row: 1;
+	
+    text-align: center;
+    padding: 8px 14px;
+    text-decoration: none;
+    transition: 0.3s;
+	border-radius: 10px 10px 0px 0px;
+	border-top: 1px black solid;
+	border-right: 1px black solid;
+	cursor: pointer;
+}
+
+.tabHeader:first-of-type {
+	border-left: 1px black solid;
+}
+
+.tabHeader:hover {
+	background-color: grey;
+	color: white;
+}
+
+.tabHeader.active {
+	font-weight: bold;
+	/* Make the text look bold when using Chrome.
+	  This may be a MacOS exclusive issue.
+	*/
+	-webkit-font-smoothing: antialiased;
+	padding-bottom: 13px;
+}
+
+.tabHeader:not(.active) {
+	margin-top: 5px;
+}
+
+.tabHeader:not(.active):hover {
+	margin-top: 2px;
+	padding-bottom: 11px;
+}
+
+.tabContent {
+	grid-row: 2;
+	grid-column-start: 1;
+	grid-column-end: -1;
+
+    border-top: 1px solid grey;
+    overflow: auto;
+	flex: 1;
+	padding-top: 5px;
+
+	display: grid;
+}
+
 thead {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
@@ -829,94 +887,6 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 /* 			Control tabs 		*/
 /********************************/
 
-/* Style the left-tabs */
-ul.controlTabs {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    /*border: 1px solid #ccc;*/
-    background-color: white;/*#73adc3;*/
-    /*height: 5%;*/
-}
-
-/* Float the list items side by side */
-ul.controlTabs li {
-	float: left;
-}
-
-/* Style the links inside the list items */
-ul.controlTabs li a {
-    display: inline-block;
-    color: black/*white*/;
-    text-align: center;
-    padding: 8px 14px;
-    text-decoration: none;
-    transition: 0.3s;
-	border-radius: 10px 10px 0px 0px;
-	border-top: 1px black solid;
-	border-right: 1px black solid;
-	/*border-bottom: 1px black solid;*/
-}
-
-ul.controlTabs li:first-of-type a {
-	border-left: 1px black solid;
-}
-
-/* Change background color of links on hover */
-ul.controlTabs li a:hover {
-	background-color: grey/*#2e84a5*/;
-	color: white;
-}
-
-/* Create an active/current tablink class */
-ul.controlTabs li a:focus, ul.controlTabs li .active {
-	font-weight: bold;
-	/* Make the text look bold when using Chrome.
-	  This may be a MacOS exclusive issue.
-	*/
-	-webkit-font-smoothing: antialiased;
-	padding-bottom: 13px;
-}
-
-ul.controlTabs li :not(.active) {
-	margin-top: 5px;
-}
-
-ul.controlTabs li :not(.active):hover {
-	margin-top: 2px;
-	padding-bottom: 11px;
-}
-
-/* Style the tab content */
-.controlTabContent {
-    display: none;
-  	padding-left: 3px;
-  	padding-right: 3px;
-  	padding-top: 5px;
-    border-top: 1px solid grey;
-    overflow: auto;
-    
-    flex: 1;
-    flex-direction: column;
-}
-
-.controlTabContent p {
-	text-align: left;
-}
-
-.controlTabContent input:not([type=checkbox]) {
-	float: right;
-}
-
-.controlTabContent input.numberInput {
-	float: right;
-	width: 100px;
-}
-
-.defaultControlTab {
-	display: block;
-}
 
 #Trace button {
 	width: 80%;
@@ -1021,75 +991,6 @@ table {
 	color: grey;
 	cursor: default;
 	background-color: white;
-}
-
-/* Style the right-tabs */
-ul.algorithmTabs {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    /*border: 1px solid #ccc;*/
-    background-color: white;/*#73adc3;*/
-}
-
-/* Float the list items side by side */
-ul.algorithmTabs li {
-	float: left;
-}
-
-/* Style the links inside the list items */
-ul.algorithmTabs li a {
-    display: inline-block;
-    color: black;/*white;*/
-    text-align: center;
-    padding: 8px 14px;
-    text-decoration: none;
-    transition: 0.3s;
-	border-radius: 10px 10px 0px 0px;
-	border-top: 1px black solid;
-	border-right: 1px black solid;
-}
-
-ul.algorithmTabs li:first-of-type a {
-	border-left: 1px black solid;
-}
-
-/* Change background color of links on hover */
-ul.algorithmTabs li a:hover {
-	background-color: grey/*#2e84a5*/;
-	color: white;
-}
-
-/* Create an active/current tablink class */
-ul.algorithmTabs li a:focus, ul.algorithmTabs li .active {
-	font-weight: bold;
-	/* Make the text look bold when using Chrome.
-	  This may be a MacOS exclusive issue.
-	*/
-	-webkit-font-smoothing: antialiased;
-	padding-bottom: 13px;
-}
-
-ul.algorithmTabs li :not(.active) {
-	margin-top: 5px;
-}
-
-ul.algorithmTabs li :not(.active):hover {
-	margin-top: 2px;
-	padding-bottom: 11px;
-}
-
-/* Style the tab content */
-.algorithmTabContent {
-    padding: 6px 12px;
-    border-top: 1px solid grey;
-    overflow: auto;
-    flex: 1;
-}
-
-.algorithmTabContent:not(.hidden) {
-	display: grid;
 }
 
 #List {
