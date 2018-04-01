@@ -6940,189 +6940,208 @@ var Timeline = function(elemId, options) {
 		self.colorToData = {};
 		let nextColor = 1;
 		
+		if (!self.displayColorsInBins) {
+			bins.data.all().forEach(function(bin) {
+				self.canvasContext.beginPath();
+				let binStart = bins.getStart(bin.value.aDateInside);
+				let binEnd = bins.getEnd(bin.value.aDateInside);
+				let x = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart));
+				let x2 = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd));
+				
+				y = self.yFocus(maxHeight-bin.value.eventCount);
+				binHeight = self.yFocus(bin.value.eventCount);
+				self.canvasContext.fillStyle = "#04B7FB";
+				self.canvasContext.fillRect(x, binHeight, x2-x, y);
+				self.canvasContext.lineWidth = 0.25;
+				self.canvasContext.strokeStyle = "black";
+				self.canvasContext.stroke();
+				//  self.canvasContext.fillRect(x, binHeight, x2-x, y);
+				self.canvasContext.closePath();
+				
+				// Attributing a color to data link for the hidden canvas
+				var color = [];
+				// via http://stackoverflow.com/a/15804183
+				if(nextColor < 16777215){
+					color.push(nextColor & 0xff); // R
+					color.push((nextColor & 0xff00) >> 8); // G 
+					color.push((nextColor & 0xff0000) >> 16); // B
+	
+					nextColor += 1;
+				} else {
+					console.log('Warning : too many colors needed for the main hidden canvas');
+				}
+				
+				let eventTypesColors = [];
+				let splitEventTypes = Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;});
+				splitEventTypes.forEach(function(et) {
+					eventTypesColors.push(et+":"+getEventColor(et));
+				});
+				
+				/* Create the info we want in the tooltip
+				* Structure : [year,
+				* start,
+				* end,
+				* nbEventsInBin,
+				* user1;user2;...,
+				* type1;type2;...,
+				* type1:nbOcc;type2:nbOcc;...
+				* nbEventsInSubBin,
+				* type1:hslColorValue1;type2:hslColorValue1;...]
+				*/
+				let subBinInfo = [];
+				subBinInfo.push(binStart.split("-")[0]); // year
+				subBinInfo.push(binStart);
+				subBinInfo.push(binEnd);
+				subBinInfo.push(bin.value.eventCount);
+				subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
+				subBinInfo.push(splitEventTypes.join(";"));
+				let nbOccsPerType = [];
+				splitEventTypes.forEach(function(et) {
+					nbOccsPerType.push(et+":"+bin.value.events[et]);
+				});
+				subBinInfo.push(nbOccsPerType.join(";"));
+				subBinInfo.push(bin.value.eventCount);
+				subBinInfo.push(eventTypesColors.join(';'));
+				self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;
+				
+				// Drawing on the hidden canvas for the tooltip
+				self.hiddenCanvasContext.beginPath();
+				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
+				self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
+				self.hiddenCanvasContext.closePath();
+			});
+		}
+
+		let drawColoredBins = self.displayColorsInBins;
+		if (highlightedEventTypes.length > 0 && !self.displayColorsInBins) {
+			dataDimensions.type.filterFunction( function(t) {
+				return highlightedEventTypes.includes(t);
+			});
+			drawColoredBins = true;
+		}
+
 		bins.data.all().forEach(function(bin) {
 			self.canvasContext.beginPath();
 			let binStart = bins.getStart(bin.value.aDateInside);
 			let binEnd = bins.getEnd(bin.value.aDateInside);
 		    let x = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart));
 			let x2 = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd));
-			
-			if (self.displayColorsInBins == true) {
-			    /*
-			     * Deduce the decomposition in multiple bars from bins[iBin]
-			     * Structure : [year,start,end,nbEvents,user1;user2;...,???,type1:nbOcc;type2:nbOcc;...]
-			     */
-			    let colorsProportion = {}; // nbOccs for each color
+
+			if (drawColoredBins) {
+				/*
+				 * Deduce the decomposition in multiple bars from bins[iBin]
+				 * Structure : [year,start,end,nbEvents,user1;user2;...,???,type1:nbOcc;type2:nbOcc;...]
+				 */
+				let colorsProportion = {}; // nbOccs for each color
 				let eventTypesAssociatedToColor = {}; // nbOccs per event for each color
 				
 				Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;}).forEach(function(et) {
-			    	// TODO fix the agavue situation --> Still needed ?
-			    	let eColor = getCurrentEventColor(et).toString();
-			    	if (!colorsProportion[eColor]) {
-			    		colorsProportion[eColor] = bin.value.events[et];
-			    		eventTypesAssociatedToColor[eColor] = [];
-			    	} else {
-			    		colorsProportion[eColor] += bin.value.events[et];
-			    	}
-		    		eventTypesAssociatedToColor[eColor].push(et);
+					// TODO fix the agavue situation --> Still needed ?
+					let eColor = getCurrentEventColor(et).toString();
+					if (!colorsProportion[eColor]) {
+						colorsProportion[eColor] = bin.value.events[et];
+						eventTypesAssociatedToColor[eColor] = [];
+					} else {
+						colorsProportion[eColor] += bin.value.events[et];
+					}
+					eventTypesAssociatedToColor[eColor].push(et);
 				});
-
-			    let evtNbr = bin.value.eventCount;
+	
+				let evtNbr = bin.value.eventCount;
 				let colorsFound = Object.keys(colorsProportion);
 				
-			    colorsFound.sort(function(a,b) {
-			    	return colorsProportion[a] - colorsProportion[b];
-			    });
-			    
-			    // draw each of the coloured sections of the bar
-			    let cumulatedHeight = 0;
-			    let y;
+				colorsFound.sort(function(a,b) {
+					return colorsProportion[a] - colorsProportion[b];
+				});
+				
+				// draw each of the coloured sections of the bar
+				let cumulatedHeight = 0;
+				let y;
 				let binHeight;
 				
 				colorsFound.forEach(function(color) {
 					let y = 0;
 					let binHeight = 0;
-
+	
 					if (self.displayFullHeightBins == true) {
-				    	y = self.yFocus(maxHeight - (colorsProportion[color] * maxHeight) / bin.value.eventCount);
-				    	binHeight = self.yFocus(cumulatedHeight + (colorsProportion[color] * maxHeight) / bin.value.eventCount);
-				    } else {
-				    	y = self.yFocus(maxHeight-colorsProportion[color]);
-					    binHeight = self.yFocus(cumulatedHeight + colorsProportion[color]);
+						y = self.yFocus(maxHeight - (colorsProportion[color] * maxHeight) / bin.value.eventCount);
+						binHeight = self.yFocus(cumulatedHeight + (colorsProportion[color] * maxHeight) / bin.value.eventCount);
+					} else {
+						y = self.yFocus(maxHeight-colorsProportion[color]);
+						binHeight = self.yFocus(cumulatedHeight + colorsProportion[color]);
 					}
 					
-				    self.canvasContext.fillStyle = color.toString();
-				    self.canvasContext.fillRect(x, binHeight, x2-x, y);
-				    self.canvasContext.lineWidth = 0.25;
-				    self.canvasContext.strokeStyle = "black";
-				    self.canvasContext.stroke();
-				    //  self.canvasContext.fillRect(x, binHeight, x2-x, y);
+					self.canvasContext.fillStyle = color.toString();
+					self.canvasContext.fillRect(x, binHeight, x2-x, y);
+					self.canvasContext.lineWidth = 0.25;
+					self.canvasContext.strokeStyle = "black";
+					self.canvasContext.stroke();
+					//  self.canvasContext.fillRect(x, binHeight, x2-x, y);
 					self.canvasContext.closePath();
 					
 					// Attributing a color to data link for the hidden canvas
-				    let hiddenColor = [];
-				    // via http://stackoverflow.com/a/15804183
-				    if(nextColor < 16777215){
-				    	hiddenColor.push(nextColor & 0xff); // R
-				    	hiddenColor.push((nextColor & 0xff00) >> 8); // G 
-				    	hiddenColor.push((nextColor & 0xff0000) >> 16); // B
+					let hiddenColor = [];
+					// via http://stackoverflow.com/a/15804183
+					if(nextColor < 16777215){
+						hiddenColor.push(nextColor & 0xff); // R
+						hiddenColor.push((nextColor & 0xff00) >> 8); // G 
+						hiddenColor.push((nextColor & 0xff0000) >> 16); // B
 	
-				    	nextColor += 1;
-				    } else {
-				    	console.log('Warning : too many colors needed for the main hidden canvas');
-				    }
-				    
+						nextColor += 1;
+					} else {
+						console.log('Warning : too many colors needed for the main hidden canvas');
+					}
+					
 					let eventTypesColors = [];
 					
 					let splitEventTypes = Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;});
 					splitEventTypes.forEach(function(et) {
 						eventTypesColors.push(et+":"+getEventColor(et));
 					});
-				    
-				    /* Create the info we want in the tooltip
-				    * Structure : [year,
-				    * start,
-				    * end,
-				    * nbEventsInBin,
-				    * user1;user2;...,
-				    * type1;type2;...,
-				    * type1:nbOcc;type2:nbOcc;...
-				    * nbEventsInSubBin,
-				    * type1:hslColorValue1;type2:hslColorValue1;...]
-				   	*/
-				    let subBinInfo = [];
-				    subBinInfo.push(binStart.split("-")[0]); // year
-				    subBinInfo.push(binStart);
+					
+					/* Create the info we want in the tooltip
+					* Structure : [year,
+					* start,
+					* end,
+					* nbEventsInBin,
+					* user1;user2;...,
+					* type1;type2;...,
+					* type1:nbOcc;type2:nbOcc;...
+					* nbEventsInSubBin,
+					* type1:hslColorValue1;type2:hslColorValue1;...]
+					   */
+					let subBinInfo = [];
+					subBinInfo.push(binStart.split("-")[0]); // year
+					subBinInfo.push(binStart);
 					subBinInfo.push(binEnd);
 					subBinInfo.push(bin.value.eventCount);
-				    subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
+					subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
 					subBinInfo.push(splitEventTypes.join(";"));
 					let nbOccsPerType = [];
 					eventTypesAssociatedToColor[color].forEach(function(et) {
 						nbOccsPerType.push(et+":"+bin.value.events[et]);
 					});
-				    subBinInfo.push(nbOccsPerType.join(';'));
-				    subBinInfo.push(colorsProportion[color]);
-				    subBinInfo.push(eventTypesColors.join(';'));
-				    self.colorToData["rgb("+hiddenColor.join(',')+")"] = subBinInfo;
+					subBinInfo.push(nbOccsPerType.join(';'));
+					subBinInfo.push(colorsProportion[color]);
+					subBinInfo.push(eventTypesColors.join(';'));
+					self.colorToData["rgb("+hiddenColor.join(',')+")"] = subBinInfo;
 					
-				    // Drawing on the hidden canvas for the tooltip
+					// Drawing on the hidden canvas for the tooltip
 					self.hiddenCanvasContext.beginPath();
-				    self.hiddenCanvasContext.fillStyle = "rgb("+hiddenColor.join(',')+")";//node.attr("fillStyle");
-				    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
-				    self.hiddenCanvasContext.closePath();
-				    
-				    if (self.displayFullHeightBins == true) {
-				    	cumulatedHeight += (colorsProportion[color] * maxHeight) / bin.value.eventCount;
-				    } else {
-				    	cumulatedHeight += colorsProportion[color];
-				    }
+					self.hiddenCanvasContext.fillStyle = "rgb("+hiddenColor.join(',')+")";//node.attr("fillStyle");
+					self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
+					self.hiddenCanvasContext.closePath();
+					
+					if (self.displayFullHeightBins == true) {
+						cumulatedHeight += (colorsProportion[color] * maxHeight) / bin.value.eventCount;
+					} else {
+						cumulatedHeight += colorsProportion[color];
+					}
 				});
-
-		    } else { // Draw the full bin without dividing it
-		    	y = self.yFocus(maxHeight-bin.value.eventCount);
-		    	binHeight = self.yFocus(bin.value.eventCount);
-			    self.canvasContext.fillStyle = "#04B7FB";
-			    self.canvasContext.fillRect(x, binHeight, x2-x, y);
-			    self.canvasContext.lineWidth = 0.25;
-			    self.canvasContext.strokeStyle = "black";
-			    self.canvasContext.stroke();
-			    //  self.canvasContext.fillRect(x, binHeight, x2-x, y);
-			    self.canvasContext.closePath();
-			    
-			    // Attributing a color to data link for the hidden canvas
-			    var color = [];
-			    // via http://stackoverflow.com/a/15804183
-			    if(nextColor < 16777215){
-			    	color.push(nextColor & 0xff); // R
-			    	color.push((nextColor & 0xff00) >> 8); // G 
-			    	color.push((nextColor & 0xff0000) >> 16); // B
-
-			    	nextColor += 1;
-			    } else {
-			    	console.log('Warning : too many colors needed for the main hidden canvas');
-			    }
-			    
-			    let eventTypesColors = [];
-				let splitEventTypes = Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;});
-				splitEventTypes.forEach(function(et) {
-					eventTypesColors.push(et+":"+getEventColor(et));
-				});
-			    
-			    /* Create the info we want in the tooltip
-			    * Structure : [year,
-			    * start,
-			    * end,
-			    * nbEventsInBin,
-			    * user1;user2;...,
-			    * type1;type2;...,
-			    * type1:nbOcc;type2:nbOcc;...
-			    * nbEventsInSubBin,
-			    * type1:hslColorValue1;type2:hslColorValue1;...]
-			   	*/
-			    let subBinInfo = [];
-			    subBinInfo.push(binStart.split("-")[0]); // year
-			    subBinInfo.push(binStart);
-			    subBinInfo.push(binEnd);
-			    subBinInfo.push(bin.value.eventCount);
-			    subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
-				subBinInfo.push(splitEventTypes.join(";"));
-				let nbOccsPerType = [];
-				splitEventTypes.forEach(function(et) {
-					nbOccsPerType.push(et+":"+bin.value.events[et]);
-				});
-			    subBinInfo.push(nbOccsPerType.join(";"));
-			    subBinInfo.push(bin.value.eventCount);
-			    subBinInfo.push(eventTypesColors.join(';'));
-			    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;
-			    
-			    // Drawing on the hidden canvas for the tooltip
-				self.hiddenCanvasContext.beginPath();
-			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
-			    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
-			    self.hiddenCanvasContext.closePath();
-		    }
+			}
 		});
+
+		dataDimensions.type.filterAll();
 
 		self.drawContextBins();
 		
