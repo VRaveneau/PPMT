@@ -33,20 +33,24 @@
 			</div>
 			<div id="tool">
 			
-				<div id="left">
-					
-					<div id="data" class="section">
-					
-						<div class="title">Data</div>
+				<div id="data" class="section">
+					<div class="title">Data</div>
+					<div class="body tabContainer">
 						
-						<ul class="controlTabs">
-							<li><a href="javascript:void(0)" class="controlTabLink active" onclick="openControlTab(event, 'Trace')">Trace</a></li>
-							<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Events')">Event types</a></li>
-							<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Users')">Users</a></li>
-							<li><a href="javascript:void(0)" class="controlTabLink" onclick="openControlTab(event, 'Categories')">Categories</a></li>
-						</ul>
+						<div class="tabHeader active" onclick="openControlTab(event, 'Trace')">
+							Trace
+						</div>
+						<div class="tabHeader" onclick="openControlTab(event, 'Events')">
+							Event types
+						</div>
+						<div class="tabHeader" onclick="openControlTab(event, 'Users')">
+							Users
+						</div>
+						<div class="tabHeader" onclick="openControlTab(event, 'Categories')">
+							Categories
+						</div>
 						
-						<div id="Trace" class="controlTabContent defaultControlTab">
+						<div id="Trace" class="tabContent">
 							<!-- Info on trace -->
 							<div class="subsection">
 								<div class="title">This dataset</div>
@@ -70,7 +74,7 @@
 							</div>
 						</div>
 						
-						<div id="Events" class="controlTabContent">
+						<div id="Events" class="tabContent hidden">
 							<div class="left-aligned">
 								Show descriptions:
 								<input type="checkbox" class="clickable" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
@@ -90,7 +94,7 @@
 							<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
 						</div>
 						
-						<div id="Users" class="controlTabContent">
+						<div id="Users" class="tabContent hidden">
 							<form>
 								<div class="searchBarArea">
 									<div class="searchFieldArea">
@@ -114,13 +118,13 @@
 											<th onclick="clickOnUserEndHeader()">End&nbsp;</th>
 										</tr>
 									</thead>
-									<tbody id="userTableBody">
+									<tbody id="userTableBody" onmouseout="prepareToHideUserContextActions();">
 									</tbody>
 								</table>
 							</div>
 						</div>
 						
-						<div id="Categories" class="controlTabContent">
+						<div id="Categories" class="tabContent hidden">
 							<div id="categoryTableArea">
 								<table id="categoryTable">
 									<thead>
@@ -135,137 +139,134 @@
 								</table>
 							</div>
 						</div>
-					
 					</div>
-					
 				</div>
 				
-				<div id="middle">
-				
-					<div id="top" class="section">
-						<div id="highlightResetButtons">
-							<button onclick="clearUserSelection();" class="clickable">Reset users</button>
-							<button onclick="clearEventTypeSelection();" class="clickable">Reset event types</button>
+				<div id="top" class="section">
+					<!--<div class="title">Current highlights</div>-->
+					<div class="body">
+						<!-- Activity indicator, disabled for now
+						<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
+							<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
+						</svg> -->
+						<!-- <p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p> -->
+						<div id="userHighlight" onmousemove="moveTooltipOnHighlights('users');">
+							0 highlighted user
 						</div>
-						<div class="title">Current highlights</div>
-						<div class="body">
-							<!-- Activity indicator, disabled for now
-							<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
-								<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
-							</svg> -->
-							<!-- <p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p> -->
-							<div class="leftAligned no-margin-top no-margin-bottom" id="userHighlight">No user</div>
-							<div class="leftAligned lastItem no-margin-top no-margin-bottom" id="eventTypeHighlight">No event type</div>
-							<div class="rightAligned"></div>
+						<div id="eventTypeHighlight" onmousemove="moveTooltipOnHighlights('eventTypes');">
+							0 highlighted event type
+						</div>
+						<div id="patternHighlight" onmousemove="moveTooltipOnHighlights('patterns');">
+							0 selected pattern
 						</div>
 					</div>
-				
-					<div id="center" class="section">
-						<div id="timeline-view">
-							<div id="timeline">
-								<div class="subsection">
-									<div class="title">Overview</div>
-									<div id="tl_overview" class="body"></div>
-								</div>
-								<!-- <div class="subsection">
-									<div class="title">Trace exploration</div>
-									<div id="tl_focusControl" class="body"></div>
-								</div> -->
-								<div class="subsection">
-									<div class="title">All users</div>
-									<div id="tl_focusControl" class="param">
-										<form class="displayZoomForm">
-											<input type="button" name="zoom" value="+" class="clickable" id="zoomIn" onclick="zoomingIn();"/>
-											<input type="button" name="zoom" value="-" class="clickable" id="zoomOut" onclick="zoomingOut();"/>
-										</form>
-										<div class="focusZoomInfo">
-											Data grouped by:
-											<span id="zoomInfoYear" class="zoomInfoSpan clickable" onclick="goToYearDistribution();">year</span>
-											<span class="zoomInfoSpan"> > </span>
-											<span id="zoomInfoMonth" class="zoomInfoSpan clickable" onclick="goToMonthDistribution();">month</span>
-											<span class="zoomInfoSpan"> > </span>
-											<span id="zoomInfoHalfMonth" class="zoomInfoSpan clickable" onclick="goToHalfMonthDistribution();">half month</span>
-											<span class="zoomInfoSpan"> > </span>
-											<span id="zoomInfoDay" class="zoomInfoSpan clickable" onclick="goToDayDistribution();">day</span>
-											<span class="zoomInfoSpan"> > </span>
-											<span id="zoomInfoHalfDay" class="zoomInfoSpan clickable" onclick="goToHalfDayDistribution();">half day</span>
-											<span class="zoomInfoSpan"> > </span>
-											<span id="zoomInfoEvent" class="zoomInfoSpan clickable" onclick="goToEvents();">event</span>
-										</div>
-										<form id="binDisplayStyleForm" class="displayControlForm">
-											<label class="hidden">Relative size: </label>
-											<input id="displayBinFullHeightInput" type="checkbox" name="scale" class="clickable hidden" value="Full height" onchange="switchBinHeightDisplay();"/>
-											<label>Show categories: </label>
-											<input id="displayBinColorInput" type="checkbox" name="scale" class="clickable" value="Colors" onchange="switchBinCategoryDisplay();"/>
-										</form>
-										<form id="eventDisplayStyleForm" class="displayControlForm">
-											<label>Order events by: </label>
-											<label>
-												Type
-												<input type="radio" name="scale" class="clickable" checked value="type" onchange="startDisplayingEventsByType();"/>
-											</label>
-											<label class="hidden">
-												Time
-												<input type="radio" name="scale" class="clickable hidden" value="time" onchange="startDisplayingEventsByTime();"/>
-											</label>
-										</form>
-										<form id="focusShowOnlyHighlightedForm">
-											<label>
-												Only show highlighted: 
-												<input type="checkbox" name="showOnlyHighlighted" class="clickable" value="showOnlyHighlighted" onchange="switchFocusShowOnlyHighlighted();"/>
-											</label>
-										</form>
-									</div>
-									<div id="tl_focus" class="body"></div>
-								</div>
-								<div class="subsection">
-									<div class="title">Exploration per user</div>
-									<div id="tl_usersControl" class="param">
-									<span>Show 
-										<span id="showUserSessionsSwitch" class="switchArea">
-											<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button><button type="button" value="some" onclick="showUserSessions('some');">Some users</button></span>
-									</span>
-									<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput" class="fakeBrowserSlider"></span>
-									<span id="drawIndividualEvents" class="hidden">Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
-									<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" class="clickable" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
-									</div>
-									<div id="tl_users" class="body"></div>
-								</div>
-								<!-- <div class="subsection">
-									<div class="title">Selected users</div>
-									<div id="tl_selectedUsers" class="body"></div>
-								</div> -->
-								<!-- <div class="tl_separator"><span>Trace exploration</span></div>
-								<div id="tl_focusControl"></div>
-								<div id="tl_focus"></div>
-								<div class="tl_separator"><span>User patterns</span></div>
-								<!-- <div id="tl_usersControl"></div> -->
-								<!-- <div id="tl_users"></div>
-								<div class="tl_separator"><span>Selected users</span></div>
-								<div id="tl_selectedUsers"></div>
-								<div class="tl_separator"><span>Selected patterns</span></div>
-								<div id="tl_patterns"></div> -->
+				</div>
+
+				<div id="center" class="section">
+					<div id="timeline-view">
+						<div id="timeline">
+							<div class="subsection">
+								<div class="title">Overview</div>
+								<div id="tl_overview" class="body"></div>
 							</div>
-							<div id="centerOverlay">
-							
+							<!-- <div class="subsection">
+								<div class="title">Trace exploration</div>
+								<div id="tl_focusControl" class="body"></div>
+							</div> -->
+							<div class="subsection">
+								<div class="title">All users</div>
+								<div id="tl_focusControl" class="param">
+									<form class="displayZoomForm">
+										<input type="button" name="zoom" value="+" class="clickable" id="zoomIn" onclick="zoomingIn();"/>
+										<input type="button" name="zoom" value="-" class="clickable" id="zoomOut" onclick="zoomingOut();"/>
+									</form>
+									<div class="focusZoomInfo">
+										Data grouped by:
+										<span id="zoomInfoYear" class="zoomInfoSpan clickable" onclick="goToYearDistribution();">year</span>
+										<span class="zoomInfoSpan"> > </span>
+										<span id="zoomInfoMonth" class="zoomInfoSpan clickable" onclick="goToMonthDistribution();">month</span>
+										<span class="zoomInfoSpan"> > </span>
+										<span id="zoomInfoHalfMonth" class="zoomInfoSpan clickable" onclick="goToHalfMonthDistribution();">half month</span>
+										<span class="zoomInfoSpan"> > </span>
+										<span id="zoomInfoDay" class="zoomInfoSpan clickable" onclick="goToDayDistribution();">day</span>
+										<span class="zoomInfoSpan"> > </span>
+										<span id="zoomInfoHalfDay" class="zoomInfoSpan clickable" onclick="goToHalfDayDistribution();">half day</span>
+										<span class="zoomInfoSpan"> > </span>
+										<span id="zoomInfoEvent" class="zoomInfoSpan clickable" onclick="goToEvents();">event</span>
+									</div>
+									<form id="binDisplayStyleForm" class="displayControlForm">
+										<label class="hidden">Relative size: </label>
+										<input id="displayBinFullHeightInput" type="checkbox" name="scale" class="clickable hidden" value="Full height" onchange="switchBinHeightDisplay();"/>
+										<label>Show categories: </label>
+										<input id="displayBinColorInput" type="checkbox" name="scale" class="clickable" value="Colors" onchange="switchBinCategoryDisplay();"/>
+									</form>
+									<form id="eventDisplayStyleForm" class="displayControlForm">
+										<label>Order events by: </label>
+										<label>
+											Type
+											<input type="radio" name="scale" class="clickable" checked value="type" onchange="startDisplayingEventsByType();"/>
+										</label>
+										<label class="hidden">
+											Time
+											<input type="radio" name="scale" class="clickable hidden" value="time" onchange="startDisplayingEventsByTime();"/>
+										</label>
+									</form>
+									<form id="focusShowOnlyHighlightedForm">
+										<label>
+											Only show highlighted: 
+											<input type="checkbox" name="showOnlyHighlighted" class="clickable" value="showOnlyHighlighted" onchange="switchFocusShowOnlyHighlighted();"/>
+										</label>
+									</form>
+								</div>
+								<div id="tl_focus" class="body"></div>
 							</div>
+							<div class="subsection">
+								<div class="title">Exploration per user</div>
+								<div id="tl_usersControl" class="param">
+								<span>Show 
+									<span id="showUserSessionsSwitch" class="switchArea">
+										<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button><button type="button" value="some" onclick="showUserSessions('some');">Some users</button></span>
+								</span>
+								<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput" class="fakeBrowserSlider"></span>
+								<span id="drawIndividualEvents" class="hidden">Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
+								<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" class="clickable" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
+								</div>
+								<div id="tl_users" class="body"></div>
+							</div>
+							<!-- <div class="subsection">
+								<div class="title">Selected users</div>
+								<div id="tl_selectedUsers" class="body"></div>
+							</div> -->
+							<!-- <div class="tl_separator"><span>Trace exploration</span></div>
+							<div id="tl_focusControl"></div>
+							<div id="tl_focus"></div>
+							<div class="tl_separator"><span>User patterns</span></div>
+							<!-- <div id="tl_usersControl"></div> -->
+							<!-- <div id="tl_users"></div>
+							<div class="tl_separator"><span>Selected users</span></div>
+							<div id="tl_selectedUsers"></div>
+							<div class="tl_separator"><span>Selected patterns</span></div>
+							<div id="tl_patterns"></div> -->
 						</div>
-					
+						<div id="centerOverlay">
+						
+						</div>
 					</div>
 				
 				</div>
 					
-				<div id="right">
-				
-					<div id="algorithmInfo" class="section">
-						<div class="title">Algorithm</div>
-						<ul class="algorithmTabs">
-							<li><a href="javascript:void(0)" class="algorithmTabLink active" onclick="openAlgorithmTab(event, 'Execution')">Execution</a></li>
-							<!-- <li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Metrics')">Metrics</a></li> -->
-							<li><a href="javascript:void(0)" class="algorithmTabLink" onclick="openAlgorithmTab(event, 'Algorithm')">Mining</a></li>
-						</ul>
+				<div id="algorithmInfo" class="section">
+					<div class="title">Algorithm</div>
+					<div class="body tabContainer">
+
+						<div class="tabHeader active" onclick="openAlgorithmTab(event, 'Execution')">
+							Execution
+						</div>
+						<div class="tabHeader" onclick="openAlgorithmTab(event, 'Algorithm')">
+							Mining
+						</div>
 					
-						<div id="Execution" class="algorithmTabContent">
+						<div id="Execution" class="tabContent">
 							<div id="algorithmParameters">
 								<p>Runtime: <span id="runtime">00:00</span> <span id="currentAlgorithmWork">(Algorithm not running)</span></p>
 								<p class="algoParameterRecap">Min. support: <span id="currentSupport">??</span></p>
@@ -282,15 +283,8 @@
 							<button id="algorithmChangeParametersBtn" onclick="toggleAlgorithmParametersChange();" class="clickable">Change parameters</button>
 							<button id="algorithmShowMoreBtn" onclick="toggleExtendedAlgorithmView();" class="clickable">Show more</button>
 						</div>
-						<!--
-						<div id="Metrics" class="algorithmTabContent">
-							<p>Pattern sizes' distribution:</p>
-							<div id="patternSizeDistribution">
-							
-							</div>
-						</div>
-						-->
-						<div id="Algorithm" class="hidden algorithmTabContent">
+
+						<div id="Algorithm" class="hidden tabContent">
 							<div id="sliderSupportArea">
 								<p>Min. support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
 								<br>
@@ -313,57 +307,57 @@
 							</div>
 						</div>
 					</div>
-					
-					<div id="patternArea" class="section">
-					
-						<div class="title">Patterns</div>
-						<div class="subtitle"><span id="patternNumberSpan">0</span> discovered, <span id="selectedPatternNumberSpan">0</span> selected, <span id="highlightedPatternNumberSpan">0</span> matching the filter</div>
-						<div class="param">
-							<div class="left-aligned">
-								Show text:
-								<input type="checkbox" class="clickable" id="showPatternTextInput" checked onchange="switchShowPatternText();">
-							</div>
-							<div class="right-aligned">
-								<button onclick="selectUsersBasedOnPatternSelection();" class="clickable">Highlight relevant users</button>
-								<button onclick="unselectAllPatterns();" class="clickable">Unselect all patterns</button>
-							</div>
+				</div>
+
+				<div id="patternArea" class="section">
+				
+					<div class="title">Patterns</div>
+					<div class="subtitle"><span id="patternNumberSpan">0</span> discovered, <span id="selectedPatternNumberSpan">0</span> selected, <span id="highlightedPatternNumberSpan">0</span> matching the filter</div>
+					<div class="param">
+						<div class="left-aligned">
+							Show text:
+							<input type="checkbox" class="clickable" id="showPatternTextInput" checked onchange="switchShowPatternText();">
 						</div>
-						<div id="patternListArea" class="body">
-							<form>
-								<div class="searchBarArea">
-									<div class="searchFieldArea">
-										&nbsp;
-										<input type="text" class="searchField" placeholder="Write event types here">
-										<input type="text" class="hidden" disabled> <!-- To prevent submitting the form and reloading the page -->
-										<div class="suggestionDiv">
-										</div>
+						<div class="right-aligned">
+							<button onclick="selectUsersBasedOnPatternSelection();" class="clickable">Highlight relevant users</button>
+							<button onclick="unselectAllPatterns();" class="clickable">Unselect all patterns</button>
+						</div>
+					</div>
+					<div id="patternListArea" class="body">
+						<form>
+							<div class="searchBarArea">
+								<div class="searchFieldArea">
+									&nbsp;
+									<input type="text" class="searchField" placeholder="Write event types here">
+									<input type="text" class="hidden" disabled> <!-- To prevent submitting the form and reloading the page -->
+									<div class="suggestionDiv">
 									</div>
 								</div>
-							</form>
-							 
-							<div id="List">
-								<table id="patternTable">
-									<thead>
-										<tr class="clickable">
-											<th onclick="clickOnPatternNameHeader()">Name&nbsp;</th>
-											<th onclick="clickOnPatternSupportHeader()">Support&nbsp;</th>
-											<th onclick="clickOnPatternNbUsersHeader()">Nb&nbsp;users&nbsp;</th>
-											<th onclick="clickOnPatternSizeHeader()">Size&nbsp;↓</th>
-										</tr>
-									</thead>
-									<tbody id="selectedPatternTableBody" onmouseout="prepareToHidePatternContextActions();">
-									</tbody>
-									<tr id="patternListSeparator">
-										<td colspan="4"><hr></td>
-									</tr>
-									<tbody id="patternTableBody" onmouseout="prepareToHidePatternContextActions();">
-									</tbody>
-								</table>
-						
 							</div>
-						</div>
+						</form>
+						 
+						<div id="List">
+							<table id="patternTable">
+								<thead>
+									<tr class="clickable">
+										<th onclick="clickOnPatternNameHeader()">Name&nbsp;</th>
+										<th onclick="clickOnPatternSupportHeader()">Support&nbsp;</th>
+										<th onclick="clickOnPatternNbUsersHeader()">Nb&nbsp;users&nbsp;</th>
+										<th onclick="clickOnPatternSizeHeader()">Size&nbsp;↓</th>
+									</tr>
+								</thead>
+								<tbody id="selectedPatternTableBody" onmouseout="prepareToHidePatternContextActions();">
+								</tbody>
+								<tr id="patternListSeparator">
+									<td colspan="4"><hr></td>
+								</tr>
+								<tbody id="patternTableBody" onmouseout="prepareToHidePatternContextActions();">
+								</tbody>
+							</table>
 					
+						</div>
 					</div>
+				
 				</div>
 					
 				<div id="tooltip" class="section hidden">
@@ -375,45 +369,41 @@
 				</div>
 				<div id="modalBackground" class="hidden">
 					<div id="modalContent">
-						<div id="modalHeader" class="section">
-							<div id="modalTitle" class="subsection"></div>
-							<div id="modalCloseArea" class="subsection clickable">
-								X
-							</div>
+						<div id="modalTitle" class="section"></div>
+						<div id="modalCloseArea" class="section clickable">
+							X
 						</div>
 						<div id="algorithmExtended" class="section hidden">
-							<div id="algorithmExtendedMainPanel">
-								<div id="patternSizeTableArea" class="section">
-									<div class="body">
-										<table id="patternSizeTable">
-											<thead>
-												<tr>
-													<th>Size</th>
-													<th>Status</th>
-													<th>Patterns found</th>
-													<th>Candidates checked</th>
-													<th>Progression</th>
-													<th>Elapsed time</th>
-												</tr>
-											</thead>
-											<tbody>
-												<tr id="patternSizeTableTotal">
-													<td>TOTAL</td>
-													<td>Not started</td>
-													<td>0</td>
-													<td>0</td>
-													<td>---</td>
-													<td>0s</td>
-												</tr>
-											</tbody>
-											<tbody id="patternSizeTableContent">
-											</tbody>
-										</table>
-									</div>
+							<div id="patternSizeTableArea" class="section">
+								<div class="body">
+									<table id="patternSizeTable">
+										<thead>
+											<tr>
+												<th>Size</th>
+												<th>Status</th>
+												<th>Patterns found</th>
+												<th>Candidates checked</th>
+												<th>Progression</th>
+												<th>Elapsed time</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr id="patternSizeTableTotal">
+												<td>TOTAL</td>
+												<td>Not started</td>
+												<td>0</td>
+												<td>0</td>
+												<td>---</td>
+												<td>0s</td>
+											</tr>
+										</tbody>
+										<tbody id="patternSizeTableContent">
+										</tbody>
+									</table>
 								</div>
-								<div id="extendedPatternSizesChart">
+							</div>
+							<div id="extendedPatternSizesChart">
 
-								</div>
 							</div>
 							<div id="algorithmExtendedSidePanel">
 								<div id="extendedAlgorithmStrategyArea" class="section">
@@ -434,7 +424,18 @@
 								<div id="algorithmSpeedArea" class="section">
 									<div class="title">Speed</div>
 									<div class="body">
-										plop
+										<div id="patternsPerSec" class="subsection">
+											<div class="title">Patterns per second</div>
+											<div class="body">
+												plop
+											</div>
+										</div>
+										<div id="candidatesCheckedPerSec" class="subsection">
+											<div class="title">Candidates checked per second</div>
+											<div class="body">
+												plop
+											</div>
+										</div>
 									</div>
 								</div>
 							</div>
@@ -446,11 +447,10 @@
 							<div>max size</div>
 						</div>
 						<div id="actionConfirmation" class="section hidden">
-							<div></div>
-							<div>
-								<button id="confirmationCancel" onclick="closeModal();" class="clickable">Cancel</button>
-								<button id="confirmationConfirm" class="clickable">Confirm</button>
-							</div>
+							<div id="contentHeader"></div>
+							<div id="contentBody"></div>
+							<button id="confirmationCancel" onclick="closeModal();" class="clickable">Cancel</button>
+							<button id="confirmationConfirm" class="clickable">Confirm</button>
 						</div>
 					</div>
 				</div>
