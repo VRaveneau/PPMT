@@ -1940,7 +1940,8 @@ function processMessage(message/*Compressed*/) {
 			updateDatasetForRemovedUser(msg.removedIds, msg.removedUser);
 		}
 		updateUserInformations();
-		updateDatasetInfo(true);
+		updateDatasetInfo();
+		resetPatterns();
 		displayDatasetInfo();
 		createUserListDisplay();
 		//createEventTypesListDisplay();
