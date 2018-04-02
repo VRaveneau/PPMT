@@ -101,7 +101,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 }
 
 .section {
-	margin: 5px;
+	/*margin: 5px;*/
 	background-color: white;
 	border-radius: 5px;
 	
@@ -671,67 +671,39 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 }
 
 #tool {
-	display: flex;
-	flex-direction: row;
+	display: grid;
+	grid-gap: 5px;
+	grid-template-columns: [main-start] 23% [center-start] 1fr [center-end] 23% [main-end];
+	grid-template-rows: [main-top] 30px [center-top] minmax(min-content, 20%) [algorithm-bottom] 1fr [main-bottom] 0px [gutter-bottom];
 	
 	flex: 1;
 	
-	width: 100%;
-	/*height: 97.5%;*/
-	
-	flex-wrap: nowrap;
-	align-items: stretch;
-}
-
-#left {
-	
-	/*height: 100%;*/
-	
-	width: 23%;
-	order: 0;
-	
-	display: flex;
-	flex-direction: column;
-}
-
-#middle {
-	order: 1;
-	
-	width: 54%;
-	
-	/*height: 100%;*/
-	display: flex;
-	
-	flex-direction: column;
-}
-
-#right {
-	/*height: 100%;*/
-	width: 23%;
-	
-	order: 2;
-	
-	display: flex;
-	flex-direction: column;
+	/*width: 100%;*/
+	margin: 5px;
 }
 
 #top {
+	grid-column: center-start / center-end;
+	grid-row: main-top / center-top;
+
 	/* Erase the double margin from the sections */
 	margin-left: 0px;
 	margin-right: 0px;
 	
-	order: 0;
+	/*order: 0;
 	
-	width: 100%;
+	width: 100%;*/
 	/*height: 3%; */
 	/*margin: 0px;*/
 	text-align: left;
 }
 
 #data {
-	flex: 1;
+	grid-column: main-start / center-start;
+	grid-row: 1 / -1;
+	/*flex: 1;
 	
-	order: 1;
+	order: 1;*/
 	
 	display: flex;
 	flex-direction: column;
@@ -769,6 +741,8 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 }
 
 #center {
+	grid-column: center-start / center-end;
+	grid-row: center-top / -1;
 	
 	/* Erase the double margin from the sections */
 	margin-left: 0px;
@@ -786,16 +760,21 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 }
 
 #algorithmInfo {
+	grid-column: center-end / main-end;
+	grid-row: main-top / algorithm-bottom;
+
 	 /*order: 2; Usefull if kept in the middle */
 	
 	/*width: 100%;*/
-	min-height: 20%;
+	/*min-height: 20%;*/
 	/*padding-left: 5px;*/
 }
 
 #patternArea {
+	grid-column: center-end / main-end;
+	grid-row: algorithm-bottom / gutter-bottom;
 	
-	flex: 1;
+	/*flex: 1;*/
 	
 	display: flex;
 	flex-direction: column;
@@ -1119,31 +1098,44 @@ table {
 	width: 100%;
 	height: 100%;
 
+    grid-template-columns: [main-start] 1fr [content-start] max-content [content-end] 1fr [main-end];
+    grid-template-rows: [main-start] 1fr [content-start] max-content [content-end] 1fr [main-end];
+
 	z-index: 10;
 
 	background-color: rgba(0, 0, 0, 0.568);
 }
 
+#modalBackground:not(.hidden) {
+	display: grid;
+}
+
 #modalContent {
-	position: absolute;
+	/*position: absolute;
 	max-height: 60%;
 	max-width: 60%;
 	margin: auto;
 	top: 0;
 	left: 0;
 	bottom: 0;
-	right: 0;
-	display: flex;
-	flex-direction: column;
+	right: 0;*/
+	grid-area: content;
+	display: grid;
+	grid-template-rows: [modal-top] 40px [content-top] 1fr [modal-bottom];
+	grid-template-columns: [modal-left] 1fr [modal-close-left] 100px [modal-right];
+	grid-gap: 5px;
 	border-radius: 5px;
+	padding: 5px;
 	background-color: #BEC6D3;
 }
 
-#modalContent > div {
+/*#modalContent > div {
 	max-width: 100%;
-}
+}*/
 
 #modalHeader {
+	grid-row: modal-top / content-top;
+	grid-column: modal-left / modal-close-left;
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -1153,16 +1145,24 @@ table {
 }
 
 #modalTitle {
-	flex-grow: 10;
+	grid-row: modal-top / content-top;
+	grid-column: modal-left / modal-close-left;
+	/*flex-grow: 10;*/
 	text-align: center;
+	font-size: x-large;
+	padding-left: 5px;
+	padding-right: 5px;
 }
 
 #modalCloseArea {
-	flex-grow: 1;
+	grid-row: modal-top / content-top;
+	grid-column: modal-close-left / modal-right;
+	/*flex-grow: 1;*/
 	margin-top: 0px;
 	text-align: center;
 	border: 1px solid black;
-	margin-right: 3px;
+	/*margin-right: 3px;*/
+	font-size: x-large;
 }
 
 /********************************/
@@ -1171,36 +1171,32 @@ table {
 
 #algorithmExtended {
 	padding: 0px;
-	flex-direction: row;
+	/*flex-direction: row;*/
 }
 
 #algorithmExtended:not(.hidden) {
+	grid-column: modal-left / modal-right;
     display: grid;
-    grid-template-columns: 8fr 2fr;
-}
-
-#algorithmExtendedMainPanel {
-	flex-grow: 8;
-
-	display: grid;
-	grid-template-columns: 6fr 2fr;
-	grid-template-areas: 
-		"table extendedPatternChart"
+	grid-template-columns:
+		[patternSizeTable-start] 6fr
+		[patternSizeTable-end patternSizeChart-start] 2fr
+		[patternSizeChart-end sidebar-start] 2fr [sidebar-end];
 }
 
 #algorithmExtendedSidePanel {
+	grid-area: sidebar;
 	display: flex;
 	flex-direction: column;
-	flex-grow: 2;
+	/*flex-grow: 2;*/
 	justify-content: flex-start;
 }
 
 #patternSizeTableArea {
-	grid-area: table;
+	grid-area: patternSizeTable;
 }
 
 #extendedPatternSizesChart {
-	grid-area: extendedPatternChart;
+	grid-area: patternSizeChart;
 }
 
 #patternSizeTable {
@@ -1256,6 +1252,7 @@ table {
 /********************************/
 
 #algorithmParametersChange {
+	grid-column: modal-left / modal-right;
 	padding: 0px;
 	flex-direction: row;
 }
@@ -1269,6 +1266,7 @@ table {
 /********************************/
 
 #actionConfirmation {
+	grid-column: modal-left / modal-right;
 	padding: 0px;
 	flex-direction: column;
 	justify-content: space-around;
