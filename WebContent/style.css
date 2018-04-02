@@ -105,8 +105,15 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	background-color: white;
 	border-radius: 5px;
 	
-	position: relative;
+	/*position: relative;*
 	/*border: 1px solid #006992;*/
+	display: grid;
+	grid-template-rows: min-content min-content min-content 1fr;
+	grid-template-areas: 
+		"title"
+		"subtitle"
+		"params"
+		"body";
 }
 
 .section + .section {
@@ -145,6 +152,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	padding: 10px 10px 5px 10px;
 	/*background-color: #006992;
 	color: white;*/
+	grid-area: title;
 }
 
 .section > .subtitle {
@@ -152,16 +160,19 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	text-align: center;
 	font-style: italic;
 	font-weight: lighter;
+	grid-area: subtitle;
 }
 
 .section > .param {
 	padding: 0px 5px 5px 5px;
+	grid-area: params;
 }
 
 .section > .body {
 	padding: 5px 5px 5px 5px;
 	
 	overflow: auto;
+	grid-area: body;
 }
 
 .subsection > .title {
@@ -196,11 +207,12 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 
 .tabContainer {
 	display: grid;
-    grid-template-columns: repeat(6, minmax(max-content,1fr));
+	grid-template-columns: repeat(6, minmax(max-content,1fr));
+	grid-template-rows: min-content 1fr;
 }
 
 .tabHeader {
-	grid-row: 1;
+	grid-row: 1 / 2;
 	
     text-align: center;
     padding: 8px 14px;
@@ -240,13 +252,12 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 }
 
 .tabContent {
-	grid-row: 2;
-	grid-column-start: 1;
-	grid-column-end: -1;
+	grid-row: 2 / -1;
+	grid-column: 1 / -1;
 
     border-top: 1px solid grey;
     overflow: auto;
-	flex: 1;
+	/*flex: 1;*/
 	padding-top: 5px;
 
 	display: grid;
@@ -374,15 +385,6 @@ body {
 
 .focusZoomInfo {
 	float: left;
-}
-
-#highlightResetButtons {
-	position: absolute;
-	top: 8px;
-	right: 5px;
-
-	display: flex;
-	flex-direction: row;
 }
 
 #timeline-view {
@@ -703,10 +705,10 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	grid-row: 1 / -1;
 	/*flex: 1;
 	
-	order: 1;*/
+	order: 1;
 	
 	display: flex;
-	flex-direction: column;
+	flex-direction: column;*/
 }
 
 #tooltip {
@@ -774,10 +776,10 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	grid-column: center-end / main-end;
 	grid-row: algorithm-bottom / gutter-bottom;
 	
-	/*flex: 1;*/
+	/*flex: 1;
 	
 	display: flex;
-	flex-direction: column;
+	flex-direction: column;*/
 }
 
 .caps {
@@ -872,6 +874,9 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 /* 			Control tabs 		*/
 /********************************/
 
+#Trace {
+	grid-template-rows: repeat(2, min-content);
+}
 
 #Trace button {
 	width: 80%;
