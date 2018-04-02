@@ -294,13 +294,10 @@ var eventBins = {
 	},
 }
 
-// Information about each user (start - end - duration)
-var userProperties = {};
-
 // Informations about the users
-// Each user is an array with the following informations :
-// userName - nbEvents - traceDuration - startDate - endDate
-var userInformations = [];
+// For each key (userName), the available data is:
+// name - nbEvents - duration - start - end
+var userInformations = {};
 
 // Number of extracted patterns
 var numberOfPattern = 0;
@@ -389,12 +386,12 @@ var showPatternText = true;
 var userInputIsDisabled = false;
 
 // Sort order for the list of users. Expected value is one of the following :
-// nbEventsDown - nbEventsUp
-// nameDown - nameUp
-// durationDown - durationUp
-// nbSessionsDown - nbSessionsUp
-// startDown - startUp
-// endDown - endUp
+// nbEvents_down - nbEvents_up
+// name_down - name_up
+// duration_down - duration_up
+// nbSessions_down - nbSessions_up
+// start_down - start_up
+// end_down - end_up
 var lastUserSort = "";
 
 // Sort order for the list of event types. Expected value is one of the following :
@@ -1160,8 +1157,8 @@ function setupTool() {
 	setupContextActions();
 	
 	d3.select("body").on("keyup", handleKeyPress);
-	d3.select("body").on("mousemove", moveTooltip);
-	d3.select("body").on("click", switchTooltipLock);
+	d3.select("#center").on("mousemove", moveTooltip);
+	d3.select("#center").on("click", switchTooltipLock);
 	d3.select("#tooltip").on("mouseleave", prepareToLeaveTooltip);
 	d3.select("#tooltip").on("mouseenter", enterTooltip);
 	
@@ -1216,7 +1213,6 @@ function setupUserSearchField() {
 				relatedUsers = userList.filter(function(d, i) {
 					return d.includes(relatedUsers[currentUserSearchSuggestionIdx]);
 				});
-				relatedUsers.sort();
 
 				if (relatedUsers.length > 0) {
 					currentUserSearchSuggestionIdx = 0;
@@ -1943,10 +1939,13 @@ function processMessage(message/*Compressed*/) {
 		if (msg.type === "userRemoved") {
 			updateDatasetForRemovedUser(msg.removedIds, msg.removedUser);
 		}
+		updateUserInformations();
 		updateDatasetInfo();
+		resetPatterns();
 		displayDatasetInfo();
 		createUserListDisplay();
 		//createEventTypesListDisplay();
+		timeline.displayData();
 		// Restart the mining
 		requestAlgorithmReStart();
 	}
@@ -2201,23 +2200,21 @@ function receiveDatasetInfo(message) {
  */
 function receiveUserList(message) {
 	//console.log("Receiving a list of users")
-	let nbUsers = message.size;
-	//console.log("Adding "+message.size+" users");
-	for (let i = 0; i < nbUsers; i++) {
-		let userInfo = message.users[i];
-		let infoToSave = [userInfo.name, userInfo.eventNumber]; // name and nbEvents
-		userList.push(userInfo.name);
-		let d1 = new Date(userInfo.firstEventDate);
-		let d2 = new Date(userInfo.lastEventDate);
-		// Calculate the duration of the trace
-		let endTime = d2.getTime();
-		let startTime = d1.getTime();
-		let timeDiff = endTime-startTime;
-		
-		infoToSave.push(timeDiff, userInfo.firstEventDate, userInfo.lastEventDate); // trace duration, start, end
-		userProperties[userInfo.name] = {"start": d1, "end":d2, "duration": timeDiff};
-		userInformations.push(infoToSave);	// Add this user to the list of already known ones
-	}
+	message.users.forEach(function(user) {
+		let d1 = new Date(user.firstEventDate);
+		let d2 = new Date(user.lastEventDate);
+		let timeDiff = d2.getTime()-d1.getTime();
+
+		userInformations[user.name] = {};
+		userInformations[user.name].name = user.name;
+		userInformations[user.name].nbEvents = user.eventNumber;
+		userInformations[user.name].start = user.firstEventDate;
+		userInformations[user.name].end = user.lastEventDate;
+		userInformations[user.name].duration = timeDiff;
+
+	});
+	userList = Object.keys(userInformations);
+
 	// sorting by event per user, in descending order
 	sortUsersByNbEvents(true);
 	
@@ -2406,6 +2403,33 @@ function receiveEventTypes(message) {
 /************************************/
 
 /**
+ * Updates the information on each user from the data
+ */
+function updateUserInformations() {
+	dataDimensions.time.filterAll();
+	userInformations = {};
+
+	dataDimensions.user.group().dispose().all().forEach(function(user) {
+		userInformations[user.key] = {};
+		userInformations[user.key].name = user.key;
+		userInformations[user.key].nbEvents = user.value;
+		dataDimensions.user.filterExact(user.key);
+		let dateStart = new Date(dataDimensions.time.bottom(1)[0].start);
+		let dateEnd = new Date(dataDimensions.time.top(1)[0].start);
+		userInformations[user.key].start = dateStart.toISOString();
+		userInformations[user.key].end = dateEnd.toISOString();
+		userInformations[user.key].duration = dateEnd.getTime() - dateStart.getTime();
+	});
+	dataDimensions.user.filterAll();
+
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+
+	userList = Object.keys(userInformations);
+	sortUsers();
+}
+
+/**
  * Updates the information about the dataset from the actual data
  * @param {bool} buildSessions Whether the sessions will be rebuilt or not
  */
@@ -2436,7 +2460,7 @@ function buildUserSessions() {
 	dataDimensions.time.filterAll();
 	userSessions = {};
 
-	let userGroups = dataDimensions.user.group();
+	let userGroups = dataDimensions.user.group().dispose();
 	userGroups.all().forEach( function(grp) {
 		let u = grp.key;
 		// Consider only the events of the current user
@@ -2474,7 +2498,6 @@ function buildUserSessions() {
 
 		nbOfSession += userSessions[u].length;
 	});
-	userGroups.dispose();
 	// Add the number of sessions as an information about the dataset
 	datasetInfo.nbSessions = nbOfSession;
 	// Restore the initial time filter
@@ -2789,18 +2812,18 @@ function buildEventBins(binScale) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByNbEvents(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var nbA = parseInt(a[1]);
-		var nbB = parseInt(b[1]);
+	userList.sort(function(a, b) {
+		var nbA = userInformations[a].nbEvents;
+		var nbB = userInformations[b].nbEvents;
 		
 		return nbA-nbB;
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "nbEventsDown";
+		userList.reverse();
+		lastUserSort = "nbEvents_down";
 	} else {
-		lastUserSort = "nbEventsUp";
+		lastUserSort = "nbEvents_up";
 	}
 }
 
@@ -2809,9 +2832,9 @@ function sortUsersByNbEvents(decreasing=false) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByName(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var nameA = a[0];
-		var nameB = b[0];
+	userList.sort(function(a, b) {
+		var nameA = a;
+		var nameB = b;
 		
 		if (nameA < nameB)
 			return -1;
@@ -2822,10 +2845,10 @@ function sortUsersByName(decreasing=false) {
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "nameDown";
+		userList.reverse();
+		lastUserSort = "name_down";
 	} else {
-		lastUserSort = "nameUp";
+		lastUserSort = "name_up";
 	}
 }
 
@@ -2834,18 +2857,18 @@ function sortUsersByName(decreasing=false) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByTraceDuration(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var durationA = parseInt(a[2]);
-		var durationB = parseInt(b[2]);
+	userList.sort(function(a, b) {
+		var durationA = userInformations[a].duration;
+		var durationB = userInformations[b].duration;
 		
 		return durationA-durationB;
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "durationDown";
+		userList.reverse();
+		lastUserSort = "duration_down";
 	} else {
-		lastUserSort = "durationUp";
+		lastUserSort = "duration_up";
 	}
 }
 
@@ -2855,18 +2878,18 @@ function sortUsersByTraceDuration(decreasing=false) {
  */
 function sortUsersByNbSessions(decreasing=false) {
 	if (Object.keys(userSessions).length > 0) {
-		userInformations.sort(function(a, b) {
-			var nbA = userSessions[a[0]].length;
-			var nbB = userSessions[b[0]].length;
+		userList.sort(function(a, b) {
+			var nbA = userSessions[a].length;
+			var nbB = userSessions[b].length;
 			
 			return nbA-nbB;
 		});
 		
 		if (decreasing == true) {
-			userInformations.reverse();
-			lastUserSort = "nbSessionsDown";
+			userList.reverse();
+			lastUserSort = "nbSessions_down";
 		} else {
-			lastUserSort = "nbSessionsUp";
+			lastUserSort = "nbSessions_up";
 		}
 	}
 }
@@ -2876,9 +2899,9 @@ function sortUsersByNbSessions(decreasing=false) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByStartDate(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var startA = a[3];
-		var startB = b[3];
+	userList.sort(function(a, b) {
+		var startA = userInformations[a].start;
+		var startB = userInformations[b].start;
 		
 		if (startA < startB)
 			return -1;
@@ -2889,10 +2912,10 @@ function sortUsersByStartDate(decreasing=false) {
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "startDown";
+		userList.reverse();
+		lastUserSort = "start_down";
 	} else {
-		lastUserSort = "startUp";
+		lastUserSort = "start_up";
 	}
 }
 
@@ -2901,9 +2924,9 @@ function sortUsersByStartDate(decreasing=false) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByEndDate(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var endA = a[4];
-		var endB = b[4];
+	userList.sort(function(a, b) {
+		var endA = userInformations[a].end;
+		var endB = userInformations[b].end;
 		
 		if (endA < endB)
 			return -1;
@@ -2914,10 +2937,38 @@ function sortUsersByEndDate(decreasing=false) {
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "endDown";
+		userList.reverse();
+		lastUserSort = "end_down";
 	} else {
-		lastUserSort = "endUp";
+		lastUserSort = "end_up";
+	}
+}
+
+/**
+ * Sorts the user list by the currently defined sort order
+ */
+function sortUsers() {
+	let parts = lastUserSort.split("_");
+	switch(parts[0]) {
+		case "nbEvents":
+			sortUsersByNbEvents(parts[1] == "down");
+			break;
+		case "name":
+			sortUsersByName(parts[1] == "down");
+			break;
+		case "duration":
+			sortUsersByTraceDuration(parts[1] == "down");
+			break;
+		case "nbSessions":
+			sortUsersByNbSessions(parts[1] == "down");
+			break;
+		case "start":
+			sortUsersByStartDate(parts[1] == "down");
+			break;
+		case "end":
+			sortUsersByEndDate(parts[1] == "down");
+			break;
+		default:
 	}
 }
 
@@ -3067,24 +3118,23 @@ function sortEventTypesByCategory(decreasing=false) {
  * Computes the maximum number of event present at a same time in the dataset
  */
 function computeMaxEventAtOneTime() {
-	let timeGroup = dataDimensions.time.group();
+	let timeGroup = dataDimensions.time.group().dispose();
 	maxEventAtOneTime = timeGroup.top(1)[0].value;
-	timeGroup.dispose();
 }
 
 /**
  * Highlights all the users where selected patterns are found
  */
 function selectUsersBasedOnPatternSelection() {
-	let userList = new Set();
+	let selectedUsersList = new Set();
 
 	selectedPatternIds.forEach( function(d,i) {
 		patternsInformation[d][4].forEach( function(e,j) {
-			userList.add(e);
+			selectedUsersList.add(e);
 		});
 	});
 
-	userList.forEach( function(d,i) {
+	selectedUsersList.forEach( function(d,i) {
 		highlightUserRow(d);
 	});
 
@@ -3258,8 +3308,6 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	console.log("Added");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	resetPatterns();
-	console.log("Reset patterns done");
 	addToHistory("Event type "+newEvents[0].type+" created from pattern");
 }
 
@@ -3276,8 +3324,6 @@ function updateDatasetForRemovedEventType(removedIds, removedEvent) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	resetPatterns();
-	console.log("Reset patterns done");
 	addToHistory("Event type "+removedEvent+" removed");
 }
 
@@ -3294,10 +3340,6 @@ function updateDatasetForRemovedUser(removedIds, removedUser) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	let userInfoIndex = userInformations.findIndex((d)=>d[0]==removedUser);
-	userInformations.splice(userInfoIndex, 1);
-	resetPatterns();
-	console.log("Reset patterns done");
 	addToHistory("User "+removedUser+" removed");
 }
 
@@ -3318,8 +3360,10 @@ function askConfirmationToRemoveEventType(eventTypeName) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
 		.text("Confirm event type removal");
-	d3.select("#actionConfirmation div")
-		.text("Confirm the removal of all '"+eventTypeName+"' events ?");
+	d3.select("#actionConfirmation #contentHeader")
+		.text("Confirm the removal of all events of the following types :");
+	d3.select("#actionConfirmation #contentBody")
+		.text(eventTypeName);
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
 			requestEventTypeRemoval(eventTypeName);
@@ -3331,8 +3375,10 @@ function askConfirmationToRemoveUser(userName) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
 		.text("Confirm user removal");
-	d3.select("#actionConfirmation div")
-		.text("Confirm the removal of every event of user '"+userName+"' ?");
+	d3.select("#actionConfirmation #contentHeader")
+		.text("Confirm the removal of all events of the following users :");
+	d3.select("#actionConfirmation #contentBody")
+		.text(userName);
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
 			requestUserRemoval(userName);
@@ -3529,23 +3575,12 @@ function displayDatasetInfo() {
  * @param {string} tabName The name of the tab that has been clicked
  */
 function openControlTab(evt, tabName) {
-    let i, tabcontent, tablinks;
-
-    // Hide all elements with class="controlTabContent"
-    tabcontent = document.getElementsByClassName("controlTabContent");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
-
-    // Remove the "active" class from all elements with class="controlTabLink"
-    tablinks = document.getElementsByClassName("controlTabLink");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-
-    // Show the current tab, and add an "active" class to the link that opened it
-    document.getElementById(tabName).style.display = "flex";
-    evt.currentTarget.className += " active";
+	d3.selectAll("#data .tabContent").classed("hidden", true);
+	d3.select("#data .active").classed("active", false);
+	
+	// Show the current tab, and add an "active" class to the header that opened it
+	d3.select("#"+tabName).classed("hidden", false);
+	d3.select(evt.currentTarget).classed("active", true);
 }
 
 /**
@@ -3554,21 +3589,10 @@ function openControlTab(evt, tabName) {
  * @param {string} tabName The name of the tab that has been clicked
  */
 function openAlgorithmTab(evt, tabName) {
-	let i, tabcontent, tablinks;
+	d3.selectAll("#algorithmInfo .tabContent").classed("hidden", true);
+	d3.select("#algorithmInfo .active").classed("active", false);
 	
-	// Hide all elements with class="algorithmTabContent"
-	tabcontent = document.getElementsByClassName("algorithmTabContent");
-	for (i = 0; i < tabcontent.length; i++) {
-		d3.select(tabcontent[i]).classed("hidden", true);
-	}
-	
-	// Remove the "active" class from all elements with class="algorithmTabLink"
-	tablinks = document.getElementsByClassName("algorithmTabLink");
-	for (i = 0; i < tablinks.length; i++) {
-		d3.select(tablinks[i]).classed("active", false);
-	}
-	
-	// Show the current tab, and add an "active" class to the link that opened it
+	// Show the current tab, and add an "active" class to the header that opened it
 	d3.select("#"+tabName).classed("hidden", false);
 	d3.select(evt.currentTarget).classed("active", true);
 }
@@ -3621,7 +3645,7 @@ function clickOnUserNameHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "nameDown") {
+	if (lastUserSort == "name_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByName();
 	} else {
@@ -3651,7 +3675,7 @@ function clickOnUserNbEventsHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "nbEventsDown") {
+	if (lastUserSort == "nbEvents_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByNbEvents();
 	} else {
@@ -3681,7 +3705,7 @@ function clickOnUserDurationHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "durationDown") {
+	if (lastUserSort == "duration_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByTraceDuration();
 	} else {
@@ -3711,7 +3735,7 @@ function clickOnUserNbSessionsHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "nbSessionsDown") {
+	if (lastUserSort == "nbSessions_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByNbSessions();
 	} else {
@@ -3741,7 +3765,7 @@ function clickOnUserStartHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "startDown") {
+	if (lastUserSort == "start_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByStartDate();
 	} else {
@@ -3771,7 +3795,7 @@ function clickOnUserEndHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "endDown") {
+	if (lastUserSort == "end_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByEndDate();
 	} else {
@@ -4004,7 +4028,7 @@ function setHighlights() {
 	userDisplayArea = d3.select("#userHighlight");
 	
 	if (highlightedUsers.length == 0) {
-		userDisplayArea.text("No user");
+		userDisplayArea.text("0 highlighted user");
 	} else {
 		if (highlightedUsers.length <= numberOfDetailedHighlights) {
 			userDisplayArea.text("Users ");
@@ -4025,7 +4049,7 @@ function setHighlights() {
 						.text(" ");
 			}
 		} else {
-			userDisplayArea.text(highlightedUsers.length +" users");
+			userDisplayArea.text(highlightedUsers.length +" highlighted users");
 		}
 	}
 	
@@ -4038,7 +4062,7 @@ function setHighlights() {
 	eventTypeDisplayArea = d3.select(eventTypeDisplayArea);
 	
 	if (highlightedEventTypes.length == 0) {
-		eventTypeDisplayArea.text("No event type");
+		eventTypeDisplayArea.text("0 highlighted event type");
 	} else {
 		if (highlightedEventTypes.length <= numberOfDetailedHighlights) {
 			eventTypeDisplayArea.text("Events ");
@@ -4064,10 +4088,18 @@ function setHighlights() {
 						.text(" ");
 			}
 		} else {
-			eventTypeDisplayArea.text(highlightedEventTypes.length +" event types");
+			eventTypeDisplayArea.text(highlightedEventTypes.length +" highlighted event types");
 		}
 	}
 
+	// removing the potential old pattern highlights
+	let patternDisplayArea = document.getElementById("patternHighlight");
+	while (patternDisplayArea.firstChild) {
+		patternDisplayArea.removeChild(patternDisplayArea.firstChild);
+	}
+	patternDisplayArea = d3.select(patternDisplayArea);
+	
+	patternDisplayArea.text(selectedPatternIds.length +" selected patterns");
 }
 
 /**
@@ -4286,35 +4318,32 @@ function createUserListDisplay() {
 	}
 	
 	// Adding the new ones
-	for (let u= 0; u < userInformations.length; u++) {
-		let thisUser = userInformations[u];
-		let thisUserName = thisUser[0];
-		
+	userList.forEach(function(user) {
 		// Only add the user if:
 		// - it is selected (always displayed)
 		// - the filter is empty or accepts the user
-		if (highlightedUsers.includes(thisUserName) == false) {
+		if (highlightedUsers.includes(user) == false) {
 			if (relatedUsers.length == 0) {
 				if (currentUserSearchInput.length > 0)
-					continue; // The filter accepts nothing
+					return; // The filter accepts nothing
 			} else {
-				if (!relatedUsers.includes(thisUserName))
-					continue; // The filter rejects the user
+				if (!relatedUsers.includes(user))
+					return; // The filter rejects the user
 			}
 		}
 		
 		let userRow = d3.select("#userTableBody").append("tr")
 			.classed("clickable", true);
 		
-		userRow.append("td").text(thisUser[0]); // name
-		userRow.append("td").text(thisUser[1]); // nbEvents
+		userRow.append("td").text(user); // name
+		userRow.append("td").text(userInformations[user].nbEvents); // nbEvents
 		
 		// Display the duration of the trace
 		var minutes = 1000 * 60;
 		var hours = minutes * 60;
 		var days = hours * 24;
 		var years = days * 365;
-		var timeDiff = thisUser[2];
+		var timeDiff = userInformations[user].duration;
 		
 		var result = "";
 		var tdText = "";
@@ -4342,42 +4371,42 @@ function createUserListDisplay() {
 		userRow.append("td").text(tdText); // traceDuration
 		
 		 // number of sessions
-		if (userSessions[thisUser[0]]) {
-			userRow.append("td").text(userSessions[thisUser[0]].length);
+		if (userSessions[user]) {
+			userRow.append("td").text(userSessions[user].length);
 		} else {
 			userRow.append("td").text("??");
 		}
 		
-		let d1 = new Date(thisUser[3]);
+		let d1 = new Date(userInformations[user].start);
 		let startDateFormated = d1.getDate()+"/"+(d1.getMonth()+1)+"/"+(d1.getFullYear().toString().substring(2,4));
-		let d2 = new Date(thisUser[4]);
+		let d2 = new Date(userInformations[user].end);
 		let endDateFormated = d2.getDate()+"/"+(d2.getMonth()+1)+"/"+(d2.getFullYear().toString().substring(2,4));
 		
 		userRow.append("td").text(startDateFormated);  // start
 		userRow.append("td").text(endDateFormated); // end
 
-		userRow.attr("id","u"+thisUserName);
+		userRow.attr("id","u"+user);
 		
-		if (highlightedUsers.includes(thisUser[0])) {
+		if (highlightedUsers.includes(user)) {
 			userRow.attr("class", "selectedUserRow");
 		}
 		
 		userRow.on("click", function(){
 			if (d3.event.shiftKey) { // Shift + click, steering
-				requestSteeringOnUser(userInfo[0]);
+				requestSteeringOnUser(user);
 				d3.event.stopPropagation();
 			} else { // normal click, highlight
 				//console.log(userName);
-				highlightUserRow(thisUserName);
+				highlightUserRow(user);
 				setHighlights();
 				timeline.displayData();
 				//d3.event.stopPropagation();
 			}
 		})
 		.on("mouseover", function() {
-			moveUserContextActionsToRow(thisUserName);
+			moveUserContextActionsToRow(user);
 		});
-	}
+	});
 }
 
 /**
@@ -4920,6 +4949,7 @@ function createPatternRow(pId) {
 			
 			// Update the number of selected patterns display
 			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+			setHighlights();
 		})
 		.on("mouseover", function() {
 			movePatternContextActionsToRow(pId);
@@ -5071,7 +5101,6 @@ function filterUserList() {
 		relatedUsers = userList.filter(function(d, i) {
 			return d.includes(currentUserSearchInput);
 		});
-		relatedUsers.sort();
 		
 		if (relatedUsers.length > 0) {
 			currentUserSearchSuggestionIdx = 0;
@@ -5088,7 +5117,6 @@ function filterUserList() {
 						relatedUsers = userList.filter(function(e, j) {
 							return e.includes(currentUserSearchInput);
 						});
-						relatedUsers.sort();
 
 						if (relatedUsers.length > 0) {
 							currentUserSearchSuggestionIdx = 0;
@@ -5354,6 +5382,7 @@ function showConfirmationModal() {
 	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", true);
 	d3.select("#actionConfirmation").classed("hidden", false);
+	document.getElementById("confirmationCancel").focus();
 }
 
 /************************************/
@@ -5381,273 +5410,401 @@ function changeTooltip(data, origin) {
 		
 		switch(origin) {
 		case "general":
-			/* Structure : 
-			 * [year,
-		     * start,
-		     * end,
-		     * nbEventsInBin,
-		     * user1;user2;...,
-		     * type1;type2;...,
-		     * type1:nbOcc;type2:nbOcc;...
-		     * nbEventsInSubBin,
-			 * type1:hslColorValue1;type2:hslColorValue1;...]
-		   	 */
-			switch(timeline.displayMode) {
-			case "distributions":
-				switch(timeline.distributionScale) {
-				case "year":
-					//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
-				case "month":
-				case "halfMonth":
-				case "day":
-				case "halfDay":
-					let nbUsers = data[4].split(";").length;
-					let nbOccs = data[6].split(';');
-					//console.log("pre-sort: "+nbOccs);
-					nbOccs.sort(function(a,b) {
-						let aVal = parseInt(a.split(":")[1]);
-						let bVal = parseInt(b.split(":")[1]);
-						return bVal - aVal;	// sort in descending order
-					});
-					//console.log("post-sort: "+nbOccs);
-					area.append("p")
-						.text("From "+data[1]+" to "+data[2]);
-					area.append("p")
-						.text(data[3]+" events across "+nbUsers+" users");
-					area.append("p")
-						.text(data[7]+" in this subpart:");
-					
-					let ttTable = area.append("table");
-					let ttTableHead = ttTable.append("thead").append("tr");
-					if (nbOccs.length > 1) {
-						ttTableHead.append("th")
-							.text(nbOccs.length + " event types");
-					} else {
-						ttTableHead.append("th")
-							.text(nbOccs.length + " event type");
-					}
-					ttTableHead.append("th")
-						.text("Support");
-					ttTableHead.append("th")
-						.text("% of this bin");
-					let ttTableBody = ttTable.append("tbody");
-					
-					for (let i = 0; i < nbOccs.length; i++) {
-						let ttTableRow = ttTableBody.append("tr");
-						
-						let occ = nbOccs[i].split(":");
-						let percentage = parseInt(occ[1])/parseInt(data[3]);
-						
-						let hslValues = data[8].split(";");
-						let hslValue = 0;
-						for (let idx = 0; idx < hslValues.length; idx++) {
-							if (hslValues[idx].split(":")[0] == occ[0]) {
-								hslValue = parseInt(hslValues[idx].split(":")[1]);
-								break;
-							}
-						}
-						
-						ttTableRow.classed("clickable", true)
-							.classed("bold", highlightedEventTypes.includes(occ[0]))
-							.on("click", function() {
-								highlightEventTypeRow(occ[0]);
-								d3.select(this)
-									.classed("bold", highlightedEventTypes.includes(occ[0]));
-								setHighlights();
-								timeline.displayData();
-							});
-						
-						let ttFirstCell = ttTableRow.append("td");
-						ttFirstCell.append("span")
-							.style("color",colorList[occ[0]][0].toString())
-							.text(itemShapes[occ[0]]);
-						ttFirstCell.append("span").text(" "+occ[0]);
-						ttTableRow.append("td").text(occ[1]);
-						ttTableRow.append("td").text((percentage*100).toPrecision(3)+"%");
-					}
-				}
-				break;
-			case "events":
-					let typeLine = area.append("p")
-						.classed("clickable", true)
-						.classed("bold", highlightedEventTypes.includes(data.type))
-						.text("Type: ")
-						.on("click", function() {
-							highlightEventTypeRow(data.type);
-							d3.select(this)
-								.classed("bold", highlightedEventTypes.includes(data.type));
-							setHighlights();
-							timeline.displayData();
-						});
-					typeLine.append("span")
-						.style("color",colorList[data.type][0])
-						.text(itemShapes[data.type]);
-					typeLine.append("span")
-						.text(" "+data.type);
-					area.append("p")
-						.text("Time: " + formatDate(new Date(data.start)));
-					area.append("p")
-						.classed("clickable", true)
-						.classed("bold", highlightedUsers.includes(data.user))
-						.text("User: " + data.user)
-						.on("click", function() {
-							highlightUserRow(data.user);
-							d3.select(this)
-								.classed("bold", highlightedUsers.includes(data.user));
-							setHighlights();
-							timeline.displayData();
-						});
-					area.append("p")
-						.text("Properties:");
-					for(let i = 0; i < data.properties.length; i++)
-						area.append("p")
-							.classed("tooltipEventProperty", true)
-							.text(data.properties[i]);
-			}
+			displayGeneralTooltip(data);
 			break;
 		case "session":
-			/* Structure of data : 
-			 * ["user",
-			 * 	nbrOfPatternsInSession, (-1 if no session)
-			 * 	sessionStart,
-			 * 	sessionEnd,
-			 * 	"patternId: number"]
-		   	 */
-			
-			area.append("p")
-				.classed("clickable", true)
-				.classed("bold", highlightedUsers.includes(data[0]))
-				.text("User " + data[0])
-				.on("click", function() {
-					highlightUserRow(data[0]);
-					d3.select(this)
-						.classed("bold", highlightedUsers.includes(data[0]));
-					setHighlights();
-					timeline.displayData();
-				});
-			
-			let dateStart = "";
-			let dateEnd = "";
-			let duration = (data[3] - data[2]) / 1000; // In seconds
-			let dS = duration % 60;
-			let dM = Math.floor(duration / 60);
-			let dH = Math.floor(dM / 60);
-			dM = dM % 60;
-			let durationString = "";
-			if (dH > 0)
-				durationString += dH + "h ";
-			if (dM > 0 || dH > 0)
-				durationString += dM + "m ";
-			durationString += dS + "s";
-			
-			switch(data[1]) {
-			case -1:/*
-				area.append("p")
-					.text("No session");*/
-				break;
-			case 0:
-				dateStart = new Date(data[2]);
-				dateEnd = new Date(data[3]);
-				area.append("p")
-					.text(data[4]+" events");
-				area.append("p")
-					.text("Session duration: "+durationString);
-				area.append("p")
-					.text("Session start: "+formatDate(dateStart));
-				area.append("p")
-					.text("Session end: "+formatDate(dateEnd));
-				area.append("hr");
-				area.append("p")
-					.text("No pattern in this session");
-				break;
-			default:
-				dateStart = new Date(data[2]);
-				dateEnd = new Date(data[3]);
-				area.append("p")
-				.text(data[4]+" events");
-			area.append("p")
-				.text("Session duration: "+durationString);
-				area.append("p")
-					.text("Session start: "+formatDate(dateStart));
-				area.append("p")
-					.text("Session end:  "+formatDate(dateEnd));
-				area.append("hr");
-				area.append("p")
-					.text("Show patterns' text: ")
-				  .append("input")
-				  	.attr("type", "checkbox")
-				  	.property("checked", true)
-				  	.classed("clickable", true)
-				  	.on("change", function() {
-				  		if (d3.select(this).property("checked")) {
-				  			d3.selectAll(".tooltipPatternText")
-				  				.classed("hidden", false);
-				  		} else {
-				  			d3.selectAll(".tooltipPatternText")
-			  					.classed("hidden", true);
-				  		}
-				  	});
-				let ttTable = area.append("table");
-				let ttTableHead = ttTable.append("thead").append("tr");
-				if (data[1] > 1) {
-					ttTableHead.append("th")
-						.text(data[1] + " patterns");
-				} else {
-					ttTableHead.append("th")
-						.text(data[1] + " pattern");
-				}
-				ttTableHead.append("th")
-					.text("Support (here"+String.fromCharCode(160)+"/"+String.fromCharCode(160)+"total)"); // Use non-breaking spaces
-				let ttTableBody = ttTable.append("tbody");
-				for (let pIdx = 5; pIdx < data.length; pIdx++) {
-					let thisData = data[pIdx].split(":");
-					let pId = Number(thisData[0].trim());
-					let evtTypes = patternsInformation[pId][3];
-					let ttTableRow = ttTableBody.append("tr")
-						.classed("clickable", true)
-						.classed("bold", selectedPatternIds.includes(pId))
-						.on("click", function() {
-							if (selectedPatternIds.includes(pId)) {
-								let index = selectedPatternIds.indexOf(pId);
-								if (index >= 0)
-									selectedPatternIds.splice(index, 1);
-								d3.select(this).classed("bold", false);
-							} else {
-								selectedPatternIds.push(pId);
-								d3.select(this).classed("bold", true);
-							}
-							if (occurrencesAreKnown(pId) == false)
-								requestPatternOccurrences(pId, currentDatasetName);
-							else
-								timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-							//d3.event.stopPropagation();
-							console.log("click on "+pId);
-							createPatternListDisplay();
-							
-							// Update the number of selected patterns display
-							d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-						});
-					let firstCell = ttTableRow.append("td");
-					for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
-						firstCell.append("span")
-							.style("color", colorList[evtTypes[tIdx]][0])
-							.text(itemShapes[evtTypes[tIdx]]);
-					}
-					firstCell.append("span")
-						.classed("tooltipPatternText", true)
-						.text(" " + patternsInformation[pId][0]);
-					ttTableRow.append("td")
-						.text(thisData[1].trim() + " / " + patternsInformation[pId][2]);
-				}
-			}
-			
+			displaySessionTooltip(data);
 			break;
+		case "highlights":
+			displayHighlightsTooltip(data);
 		default:
 		}
 		
 		tooltipHasContent = true;
 		tooltip.property("scrollTop",0);
 		tooltip.classed("hidden", false);
+	}
+}
+
+/**
+ * Displays the tooltip when its data comes from the "all users" view
+ * @param {JSON} data The data to display
+ */
+function displayGeneralTooltip(data) {
+	let area = d3.select("#tooltip").select(".body");
+	area.html("")
+		.style("text-align", "left");
+
+	/* Structure : 
+	* [year,
+	* start,
+	* end,
+	* nbEventsInBin,
+	* user1;user2;...,
+	* type1;type2;...,
+	* type1:nbOcc;type2:nbOcc;...
+	* nbEventsInSubBin,
+	* type1:hslColorValue1;type2:hslColorValue1;...]
+	*/
+	switch(timeline.displayMode) {
+	case "distributions":
+		switch(timeline.distributionScale) {
+		case "year":
+			//message = "Year "+data[0]+"<br>"+"("+data[1]+" to "+data[2]+")"+"<br>"+data[3]+" events";
+		case "month":
+		case "halfMonth":
+		case "day":
+		case "halfDay":
+			let nbUsers = data[4].split(";").length;
+			let nbOccs = data[6].split(';');
+			//console.log("pre-sort: "+nbOccs);
+			nbOccs.sort(function(a,b) {
+				let aVal = parseInt(a.split(":")[1]);
+				let bVal = parseInt(b.split(":")[1]);
+				return bVal - aVal;	// sort in descending order
+			});
+			//console.log("post-sort: "+nbOccs);
+			area.append("p")
+				.text("From "+data[1]+" to "+data[2]);
+			area.append("p")
+				.text(data[3]+" events across "+nbUsers+" users");
+			area.append("p")
+				.text(data[7]+" in this subpart:");
+			
+			let ttTable = area.append("table");
+			let ttTableHead = ttTable.append("thead").append("tr");
+			if (nbOccs.length > 1) {
+				ttTableHead.append("th")
+					.text(nbOccs.length + " event types");
+			} else {
+				ttTableHead.append("th")
+					.text(nbOccs.length + " event type");
+			}
+			ttTableHead.append("th")
+				.text("Support");
+			ttTableHead.append("th")
+				.text("% of this bin");
+			let ttTableBody = ttTable.append("tbody");
+			
+			for (let i = 0; i < nbOccs.length; i++) {
+				let ttTableRow = ttTableBody.append("tr");
+				
+				let occ = nbOccs[i].split(":");
+				let percentage = parseInt(occ[1])/parseInt(data[3]);
+				
+				let hslValues = data[8].split(";");
+				let hslValue = 0;
+				for (let idx = 0; idx < hslValues.length; idx++) {
+					if (hslValues[idx].split(":")[0] == occ[0]) {
+						hslValue = parseInt(hslValues[idx].split(":")[1]);
+						break;
+					}
+				}
+				
+				ttTableRow.classed("clickable", true)
+					.classed("bold", highlightedEventTypes.includes(occ[0]))
+					.on("click", function() {
+						highlightEventTypeRow(occ[0]);
+						d3.select(this)
+							.classed("bold", highlightedEventTypes.includes(occ[0]));
+						setHighlights();
+						timeline.displayData();
+					});
+				
+				let ttFirstCell = ttTableRow.append("td");
+				ttFirstCell.append("span")
+					.style("color",colorList[occ[0]][0].toString())
+					.text(itemShapes[occ[0]]);
+				ttFirstCell.append("span").text(" "+occ[0]);
+				ttTableRow.append("td").text(occ[1]);
+				ttTableRow.append("td").text((percentage*100).toPrecision(3)+"%");
+			}
+		}
+		break;
+	case "events":
+			let typeLine = area.append("p")
+				.classed("clickable", true)
+				.classed("bold", highlightedEventTypes.includes(data.type))
+				.text("Type: ")
+				.on("click", function() {
+					highlightEventTypeRow(data.type);
+					d3.select(this)
+						.classed("bold", highlightedEventTypes.includes(data.type));
+					setHighlights();
+					timeline.displayData();
+				});
+			typeLine.append("span")
+				.style("color",colorList[data.type][0])
+				.text(itemShapes[data.type]);
+			typeLine.append("span")
+				.text(" "+data.type);
+			area.append("p")
+				.text("Time: " + formatDate(new Date(data.start)));
+			area.append("p")
+				.classed("clickable", true)
+				.classed("bold", highlightedUsers.includes(data.user))
+				.text("User: " + data.user)
+				.on("click", function() {
+					highlightUserRow(data.user);
+					d3.select(this)
+						.classed("bold", highlightedUsers.includes(data.user));
+					setHighlights();
+					timeline.displayData();
+				});
+			area.append("p")
+				.text("Properties:");
+			for(let i = 0; i < data.properties.length; i++)
+				area.append("p")
+					.classed("tooltipEventProperty", true)
+					.text(data.properties[i]);
+	}
+}
+
+/**
+ * Displays the tooltip when its data comes from the "session" view
+ * @param {JSON} data The data to display
+ */
+function displaySessionTooltip(data) {
+	let area = d3.select("#tooltip").select(".body");
+	area.html("")
+		.style("text-align", "left");
+
+	/* Structure of data : 
+	* ["user",
+	* 	nbrOfPatternsInSession, (-1 if no session)
+	* 	sessionStart,
+	* 	sessionEnd,
+	* 	"patternId: number"]
+	*/
+
+	area.append("p")
+		.classed("clickable", true)
+		.classed("bold", highlightedUsers.includes(data[0]))
+		.text("User " + data[0])
+		.on("click", function() {
+			highlightUserRow(data[0]);
+			d3.select(this)
+				.classed("bold", highlightedUsers.includes(data[0]));
+			setHighlights();
+			timeline.displayData();
+		});
+	
+	let dateStart = "";
+	let dateEnd = "";
+	let duration = (data[3] - data[2]) / 1000; // In seconds
+	let dS = duration % 60;
+	let dM = Math.floor(duration / 60);
+	let dH = Math.floor(dM / 60);
+	dM = dM % 60;
+	let durationString = "";
+	if (dH > 0)
+		durationString += dH + "h ";
+	if (dM > 0 || dH > 0)
+		durationString += dM + "m ";
+	durationString += dS + "s";
+	
+	switch(data[1]) {
+	case -1:/*
+		area.append("p")
+			.text("No session");*/
+		break;
+	case 0:
+		dateStart = new Date(data[2]);
+		dateEnd = new Date(data[3]);
+		area.append("p")
+			.text(data[4]+" events");
+		area.append("p")
+			.text("Session duration: "+durationString);
+		area.append("p")
+			.text("Session start: "+formatDate(dateStart));
+		area.append("p")
+			.text("Session end: "+formatDate(dateEnd));
+		area.append("hr");
+		area.append("p")
+			.text("No pattern in this session");
+		break;
+	default:
+		dateStart = new Date(data[2]);
+		dateEnd = new Date(data[3]);
+		area.append("p")
+		.text(data[4]+" events");
+	area.append("p")
+		.text("Session duration: "+durationString);
+		area.append("p")
+			.text("Session start: "+formatDate(dateStart));
+		area.append("p")
+			.text("Session end:  "+formatDate(dateEnd));
+		area.append("hr");
+		area.append("p")
+			.text("Show patterns' text: ")
+			.append("input")
+				.attr("type", "checkbox")
+				.property("checked", true)
+				.classed("clickable", true)
+				.on("change", function() {
+					if (d3.select(this).property("checked")) {
+						d3.selectAll(".tooltipPatternText")
+							.classed("hidden", false);
+					} else {
+						d3.selectAll(".tooltipPatternText")
+							.classed("hidden", true);
+					}
+				});
+		let ttTable = area.append("table");
+		let ttTableHead = ttTable.append("thead").append("tr");
+		if (data[1] > 1) {
+			ttTableHead.append("th")
+				.text(data[1] + " patterns");
+		} else {
+			ttTableHead.append("th")
+				.text(data[1] + " pattern");
+		}
+		ttTableHead.append("th")
+			.text("Support (here"+String.fromCharCode(160)+"/"+String.fromCharCode(160)+"total)"); // Use non-breaking spaces
+		let ttTableBody = ttTable.append("tbody");
+		for (let pIdx = 5; pIdx < data.length; pIdx++) {
+			let thisData = data[pIdx].split(":");
+			let pId = Number(thisData[0].trim());
+			let evtTypes = patternsInformation[pId][3];
+			let ttTableRow = ttTableBody.append("tr")
+				.classed("clickable", true)
+				.classed("bold", selectedPatternIds.includes(pId))
+				.on("click", function() {
+					if (selectedPatternIds.includes(pId)) {
+						let index = selectedPatternIds.indexOf(pId);
+						if (index >= 0)
+							selectedPatternIds.splice(index, 1);
+						d3.select(this).classed("bold", false);
+					} else {
+						selectedPatternIds.push(pId);
+						d3.select(this).classed("bold", true);
+					}
+					if (occurrencesAreKnown(pId) == false)
+						requestPatternOccurrences(pId, currentDatasetName);
+					else
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+					//d3.event.stopPropagation();
+					console.log("click on "+pId);
+					createPatternListDisplay();
+					
+					// Update the number of selected patterns display
+					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+				});
+			let firstCell = ttTableRow.append("td");
+			for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
+				firstCell.append("span")
+					.style("color", colorList[evtTypes[tIdx]][0])
+					.text(itemShapes[evtTypes[tIdx]]);
+			}
+			firstCell.append("span")
+				.classed("tooltipPatternText", true)
+				.text(" " + patternsInformation[pId][0]);
+			ttTableRow.append("td")
+				.text(thisData[1].trim() + " / " + patternsInformation[pId][2]);
+		}
+	}
+}
+
+/**
+ * Displays the tooltip when its data comes from the "highlights summary" view
+ * @param {string} target The kind of highlight to display
+ */
+function displayHighlightsTooltip(target) {
+	let area = d3.select("#tooltip").select(".body");
+	area.html("")
+		.style("text-align", "center");
+	switch(target) {
+		case "users":
+			if (highlightedUsers.length > 0) {
+				area.append("button")
+					.on("click", function() {
+						clearUserSelection();
+						displayHighlightsTooltip(target);
+					})
+					.classed("clickable", true)
+					.text("Reset user selection");
+			}
+			area.append("p")
+				.text(highlightedUsers.length + " highlighted users :");
+			highlightedUsers.forEach(function(usr) {
+				area.append("p")
+					.append("span")
+					.classed("clickable", true)
+					.classed("highlightButton", true)
+					.text(usr)
+					.on("click", function() {
+						highlightUserRow(usr);
+						setHighlights();
+						timeline.displayData();
+						displayHighlightsTooltip("users");
+					});
+			});
+			break;
+		case "eventTypes":
+			if (highlightedEventTypes.length > 0) {
+				area.append("button")
+					.on("click", function() {
+						clearEventTypeSelection();
+						displayHighlightsTooltip(target);
+					})
+					.classed("clickable", true)
+					.text("Reset event type selection");
+			}
+			area.append("p")
+				.text(highlightedEventTypes.length + " highlighted event types :");
+			highlightedEventTypes.forEach(function(type) {
+				area.append("p")
+					.append("span")
+					.classed("clickable", true)
+					.classed("highlightButton", true)
+					.style("color", colorList[type][0].toString())
+					.text(itemShapes[type])
+					.on("click", function() {
+						highlightEventTypeRow(type);
+						setHighlights();
+						timeline.displayData();
+						displayHighlightsTooltip("eventTypes");
+					})
+					.append("span")
+					.style("color", "black")
+					.text("\u00A0"+type);
+			});
+			break;
+		case "patterns":
+			area.append("p")
+				.text(selectedPatternIds.length + " selected patterns :");
+			selectedPatternIds.forEach(function(patternId) {
+				let pSize = patternsInformation[patternId][1];
+				let pString = patternsInformation[patternId][0];
+				let pItems = patternsInformation[patternId][3];
+
+				let row = area.append("p")
+					.classed("clickable",true)
+					.on("click", function() {
+						let index = selectedPatternIds.indexOf(patternId);
+						selectedPatternIds.splice(index, 1);
+						
+						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+						//d3.event.stopPropagation();
+						console.log("click on "+patternId);
+						createPatternListDisplay();
+						setHighlights();
+						displayHighlightsTooltip("patterns");
+						
+						// Update the number of selected patterns display
+						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+					});
+				for (let k=0; k < pSize; k++) {
+					row.append("span")
+						.style("color",colorList[pItems[k]][0].toString())
+						.text(itemShapes[pItems[k]]);
+				}
+				row.append("span")
+					.text(" "+pString)
+					.attr("patternId",patternId);
+			});
+			break;
+		default:
 	}
 }
 
@@ -5702,6 +5859,34 @@ function moveTooltip() {
 		newPosY = 0;
 	tooltip.style("left", newPosX+"px")
 		.style("top", newPosY+"px");
+}
+
+function moveTooltipOnHighlights(target) {
+	let posX = 0;
+	let posY = 0;
+	let clientRect = null;
+	let tooltipWidth = document.getElementById("tooltip").getBoundingClientRect().width;
+	switch(target) {
+		case "users":
+			clientRect = document.getElementById("userHighlight").getBoundingClientRect();
+			posX = Math.floor(clientRect.x + clientRect.width/2 - tooltipWidth/2);
+			posY = clientRect.bottom;
+			break;
+		case "eventTypes":
+			clientRect = document.getElementById("eventTypeHighlight").getBoundingClientRect();
+			posX = Math.floor(clientRect.x + clientRect.width/2 - tooltipWidth/2);
+			posY = clientRect.bottom;
+			break;
+		case "patterns":
+			clientRect = document.getElementById("patternHighlight").getBoundingClientRect();
+			posX = Math.floor(clientRect.x + clientRect.width/2 - tooltipWidth/2);
+			posY = clientRect.bottom;
+			break;
+		default:
+	}
+	tooltip.style("left", posX+"px")
+		.style("top", posY+5+"px");
+	changeTooltip(target, "highlights");
 }
 
 /**
@@ -6414,28 +6599,23 @@ var Timeline = function(elemId, options) {
 		
 		switch(showUserSessionOption) {
 		case "all":
-			shownUsers = userInformations.map(function(uI) {
-				return uI[0]; // Only get the userName
-			});
+			shownUsers = userList;
 			break;
 		case "selected":
 			let hl = highlightedUsers;
 			hl.sort(function(a, b) {
-				let aIdx = userInformations.findIndex(function(elt) {
-					return elt[0] == a;
+				let aIdx = userList.findIndex(function(elt) {
+					return elt == a;
 				});
-				let bIdx = userInformations.findIndex(function(elt) {
-					return elt[0] == b;
+				let bIdx = userList.findIndex(function(elt) {
+					return elt == b;
 				});
 				return aIdx-bIdx;
 			});
 			shownUsers = hl;
 			break;
 		case "some":
-			shownUsers = userInformations.slice(firstUserShown, firstUserShown + nbUserShown)
-			.map(function(uI) {
-				return uI[0]; // Only get the userName
-			});
+			shownUsers = userList.slice(firstUserShown, firstUserShown + nbUserShown);
 			break;
 		default:
 		}
@@ -6799,189 +6979,208 @@ var Timeline = function(elemId, options) {
 		self.colorToData = {};
 		let nextColor = 1;
 		
+		if (!self.displayColorsInBins) {
+			bins.data.all().forEach(function(bin) {
+				self.canvasContext.beginPath();
+				let binStart = bins.getStart(bin.value.aDateInside);
+				let binEnd = bins.getEnd(bin.value.aDateInside);
+				let x = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart));
+				let x2 = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd));
+				
+				y = self.yFocus(maxHeight-bin.value.eventCount);
+				binHeight = self.yFocus(bin.value.eventCount);
+				self.canvasContext.fillStyle = "#04B7FB";
+				self.canvasContext.fillRect(x, binHeight, x2-x, y);
+				self.canvasContext.lineWidth = 0.25;
+				self.canvasContext.strokeStyle = "black";
+				self.canvasContext.stroke();
+				//  self.canvasContext.fillRect(x, binHeight, x2-x, y);
+				self.canvasContext.closePath();
+				
+				// Attributing a color to data link for the hidden canvas
+				var color = [];
+				// via http://stackoverflow.com/a/15804183
+				if(nextColor < 16777215){
+					color.push(nextColor & 0xff); // R
+					color.push((nextColor & 0xff00) >> 8); // G 
+					color.push((nextColor & 0xff0000) >> 16); // B
+	
+					nextColor += 1;
+				} else {
+					console.log('Warning : too many colors needed for the main hidden canvas');
+				}
+				
+				let eventTypesColors = [];
+				let splitEventTypes = Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;});
+				splitEventTypes.forEach(function(et) {
+					eventTypesColors.push(et+":"+getEventColor(et));
+				});
+				
+				/* Create the info we want in the tooltip
+				* Structure : [year,
+				* start,
+				* end,
+				* nbEventsInBin,
+				* user1;user2;...,
+				* type1;type2;...,
+				* type1:nbOcc;type2:nbOcc;...
+				* nbEventsInSubBin,
+				* type1:hslColorValue1;type2:hslColorValue1;...]
+				*/
+				let subBinInfo = [];
+				subBinInfo.push(binStart.split("-")[0]); // year
+				subBinInfo.push(binStart);
+				subBinInfo.push(binEnd);
+				subBinInfo.push(bin.value.eventCount);
+				subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
+				subBinInfo.push(splitEventTypes.join(";"));
+				let nbOccsPerType = [];
+				splitEventTypes.forEach(function(et) {
+					nbOccsPerType.push(et+":"+bin.value.events[et]);
+				});
+				subBinInfo.push(nbOccsPerType.join(";"));
+				subBinInfo.push(bin.value.eventCount);
+				subBinInfo.push(eventTypesColors.join(';'));
+				self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;
+				
+				// Drawing on the hidden canvas for the tooltip
+				self.hiddenCanvasContext.beginPath();
+				self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
+				self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
+				self.hiddenCanvasContext.closePath();
+			});
+		}
+
+		let drawColoredBins = self.displayColorsInBins;
+		if (highlightedEventTypes.length > 0 && !self.displayColorsInBins) {
+			dataDimensions.type.filterFunction( function(t) {
+				return highlightedEventTypes.includes(t);
+			});
+			drawColoredBins = true;
+		}
+
 		bins.data.all().forEach(function(bin) {
 			self.canvasContext.beginPath();
 			let binStart = bins.getStart(bin.value.aDateInside);
 			let binEnd = bins.getEnd(bin.value.aDateInside);
 		    let x = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart));
 			let x2 = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd));
-			
-			if (self.displayColorsInBins == true) {
-			    /*
-			     * Deduce the decomposition in multiple bars from bins[iBin]
-			     * Structure : [year,start,end,nbEvents,user1;user2;...,???,type1:nbOcc;type2:nbOcc;...]
-			     */
-			    let colorsProportion = {}; // nbOccs for each color
+
+			if (drawColoredBins) {
+				/*
+				 * Deduce the decomposition in multiple bars from bins[iBin]
+				 * Structure : [year,start,end,nbEvents,user1;user2;...,???,type1:nbOcc;type2:nbOcc;...]
+				 */
+				let colorsProportion = {}; // nbOccs for each color
 				let eventTypesAssociatedToColor = {}; // nbOccs per event for each color
 				
 				Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;}).forEach(function(et) {
-			    	// TODO fix the agavue situation --> Still needed ?
-			    	let eColor = getCurrentEventColor(et).toString();
-			    	if (!colorsProportion[eColor]) {
-			    		colorsProportion[eColor] = bin.value.events[et];
-			    		eventTypesAssociatedToColor[eColor] = [];
-			    	} else {
-			    		colorsProportion[eColor] += bin.value.events[et];
-			    	}
-		    		eventTypesAssociatedToColor[eColor].push(et);
+					// TODO fix the agavue situation --> Still needed ?
+					let eColor = getCurrentEventColor(et).toString();
+					if (!colorsProportion[eColor]) {
+						colorsProportion[eColor] = bin.value.events[et];
+						eventTypesAssociatedToColor[eColor] = [];
+					} else {
+						colorsProportion[eColor] += bin.value.events[et];
+					}
+					eventTypesAssociatedToColor[eColor].push(et);
 				});
-
-			    let evtNbr = bin.value.eventCount;
+	
+				let evtNbr = bin.value.eventCount;
 				let colorsFound = Object.keys(colorsProportion);
 				
-			    colorsFound.sort(function(a,b) {
-			    	return colorsProportion[a] - colorsProportion[b];
-			    });
-			    
-			    // draw each of the coloured sections of the bar
-			    let cumulatedHeight = 0;
-			    let y;
+				colorsFound.sort(function(a,b) {
+					return colorsProportion[a] - colorsProportion[b];
+				});
+				
+				// draw each of the coloured sections of the bar
+				let cumulatedHeight = 0;
+				let y;
 				let binHeight;
 				
 				colorsFound.forEach(function(color) {
 					let y = 0;
 					let binHeight = 0;
-
+	
 					if (self.displayFullHeightBins == true) {
-				    	y = self.yFocus(maxHeight - (colorsProportion[color] * maxHeight) / bin.value.eventCount);
-				    	binHeight = self.yFocus(cumulatedHeight + (colorsProportion[color] * maxHeight) / bin.value.eventCount);
-				    } else {
-				    	y = self.yFocus(maxHeight-colorsProportion[color]);
-					    binHeight = self.yFocus(cumulatedHeight + colorsProportion[color]);
+						y = self.yFocus(maxHeight - (colorsProportion[color] * maxHeight) / bin.value.eventCount);
+						binHeight = self.yFocus(cumulatedHeight + (colorsProportion[color] * maxHeight) / bin.value.eventCount);
+					} else {
+						y = self.yFocus(maxHeight-colorsProportion[color]);
+						binHeight = self.yFocus(cumulatedHeight + colorsProportion[color]);
 					}
 					
-				    self.canvasContext.fillStyle = color.toString();
-				    self.canvasContext.fillRect(x, binHeight, x2-x, y);
-				    self.canvasContext.lineWidth = 0.25;
-				    self.canvasContext.strokeStyle = "black";
-				    self.canvasContext.stroke();
-				    //  self.canvasContext.fillRect(x, binHeight, x2-x, y);
+					self.canvasContext.fillStyle = color.toString();
+					self.canvasContext.fillRect(x, binHeight, x2-x, y);
+					self.canvasContext.lineWidth = 0.25;
+					self.canvasContext.strokeStyle = "black";
+					self.canvasContext.stroke();
+					//  self.canvasContext.fillRect(x, binHeight, x2-x, y);
 					self.canvasContext.closePath();
 					
 					// Attributing a color to data link for the hidden canvas
-				    let hiddenColor = [];
-				    // via http://stackoverflow.com/a/15804183
-				    if(nextColor < 16777215){
-				    	hiddenColor.push(nextColor & 0xff); // R
-				    	hiddenColor.push((nextColor & 0xff00) >> 8); // G 
-				    	hiddenColor.push((nextColor & 0xff0000) >> 16); // B
+					let hiddenColor = [];
+					// via http://stackoverflow.com/a/15804183
+					if(nextColor < 16777215){
+						hiddenColor.push(nextColor & 0xff); // R
+						hiddenColor.push((nextColor & 0xff00) >> 8); // G 
+						hiddenColor.push((nextColor & 0xff0000) >> 16); // B
 	
-				    	nextColor += 1;
-				    } else {
-				    	console.log('Warning : too many colors needed for the main hidden canvas');
-				    }
-				    
+						nextColor += 1;
+					} else {
+						console.log('Warning : too many colors needed for the main hidden canvas');
+					}
+					
 					let eventTypesColors = [];
 					
 					let splitEventTypes = Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;});
 					splitEventTypes.forEach(function(et) {
 						eventTypesColors.push(et+":"+getEventColor(et));
 					});
-				    
-				    /* Create the info we want in the tooltip
-				    * Structure : [year,
-				    * start,
-				    * end,
-				    * nbEventsInBin,
-				    * user1;user2;...,
-				    * type1;type2;...,
-				    * type1:nbOcc;type2:nbOcc;...
-				    * nbEventsInSubBin,
-				    * type1:hslColorValue1;type2:hslColorValue1;...]
-				   	*/
-				    let subBinInfo = [];
-				    subBinInfo.push(binStart.split("-")[0]); // year
-				    subBinInfo.push(binStart);
+					
+					/* Create the info we want in the tooltip
+					* Structure : [year,
+					* start,
+					* end,
+					* nbEventsInBin,
+					* user1;user2;...,
+					* type1;type2;...,
+					* type1:nbOcc;type2:nbOcc;...
+					* nbEventsInSubBin,
+					* type1:hslColorValue1;type2:hslColorValue1;...]
+					   */
+					let subBinInfo = [];
+					subBinInfo.push(binStart.split("-")[0]); // year
+					subBinInfo.push(binStart);
 					subBinInfo.push(binEnd);
 					subBinInfo.push(bin.value.eventCount);
-				    subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
+					subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
 					subBinInfo.push(splitEventTypes.join(";"));
 					let nbOccsPerType = [];
 					eventTypesAssociatedToColor[color].forEach(function(et) {
 						nbOccsPerType.push(et+":"+bin.value.events[et]);
 					});
-				    subBinInfo.push(nbOccsPerType.join(';'));
-				    subBinInfo.push(colorsProportion[color]);
-				    subBinInfo.push(eventTypesColors.join(';'));
-				    self.colorToData["rgb("+hiddenColor.join(',')+")"] = subBinInfo;
+					subBinInfo.push(nbOccsPerType.join(';'));
+					subBinInfo.push(colorsProportion[color]);
+					subBinInfo.push(eventTypesColors.join(';'));
+					self.colorToData["rgb("+hiddenColor.join(',')+")"] = subBinInfo;
 					
-				    // Drawing on the hidden canvas for the tooltip
+					// Drawing on the hidden canvas for the tooltip
 					self.hiddenCanvasContext.beginPath();
-				    self.hiddenCanvasContext.fillStyle = "rgb("+hiddenColor.join(',')+")";//node.attr("fillStyle");
-				    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
-				    self.hiddenCanvasContext.closePath();
-				    
-				    if (self.displayFullHeightBins == true) {
-				    	cumulatedHeight += (colorsProportion[color] * maxHeight) / bin.value.eventCount;
-				    } else {
-				    	cumulatedHeight += colorsProportion[color];
-				    }
+					self.hiddenCanvasContext.fillStyle = "rgb("+hiddenColor.join(',')+")";//node.attr("fillStyle");
+					self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
+					self.hiddenCanvasContext.closePath();
+					
+					if (self.displayFullHeightBins == true) {
+						cumulatedHeight += (colorsProportion[color] * maxHeight) / bin.value.eventCount;
+					} else {
+						cumulatedHeight += colorsProportion[color];
+					}
 				});
-
-		    } else { // Draw the full bin without dividing it
-		    	y = self.yFocus(maxHeight-bin.value.eventCount);
-		    	binHeight = self.yFocus(bin.value.eventCount);
-			    self.canvasContext.fillStyle = "#04B7FB";
-			    self.canvasContext.fillRect(x, binHeight, x2-x, y);
-			    self.canvasContext.lineWidth = 0.25;
-			    self.canvasContext.strokeStyle = "black";
-			    self.canvasContext.stroke();
-			    //  self.canvasContext.fillRect(x, binHeight, x2-x, y);
-			    self.canvasContext.closePath();
-			    
-			    // Attributing a color to data link for the hidden canvas
-			    var color = [];
-			    // via http://stackoverflow.com/a/15804183
-			    if(nextColor < 16777215){
-			    	color.push(nextColor & 0xff); // R
-			    	color.push((nextColor & 0xff00) >> 8); // G 
-			    	color.push((nextColor & 0xff0000) >> 16); // B
-
-			    	nextColor += 1;
-			    } else {
-			    	console.log('Warning : too many colors needed for the main hidden canvas');
-			    }
-			    
-			    let eventTypesColors = [];
-				let splitEventTypes = Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;});
-				splitEventTypes.forEach(function(et) {
-					eventTypesColors.push(et+":"+getEventColor(et));
-				});
-			    
-			    /* Create the info we want in the tooltip
-			    * Structure : [year,
-			    * start,
-			    * end,
-			    * nbEventsInBin,
-			    * user1;user2;...,
-			    * type1;type2;...,
-			    * type1:nbOcc;type2:nbOcc;...
-			    * nbEventsInSubBin,
-			    * type1:hslColorValue1;type2:hslColorValue1;...]
-			   	*/
-			    let subBinInfo = [];
-			    subBinInfo.push(binStart.split("-")[0]); // year
-			    subBinInfo.push(binStart);
-			    subBinInfo.push(binEnd);
-			    subBinInfo.push(bin.value.eventCount);
-			    subBinInfo.push(Object.keys(bin.value.users).filter((d)=>{return bin.value.users[d]>0;}).join(";"));
-				subBinInfo.push(splitEventTypes.join(";"));
-				let nbOccsPerType = [];
-				splitEventTypes.forEach(function(et) {
-					nbOccsPerType.push(et+":"+bin.value.events[et]);
-				});
-			    subBinInfo.push(nbOccsPerType.join(";"));
-			    subBinInfo.push(bin.value.eventCount);
-			    subBinInfo.push(eventTypesColors.join(';'));
-			    self.colorToData["rgb("+color.join(',')+")"] = subBinInfo;
-			    
-			    // Drawing on the hidden canvas for the tooltip
-				self.hiddenCanvasContext.beginPath();
-			    self.hiddenCanvasContext.fillStyle = "rgb("+color.join(',')+")";//node.attr("fillStyle");
-			    self.hiddenCanvasContext.fillRect(x, binHeight, x2-x, y);
-			    self.hiddenCanvasContext.closePath();
-		    }
+			}
 		});
+
+		dataDimensions.type.filterAll();
 
 		self.drawContextBins();
 		
