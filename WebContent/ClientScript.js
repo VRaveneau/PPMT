@@ -3316,8 +3316,10 @@ function askConfirmationToRemoveEventType(eventTypeName) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
 		.text("Confirm event type removal");
-	d3.select("#actionConfirmation div")
-		.text("Confirm the removal of all '"+eventTypeName+"' events ?");
+	d3.select("#actionConfirmation #contentHeader")
+		.text("Confirm the removal of all events of the following types :");
+	d3.select("#actionConfirmation #contentBody")
+		.text(eventTypeName);
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
 			requestEventTypeRemoval(eventTypeName);
@@ -3329,8 +3331,10 @@ function askConfirmationToRemoveUser(userName) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
 		.text("Confirm user removal");
-	d3.select("#actionConfirmation div")
-		.text("Confirm the removal of every event of user '"+userName+"' ?");
+	d3.select("#actionConfirmation #contentHeader")
+		.text("Confirm the removal of all events of the following users :");
+	d3.select("#actionConfirmation #contentBody")
+		.text(userName);
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
 			requestUserRemoval(userName);
@@ -5339,6 +5343,7 @@ function showConfirmationModal() {
 	d3.select("#algorithmExtended").classed("hidden", true);
 	d3.select("#algorithmParametersChange").classed("hidden", true);
 	d3.select("#actionConfirmation").classed("hidden", false);
+	document.getElementById("confirmationCancel").focus();
 }
 
 /************************************/
