@@ -294,13 +294,10 @@ var eventBins = {
 	},
 }
 
-// Information about each user (start - end - duration)
-var userProperties = {};
-
 // Informations about the users
-// Each user is an array with the following informations :
-// userName - nbEvents - traceDuration - startDate - endDate
-var userInformations = [];
+// For each key (userName), the available data is:
+// name - nbEvents - duration - start - end
+var userInformations = {};
 
 // Number of extracted patterns
 var numberOfPattern = 0;
@@ -389,12 +386,12 @@ var showPatternText = true;
 var userInputIsDisabled = false;
 
 // Sort order for the list of users. Expected value is one of the following :
-// nbEventsDown - nbEventsUp
-// nameDown - nameUp
-// durationDown - durationUp
-// nbSessionsDown - nbSessionsUp
-// startDown - startUp
-// endDown - endUp
+// nbEvents_down - nbEvents_up
+// name_down - name_up
+// duration_down - duration_up
+// nbSessions_down - nbSessions_up
+// start_down - start_up
+// end_down - end_up
 var lastUserSort = "";
 
 // Sort order for the list of event types. Expected value is one of the following :
@@ -1216,7 +1213,6 @@ function setupUserSearchField() {
 				relatedUsers = userList.filter(function(d, i) {
 					return d.includes(relatedUsers[currentUserSearchSuggestionIdx]);
 				});
-				relatedUsers.sort();
 
 				if (relatedUsers.length > 0) {
 					currentUserSearchSuggestionIdx = 0;
@@ -1943,10 +1939,12 @@ function processMessage(message/*Compressed*/) {
 		if (msg.type === "userRemoved") {
 			updateDatasetForRemovedUser(msg.removedIds, msg.removedUser);
 		}
-		updateDatasetInfo();
+		updateUserInformations();
+		updateDatasetInfo(true);
 		displayDatasetInfo();
 		createUserListDisplay();
 		//createEventTypesListDisplay();
+		timeline.displayData();
 		// Restart the mining
 		requestAlgorithmReStart();
 	}
@@ -2201,23 +2199,21 @@ function receiveDatasetInfo(message) {
  */
 function receiveUserList(message) {
 	//console.log("Receiving a list of users")
-	let nbUsers = message.size;
-	//console.log("Adding "+message.size+" users");
-	for (let i = 0; i < nbUsers; i++) {
-		let userInfo = message.users[i];
-		let infoToSave = [userInfo.name, userInfo.eventNumber]; // name and nbEvents
-		userList.push(userInfo.name);
-		let d1 = new Date(userInfo.firstEventDate);
-		let d2 = new Date(userInfo.lastEventDate);
-		// Calculate the duration of the trace
-		let endTime = d2.getTime();
-		let startTime = d1.getTime();
-		let timeDiff = endTime-startTime;
-		
-		infoToSave.push(timeDiff, userInfo.firstEventDate, userInfo.lastEventDate); // trace duration, start, end
-		userProperties[userInfo.name] = {"start": d1, "end":d2, "duration": timeDiff};
-		userInformations.push(infoToSave);	// Add this user to the list of already known ones
-	}
+	message.users.forEach(function(user) {
+		let d1 = new Date(user.firstEventDate);
+		let d2 = new Date(user.lastEventDate);
+		let timeDiff = d2.getTime()-d1.getTime();
+
+		userInformations[user.name] = {};
+		userInformations[user.name].name = user.name;
+		userInformations[user.name].nbEvents = user.eventNumber;
+		userInformations[user.name].start = user.firstEventDate;
+		userInformations[user.name].end = user.lastEventDate;
+		userInformations[user.name].duration = timeDiff;
+
+	});
+	userList = Object.keys(userInformations);
+
 	// sorting by event per user, in descending order
 	sortUsersByNbEvents(true);
 	
@@ -2404,6 +2400,33 @@ function receiveEventTypes(message) {
 /************************************/
 /*		Data manipulation			*/
 /************************************/
+
+/**
+ * Updates the information on each user from the data
+ */
+function updateUserInformations() {
+	dataDimensions.time.filterAll();
+	userInformations = {};
+
+	dataDimensions.user.group().dispose().all().forEach(function(user) {
+		userInformations[user.key] = {};
+		userInformations[user.key].name = user.key;
+		userInformations[user.key].nbEvents = user.value;
+		dataDimensions.user.filterExact(user.key);
+		let dateStart = new Date(dataDimensions.time.bottom(1)[0].start);
+		let dateEnd = new Date(dataDimensions.time.top(1)[0].start);
+		userInformations[user.key].start = dateStart.toISOString();
+		userInformations[user.key].end = dateEnd.toISOString();
+		userInformations[user.key].duration = dateEnd.getTime() - dateStart.getTime();
+	});
+	dataDimensions.user.filterAll();
+
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+
+	userList = Object.keys(userInformations);
+	sortUsers();
+}
 
 /**
  * Updates the information about the dataset from the actual data
@@ -2788,18 +2811,18 @@ function buildEventBins(binScale) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByNbEvents(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var nbA = parseInt(a[1]);
-		var nbB = parseInt(b[1]);
+	userList.sort(function(a, b) {
+		var nbA = userInformations[a].nbEvents;
+		var nbB = userInformations[b].nbEvents;
 		
 		return nbA-nbB;
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "nbEventsDown";
+		userList.reverse();
+		lastUserSort = "nbEvents_down";
 	} else {
-		lastUserSort = "nbEventsUp";
+		lastUserSort = "nbEvents_up";
 	}
 }
 
@@ -2808,9 +2831,9 @@ function sortUsersByNbEvents(decreasing=false) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByName(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var nameA = a[0];
-		var nameB = b[0];
+	userList.sort(function(a, b) {
+		var nameA = a;
+		var nameB = b;
 		
 		if (nameA < nameB)
 			return -1;
@@ -2821,10 +2844,10 @@ function sortUsersByName(decreasing=false) {
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "nameDown";
+		userList.reverse();
+		lastUserSort = "name_down";
 	} else {
-		lastUserSort = "nameUp";
+		lastUserSort = "name_up";
 	}
 }
 
@@ -2833,18 +2856,18 @@ function sortUsersByName(decreasing=false) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByTraceDuration(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var durationA = parseInt(a[2]);
-		var durationB = parseInt(b[2]);
+	userList.sort(function(a, b) {
+		var durationA = userInformations[a].duration;
+		var durationB = userInformations[b].duration;
 		
 		return durationA-durationB;
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "durationDown";
+		userList.reverse();
+		lastUserSort = "duration_down";
 	} else {
-		lastUserSort = "durationUp";
+		lastUserSort = "duration_up";
 	}
 }
 
@@ -2854,18 +2877,18 @@ function sortUsersByTraceDuration(decreasing=false) {
  */
 function sortUsersByNbSessions(decreasing=false) {
 	if (Object.keys(userSessions).length > 0) {
-		userInformations.sort(function(a, b) {
-			var nbA = userSessions[a[0]].length;
-			var nbB = userSessions[b[0]].length;
+		userList.sort(function(a, b) {
+			var nbA = userSessions[a].length;
+			var nbB = userSessions[b].length;
 			
 			return nbA-nbB;
 		});
 		
 		if (decreasing == true) {
-			userInformations.reverse();
-			lastUserSort = "nbSessionsDown";
+			userList.reverse();
+			lastUserSort = "nbSessions_down";
 		} else {
-			lastUserSort = "nbSessionsUp";
+			lastUserSort = "nbSessions_up";
 		}
 	}
 }
@@ -2875,9 +2898,9 @@ function sortUsersByNbSessions(decreasing=false) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByStartDate(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var startA = a[3];
-		var startB = b[3];
+	userList.sort(function(a, b) {
+		var startA = userInformations[a].start;
+		var startB = userInformations[b].start;
 		
 		if (startA < startB)
 			return -1;
@@ -2888,10 +2911,10 @@ function sortUsersByStartDate(decreasing=false) {
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "startDown";
+		userList.reverse();
+		lastUserSort = "start_down";
 	} else {
-		lastUserSort = "startUp";
+		lastUserSort = "start_up";
 	}
 }
 
@@ -2900,9 +2923,9 @@ function sortUsersByStartDate(decreasing=false) {
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortUsersByEndDate(decreasing=false) {
-	userInformations.sort(function(a, b) {
-		var endA = a[4];
-		var endB = b[4];
+	userList.sort(function(a, b) {
+		var endA = userInformations[a].end;
+		var endB = userInformations[b].end;
 		
 		if (endA < endB)
 			return -1;
@@ -2913,10 +2936,38 @@ function sortUsersByEndDate(decreasing=false) {
 	});
 	
 	if (decreasing == true) {
-		userInformations.reverse();
-		lastUserSort = "endDown";
+		userList.reverse();
+		lastUserSort = "end_down";
 	} else {
-		lastUserSort = "endUp";
+		lastUserSort = "end_up";
+	}
+}
+
+/**
+ * Sorts the user list by the currently defined sort order
+ */
+function sortUsers() {
+	let parts = lastUserSort.split("_");
+	switch(parts[0]) {
+		case "nbEvents":
+			sortUsersByNbEvents(parts[1] == "down");
+			break;
+		case "name":
+			sortUsersByName(parts[1] == "down");
+			break;
+		case "duration":
+			sortUsersByTraceDuration(parts[1] == "down");
+			break;
+		case "nbSessions":
+			sortUsersByNbSessions(parts[1] == "down");
+			break;
+		case "start":
+			sortUsersByStartDate(parts[1] == "down");
+			break;
+		case "end":
+			sortUsersByEndDate(parts[1] == "down");
+			break;
+		default:
 	}
 }
 
@@ -3074,15 +3125,15 @@ function computeMaxEventAtOneTime() {
  * Highlights all the users where selected patterns are found
  */
 function selectUsersBasedOnPatternSelection() {
-	let userList = new Set();
+	let selectedUsersList = new Set();
 
 	selectedPatternIds.forEach( function(d,i) {
 		patternsInformation[d][4].forEach( function(e,j) {
-			userList.add(e);
+			selectedUsersList.add(e);
 		});
 	});
 
-	userList.forEach( function(d,i) {
+	selectedUsersList.forEach( function(d,i) {
 		highlightUserRow(d);
 	});
 
@@ -3256,8 +3307,6 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	console.log("Added");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	resetPatterns();
-	console.log("Reset patterns done");
 	addToHistory("Event type "+newEvents[0].type+" created from pattern");
 }
 
@@ -3274,8 +3323,6 @@ function updateDatasetForRemovedEventType(removedIds, removedEvent) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	resetPatterns();
-	console.log("Reset patterns done");
 	addToHistory("Event type "+removedEvent+" removed");
 }
 
@@ -3292,10 +3339,6 @@ function updateDatasetForRemovedUser(removedIds, removedUser) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	let userInfoIndex = userInformations.findIndex((d)=>d[0]==removedUser);
-	userInformations.splice(userInfoIndex, 1);
-	resetPatterns();
-	console.log("Reset patterns done");
 	addToHistory("User "+removedUser+" removed");
 }
 
@@ -3601,7 +3644,7 @@ function clickOnUserNameHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "nameDown") {
+	if (lastUserSort == "name_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByName();
 	} else {
@@ -3631,7 +3674,7 @@ function clickOnUserNbEventsHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "nbEventsDown") {
+	if (lastUserSort == "nbEvents_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByNbEvents();
 	} else {
@@ -3661,7 +3704,7 @@ function clickOnUserDurationHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "durationDown") {
+	if (lastUserSort == "duration_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByTraceDuration();
 	} else {
@@ -3691,7 +3734,7 @@ function clickOnUserNbSessionsHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "nbSessionsDown") {
+	if (lastUserSort == "nbSessions_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByNbSessions();
 	} else {
@@ -3721,7 +3764,7 @@ function clickOnUserStartHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "startDown") {
+	if (lastUserSort == "start_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByStartDate();
 	} else {
@@ -3751,7 +3794,7 @@ function clickOnUserEndHeader() {
 			} else
 				d3.select(this).text(colName+"\u00A0\u00A0");
 		});
-	if (lastUserSort == "endDown") {
+	if (lastUserSort == "end_down") {
 		d3.select(header).text(txt + "\u00A0↓");
 		sortUsersByEndDate();
 	} else {
@@ -4274,35 +4317,32 @@ function createUserListDisplay() {
 	}
 	
 	// Adding the new ones
-	for (let u= 0; u < userInformations.length; u++) {
-		let thisUser = userInformations[u];
-		let thisUserName = thisUser[0];
-		
+	userList.forEach(function(user) {
 		// Only add the user if:
 		// - it is selected (always displayed)
 		// - the filter is empty or accepts the user
-		if (highlightedUsers.includes(thisUserName) == false) {
+		if (highlightedUsers.includes(user) == false) {
 			if (relatedUsers.length == 0) {
 				if (currentUserSearchInput.length > 0)
-					continue; // The filter accepts nothing
+					return; // The filter accepts nothing
 			} else {
-				if (!relatedUsers.includes(thisUserName))
-					continue; // The filter rejects the user
+				if (!relatedUsers.includes(user))
+					return; // The filter rejects the user
 			}
 		}
 		
 		let userRow = d3.select("#userTableBody").append("tr")
 			.classed("clickable", true);
 		
-		userRow.append("td").text(thisUser[0]); // name
-		userRow.append("td").text(thisUser[1]); // nbEvents
+		userRow.append("td").text(user); // name
+		userRow.append("td").text(userInformations[user].nbEvents); // nbEvents
 		
 		// Display the duration of the trace
 		var minutes = 1000 * 60;
 		var hours = minutes * 60;
 		var days = hours * 24;
 		var years = days * 365;
-		var timeDiff = thisUser[2];
+		var timeDiff = userInformations[user].duration;
 		
 		var result = "";
 		var tdText = "";
@@ -4330,42 +4370,42 @@ function createUserListDisplay() {
 		userRow.append("td").text(tdText); // traceDuration
 		
 		 // number of sessions
-		if (userSessions[thisUser[0]]) {
-			userRow.append("td").text(userSessions[thisUser[0]].length);
+		if (userSessions[user]) {
+			userRow.append("td").text(userSessions[user].length);
 		} else {
 			userRow.append("td").text("??");
 		}
 		
-		let d1 = new Date(thisUser[3]);
+		let d1 = new Date(userInformations[user].start);
 		let startDateFormated = d1.getDate()+"/"+(d1.getMonth()+1)+"/"+(d1.getFullYear().toString().substring(2,4));
-		let d2 = new Date(thisUser[4]);
+		let d2 = new Date(userInformations[user].end);
 		let endDateFormated = d2.getDate()+"/"+(d2.getMonth()+1)+"/"+(d2.getFullYear().toString().substring(2,4));
 		
 		userRow.append("td").text(startDateFormated);  // start
 		userRow.append("td").text(endDateFormated); // end
 
-		userRow.attr("id","u"+thisUserName);
+		userRow.attr("id","u"+user);
 		
-		if (highlightedUsers.includes(thisUser[0])) {
+		if (highlightedUsers.includes(user)) {
 			userRow.attr("class", "selectedUserRow");
 		}
 		
 		userRow.on("click", function(){
 			if (d3.event.shiftKey) { // Shift + click, steering
-				requestSteeringOnUser(userInfo[0]);
+				requestSteeringOnUser(user);
 				d3.event.stopPropagation();
 			} else { // normal click, highlight
 				//console.log(userName);
-				highlightUserRow(thisUserName);
+				highlightUserRow(user);
 				setHighlights();
 				timeline.displayData();
 				//d3.event.stopPropagation();
 			}
 		})
 		.on("mouseover", function() {
-			moveUserContextActionsToRow(thisUserName);
+			moveUserContextActionsToRow(user);
 		});
-	}
+	});
 }
 
 /**
@@ -5060,7 +5100,6 @@ function filterUserList() {
 		relatedUsers = userList.filter(function(d, i) {
 			return d.includes(currentUserSearchInput);
 		});
-		relatedUsers.sort();
 		
 		if (relatedUsers.length > 0) {
 			currentUserSearchSuggestionIdx = 0;
@@ -5077,7 +5116,6 @@ function filterUserList() {
 						relatedUsers = userList.filter(function(e, j) {
 							return e.includes(currentUserSearchInput);
 						});
-						relatedUsers.sort();
 
 						if (relatedUsers.length > 0) {
 							currentUserSearchSuggestionIdx = 0;
@@ -6560,28 +6598,23 @@ var Timeline = function(elemId, options) {
 		
 		switch(showUserSessionOption) {
 		case "all":
-			shownUsers = userInformations.map(function(uI) {
-				return uI[0]; // Only get the userName
-			});
+			shownUsers = userList;
 			break;
 		case "selected":
 			let hl = highlightedUsers;
 			hl.sort(function(a, b) {
-				let aIdx = userInformations.findIndex(function(elt) {
-					return elt[0] == a;
+				let aIdx = userList.findIndex(function(elt) {
+					return elt == a;
 				});
-				let bIdx = userInformations.findIndex(function(elt) {
-					return elt[0] == b;
+				let bIdx = userList.findIndex(function(elt) {
+					return elt == b;
 				});
 				return aIdx-bIdx;
 			});
 			shownUsers = hl;
 			break;
 		case "some":
-			shownUsers = userInformations.slice(firstUserShown, firstUserShown + nbUserShown)
-			.map(function(uI) {
-				return uI[0]; // Only get the userName
-			});
+			shownUsers = userList.slice(firstUserShown, firstUserShown + nbUserShown);
 			break;
 		default:
 		}
