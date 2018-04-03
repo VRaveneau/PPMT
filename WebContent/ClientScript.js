@@ -1407,7 +1407,7 @@ function setupAlgorithmSliders() {
  */
 function setupAlgorithmSupportSlider() {
 	// Using the custom made slider
-	supportSlider = new SupportSlider("sliderSupport");
+	supportSlider = new Slider("sliderSupport");
 	
 	// Using noUiSlider
 	/*supportSlider = document.getElementById("sliderSupport");
@@ -1473,7 +1473,9 @@ function setupAlgorithmWindowSizeSlider() {
  * Setup the slider controling the 'max size' parameter of the algorithm
  */
 function setupAlgorithmMaximumSizeSlider() {
-	sizeSlider = document.getElementById("sliderSize");
+	sizeSlider = new Slider("sliderSize");
+	
+	/*sizeSlider = document.getElementById("sliderSize");
 	noUiSlider.create(sizeSlider, {
 		range: {
 			'min': 0,
@@ -1497,7 +1499,7 @@ function setupAlgorithmMaximumSizeSlider() {
 				return value.replace('.-', '');
 			}
 		}
-	});
+	});*/
 }
 
 /**
@@ -2433,7 +2435,7 @@ function resetMaxPatternSupport(value = 0) {
  */
 function increaseMaxPatternSize(newSize) {
 	maxPatternSize = newSize;
-	//sizeSlider.updateDomainTop(maxPatternSize);
+	sizeSlider.updateDomainTop(maxPatternSize);
 }
 
 /**
@@ -6091,11 +6093,12 @@ function PatternSizesChart() {
 }
 
 /**
- * Creates a slider controling the 'support' parameter of the algorithm
+ * Creates a slider
  * @constructor
  * @param {string} elemId Id of the HTML node where the slider will be created
+ * @param {function} onupdate Callback used when one of the brushes' value changes. It will receive the new range as parameters
  */
-function SupportSlider(elemId) {
+function Slider(elemId, onupdate) {
 	let self = this;
 	self.parentNodeId = elemId;
 	self.parentNode = d3.select("#"+self.parentNodeId);
@@ -6110,12 +6113,14 @@ function SupportSlider(elemId) {
 	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
 	self.height = +self.svg.attr("height");	
 	
-	self.domain = [0,100];
+	self.domain = [0,0];
 	self.currentMinValue = self.domain[0];
 	self.currentMaxValue = self.domain[1];
 	self.currentHandleMinValue = self.currentMinValue;
 	self.currentHandleMaxValue = self.currentMaxValue;
 	
+	self.onupdate = (onupdate ? onupdate : function(f){return;});
+
 	self.axis = d3.scaleLinear()
 		.domain(self.domain)
 		.range([0,self.width])
@@ -6227,7 +6232,9 @@ function SupportSlider(elemId) {
 			self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
 				.text(Math.round(self.currentHandleMaxValue));
 		}
-			
+		
+		self.onupdate(self.getSelectedRange());
+
 		/*self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
 			.attr("x2",self.handle2.attr("cx"));*/
 	};
@@ -6246,6 +6253,8 @@ function SupportSlider(elemId) {
 			self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
 				.text(Math.round(self.currentHandleMaxValue));
 		}
+		
+		self.onupdate(self.getSelectedRange());
 		/*self.blueLine.attr("x1",)
 			.attr("x2",self.axis(Math.round(value)));*/
 	};
@@ -6300,6 +6309,8 @@ function SupportSlider(elemId) {
 		  	.text(function(d) { return d; });
 		tickData.exit()
 			.remove();
+		
+		self.onupdate(self.getSelectedRange());
 	}
 
 	self.updateDomainTop = function(end) {
@@ -6309,142 +6320,6 @@ function SupportSlider(elemId) {
 	self.updateDomainBottom = function(start) {
 		self.updateDomain(start, self.domain[1]);
 	}
-}
-
-/**
- * Creates a slider controling the 'gap' parameter of the algorithm
- * @constructor
- * @param {string} elemId Id of the HTML node where the slider will be created
- */
-function GapSlider(elemId) {
-	var self = this;
-	self.parentNodeId = elemId;
-	
-	self.svg = d3.select("#"+self.parentNodeId).append("svg")
-		.attr("class","slider")
-		.attr("width","256")//TODO change hardcoding of the width
-		.attr("height","50");
-	
-	self.margin = {right: 10, left: 10};
-	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
-	self.height = +self.svg.attr("height");	
-	
-	self.domain = [0,20];
-	self.currentMinValue = self.domain[0];
-	self.currentMaxValue = self.domain[1];
-	self.currentHandleMinValue = self.currentMinValue;
-	self.currentHandleMaxValue = self.currentMaxValue;
-	
-	self.axis = d3.scaleLinear()
-		.domain(self.domain)
-		.range([0,self.width])
-		.clamp(true);
-	self.slider = self.svg.append("g")
-		.attr("class","slider")
-		.attr("transform","translate("+self.margin.left+","+ self.height / 2 +")");
-	
-	self.line = self.slider.append("line")
-		.attr("class","track")
-		.attr("x1",self.axis.range()[0])
-		.attr("x2",self.axis.range()[1])
-		.attr("stroke", "black");
-	
-	self.blueLine = self.slider.append("line")
-		.attr("class","bluetrack")
-		.attr("x1",self.axis(self.currentHandleMinValue))
-		.attr("x2",self.axis(self.currentHandleMaxValue))
-		.attr("stroke", "lightblue");
-	
-	self.slider.insert("g",".track-overlay")
-		.attr("class","ticks")
-		.attr("transform", "translate(0,"+18+")")
-		.selectAll("text")
-		.data(self.axis.ticks(self.domain[1]-self.domain[0]))
-		.enter().append("text")
-			.attr("x",self.axis)
-			.attr("text-anchor","middle")
-			.text(function(d) { return d; });
-	
-	self.currentMin = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMinValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
-	self.currentMax = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMaxValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
-	self.handle1 = self.slider.insert("circle", ".track-overlay")
-		.attr("class","handleSlider")
-		.attr("r",5)
-		.attr("cx",self.axis(self.currentMinValue))
-		.call(d3.drag()
-				.on("start.interrupt", function() { self.slider.interrupt(); })
-				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
-					self.moveHandle1To(roundedPos);
-					}));
-	
-	self.handle2 = self.slider.insert("circle", ".track-overlay")
-		.attr("class","handleSlider")
-		.attr("r",5)
-		.attr("cx",self.axis(self.currentMaxValue))
-		.call(d3.drag()
-				.on("start.interrupt", function() { self.slider.interrupt(); })
-				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
-					self.moveHandle2To(roundedPos);
-					}));
-	
-	self.updateCurrentValues = function(min, max) {
-		self.currentMinValue = min;
-		self.currentMaxValue = max;
-		self.handle1.attr("cx",self.axis(self.current))
-	};
-	
-	self.moveCurrentMinTo = function(value) {
-		if (value >= self.currentMinValue)
-			self.currentMin.attr("x",self.axis(Math.round(value)));
-	};
-	
-	self.moveCurrentMaxTo = function(value) {
-		if (value <= self.currentMaxValue)
-			self.currentMax.attr("x",self.axis(Math.round(value)));
-	};
-	
-	self.moveHandle1To = function(value) {
-		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle1.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle2.attr("cx"));	
-			self.currentHandleMinValue = Math.min(value, otherValue);
-			self.currentHandleMaxValue = Math.max(value, otherValue);
-
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-		}
-			
-		/*self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-			.attr("x2",self.handle2.attr("cx"));*/
-	};
-	
-	self.moveHandle2To = function(value) {
-		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle2.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
-			self.currentHandleMinValue = Math.min(value, otherValue);
-			self.currentHandleMaxValue = Math.max(value, otherValue);
-
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-		}
-		/*self.blueLine.attr("x1",)
-			.attr("x2",self.axis(Math.round(value)));*/
-	};
 }
 
 /**
