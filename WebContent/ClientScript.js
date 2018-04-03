@@ -1389,10 +1389,12 @@ function setupPatternSizesChart() {
  * Setup the sliders that control the algorithm
  */
 function setupAlgorithmSliders() {
+	d3.select("#Algorithm").classed("hidden", false);
 	setupAlgorithmSupportSlider();
-	setupAlgorithmWindowSizeSlider();
+	//setupAlgorithmWindowSizeSlider();
 	setupAlgorithmMaximumSizeSlider();
-	setupAlgorithmGapSlider();
+	//setupAlgorithmGapSlider();
+	d3.select("#Algorithm").classed("hidden", true);
 }
 
 /**
@@ -1400,10 +1402,10 @@ function setupAlgorithmSliders() {
  */
 function setupAlgorithmSupportSlider() {
 	// Using the custom made slider
-	//supportSlider = new SupportSlider("sliderSupportArea");
+	supportSlider = new SupportSlider("sliderSupport");
 	
 	// Using noUiSlider
-	supportSlider = document.getElementById("sliderSupport");
+	/*supportSlider = document.getElementById("sliderSupport");
 	noUiSlider.create(supportSlider, {
 		range: {
 			'min': 0,
@@ -1427,7 +1429,7 @@ function setupAlgorithmSupportSlider() {
 				return value.replace('.-', '');
 			}
 		}
-	});
+	});*/
 }
 
 /**
@@ -6047,10 +6049,12 @@ function PatternSizesChart() {
 function SupportSlider(elemId) {
 	let self = this;
 	self.parentNodeId = elemId;
+	self.parentNode = d3.select("#"+self.parentNodeId);
+	self.parentWidth = parseFloat(document.getElementById(self.parentNodeId).getBoundingClientRect().width);
 	
-	self.svg = d3.select("#"+self.parentNodeId).append("svg")
+	self.svg = self.parentNode.append("svg")
 		.attr("class","slider")
-		.attr("width","256")//TODO change hardcoding of the width
+		.attr("width", Math.floor(self.parentWidth).toString()) //TODO change hardcoding of the width
 		.attr("height","50");
 	
 	self.margin = {right: 10, left: 10};
@@ -6164,8 +6168,8 @@ function SupportSlider(elemId) {
 	self.moveHandle2To = function(value) {
 		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
 			self.handle2.attr("cx",self.axis(Math.round(value)));
-			self.currentHandleMinValue = Math.min(value, otherValue);
 			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
+			self.currentHandleMinValue = Math.min(value, otherValue);
 			self.currentHandleMaxValue = Math.max(value, otherValue);
 	
 			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))

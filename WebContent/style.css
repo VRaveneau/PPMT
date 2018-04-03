@@ -997,8 +997,14 @@ table {
 
 #Algorithm {
 	overflow: auto;
-	max-height: 90%;
-	flex-direction: column;
+	/*max-height: 90%;
+	flex-direction: column;*/
+	grid-template-rows: repeat(2/*4*/, minmax(min-content, 1fr));
+	grid-template-areas: 
+		"slider-support"
+		/*"slider-gap"
+		"slider-window"*/
+		"slider-size";
 }
 
 #Execution {
@@ -1563,14 +1569,33 @@ table {
 }
 
 #sliderSupportArea, #sliderGapArea, #sliderWindowArea, #sliderSizeArea {
-	height: 100px;
+	/*height: 100px;
+	width: 100%;*/
+	display: grid;
+	grid-template-rows: min-content 1fr;
+}
+
+#sliderSupportArea {
+	grid-area: slider-support;
+}
+
+#sliderGapArea {
+	grid-area: slider-gap;
+}
+
+#sliderWindowArea {
+	grid-area: slider-window;
+}
+
+#sliderSizeArea {
+	grid-area: slider-size;
 }
 
 #sliderSupport, #sliderGap, #sliderWindow, #sliderSize {
 	margin: 10px 20px;
 }
 
-/*
+
 #sliderGap {
 	width: 100%;
 	height: 75px;
@@ -1590,14 +1615,14 @@ table {
 }
 
 .track {
-  stroke: #black;
+  stroke: black;
   stroke-opacity: 0.3;
   stroke-width: 5px;
   stroke-linecap: round;
 }
 
 .bluetrack {
-  stroke: #lightblue;
+  stroke: lightblue;
   stroke-width: 5px;
   stroke-linecap: round;
 }
@@ -1610,11 +1635,11 @@ table {
 }
 
 .boundary {
-  fill: #grey;
+  fill: grey;
   stroke: #000;
   stroke-opacity: 0.5;
   stroke-width: 1.25px;
-}*/
+}
 
 /********************/
 /*	Tooltip			*/
