@@ -1634,6 +1634,10 @@ table {
   stroke-width: 1.25px;
 }
 
+.handleSliderText {
+	font: 10px sans-serif;
+  }
+
 .boundary {
   fill: grey;
   stroke: #000;

@@ -6054,14 +6054,14 @@ function SupportSlider(elemId) {
 	
 	self.svg = self.parentNode.append("svg")
 		.attr("class","slider")
-		.attr("width", Math.floor(self.parentWidth).toString()) //TODO change hardcoding of the width
+		.attr("width", Math.floor(self.parentWidth).toString())
 		.attr("height","50");
 	
 	self.margin = {right: 10, left: 10};
 	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
 	self.height = +self.svg.attr("height");	
 	
-	self.domain = [1,10000];
+	self.domain = [1,100];
 	self.currentMinValue = self.domain[0];
 	self.currentMaxValue = self.domain[1];
 	self.currentHandleMinValue = self.currentMinValue;
@@ -6088,11 +6088,11 @@ function SupportSlider(elemId) {
 		.attr("x2",self.axis(self.currentHandleMaxValue))
 		.attr("stroke", "lightblue");
 	
-	self.slider.insert("g",".track-overlay")
+	self.ticks = self.slider.insert("g",".track-overlay")
 		.attr("class","ticks")
-		.attr("transform", "translate(0,"+18+")")
-		.selectAll("text")
-		.data(self.axis.ticks((self.domain[1]-self.domain[0])/1000))
+		.attr("transform", "translate(0,"+18+")");
+	self.ticks.selectAll("text")
+		.data(self.axis.ticks(5))
 		.enter().append("text")
 			.attr("x",self.axis)
 			.attr("text-anchor","middle")
@@ -6133,7 +6133,21 @@ function SupportSlider(elemId) {
 					var roundedPos = Math.round(self.axis.invert(d3.event.x));
 					self.moveHandle2To(roundedPos);
 					}));
+
+	self.tooltipMin = self.slider.insert("text", ".track-overlay")
+		.attr("class","handleSliderText")
+		.attr("x", self.axis(self.currentHandleMinValue))
+		.attr("text-anchor","middle")
+		.attr("transform", "translate(0,-"+10+")")
+		.text(self.currentHandleMinValue);
+	self.tooltipMax = self.slider.insert("text", ".track-overlay")
+		.attr("class","handleSliderText")
+		.attr("x", self.axis(self.currentHandleMaxValue))
+		.attr("text-anchor","middle")
+		.attr("transform", "translate(0,-"+10+")")
+		.text(self.currentHandleMaxValue);
 	
+	// Unfinished
 	self.updateCurrentValues = function(min, max) {
 		self.currentMinValue = min;
 		self.currentMaxValue = max;
@@ -6159,6 +6173,10 @@ function SupportSlider(elemId) {
 	
 			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
 				.attr("x2",self.axis(self.currentHandleMaxValue));
+			self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
+				.text(Math.round(self.currentHandleMinValue));
+			self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
+				.text(Math.round(self.currentHandleMaxValue));
 		}
 			
 		/*self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
@@ -6174,10 +6192,74 @@ function SupportSlider(elemId) {
 	
 			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
 				.attr("x2",self.axis(self.currentHandleMaxValue));
+			self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
+				.text(Math.round(self.currentHandleMinValue));
+			self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
+				.text(Math.round(self.currentHandleMaxValue));
 		}
 		/*self.blueLine.attr("x1",)
 			.attr("x2",self.axis(Math.round(value)));*/
 	};
+
+	self.getSelectedRange = function() {
+		return [self.currentHandleMinValue, self.currentHandleMaxValue];
+	}
+
+	/**
+	 * Updates the domain of the slider, keeping the current handle values if possible
+	 * @param {number} start The new domain bottom value (included)
+	 * @param {number} end The new domain top value (included)
+	 */
+	self.updateDomain = function(start, end) {
+		self.domain = [start, end];
+		let minHandleAtBottom = self.currentMinValue == self.currentHandleMinValue;
+		let maxHandleAtTop = self.currentMaxValue == self.currentHandleMaxValue;
+		self.currentMinValue = self.domain[0];
+		self.currentMaxValue = self.domain[1];
+		if (self.currentHandleMinValue <= self.currentMinValue || minHandleAtBottom)
+			self.currentHandleMinValue = self.currentMinValue;
+		else
+			self.currentHandleMinValue = Math.min(self.currentMaxValue, self.currentHandleMinValue);
+		
+		if (self.currentHandleMaxValue >= self.currentMaxValue || maxHandleAtTop)
+			self.currentHandleMaxValue = self.currentMaxValue;
+		else
+			self.currentHandleMaxValue = Math.max(self.currentMinValue, self.currentHandleMaxValue);
+		self.axis.domain(self.domain);
+		self.line.attr("x1",self.axis.range()[0])
+			.attr("x2",self.axis.range()[1]);
+		self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
+			.attr("x2",self.axis(self.currentHandleMaxValue));
+		self.currentMin.attr("x",self.axis(self.currentMinValue));
+		self.currentMax.attr("x",self.axis(self.currentMaxValue));
+		self.handle1.attr("cx",self.axis(self.currentHandleMinValue));
+		self.handle2.attr("cx",self.axis(self.currentHandleMaxValue));
+		self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
+			.text(self.currentHandleMinValue);
+		self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
+			.text(self.currentHandleMaxValue);
+
+		let tickData = self.ticks.selectAll("text")
+			.data(self.axis.ticks(5));
+		tickData.enter()
+			.append("text")
+			.attr("x",self.axis)
+			.attr("text-anchor","middle")
+			.text(function(d) { return d; })
+		  .merge(tickData)
+		  	.attr("x",self.axis)
+		  	.text(function(d) { return d; });
+		tickData.exit()
+			.remove();
+	}
+
+	self.updateDomainTop = function(end) {
+		self.updateDomain(self.domain[0], end);
+	}
+
+	self.updateDomainBottom = function(start) {
+		self.updateDomain(start, self.domain[1]);
+	}
 }
 
 /**
