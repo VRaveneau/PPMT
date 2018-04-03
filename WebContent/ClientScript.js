@@ -1403,12 +1403,12 @@ function setupPatternSizesChart() {
  */
 function setupAlgorithmSliders() {
 	// Setup the filtering sliders
-	d3.select("#Algorithm").classed("hidden", false);
+	//d3.select("#Algorithm").classed("hidden", false);
 	setupAlgorithmSupportSlider();
 	//setupAlgorithmWindowSizeSlider();
 	setupAlgorithmMaximumSizeSlider();
 	//setupAlgorithmGapSlider();
-	d3.select("#Algorithm").classed("hidden", true);
+	//d3.select("#Algorithm").classed("hidden", true);
 
 	// Setup the parameter modifying sliders
 	d3.select("#algorithmParametersChange").classed("hidden", false);
@@ -6119,7 +6119,7 @@ function changeDrawIndividualEventsOnSessions() {
  * @constructor
  */
 function PatternSizesChart() {
-	this.svg = d3.select(d3.selectAll("#Execution > div").nodes()[1]).append("svg")
+	this.svg = d3.select("#patternSizesChart").append("svg")
 			.attr("width", "100%")
 			.attr("height", "100%")
 			.attr("id","patternSizesSvg");
