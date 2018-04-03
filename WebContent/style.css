@@ -1444,6 +1444,10 @@ table {
 	border-radius: 3px;
 }
 
+.highlightsResetOption span{
+	text-decoration: underline;
+}
+
 /********************/
 /*	Sliders			*/
 /********************/

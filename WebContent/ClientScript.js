@@ -4202,86 +4202,26 @@ function clickOnPatternSupportHeader() {
  * (Re)creates the display of the highlights summary
  */
 function setHighlights() {
-	// removing the potential old user highlights
-	let userDisplayArea = document.getElementById("userHighlight");
-	while (userDisplayArea.firstChild) {
-		userDisplayArea.removeChild(userDisplayArea.firstChild);
-	}
-	userDisplayArea = d3.select("#userHighlight");
-	
-	if (highlightedUsers.length == 0) {
-		userDisplayArea.text("0 highlighted user");
-	} else {
-		if (highlightedUsers.length <= numberOfDetailedHighlights) {
-			userDisplayArea.text("Users ");
-			for (let i = 0; i < highlightedUsers.length; i++) {
-				let thisUser = highlightedUsers[i];
-				userDisplayArea.append("span")
-					.classed("clickable", true)
-					.classed("highlightButton", true)
-					.text(thisUser)
-					.on("click", function() {
-						highlightUserRow(thisUser);
-						setHighlights();
-						timeline.displayData();
-						//d3.event.stopPropagation();
-					});
-				if (i < highlightedUsers.length - 1)
-					userDisplayArea.append("span")
-						.text(" ");
-			}
-		} else {
-			userDisplayArea.text(highlightedUsers.length +" highlighted users");
-		}
-	}
-	
+	d3.select("#userHighlight .highlightsValue")
+		.text(highlightedUsers.length);
+	if(highlightedUsers.length > 0)
+		d3.select("#userHighlight .highlightsResetOption").classed("hidden", false);
+	else
+		d3.select("#userHighlight .highlightsResetOption").classed("hidden", true);
 
-	// removing the potential old event type highlights
-	let eventTypeDisplayArea = document.getElementById("eventTypeHighlight");
-	while (eventTypeDisplayArea.firstChild) {
-		eventTypeDisplayArea.removeChild(eventTypeDisplayArea.firstChild);
-	}
-	eventTypeDisplayArea = d3.select(eventTypeDisplayArea);
-	
-	if (highlightedEventTypes.length == 0) {
-		eventTypeDisplayArea.text("0 highlighted event type");
-	} else {
-		if (highlightedEventTypes.length <= numberOfDetailedHighlights) {
-			eventTypeDisplayArea.text("Events ");
-			for (let i = 0; i < highlightedEventTypes.length; i++) {
-				let thisEventType = highlightedEventTypes[i];
-				eventTypeDisplayArea.append("span")
-					.classed("clickable", true)
-					.classed("highlightButton", true)
-					.style("color", colorList[highlightedEventTypes[i]][0].toString())
-					.text(itemShapes[highlightedEventTypes[i]])
-					.on("click", function() {
-						highlightEventTypeRow(thisEventType);
-						setHighlights();
-						timeline.displayData();
-						//d3.event.stopPropagation();
-					})
-				  .append("span")
-					.style("color", "black")
-					.text("\u00A0"+highlightedEventTypes[i]);
+	d3.select("#eventTypeHighlight .highlightsValue")
+		.text(highlightedEventTypes.length);
+	if(highlightedEventTypes.length > 0)
+		d3.select("#eventTypeHighlight .highlightsResetOption").classed("hidden", false);
+	else
+		d3.select("#eventTypeHighlight .highlightsResetOption").classed("hidden", true);
 
-				if (i < highlightedEventTypes.length - 1)
-					eventTypeDisplayArea.append("span")
-						.text(" ");
-			}
-		} else {
-			eventTypeDisplayArea.text(highlightedEventTypes.length +" highlighted event types");
-		}
-	}
-
-	// removing the potential old pattern highlights
-	let patternDisplayArea = document.getElementById("patternHighlight");
-	while (patternDisplayArea.firstChild) {
-		patternDisplayArea.removeChild(patternDisplayArea.firstChild);
-	}
-	patternDisplayArea = d3.select(patternDisplayArea);
-	
-	patternDisplayArea.text(selectedPatternIds.length +" selected patterns");
+	d3.select("#patternHighlight .highlightsValue")
+		.text(selectedPatternIds.length);
+	if(selectedPatternIds.length > 0)
+		d3.select("#patternHighlight .highlightsResetOption").classed("hidden", false);
+	else
+		d3.select("#patternHighlight .highlightsResetOption").classed("hidden", true);
 }
 
 /**
@@ -5897,17 +5837,6 @@ function displayHighlightsTooltip(target) {
 		.style("text-align", "center");
 	switch(target) {
 		case "users":
-			if (highlightedUsers.length > 0) {
-				area.append("button")
-					.on("click", function() {
-						clearUserSelection();
-						displayHighlightsTooltip(target);
-					})
-					.classed("clickable", true)
-					.text("Reset user selection");
-			}
-			area.append("p")
-				.text(highlightedUsers.length + " highlighted users :");
 			highlightedUsers.forEach(function(usr) {
 				area.append("p")
 					.append("span")
@@ -5923,17 +5852,6 @@ function displayHighlightsTooltip(target) {
 			});
 			break;
 		case "eventTypes":
-			if (highlightedEventTypes.length > 0) {
-				area.append("button")
-					.on("click", function() {
-						clearEventTypeSelection();
-						displayHighlightsTooltip(target);
-					})
-					.classed("clickable", true)
-					.text("Reset event type selection");
-			}
-			area.append("p")
-				.text(highlightedEventTypes.length + " highlighted event types :");
 			highlightedEventTypes.forEach(function(type) {
 				area.append("p")
 					.append("span")
@@ -5953,8 +5871,6 @@ function displayHighlightsTooltip(target) {
 			});
 			break;
 		case "patterns":
-			area.append("p")
-				.text(selectedPatternIds.length + " selected patterns :");
 			selectedPatternIds.forEach(function(patternId) {
 				let pSize = patternsInformation[patternId][1];
 				let pString = patternsInformation[patternId][0];

@@ -144,13 +144,13 @@
 						</svg> -->
 						<!-- <p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p> -->
 						<div id="userHighlight" onmousemove="moveTooltipOnHighlights('users');">
-							0 highlighted user
+							<span class="highlightsValue">0</span> highlighted users <span class="highlightsResetOption clickable hidden" onclick="clearUserSelection();">(<span>RESET</span>)</span>
 						</div>
 						<div id="eventTypeHighlight" onmousemove="moveTooltipOnHighlights('eventTypes');">
-							0 highlighted event type
+							<span class="highlightsValue">0</span> highlighted event types <span class="highlightsResetOption clickable hidden" onclick="clearEventTypeSelection();">(<span>RESET</span>)</span>
 						</div>
 						<div id="patternHighlight" onmousemove="moveTooltipOnHighlights('patterns');">
-							0 selected pattern
+							<span class="highlightsValue">0</span> selected patterns <span class="highlightsResetOption clickable hidden" onclick="unselectAllPatterns();">(<span>RESET</span>)</span>
 						</div>
 					</div>
 				</div>
