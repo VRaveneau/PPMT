@@ -1402,12 +1402,21 @@ function setupPatternSizesChart() {
  * Setup the sliders that control the algorithm
  */
 function setupAlgorithmSliders() {
+	// Setup the filtering sliders
 	d3.select("#Algorithm").classed("hidden", false);
 	setupAlgorithmSupportSlider();
 	//setupAlgorithmWindowSizeSlider();
 	setupAlgorithmMaximumSizeSlider();
 	//setupAlgorithmGapSlider();
 	d3.select("#Algorithm").classed("hidden", true);
+
+	// Setup the parameter modifying sliders
+	d3.select("#algorithmParametersChange").classed("hidden", false);
+	setupSupportParameterSlider();
+	setupGapParameterSlider();
+	setupDurationParameterSlider();
+	setupSizeParameterSlider();
+	d3.select("#algorithmParametersChange").classed("hidden", true);
 }
 
 /**
@@ -1415,7 +1424,7 @@ function setupAlgorithmSliders() {
  */
 function setupAlgorithmSupportSlider() {
 	// Using the custom made slider
-	supportSlider = new Slider("sliderSupport", debouncedFilterPatterns);
+	supportSlider = new FilterSlider("sliderSupport", debouncedFilterPatterns);
 	
 	// Using noUiSlider
 	/*supportSlider = document.getElementById("sliderSupport");
@@ -1481,7 +1490,7 @@ function setupAlgorithmWindowSizeSlider() {
  * Setup the slider controling the 'max size' parameter of the algorithm
  */
 function setupAlgorithmMaximumSizeSlider() {
-	sizeSlider = new Slider("sliderSize", debouncedFilterPatterns);
+	sizeSlider = new FilterSlider("sliderSize", debouncedFilterPatterns);
 	
 	/*sizeSlider = document.getElementById("sliderSize");
 	noUiSlider.create(sizeSlider, {
@@ -1543,6 +1552,46 @@ function setupAlgorithmGapSlider() {
 			}
 		}
 	});
+}
+
+/**
+ * Setup the slider controling the 'support' parameter of the algorithm
+ */
+function setupSupportParameterSlider() {
+	let sliderOptions = {
+		brushNumber: 1
+	}
+	new ModifySlider("minSupportChangeSlider", sliderOptions);
+}
+
+/**
+ * Setup the slider controling the 'gap' parameter of the algorithm
+ */
+function setupGapParameterSlider() {
+	let sliderOptions = {
+		brushNumber: 2
+	}
+	new ModifySlider("gapChangeSlider", sliderOptions);
+}
+
+/**
+ * Setup the slider controling the 'duration' parameter of the algorithm
+ */
+function setupDurationParameterSlider() {
+	let sliderOptions = {
+		brushNumber: 1
+	}
+	new ModifySlider("maxDurationChangeSlider", sliderOptions);
+}
+
+/**
+ * Setup the slider controling the 'size' parameter of the algorithm
+ */
+function setupSizeParameterSlider() {
+	let sliderOptions = {
+		brushNumber: 1
+	}
+	new ModifySlider("maxSizeChangeSlider", sliderOptions);
 }
 
 /**
@@ -3325,6 +3374,12 @@ function addPatternToList(message) {
 
 	patternsInformation[pId] = [pString, pSize, pSupport, pItems, pUsers];
 	
+	// Update the relevant metrics
+	if (patternMetrics["sizeDistribution"][pSize])
+		patternMetrics["sizeDistribution"][pSize] = patternMetrics["sizeDistribution"][pSize] + 1;
+	else
+		patternMetrics["sizeDistribution"][pSize] = 1;
+
 	// Don't take this pattern into consideration if it doesn"t pass the sliders' filter
 	if (!supportSlider.hasValueSelected(pSupport) || !sizeSlider.hasValueSelected(pSize))
 		return;
@@ -3357,12 +3412,6 @@ function addPatternToList(message) {
 			firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
 		}
 	}
-	
-	// Update the relevant metrics
-	if (patternMetrics["sizeDistribution"][pSize])
-		patternMetrics["sizeDistribution"][pSize] = patternMetrics["sizeDistribution"][pSize] + 1;
-	else
-		patternMetrics["sizeDistribution"][pSize] = 1;
 }
 
 /**
@@ -6173,12 +6222,12 @@ function PatternSizesChart() {
 }
 
 /**
- * Creates a slider
+ * Creates a slider that will filter the patterns
  * @constructor
  * @param {string} elemId Id of the HTML node where the slider will be created
  * @param {function} onupdate Callback used when one of the brushes' value changes
  */
-function Slider(elemId, onupdate) {
+function FilterSlider(elemId, onupdate) {
 	let self = this;
 	self.parentNodeId = elemId;
 	self.parentNode = d3.select("#"+self.parentNodeId);
@@ -6404,6 +6453,109 @@ function Slider(elemId, onupdate) {
 	self.hasValueSelected = function(value) {
 		return value >= self.currentHandleMinValue && value <= self.currentHandleMaxValue;
 	}
+}
+
+/**
+ * Creates a slider that will modify the algorithm's parameters
+ * @constructor
+ * @param {string} elemId Id of the HTML node where the slider will be created
+ * @param {JSON} options Options for the creation of the slider
+ */
+function ModifySlider(elemId, options) {
+	let self = this;
+	self.parentNodeId = elemId;
+	self.parentNode = d3.select("#"+self.parentNodeId);
+	self.parentWidth = parseFloat(document.getElementById(self.parentNodeId).getBoundingClientRect().width);
+	
+	self.svg = self.parentNode.append("svg")
+		.attr("class","slider")
+		.attr("width", Math.floor(self.parentWidth).toString())
+		.attr("height","50");
+	
+	self.margin = {right: 10, left: 10};
+	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
+	self.height = +self.svg.attr("height");	
+	
+	self.domain = [0,10];
+	self.currentMinValue = self.domain[0];
+	self.currentMaxValue = self.domain[1];
+	self.handleValues = [];
+
+	for(let brushNb = 0; brushNb < options.brushNumber; brushNb++)
+		self.handleValues.push(self.currentMinValue);
+
+	self.axis = d3.scaleLinear()
+		.domain(self.domain)
+		.range([0,self.width])
+		.clamp(true);
+	
+	self.slider = self.svg.append("g")
+		.attr("class","slider")
+		.attr("transform","translate("+self.margin.left+","+ self.height / 2 +")");
+	
+	self.line = self.slider.append("line")
+		.attr("class","track")
+		.attr("x1",self.axis.range()[0])
+		.attr("x2",self.axis.range()[1])
+		.attr("stroke", "black");
+	
+	self.blueLine = self.slider.append("line")
+		.attr("class","bluetrack")
+		.attr("x1",self.axis(_.min(self.handleValues)))
+		.attr("x2",self.axis(_.max(self.handleValues)))
+		.attr("stroke", "lightblue");
+	
+	self.ticks = self.slider.insert("g",".track-overlay")
+		.attr("class","ticks")
+		.attr("transform", "translate(0,"+18+")");
+	self.ticks.selectAll("text")
+		.data(self.axis.ticks(5))
+		.enter().append("text")
+			.attr("x",self.axis)
+			.attr("text-anchor","middle")
+			.text(function(d) { return d; });
+	
+	self.currentMin = self.slider.insert("rect", ".track-overlay")
+		.attr("class","boundary")
+		.attr("x",self.axis(self.currentMinValue))
+		.attr("y",-5)
+		.attr("width",2)
+		.attr("height",10);
+	
+	self.currentMax = self.slider.insert("rect", ".track-overlay")
+		.attr("class","boundary")
+		.attr("x",self.axis(self.currentMaxValue))
+		.attr("y",-5)
+		.attr("width",2)
+		.attr("height",10);
+	
+	self.handles = [];
+
+	self.handleValues.forEach(function(handleValue) {
+		let handle = self.slider.insert("circle", ".track-overlay")
+			.attr("class","handleSlider")
+			.attr("r",5)
+			.attr("cx",self.axis(handleValue))
+			.call(d3.drag()
+					.on("start.interrupt", function() { self.slider.interrupt(); })
+					.on("start drag", function() {
+						var roundedPos = Math.round(self.axis.invert(d3.event.x));
+						self.moveHandle1To(roundedPos);
+						}));
+		self.handles.push(handle);
+	});
+
+	self.tooltips = [];
+
+	self.handleValues.forEach(function(handleValue) {
+		let tt = self.slider.insert("text", ".track-overlay")
+			.attr("class","handleSliderText")
+			.attr("x", self.axis(handleValue))
+			.attr("text-anchor","middle")
+			.attr("transform", "translate(0,-"+10+")")
+			.text(handleValue);
+		self.tooltips.push(tt);
+	});
 }
 
 /**
