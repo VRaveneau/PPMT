@@ -354,6 +354,11 @@ var eventTypeInformations = {};
 // Number of tasks managed by the activity indicator currently occurring
 var runningTaskIndicatorNumber = 0;
 
+// Maximum pattern support
+var maxPatternSupport = 0;
+// Maximum pattern size
+var maxPatternSize = 0;
+
 /*************************************/
 /*			State elements			 */
 /*************************************/
@@ -2405,6 +2410,42 @@ function receiveEventTypes(message) {
 /************************************/
 
 /**
+ * Updates the value for the maximum pattern support
+ * @param {number} newSupport The new value
+ */
+function increaseMaxPatternSupport(newSupport) {
+	maxPatternSupport = newSupport;
+	supportSlider.updateDomainTop(maxPatternSupport);
+}
+
+/**
+ * Resets the maximum pattern support 
+ * @param {number} value The default value to use, 0 if not given
+ */
+function resetMaxPatternSupport(value = 0) {
+	maxPatternSupport = value;
+	supportSlider.updateDomainTop(maxPatternSupport);
+}
+
+/**
+ * Updates the value for the maximum pattern size
+ * @param {number} newSize The new value
+ */
+function increaseMaxPatternSize(newSize) {
+	maxPatternSize = newSize;
+	//sizeSlider.updateDomainTop(maxPatternSize);
+}
+
+/**
+ * Resets the maximum pattern size 
+ * @param {number} value The default value to use, 0 if not given
+ */
+function resetMaxPatternSize(value = 0) {
+	maxPatternSize = value;
+	//sizeSlider.updateDomainTop(maxPatternSize);
+}
+
+/**
  * Updates the information on each user from the data
  */
 function updateUserInformations() {
@@ -3185,6 +3226,12 @@ function addPatternToList(message) {
 	let pSupport = parseInt(message.support);
 	let pId = message.id;
 
+	if (maxPatternSupport < pSupport)
+		increaseMaxPatternSupport(pSupport);
+
+	if (maxPatternSize < pSize)
+		increaseMaxPatternSize(pSize);
+
 	let pUsers = message.userDistribution.users.split(";");
 	
 	// TODO Rename the function or move its behavior here
@@ -3271,6 +3318,8 @@ function resetPatterns() {
 	selectedPatternIds = [];
 	// TODO Deal with the potential other pattern metrics in patternMetrics
 	patternMetrics.sizeDistribution = {};
+	resetMaxPatternSupport();
+	resetMaxPatternSize();
 	drawPatternSizesChart();
 	createPatternListDisplay();
 	updatePatternCountDisplay();
@@ -6061,7 +6110,7 @@ function SupportSlider(elemId) {
 	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
 	self.height = +self.svg.attr("height");	
 	
-	self.domain = [1,100];
+	self.domain = [0,100];
 	self.currentMinValue = self.domain[0];
 	self.currentMaxValue = self.domain[1];
 	self.currentHandleMinValue = self.currentMinValue;
