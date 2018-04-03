@@ -305,6 +305,8 @@ var numberOfPattern = 0;
 var patternsInformation = {};
 // The list of ids for all the discovered patterns
 var patternIdList = [];
+// The list of ids for all the filtered out patterns
+var filteredOutPatterns = [];
 // Known metrics on the patterns
 var patternMetrics = {"sizeDistribution":{}};
 
@@ -526,6 +528,12 @@ var debouncedFilterPatternList = _.debounce(filterPatternList, 500);
  * @type {function}
  */
 var debouncedHidePatternContextActions = _.debounce(hidePatternContextActions, 500);
+
+/**
+ * A debounced version of filterPatterns
+ * @type {function}
+ */
+var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 
 /******************************************************************************/
 /*																			  */
@@ -1407,7 +1415,7 @@ function setupAlgorithmSliders() {
  */
 function setupAlgorithmSupportSlider() {
 	// Using the custom made slider
-	supportSlider = new Slider("sliderSupport");
+	supportSlider = new Slider("sliderSupport", debouncedFilterPatterns);
 	
 	// Using noUiSlider
 	/*supportSlider = document.getElementById("sliderSupport");
@@ -1473,7 +1481,7 @@ function setupAlgorithmWindowSizeSlider() {
  * Setup the slider controling the 'max size' parameter of the algorithm
  */
 function setupAlgorithmMaximumSizeSlider() {
-	sizeSlider = new Slider("sliderSize");
+	sizeSlider = new Slider("sliderSize", debouncedFilterPatterns);
 	
 	/*sizeSlider = document.getElementById("sliderSize");
 	noUiSlider.create(sizeSlider, {
@@ -1542,13 +1550,13 @@ function setupAlgorithmGapSlider() {
  */
 function setupHelpers() {
 	d3.select("#helpSupport")
-		.attr("title", "Minimim number of occurrences to be considered frequent");
+		.attr("title", "Number of occurrences of a pattern");
 	/*d3.select("#helpGap")
-		.attr("title", "Number of events in the pattern that don't belong to it");*/
+		.attr("title", "Number of events in the pattern that don't belong to it");
 	d3.select("#helpWindow")
-		.attr("title", "The minimal support for a pattern to be frequent");
+		.attr("title", "The minimal support for a pattern to be frequent");*/
 	d3.select("#helpSize")
-		.attr("title", "Maximum number of event in a pattern");
+		.attr("title", "Number of events in a pattern");
 }
 
 /**
@@ -2412,6 +2420,75 @@ function receiveEventTypes(message) {
 /************************************/
 
 /**
+ * Filters the patterns according to all sliders
+ * 
+ * A debounced version is available in debouncedFilterPatterns 
+ */
+function filterPatterns() {
+	let rangeSupport = supportSlider.getSelectedRange();
+	let rangeSize = sizeSlider.getSelectedRange();
+
+	let toFilterOut = _.remove(patternIdList, function(pId) {
+			let support = patternsInformation[pId][2];
+			let size = patternsInformation[pId][1];
+			let supportInvalid = support < rangeSupport[0] || support > rangeSupport[1];
+			let sizeInvalid = size < rangeSize[0] || size > rangeSize[1];
+			return supportInvalid || sizeInvalid;
+		});
+	let toFilterIn = _.remove(filteredOutPatterns, function(pId) {
+			let support = patternsInformation[pId][2];
+			let size = patternsInformation[pId][1];
+			let supportValid = support >= rangeSupport[0] && support <= rangeSupport[1];
+			let sizeValid = size >= rangeSize[0] && size <= rangeSize[1];
+			return supportValid && sizeValid;
+		});
+
+	patternIdList = _.concat(patternIdList, toFilterIn);
+	filteredOutPatterns = _.concat(filteredOutPatterns, toFilterOut);
+
+	// Updates the pattern list
+	createPatternListDisplay();
+}
+
+/**
+ * Filters the patterns according to the support slider
+ * @param {[number]} range The currently selected range in the slider
+ */
+function filterPatternsBySupport(range) {
+	let toFilterOut = _.remove(patternIdList, function(pId) {
+			let supp = patternsInformation[pId][2];
+			return supp < range[0] || supp > range[1];
+				
+		});
+	let toFilterIn = _.remove(filteredOutPatterns, function(pId) {
+			let supp = patternsInformation[pId][2];
+			return supp >= range[0] && supp <= range[1];
+		});
+
+	patternIdList = _.concat(patternIdList, toFilterIn);
+	filteredOutPatterns = _.concat(filteredOutPatterns, toFilterOut);
+}
+
+/**
+ * Filters the patterns according to the size slider
+ * @param {[number]} range The currently selected range in the slider
+ */
+function filterPatternsBySize(range) {
+	let toFilterOut = _.remove(patternIdList, function(pId) {
+			let size = patternsInformation[pId][1];
+			return size < range[0] || size > range[1];
+				
+		});
+	let toFilterIn = _.remove(filteredOutPatterns, function(pId) {
+			let size = patternsInformation[pId][1];
+			return size >= range[0] && size <= range[1];
+		});
+
+	patternIdList = _.concat(patternIdList, toFilterIn);
+	filteredOutPatterns = _.concat(filteredOutPatterns, toFilterOut);
+}
+
+/**
  * Updates the value for the maximum pattern support
  * @param {number} newSupport The new value
  */
@@ -3223,6 +3300,7 @@ function clearEventTypeSelection() {
  * TODO Optimize it
  */
 function addPatternToList(message) {
+	numberOfPattern++;
 	
 	let pSize = parseInt(message.size);
 	let pSupport = parseInt(message.support);
@@ -3247,14 +3325,16 @@ function addPatternToList(message) {
 
 	patternsInformation[pId] = [pString, pSize, pSupport, pItems, pUsers];
 	
+	// Don't take this pattern into consideration if it doesn"t pass the sliders' filter
+	if (!supportSlider.hasValueSelected(pSupport) || !sizeSlider.hasValueSelected(pSize))
+		return;
+
 	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
 	
 	if (correctPositionInList == -1)
 		patternIdList.push(pId);
 	else
 		patternIdList.splice(correctPositionInList, 0, pId);
-	
-	numberOfPattern++;
 	
 	// Update the number of patterns display
 	d3.select("#patternNumberSpan").text(numberOfPattern);
@@ -3277,7 +3357,6 @@ function addPatternToList(message) {
 			firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
 		}
 	}
-	// Update the number of filtered patterns if necessary
 	
 	// Update the relevant metrics
 	if (patternMetrics["sizeDistribution"][pSize])
@@ -3316,6 +3395,7 @@ function resetPatterns() {
 	numberOfPattern = 0;
 	patternsInformation = {};
 	patternIdList = [];
+	filteredOutPatterns = [];
 	patternOccurrences = {};
 	selectedPatternIds = [];
 	// TODO Deal with the potential other pattern metrics in patternMetrics
@@ -6096,7 +6176,7 @@ function PatternSizesChart() {
  * Creates a slider
  * @constructor
  * @param {string} elemId Id of the HTML node where the slider will be created
- * @param {function} onupdate Callback used when one of the brushes' value changes. It will receive the new range as parameters
+ * @param {function} onupdate Callback used when one of the brushes' value changes
  */
 function Slider(elemId, onupdate) {
 	let self = this;
@@ -6233,7 +6313,7 @@ function Slider(elemId, onupdate) {
 				.text(Math.round(self.currentHandleMaxValue));
 		}
 		
-		self.onupdate(self.getSelectedRange());
+		self.onupdate();
 
 		/*self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
 			.attr("x2",self.handle2.attr("cx"));*/
@@ -6254,7 +6334,7 @@ function Slider(elemId, onupdate) {
 				.text(Math.round(self.currentHandleMaxValue));
 		}
 		
-		self.onupdate(self.getSelectedRange());
+		self.onupdate();
 		/*self.blueLine.attr("x1",)
 			.attr("x2",self.axis(Math.round(value)));*/
 	};
@@ -6310,7 +6390,7 @@ function Slider(elemId, onupdate) {
 		tickData.exit()
 			.remove();
 		
-		self.onupdate(self.getSelectedRange());
+		self.onupdate();
 	}
 
 	self.updateDomainTop = function(end) {
@@ -6319,6 +6399,10 @@ function Slider(elemId, onupdate) {
 
 	self.updateDomainBottom = function(start) {
 		self.updateDomain(start, self.domain[1]);
+	}
+
+	self.hasValueSelected = function(value) {
+		return value >= self.currentHandleMinValue && value <= self.currentHandleMaxValue;
 	}
 }
 
