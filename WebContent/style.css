@@ -781,7 +781,11 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 		"showMore showMore";
 }
 
-#algorithmInfo .body:hover {
+#algorithmInfo .title span:hover {
+	font-style: italic;
+}
+
+#algorithmInfo:hover {
 	background-color: lightgray;
 }
 
@@ -1453,7 +1457,7 @@ table {
 	border-radius: 3px;
 }
 
-.highlightsResetOption span{
+.underlined {
 	text-decoration: underline;
 }
 
