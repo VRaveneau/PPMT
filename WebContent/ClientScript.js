@@ -6148,12 +6148,13 @@ function FilterSlider(elemId, onupdate) {
 	self.parentNode = d3.select("#"+self.parentNodeId);
 	self.parentWidth = parseFloat(document.getElementById(self.parentNodeId).getBoundingClientRect().width);
 	
+	self.margin = {right: 10, left: 10, size:50};
+	
 	self.svg = self.parentNode.append("svg")
 		.attr("class","slider")
 		.attr("width", Math.floor(self.parentWidth).toString())
-		.attr("height","50");
+		.attr("height", self.margin.size);
 	
-	self.margin = {right: 10, left: 10};
 	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
 	self.height = +self.svg.attr("height");	
 	
