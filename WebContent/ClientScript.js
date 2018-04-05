@@ -6186,16 +6186,6 @@ function FilterSlider(elemId, onupdate) {
 		.attr("x2",self.axis(self.currentHandleMaxValue))
 		.attr("stroke", "lightblue");
 	
-	self.ticks = self.slider.insert("g",".track-overlay")
-		.attr("class","ticks")
-		.attr("transform", "translate(0,"+18+")");
-	self.ticks.selectAll("text")
-		.data(self.axis.ticks(5))
-		.enter().append("text")
-			.attr("x",self.axis)
-			.attr("text-anchor","middle")
-			.text(function(d) { return d; });
-	
 	self.currentMin = self.slider.insert("rect", ".track-overlay")
 		.attr("class","boundary")
 		.attr("x",self.axis(self.currentMinValue))
@@ -6340,19 +6330,6 @@ function FilterSlider(elemId, onupdate) {
 			.text(self.currentHandleMinValue);
 		self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
 			.text(self.currentHandleMaxValue);
-
-		let tickData = self.ticks.selectAll("text")
-			.data(self.axis.ticks(5));
-		tickData.enter()
-			.append("text")
-			.attr("x",self.axis)
-			.attr("text-anchor","middle")
-			.text(function(d) { return d; })
-		  .merge(tickData)
-		  	.attr("x",self.axis)
-		  	.text(function(d) { return d; });
-		tickData.exit()
-			.remove();
 		
 		self.onupdate();
 	}
