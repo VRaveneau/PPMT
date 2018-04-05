@@ -1403,12 +1403,10 @@ function setupPatternSizesChart() {
  */
 function setupAlgorithmSliders() {
 	// Setup the filtering sliders
-	//d3.select("#Algorithm").classed("hidden", false);
 	setupAlgorithmSupportSlider();
 	//setupAlgorithmWindowSizeSlider();
 	setupAlgorithmMaximumSizeSlider();
 	//setupAlgorithmGapSlider();
-	//d3.select("#Algorithm").classed("hidden", true);
 
 	// Setup the parameter modifying sliders
 	d3.select("#algorithmParametersChange").classed("hidden", false);
@@ -6095,6 +6093,7 @@ function unselectAllPatterns() {
 	
 	// Update the number of selected patterns display
 	d3.select("#selectedPatternNumberSpan").text('0');
+	setHighlights();
 }
 
 /**
