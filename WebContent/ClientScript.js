@@ -413,6 +413,12 @@ var lastEventTypeSort = "";
 // nameDown - nameUp
 // nbUsersDown - nbUsersUp
 var lastPatternSort = "sizeUp";
+// Sort order for the list of selected patterns. Expected value is one of the following :
+// sizeDown - sizeUp
+// supportDown - supportUp
+// nameDown - nameUp
+// nbUsersDown - nbUsersUp
+var lastSelectedPatternSort = "sizeUp";
 
 // The current display mode for the session view. Value is one of the following:
 // all - selected - some
@@ -1160,6 +1166,7 @@ function setupTool() {
 	
 	d3.select("#nbUserShownValue")
 		.text(nbUserShown);
+	document.getElementById("selectablePatternSpan").textContent = maxSelectedPatternNb;
 	
 	timeline = new Timeline("timeline",{});
 	setupHelpers();
@@ -3142,6 +3149,96 @@ function sortUsers() {
 }
 
 /**
+ * Sorts the selected pattern list according to their name
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortSelectedPatternsByName(decreasing=false) {
+	selectedPatternIds.sort(function(a, b) {
+		let nameA = patternsInformation[a][0];
+		let nameB = patternsInformation[b][0];
+		
+		if (nameA < nameB)
+			return -1;
+		else if (nameA > nameB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		selectedPatternIds.reverse();
+		lastSelectedPatternSort = "nameDown";
+	} else {
+		lastSelectedPatternSort = "nameUp";
+	}
+}
+
+/**
+ * Sorts the selected pattern list according to their number of users
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortSelectedPatternsByNbUsers(decreasing=false) {
+	selectedPatternIds.sort(function(a, b) {
+		let nbUsersA = patternsInformation[a][4].length;
+		let nbUsersB = patternsInformation[b][4].length;
+		
+		if (nbUsersA < nbUsersB)
+			return -1;
+		else if (nbUsersA > nbUsersB)
+			return 1;
+		else
+			return 0;
+	});
+	
+	if (decreasing == true) {
+		selectedPatternIds.reverse();
+		lastSelectedPatternSort = "nbUsersDown";
+	} else {
+		lastSelectedPatternSort = "nbUsersUp";
+	}
+}
+
+/**
+ * Sorts the selected pattern list according to their size
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortSelectedPatternsBySize(decreasing=false) {
+	selectedPatternIds.sort(function(a, b) {
+		var sizeA = patternsInformation[a][1];
+		var sizeB = patternsInformation[b][1];
+		
+		return sizeA - sizeB;
+	});
+	
+	if (decreasing == true) {
+		selectedPatternIds.reverse();
+		lastSelectedPatternSort = "sizeDown";
+	} else {
+		lastSelectedPatternSort = "sizeUp";
+	}
+}
+
+/**
+ * Sorts the selected pattern list according to their support
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortSelectedPatternsBySupport(decreasing=false) {
+	selectedPatternIds.sort(function(a, b) {
+		var supportA = patternsInformation[a][2];
+		var supportB = patternsInformation[b][2];
+		
+		return supportA - supportB;
+	});
+	
+	if (decreasing == true) {
+		selectedPatternIds.reverse();
+		lastSelectedPatternSort = "supportDown";
+	} else {
+		lastSelectedPatternSort = "supportUp";
+	}
+}
+
+/**
  * Sorts the pattern list according to their name
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
@@ -3572,6 +3669,24 @@ function preventContextActionFromHiding() {
 
 function allowContextActionToHide() {
 	contextActionCanBeHidden = true;
+}
+
+/**
+ * Moves the pattern context actions to a selected pattern list row and reveals it
+ * @param {number} patternId The id of the pattern
+ */
+function movePatternContextActionsToSelectedRow(patternId) {
+	clearTimeout(patternContextActionsHideTimeout);
+
+	let ctxActions = d3.select("#patternContextActions");
+	let rowCell = d3.select("#selectedPattern"+patternId+" td");
+	let boundingRect = rowCell.node().getBoundingClientRect();
+	patternIdUnderMouse = patternId;
+	ctxActions.classed("hidden", false)
+		.style("width", boundingRect.width+"px")
+		.style("left", boundingRect.left+"px")
+		.style("top", `${boundingRect.top}px`)
+		.style("height", boundingRect.height+"px");
 }
 
 /**
@@ -4078,6 +4193,122 @@ function clickOnEventTypeCategoryHeader() {
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
 		timeline.displayData();
+}
+
+/**
+ * Handles a click on the 'name' header in the selected pattern list
+ */
+function clickOnSelectedPatternNameHeader() {
+	let nameHeader = null;
+	let nameTxt = "";
+	// Remove the sorting indicators
+	d3.select("#selectedPatternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Name") {
+				nameHeader = this;
+				nameTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastSelectedPatternSort == "nameDown") {
+		d3.select(nameHeader).text(nameTxt + "\u00A0↓");
+		sortSelectedPatternsByName();
+	} else {
+		d3.select(nameHeader).text(nameTxt + "\u00A0↑");
+		sortSelectedPatternsByName(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+/**
+ * Handles a click on the 'size' header in the selected pattern list
+ */
+function clickOnSelectedPatternSizeHeader() {
+	let sizeHeader = null;
+	let sizeTxt = "";
+	// Remove the sorting indicators
+	d3.select("#selectedPatternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Size") {
+				sizeHeader = this;
+				sizeTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastSelectedPatternSort == "sizeDown") {
+		d3.select(sizeHeader).text(sizeTxt + "\u00A0↓");
+		sortSelectedPatternsBySize();
+	} else {
+		d3.select(sizeHeader).text(sizeTxt + "\u00A0↑");
+		sortSelectedPatternsBySize(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+/**
+ * Handles a click on the 'nb users' header in the selected pattern list
+ */
+function clickOnSelectedPatternNbUsersHeader() {
+	let nbUsersHeader = null;
+	let nbUsersTxt = "";
+	// Remove the sorting indicators
+	d3.select("#selectedPatternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Nb\u00A0users") {
+				nbUsersHeader = this;
+				nbUsersTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastSelectedPatternSort == "nbUsersDown") {
+		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↓");
+		sortSelectedPatternsByNbUsers();
+	} else {
+		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↑");
+		sortSelectedPatternsByNbUsers(true);
+	}
+	
+	createPatternListDisplay();
+}
+
+/**
+ * Handles a click on the 'support' header in the selected pattern list
+ */
+function clickOnSelectedPatternSupportHeader() {
+	let supportHeader = null;
+	let supportTxt = "";
+	// Remove the sorting indicators
+	d3.select("#selectedPatternTable").selectAll("th")
+		.each(function(d, i) {
+			let colName = d3.select(this).text().split(/\s/);
+			colName.pop();
+			colName = colName.join("\u00A0").trim();
+			if (colName == "Support") {
+				supportHeader = this;
+				supportTxt = colName;
+			} else
+				d3.select(this).text(colName+"\u00A0\u00A0");
+		});
+	if (lastSelectedPatternSort == "supportDown") {
+		d3.select(supportHeader).text(supportTxt + "\u00A0↓");
+		sortSelectedPatternsBySupport();
+	} else {
+		d3.select(supportHeader).text(supportTxt + "\u00A0↑");
+		sortSelectedPatternsBySupport(true);
+	}
+	
+	createPatternListDisplay();
 }
 
 /**
@@ -4978,7 +5209,7 @@ function removePatternFromList(id) {
  */
 function createPatternListDisplay() {
 	// removing the old patterns
-	var patternRowsRoot = document.getElementById("patternTableBody");
+	let patternRowsRoot = document.getElementById("patternTableBody");
 	while (patternRowsRoot.firstChild) {
 		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
 	}
@@ -4987,17 +5218,8 @@ function createPatternListDisplay() {
 	while (patternRowsRoot.firstChild) {
 		patternRowsRoot.removeChild(patternRowsRoot.firstChild);
 	}
-
-	// display the separator only if needed
-	if (selectedPatternIds.length > 0) {
-		d3.select("#patternListSeparator")
-			.style("visibility","initial");
-	} else {
-		d3.select("#patternListSeparator")
-		.style("visibility","hidden");
-	}
 	
-	var patternList = d3.select("#patternTableBody");
+	let patternList = d3.select("#patternTableBody");
 	let properPatternSearchInput = currentPatternSearchInput.split(" ")
 		.filter(function(d,i) {
 			return d.length > 0;
@@ -5005,37 +5227,38 @@ function createPatternListDisplay() {
 	let filteredPatterns = 0;
 	
 	// display the new ones
-	for (var i=0; i < patternIdList.length; i++) {
+	for (let i=0; i < patternIdList.length; i++) {
 		
 		let pId = patternIdList[i];
 		let pString = patternsInformation[patternIdList[i]][0];
 		
-		let index = selectedPatternIds.indexOf(pId);
-		
-		// Only add the pattern if:
-		// - it is selected (always displayed)
-		// - the filter is empty or accepts the pattern
-		if (selectedPatternIds.includes(pId) == false) {
-			if (pString.toLowerCase().includes(properPatternSearchInput.toLowerCase()) == false) {
-				continue; // The filter rejects the pattern
-			}
+		// Only add the pattern if the filter is empty or accepts the pattern
+		if (pString.toLowerCase().includes(properPatternSearchInput.toLowerCase()) == false) {
+			continue; // The filter rejects the pattern
 		}
 		
 		filteredPatterns++;
 		
-		if (index >= 0) {
-			patternList = d3.select("#selectedPatternTableBody");
-		} else {
-			patternList = d3.select("#patternTableBody");
-		}
+		let displayAsSelected = selectedPatternIds.includes(pId);
 		
-		patternList.node().appendChild(createPatternRow(pId));
+		patternList.node().appendChild(createPatternRow(pId, displayAsSelected));
 	}
+
+	patternList = d3.select("#selectedPatternTableBody");
+	selectedPatternIds.forEach(function(pId) {
+		patternList.node().appendChild(createSelectedPatternRow(pId));
+	});
+	d3.select("#selectedPatternsArea .body").classed("hidden", selectedPatternIds.length == 0);
 	
 	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
 }
 
-function createPatternRow(pId) {
+/**
+ * Creates the global elements of a pattern row and returns it
+ * @param {number} pId The id of the pattern
+ * @param {boolean} displayAsSelected Whether the pattern should be highlighted as selected or not
+ */
+function createGeneralPatternRow(pId, displayAsSelected = false) {
 	let pSize = patternsInformation[pId][1];
 	let pSupport = patternsInformation[pId][2];
 	let pString = patternsInformation[pId][0];
@@ -5043,8 +5266,8 @@ function createPatternRow(pId) {
 	let pUsers = patternsInformation[pId][4];
 
 	let row = d3.select(document.createElement("tr"))
-		.attr("id","pattern"+pId)
 		.classed("clickable",true)
+		.classed("selectedPattern", displayAsSelected)
 		.on("click", function() {
 			if (selectedPatternIds.includes(pId)) {
 				let index = selectedPatternIds.indexOf(pId);
@@ -5070,9 +5293,6 @@ function createPatternRow(pId) {
 			// Update the number of selected patterns display
 			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 			setHighlights();
-		})
-		.on("mouseover", function() {
-			movePatternContextActionsToRow(pId);
 		});
 	
 	let nameCell = row.append("td");
@@ -5109,6 +5329,35 @@ function createPatternRow(pId) {
 	row.append("td")
 		.text(pSize);
 	
+	return row;
+}
+
+/**
+ * Creates a pattern row for the list of selected patterns and add it to the list
+ * @param {number} pId The id of the pattern
+ */
+function createSelectedPatternRow(pId) {
+	let row = createGeneralPatternRow(pId);
+	row.attr("id", "selectedPattern"+pId)
+		.on("mouseover", function() {
+			movePatternContextActionsToSelectedRow(pId);
+		});
+
+	return row.node();
+}
+
+/**
+ * Creates a pattern row for the list of all patterns and add it to the list
+ * @param {number} pId The id of the pattern
+ * @param {boolean} displayAsSelected Whether the pattern should be highlighted as selected or not
+ */
+function createPatternRow(pId, displayAsSelected = false) {
+	let row = createGeneralPatternRow(pId, displayAsSelected);
+	row.attr("id","pattern"+pId)
+		.on("mouseover", function() {
+			movePatternContextActionsToRow(pId);
+		});
+
 	return row.node();
 }
 

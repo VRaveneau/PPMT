@@ -78,26 +78,27 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 }
 
 #patternListArea {
-	display: flex;
-	flex-direction: column;
-	
-	flex: 1;
+	display: grid;
+	grid-template-columns: 1fr;
+	grid-template-rows:
+		[filters-start] min-content 
+		[filters-end patternList-start] 1fr [patternList-end];
+}
+
+#selectedPatternTable {
+	border-collapse: collapse;
 }
 
 #patternTable {
 	border-collapse: collapse;
 }
 
-#selectedPatternTableBody {
+.selectedPattern {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
 	  This may be a MacOS exclusive issue.
 	*/
 	-webkit-font-smoothing: antialiased;
-}
-
-#patternTableBody {
-	font-weight: normal;
 }
 
 .section {
@@ -675,8 +676,20 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 #tool {
 	display: grid;
 	grid-gap: 5px;
-	grid-template-columns: [main-start] 23% [center-start] 1fr [center-end] 23% [main-end];
-	grid-template-rows: [main-top] 30px [center-top] minmax(min-content, 20%) [algorithm-bottom] 1fr [main-bottom] 0px [gutter-bottom];
+	grid-template-columns:
+		[main-start] 23% [center-start] 1fr [center-end] 23% [main-end];
+	grid-template-rows:
+		[main-top]
+		30px
+		[center-top]
+		minmax(min-content, 20%)
+		[algorithm-bottom selectedPatterns-start]
+		min-content
+		[selectedPatterns-end]
+		1fr
+		[main-bottom]
+		0px
+		[gutter-bottom];
 	
 	flex: 1;
 	
@@ -791,7 +804,7 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 #patternArea {
 	grid-column: center-end / main-end;
-	grid-row: algorithm-bottom / gutter-bottom;
+	grid-row: selectedPatterns-end / gutter-bottom;
 	
 	/*flex: 1;
 	
@@ -1000,10 +1013,18 @@ table {
 	background-color: white;
 }
 
+#selectedPatternsArea {
+	grid-row: selectedPatterns-start / selectedPatterns-end;
+	grid-column: center-end / main-end;
+}
+
 #List {
-	overflow: auto;
-	flex: 1;
+	grid-row: patternList-start / patternList-end;
 	/*max-height: 90%;*/
+}
+
+#List body {
+	overflow: auto;
 }
 
 #Metrics {
@@ -1013,6 +1034,10 @@ table {
 }
 
 #Algorithm {
+	grid-row: filters-start / filters-end;
+}
+
+#Algorithm .body {
 	overflow: auto;
 	grid-template-rows: repeat(2, minmax(min-content, 1fr));
 	grid-template-areas: 
