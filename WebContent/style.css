@@ -932,6 +932,7 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 table {
 	width: 100%;
+	position: relative;
 }
 
 .searchBarArea input.searchButton {

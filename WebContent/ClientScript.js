@@ -451,19 +451,10 @@ var useExtendedAlgorithmView = false;
 // The current state of the algorithm
 var algorithmState = null;
 
-// The name of the event type corresponding to the event type list's row under
-// the mouse
-var eventTypeUnderMouse = null;
-// Timeout before hiding the event type contextual actions
-var eventTypeContextActionsHideTimeout = null;
-
 // The name of the user corresponding to the user list's row under the mouse
 var userUnderMouse = null;
 // Timeout before hiding the user contextual actions
 var userContextActionsHideTimeout = null;
-
-// Whether the context action menus can be hidden or not
-var contextActionCanBeHidden = true;
 
 /*************************************/
 /*				Tooltip				 */
@@ -1606,23 +1597,12 @@ function setupHelpers() {
  * Sets up the contextual actions
  */
 function setupContextActions() {
-	// Event type context actions
-	d3.select("#removeEventTypeButton")
-		.on("click", function() {
-			if (eventTypeUnderMouse != null)
-				askConfirmationToRemoveEventType(eventTypeUnderMouse);
-		});
-	
 	// User context actions
 	d3.select("#removeUserButton")
 		.on("click", function() {
 			if (userUnderMouse != null)
 				askConfirmationToRemoveUser(userUnderMouse);
 		});
-	
-	d3.selectAll(".contextActions button")
-		.on("mouseover", preventContextActionFromHiding)
-		.on("mouseout", allowContextActionToHide);
 }
 
 /**
@@ -3640,49 +3620,6 @@ function askConfirmationToRemoveUser(userName) {
 		});
 }
 
-function preventContextActionFromHiding() {
-	contextActionCanBeHidden = false;
-}
-
-function allowContextActionToHide() {
-	contextActionCanBeHidden = true;
-}
-
-/**
- * Moves the event type context actions to an event type list row and reveals it
- * @param {string} eventType The name of the eventType
- */
-function moveEventTypeContextActionsToRow(eventType) {
-	clearTimeout(eventTypeContextActionsHideTimeout);
-
-	let ctxActions = d3.select("#eventTypeContextActions");
-	let rowCell = d3.select("#"+eventType+" td");
-	let boundingRect = rowCell.node().getBoundingClientRect();
-	eventTypeUnderMouse = eventType;
-	ctxActions.classed("hidden", false)
-		.style("width", boundingRect.width+"px")
-		.style("left", boundingRect.left+"px")
-		.style("top", `${boundingRect.top}px`)
-		.style("height", boundingRect.height+"px");
-}
-
-/**
- * Starts the countdown before actually hiding the event type context actions.
- */
-function prepareToHideEventTypeContextActions() {
-	eventTypeContextActionsHideTimeout = setTimeout(hideEventTypeContextActions, 500);
-}
-
-/**
- * Hides the event type context actions.
- */
-function hideEventTypeContextActions() {
-	if (contextActionCanBeHidden) {
-		eventTypeUnderMouse = null;
-		d3.select("#eventTypeContextActions").classed("hidden", true);
-	}
-}
-
 /**
  * Moves the user context actions to a user list row and reveals it
  * @param {string} user The id of the user
@@ -4467,9 +4404,6 @@ function createEventTypesListDisplay() {
 				setHighlights();
 				timeline.displayData();
 			})
-			.on("mouseover", function() {
-				moveEventTypeContextActionsToRow(eType);
-			});
 		let firstCell = eventRow.append("td")
 			.property("title",eventTypeInformations[eType].description);
 		firstCell.append("span")
@@ -4491,6 +4425,17 @@ function createEventTypesListDisplay() {
 		if (highlightedEventTypes.includes(eType)) {
 			eventRow.classed("selectedEventTypeRow", true);
 		}
+
+		// Add the context actions
+		let contextActions = eventRow.append("div")
+			.classed("contextActions", true);
+		contextActions.append("button")
+			.classed("clickable", true)
+			.text("Remove")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveEventType(eType);
+			});
 		
 		/* Old symbol cell, using svg
 		var symbolRow = eventRow.append("td")
