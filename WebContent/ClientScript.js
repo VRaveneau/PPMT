@@ -4359,7 +4359,6 @@ function createEventTypesListDisplay() {
 			.text(eType);
 		firstCell.append("br");
 		firstCell.append("span")
-			.style("color","grey")
 			.classed("eventTypeDescription", true)
 			.style("display", showEventTypeDescription == true ? "initial" : "none")
 			.text(eventTypeInformations[eType].description);
