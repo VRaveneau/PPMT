@@ -310,8 +310,7 @@
 
 				<div id="patternArea" class="section">
 				
-					<div class="title">All patterns</div>
-					<div class="subtitle"><span id="patternNumberSpan">0</span> discovered, <span id="highlightedPatternNumberSpan">0</span> matching the filter</div>
+					<div class="title">All patterns (<span id="highlightedPatternNumberSpan">0</span>/<span id="patternNumberSpan">0</span>)</div>
 					<div class="param">
 						<div class="left-aligned">
 							Show text:
@@ -324,19 +323,16 @@
 					</div>
 					<div id="patternListArea" class="body">
 						<div id="Algorithm" class="subsection">
-							<div class="title">Filters</div>
 							<div class="body">
-								<div id="sliderSupportArea">
-									<p>Support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
-									<div id="sliderSupport"></div>
-								</div>
-								<div id="sliderSizeArea">
-									<p>Size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
-									<div id="sliderSize"></div>
-								</div>
-
-								<form>
-									<div class="searchBarArea">
+								<div>Support:</div>
+								<div id="sliderSupport"></div>
+								<div class="iconHelper" id="helpSupport">(?)</div>
+								<div>Size:</div>
+								<div id="sliderSize"></div>
+								<div class="iconHelper" id="helpSize">(?)</div>
+								<div>Name:</div>
+								<div class="searchBarArea">
+									<form>
 										<div class="searchFieldArea">
 											&nbsp;
 											<input type="text" class="searchField" placeholder="Write event types here">
@@ -344,8 +340,8 @@
 											<div class="suggestionDiv">
 											</div>
 										</div>
-									</div>
-								</form>
+									</form>
+								</div>
 							</div>
 						</div>
 

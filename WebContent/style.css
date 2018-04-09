@@ -152,7 +152,7 @@ tbody > tr:hover {
 	/*width: 100%;*/
 }
 
-.subsection + .subsection {
+#center .subsection + .subsection {
 	margin-top: 40px;
 }
 
@@ -940,6 +940,11 @@ table {
 	position: relative;
 }
 
+.searchBarArea {
+	grid-area: searchField;
+	margin: 0px 20px;
+}
+
 .searchBarArea input.searchButton {
 	float: right;
 }
@@ -1063,10 +1068,14 @@ table {
 
 #Algorithm .body {
 	overflow: auto;
-	grid-template-rows: repeat(2, minmax(min-content, 1fr));
+	display: grid;
+	grid-template-columns: min-content 1fr min-content;
+	grid-template-rows: repeat(3, minmax(min-content, 1fr));
 	grid-template-areas: 
-		"slider-support"
-		"slider-size";
+		". slider-support ."
+		". slider-size ."
+		". searchField .";
+	align-items: center;
 }
 
 #Execution {
@@ -1626,12 +1635,6 @@ tr:hover .eventTypeDescription {
 	background: #367ebd;
 }
 
-#sliderSupportArea, #sliderSizeArea {
-	display: grid;
-	grid-template-columns: min-content 1fr;
-	align-items: center;
-}
-
 #sliderSupportArea p {
 	margin: 0px;
 }
@@ -1640,36 +1643,18 @@ tr:hover .eventTypeDescription {
 	margin: 0px;
 }
 
-#sliderSupportArea {
+#sliderSupport {
 	grid-area: slider-support;
 }
 
-#sliderGapArea {
-	grid-area: slider-gap;
-}
-
-#sliderWindowArea {
-	grid-area: slider-window;
-}
-
-#sliderSizeArea {
+#sliderSize {
 	grid-area: slider-size;
 }
 
-#sliderSupport, #sliderGap, #sliderWindow, #sliderSize {
+#sliderSupport, #sliderSize {
 	margin: 0px 20px;
 }
 
-
-#sliderGap {
-	width: 100%;
-	height: 75px;
-}
-
-#sliderGap p {
-	margin: 0px;
-}
-	
 .slider {
 	width: 100%;
 	height: 35px;	
