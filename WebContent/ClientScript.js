@@ -451,11 +451,6 @@ var useExtendedAlgorithmView = false;
 // The current state of the algorithm
 var algorithmState = null;
 
-// The name of the user corresponding to the user list's row under the mouse
-var userUnderMouse = null;
-// Timeout before hiding the user contextual actions
-var userContextActionsHideTimeout = null;
-
 /*************************************/
 /*				Tooltip				 */
 /*************************************/
@@ -1153,8 +1148,6 @@ function setupTool() {
 	
 	setupAlgorithmSliders();
 	setupPatternSizesChart();
-
-	setupContextActions();
 	
 	d3.select("body").on("keyup", handleKeyPress);
 	d3.select("#center").on("mousemove", moveTooltip);
@@ -1591,18 +1584,6 @@ function setupHelpers() {
 		.attr("title", "The minimal support for a pattern to be frequent");*/
 	d3.select("#helpSize")
 		.attr("title", "Number of events in a pattern");
-}
-
-/**
- * Sets up the contextual actions
- */
-function setupContextActions() {
-	// User context actions
-	d3.select("#removeUserButton")
-		.on("click", function() {
-			if (userUnderMouse != null)
-				askConfirmationToRemoveUser(userUnderMouse);
-		});
 }
 
 /**
@@ -3621,41 +3602,6 @@ function askConfirmationToRemoveUser(userName) {
 }
 
 /**
- * Moves the user context actions to a user list row and reveals it
- * @param {string} user The id of the user
- */
-function moveUserContextActionsToRow(user) {
-	clearTimeout(userContextActionsHideTimeout);
-
-	let ctxActions = d3.select("#userContextActions");
-	let rowCell = d3.select("#u"+user+" td");
-	let boundingRect = rowCell.node().getBoundingClientRect();
-	userUnderMouse = user;
-	ctxActions.classed("hidden", false)
-		.style("width", boundingRect.width+"px")
-		.style("left", boundingRect.left+"px")
-		.style("top", `${boundingRect.top}px`)
-		.style("height", boundingRect.height+"px");
-}
-
-/**
- * Starts the countdown before actually hiding the user context actions.
- */
-function prepareToHideUserContextActions() {
-	userContextActionsHideTimeout = setTimeout(hideUserContextActions, 500);
-}
-
-/**
- * Hides the user context actions.
- */
-function hideUserContextActions() {
-	if (contextActionCanBeHidden) {
-		userUnderMouse = null;
-		d3.select("#userContextActions").classed("hidden", true);
-	}
-}
-
-/**
  * Updates the display of the number of pattern discovered, selected and
  * filtered
  */
@@ -4611,6 +4557,18 @@ function createUserListDisplay() {
 			userRow.attr("class", "selectedUserRow");
 		}
 		
+		// Add the context actions
+		let contextActions = userRow.append("div")
+			.classed("contextActions", true);
+		contextActions.append("button")
+			.classed("clickable", true)
+			.text("Remove")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveUser(user);
+			});
+
+
 		userRow.on("click", function(){
 			if (d3.event.shiftKey) { // Shift + click, steering
 				requestSteeringOnUser(user);
@@ -4622,9 +4580,6 @@ function createUserListDisplay() {
 				timeline.displayData();
 				//d3.event.stopPropagation();
 			}
-		})
-		.on("mouseover", function() {
-			moveUserContextActionsToRow(user);
 		});
 	});
 }
