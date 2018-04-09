@@ -451,11 +451,6 @@ var useExtendedAlgorithmView = false;
 // The current state of the algorithm
 var algorithmState = null;
 
-// The id of the pattern corresponding to the pattern list's row under the mouse
-var patternIdUnderMouse = -1;
-// Timeout before hiding the pattern contextual actions
-var patternContextActionsHideTimeout = null;
-
 // The name of the event type corresponding to the event type list's row under
 // the mouse
 var eventTypeUnderMouse = null;
@@ -528,12 +523,6 @@ var debouncedFilterUserList = _.debounce(filterUserList, 500);
  * @type {function}
  */
 var debouncedFilterPatternList = _.debounce(filterPatternList, 500);
-
-/**
- * A debounced version of hidePatternContextActions
- * @type {function}
- */
-var debouncedHidePatternContextActions = _.debounce(hidePatternContextActions, 500);
 
 /**
  * A debounced version of filterPatterns
@@ -1617,18 +1606,6 @@ function setupHelpers() {
  * Sets up the contextual actions
  */
 function setupContextActions() {
-	// Pattern context actions
-	d3.select("#createEventButton")
-		.on("click", function() {
-			if (patternIdUnderMouse >= 0)
-				requestEventTypeCreationFromPattern(patternIdUnderMouse);
-		});
-	d3.select("#prefixSteeringButton")
-		.on("click", function() {
-			if (patternIdUnderMouse >= 0)
-				requestSteeringOnPattern(patternIdUnderMouse);
-		});
-	
 	// Event type context actions
 	d3.select("#removeEventTypeButton")
 		.on("click", function() {
@@ -3672,59 +3649,6 @@ function allowContextActionToHide() {
 }
 
 /**
- * Moves the pattern context actions to a selected pattern list row and reveals it
- * @param {number} patternId The id of the pattern
- */
-function movePatternContextActionsToSelectedRow(patternId) {
-	clearTimeout(patternContextActionsHideTimeout);
-
-	let ctxActions = d3.select("#patternContextActions");
-	let rowCell = d3.select("#selectedPattern"+patternId+" td");
-	let boundingRect = rowCell.node().getBoundingClientRect();
-	patternIdUnderMouse = patternId;
-	ctxActions.classed("hidden", false)
-		.style("width", boundingRect.width+"px")
-		.style("left", boundingRect.left+"px")
-		.style("top", `${boundingRect.top}px`)
-		.style("height", boundingRect.height+"px");
-}
-
-/**
- * Moves the pattern context actions to a pattern list row and reveals it
- * @param {number} patternId The id of the pattern
- */
-function movePatternContextActionsToRow(patternId) {
-	clearTimeout(patternContextActionsHideTimeout);
-
-	let ctxActions = d3.select("#patternContextActions");
-	let rowCell = d3.select("#pattern"+patternId+" td");
-	let boundingRect = rowCell.node().getBoundingClientRect();
-	patternIdUnderMouse = patternId;
-	ctxActions.classed("hidden", false)
-		.style("width", boundingRect.width+"px")
-		.style("left", boundingRect.left+"px")
-		.style("top", `${boundingRect.top}px`)
-		.style("height", boundingRect.height+"px");
-}
-
-/**
- * Starts the countdown before actually hiding the pattern context actions.
- */
-function prepareToHidePatternContextActions() {
-	patternContextActionsHideTimeout = setTimeout(hidePatternContextActions, 500);
-}
-
-/**
- * Hides the pattern context actions.
- */
-function hidePatternContextActions() {
-	if (contextActionCanBeHidden) {
-		patternIdUnderMouse = -1;
-		d3.select("#patternContextActions").classed("hidden", true);
-	}
-}
-
-/**
  * Moves the event type context actions to an event type list row and reveals it
  * @param {string} eventType The name of the eventType
  */
@@ -5329,6 +5253,24 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 	row.append("td")
 		.text(pSize);
 	
+	// Add the context actions
+	let contextActions = row.append("div")
+		.classed("contextActions", true);
+	contextActions.append("button")
+		.classed("clickable", true)
+		.text("To eventType")
+		.on("click", function() {
+			d3.event.stopPropagation();
+			requestEventTypeCreationFromPattern(pId);
+		});
+	contextActions.append("button")
+		.classed("clickable", true)
+		.text("Prefix steering")
+		.on("click", function() {
+			d3.event.stopPropagation();
+			requestSteeringOnPattern(pId);
+		});
+	
 	return row;
 }
 
@@ -5338,10 +5280,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
  */
 function createSelectedPatternRow(pId) {
 	let row = createGeneralPatternRow(pId);
-	row.attr("id", "selectedPattern"+pId)
-		.on("mouseover", function() {
-			movePatternContextActionsToSelectedRow(pId);
-		});
+	row.attr("id", "selectedPattern"+pId);
 
 	return row.node();
 }
@@ -5353,10 +5292,7 @@ function createSelectedPatternRow(pId) {
  */
 function createPatternRow(pId, displayAsSelected = false) {
 	let row = createGeneralPatternRow(pId, displayAsSelected);
-	row.attr("id","pattern"+pId)
-		.on("mouseover", function() {
-			movePatternContextActionsToRow(pId);
-		});
+	row.attr("id","pattern"+pId);
 
 	return row.node();
 }

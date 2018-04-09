@@ -101,6 +101,22 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	-webkit-font-smoothing: antialiased;
 }
 
+.contextActions {
+	position: absolute;
+	visibility: hidden;
+	right: 0%;
+	overflow: hidden;
+}
+
+tr:hover > .contextActions {
+	visibility: visible;
+}
+
+.contextActions button {
+	max-width: 25px;
+	max-height: 25px;
+}
+
 .section {
 	/*margin: 5px;*/
 	background-color: white;
@@ -174,6 +190,8 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	
 	overflow: auto;
 	grid-area: body;
+
+	position: relative;
 }
 
 .subsection > .title {
@@ -1090,23 +1108,6 @@ table {
 .algoParameterRecap span{
 	margin: 0px;
 	font-weight: normal;
-}
-
-.contextActions {
-	flex-direction: row;
-	position: absolute;
-	justify-content: flex-end;
-	pointer-events: none;
-	border: 1px solid black;
-	border-radius: 3px;
-}
-
-.contextActions:not(.hidden) {
-	display: flex;
-}
-
-.contextActions button {
-	pointer-events: all;
 }
 
 /********************************/
