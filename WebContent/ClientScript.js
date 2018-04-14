@@ -6992,8 +6992,8 @@ var Timeline = function(elemId, options) {
 	        .tickValues(self.yPatterns.domain());
 		self.patterns.select("#focusRightAxis").call(self.yAxisPatterns);
 		
-		// Hide the axis if there is no selected pattern or if we are not in distribution mode
-		if (self.displayMode != "distributions" || idsToDraw.length == 0) {
+		// Hide the axis if there is no selected pattern
+		if (idsToDraw.length == 0) {
 			d3.select("#focusRightAxis")
 				.classed("hidden", true);
 		} else {
@@ -7035,39 +7035,38 @@ var Timeline = function(elemId, options) {
 				});
 		}
 		
-		switch(self.displayMode) {
-		case "distributions": // Displays all occurrences of a pattern on a line
-			for (let i = 0; i < idsToDraw.length; i++) {// Draw each pattern
-				for (let j=0; j < patternOccurrences[idsToDraw[i]].length; j++) {// Draw each occurrence
-					console.log("Ids to draw: "+idsToDraw);
-					if (patternOccurrences[idsToDraw[i]][j]) {
-						let occ = patternOccurrences[idsToDraw[i]][j].split(";");
-						// Only draw the occurrence if it belongs to a selected user
-						// To uncomment when "only show highlighted" will impact the bin view
-						//if (highlightedUsers.length == 0 || highlightedUsers.includes(occ[0])) {
-							let x1 = self.xFocus(new Date(occ[1]));
-							let x2 = self.xFocus(new Date(occ[occ.length-1])); // Last timestamp in the occurrence
-							let y = self.yPatterns(idsToDraw[i]);
-							self.canvasPatternDistinctContext.beginPath();
-							if (x1 == x2) {
-								self.canvasPatternDistinctContext.fillStyle = "black";
-								self.canvasPatternDistinctContext.arc(x1,y,1.5,0,2*Math.PI, false);
-								self.canvasPatternDistinctContext.fill();
-								//self.canvasPatternDistinctContext.closePath();
-							} else {
-								self.canvasPatternDistinctContext.lineWidth = 3;
-								self.canvasPatternDistinctContext.moveTo(x1,y);
-								self.canvasPatternDistinctContext.lineTo(x2,y);
-								self.canvasPatternDistinctContext.lineCap = "round";
-								self.canvasPatternDistinctContext.stroke();
-							    //self.canvasPatternDistinctContext.closePath();
-							}
-						//}
-					}
+		// Displays all occurrences of a pattern on a line
+		for (let i = 0; i < idsToDraw.length; i++) {// Draw each pattern
+			for (let j=0; j < patternOccurrences[idsToDraw[i]].length; j++) {// Draw each occurrence
+				console.log("Ids to draw: "+idsToDraw);
+				if (patternOccurrences[idsToDraw[i]][j]) {
+					let occ = patternOccurrences[idsToDraw[i]][j].split(";");
+					// Only draw the occurrence if it belongs to a selected user
+					// To uncomment when "only show highlighted" will impact the bin view
+					//if (highlightedUsers.length == 0 || highlightedUsers.includes(occ[0])) {
+						let x1 = self.xFocus(new Date(occ[1]));
+						let x2 = self.xFocus(new Date(occ[occ.length-1])); // Last timestamp in the occurrence
+						let y = self.yPatterns(idsToDraw[i]);
+						self.canvasPatternDistinctContext.beginPath();
+						if (x1 == x2) {
+							self.canvasPatternDistinctContext.fillStyle = "black";
+							self.canvasPatternDistinctContext.arc(x1,y,1.5,0,2*Math.PI, false);
+							self.canvasPatternDistinctContext.fill();
+							//self.canvasPatternDistinctContext.closePath();
+						} else {
+							self.canvasPatternDistinctContext.lineWidth = 3;
+							self.canvasPatternDistinctContext.moveTo(x1,y);
+							self.canvasPatternDistinctContext.lineTo(x2,y);
+							self.canvasPatternDistinctContext.lineCap = "round";
+							self.canvasPatternDistinctContext.stroke();
+							//self.canvasPatternDistinctContext.closePath();
+						}
+					//}
 				}
 			}
-			break;
-		case "events": // Displays occurrences by connecting their events
+		}
+
+		if (self.displayMode == "events") {
 			for (let i = 0; i < idsToDraw.length; i++) {// Draw each pattern
 				let patternItems = patternsInformation[idsToDraw[i]][3];
 				for (let j=0; j < patternOccurrences[idsToDraw[i]].length; j++) {// Draw each occurrence
@@ -7118,17 +7117,13 @@ var Timeline = function(elemId, options) {
 								self.canvasContext.lineTo(x2,y2);
 								self.canvasContext.lineCap = "round";
 								self.canvasContext.stroke();
-							    self.canvasContext.closePath();
+								self.canvasContext.closePath();
 							}*/
 						}
 					}
 				}
 			}
-			break;
-		default:
 		}
-		
-		console.log(idsToDraw.length+" patterns drawn")
 	}
 	
 	self.displayColorsInBins = false;
