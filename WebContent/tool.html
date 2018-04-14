@@ -136,21 +136,22 @@
 				</div>
 				
 				<div id="top" class="section">
-					<!--<div class="title">Current highlights</div>-->
 					<div class="body">
 						<!-- Activity indicator, disabled for now
 						<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
 							<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
 						</svg> -->
-						<!-- <p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p> -->
-						<div id="userHighlight" onmousemove="moveTooltipOnHighlights('users');">
-							<span class="highlightsValue">0</span> highlighted users <span class="highlightsResetOption clickable hidden" onclick="clearUserSelection();">(<span class="underlined">reset</span>)</span>
-						</div>
-						<div id="eventTypeHighlight" onmousemove="moveTooltipOnHighlights('eventTypes');">
+						<div id="eventTypeHighlight">
 							<span class="highlightsValue">0</span> highlighted event types <span class="highlightsResetOption clickable hidden" onclick="clearEventTypeSelection();">(<span class="underlined">reset</span>)</span>
+							<div id="detailedEventTypeHighlight" class="detailedHighlight"></div>
 						</div>
-						<div id="patternHighlight" onmousemove="moveTooltipOnHighlights('patterns');">
+						<div id="userHighlight">
+							<span class="highlightsValue">0</span> highlighted users <span class="highlightsResetOption clickable hidden" onclick="clearUserSelection();">(<span class="underlined">reset</span>)</span>
+							<div id="detailedUserHighlight" class="detailedHighlight"></div>
+						</div>
+						<div id="patternHighlight">
 							<span class="highlightsValue">0</span> selected patterns <span class="highlightsResetOption clickable hidden" onclick="unselectAllPatterns();">(<span class="underlined">reset</span>)</span>
+							<div id="detailedPatternHighlight" class="detailedHighlight"></div>
 						</div>
 					</div>
 				</div>

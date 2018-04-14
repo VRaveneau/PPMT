@@ -868,6 +868,40 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	text-align: center;
+	overflow: visible;
+}
+
+#top .body > div {
+	position: relative;
+}
+
+.detailedHighlight {
+	position: absolute;
+	visibility: hidden;
+	top: 100%;
+	z-index: 10;
+
+	border: 1px solid black;
+	border-radius: 5px;
+	width: 100%;
+
+	background-color: white;
+}
+
+.detailedHighlight:hover {
+	visibility: visible;
+}
+
+#userHighlight:hover > .detailedHighlight {
+	visibility: visible;
+}
+
+#eventTypeHighlight:hover > .detailedHighlight {
+	visibility: visible;
+}
+
+#patternHighlight:hover > .detailedHighlight {
+	visibility: visible;
 }
 
 /************************************/

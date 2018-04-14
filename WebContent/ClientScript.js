@@ -4238,26 +4238,90 @@ function clickOnPatternSupportHeader() {
  * (Re)creates the display of the highlights summary
  */
 function setHighlights() {
+	// user highlihgts
 	d3.select("#userHighlight .highlightsValue")
 		.text(highlightedUsers.length);
 	if(highlightedUsers.length > 0)
 		d3.select("#userHighlight .highlightsResetOption").classed("hidden", false);
 	else
 		d3.select("#userHighlight .highlightsResetOption").classed("hidden", true);
+	let detailed = d3.select("#detailedUserHighlight");
+	detailed.html("");
+	highlightedUsers.forEach(function(usr) {
+		detailed.append("div")
+			.classed("clickable", true)
+			.classed("highlightButton", true)
+			.text(usr)
+			.on("click", function() {
+				highlightUserRow(usr);
+				setHighlights();
+				timeline.displayData();
+			});
+	});
 
+	// event type highlights
 	d3.select("#eventTypeHighlight .highlightsValue")
 		.text(highlightedEventTypes.length);
 	if(highlightedEventTypes.length > 0)
 		d3.select("#eventTypeHighlight .highlightsResetOption").classed("hidden", false);
 	else
 		d3.select("#eventTypeHighlight .highlightsResetOption").classed("hidden", true);
+	detailed = d3.select("#detailedEventTypeHighlight");
+	detailed.html("");
+	highlightedEventTypes.forEach(function(type) {
+		detailed.append("div")
+			.classed("clickable", true)
+			.classed("highlightButton", true)
+			.style("color", colorList[type][0].toString())
+			.text(itemShapes[type])
+			.on("click", function() {
+				highlightEventTypeRow(type);
+				setHighlights();
+				timeline.displayData();
+			})
+			.append("span")
+			.style("color", "black")
+			.text("\u00A0"+type);
+	});
 
+	// pattern highlights
 	d3.select("#patternHighlight .highlightsValue")
 		.text(selectedPatternIds.length);
 	if(selectedPatternIds.length > 0)
 		d3.select("#patternHighlight .highlightsResetOption").classed("hidden", false);
 	else
 		d3.select("#patternHighlight .highlightsResetOption").classed("hidden", true);
+	detailed = d3.select("#detailedPatternHighlight");
+	detailed.html("");
+	selectedPatternIds.forEach(function(patternId) {
+		let pSize = patternsInformation[patternId][1];
+		let pString = patternsInformation[patternId][0];
+		let pItems = patternsInformation[patternId][3];
+
+		let row = detailed.append("div")
+			.classed("clickable",true)
+			.on("click", function() {
+				let index = selectedPatternIds.indexOf(patternId);
+				selectedPatternIds.splice(index, 1);
+				
+				timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
+				//d3.event.stopPropagation();
+				console.log("click on "+patternId);
+				createPatternListDisplay();
+				setHighlights();
+				
+				// Update the number of selected patterns display
+				d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+			});
+		for (let k=0; k < pSize; k++) {
+			row.append("span")
+				.style("color",colorList[pItems[k]][0].toString())
+				.text(itemShapes[pItems[k]]);
+		}
+		row.append("span")
+			.text(" "+pString)
+			.attr("patternId",patternId);
+	});
 }
 
 /**
@@ -5619,8 +5683,6 @@ function changeTooltip(data, origin) {
 		case "session":
 			displaySessionTooltip(data);
 			break;
-		case "highlights":
-			displayHighlightsTooltip(data);
 		default:
 		}
 		
@@ -5910,85 +5972,6 @@ function displaySessionTooltip(data) {
 }
 
 /**
- * Displays the tooltip when its data comes from the "highlights summary" view
- * @param {string} target The kind of highlight to display
- */
-function displayHighlightsTooltip(target) {
-	let area = d3.select("#tooltip").select(".body");
-	area.html("")
-		.style("text-align", "center");
-	switch(target) {
-		case "users":
-			highlightedUsers.forEach(function(usr) {
-				area.append("p")
-					.append("span")
-					.classed("clickable", true)
-					.classed("highlightButton", true)
-					.text(usr)
-					.on("click", function() {
-						highlightUserRow(usr);
-						setHighlights();
-						timeline.displayData();
-						displayHighlightsTooltip("users");
-					});
-			});
-			break;
-		case "eventTypes":
-			highlightedEventTypes.forEach(function(type) {
-				area.append("p")
-					.append("span")
-					.classed("clickable", true)
-					.classed("highlightButton", true)
-					.style("color", colorList[type][0].toString())
-					.text(itemShapes[type])
-					.on("click", function() {
-						highlightEventTypeRow(type);
-						setHighlights();
-						timeline.displayData();
-						displayHighlightsTooltip("eventTypes");
-					})
-					.append("span")
-					.style("color", "black")
-					.text("\u00A0"+type);
-			});
-			break;
-		case "patterns":
-			selectedPatternIds.forEach(function(patternId) {
-				let pSize = patternsInformation[patternId][1];
-				let pString = patternsInformation[patternId][0];
-				let pItems = patternsInformation[patternId][3];
-
-				let row = area.append("p")
-					.classed("clickable",true)
-					.on("click", function() {
-						let index = selectedPatternIds.indexOf(patternId);
-						selectedPatternIds.splice(index, 1);
-						
-						timeline.displayData(); // TODO optimize by just displaying the pattern occurrences
-						//d3.event.stopPropagation();
-						console.log("click on "+patternId);
-						createPatternListDisplay();
-						setHighlights();
-						displayHighlightsTooltip("patterns");
-						
-						// Update the number of selected patterns display
-						d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-					});
-				for (let k=0; k < pSize; k++) {
-					row.append("span")
-						.style("color",colorList[pItems[k]][0].toString())
-						.text(itemShapes[pItems[k]]);
-				}
-				row.append("span")
-					.text(" "+pString)
-					.attr("patternId",patternId);
-			});
-			break;
-		default:
-	}
-}
-
-/**
  * Clears the tooltip's content, or marks it to be cleared when possible
  */
 function clearTooltip() {
@@ -6039,34 +6022,6 @@ function moveTooltip() {
 		newPosY = 0;
 	tooltip.style("left", newPosX+"px")
 		.style("top", newPosY+"px");
-}
-
-function moveTooltipOnHighlights(target) {
-	let posX = 0;
-	let posY = 0;
-	let clientRect = null;
-	let tooltipWidth = document.getElementById("tooltip").getBoundingClientRect().width;
-	switch(target) {
-		case "users":
-			clientRect = document.getElementById("userHighlight").getBoundingClientRect();
-			posX = Math.floor(clientRect.x + clientRect.width/2 - tooltipWidth/2);
-			posY = clientRect.bottom;
-			break;
-		case "eventTypes":
-			clientRect = document.getElementById("eventTypeHighlight").getBoundingClientRect();
-			posX = Math.floor(clientRect.x + clientRect.width/2 - tooltipWidth/2);
-			posY = clientRect.bottom;
-			break;
-		case "patterns":
-			clientRect = document.getElementById("patternHighlight").getBoundingClientRect();
-			posX = Math.floor(clientRect.x + clientRect.width/2 - tooltipWidth/2);
-			posY = clientRect.bottom;
-			break;
-		default:
-	}
-	tooltip.style("left", posX+"px")
-		.style("top", posY+5+"px");
-	changeTooltip(target, "highlights");
 }
 
 /**
