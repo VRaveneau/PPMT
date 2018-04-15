@@ -505,10 +505,10 @@ var itemShapes = {};
 var debouncedFilterUserList = _.debounce(filterUserList, 500);
 
 /**
- * A debounced version of filterPatternList
+ * A debounced version of filterPatternsBySyntax
  * @type {function}
  */
-var debouncedFilterPatternList = _.debounce(filterPatternList, 500);
+var debouncedFilterPatternsBySyntax = _.debounce(filterPatternsBySyntax, 500);
 
 /**
  * A debounced version of filterPatterns
@@ -1270,7 +1270,7 @@ function setupAlgorithmSearchField() {
 			suggestionDiv.style("display", "none");
 	});
 	
-	searchField.on("input", debouncedFilterPatternList);
+	searchField.on("input", debouncedFilterPatternsBySyntax);
 	searchField.on("keydown", function() {
 		let keyName = d3.event.key;
 		// Don't trigger if the user keeps the key down
@@ -2481,6 +2481,81 @@ function filterPatternsBySize(range) {
 }
 
 /**
+ * Updates the list of patterns depending on the value in the pattern search field.
+ * A debounced version of this function is stored in debouncedFilterPatternsBySyntax.
+ */
+function filterPatternsBySyntax() {
+	let searchField = d3.select("#patternListArea input.searchField");
+	let suggestionDiv = d3.select("#patternListArea .suggestionDiv");
+
+	suggestionDiv.style("display", "block");
+	let currentValue = searchField.property("value");
+	currentPatternSearchInput = currentValue;
+	currentPatternSearchFragment = currentValue.split(" ").pop();
+	
+	if(currentPatternSearchFragment.length > 0) {
+		let baseLength = currentPatternSearchInput.length -
+							currentPatternSearchFragment.length;
+		let baseValue = currentPatternSearchInput.substr(0, baseLength);
+		relatedEventTypes = eventTypes.filter(function(d, i) {
+			return d.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
+		});
+		relatedEventTypes.sort();
+		
+		if (relatedEventTypes.length > 0) {
+			currentPatternSearchSuggestionIdx = 0;
+			suggestionDiv.html("");
+			relatedEventTypes.forEach(function(d,i) {
+				suggestionDiv.append("p")
+					.classed("selected", i==currentPatternSearchSuggestionIdx)
+					.classed("clickable", true)
+					.text(baseValue + d)
+					.on("click", function() {
+						let baseLength = currentPatternSearchInput.length - 
+										currentPatternSearchFragment.length;
+						let baseValue = currentPatternSearchInput.substr(0, baseLength);
+						currentPatternSearchInput = baseValue + relatedEventTypes[i];
+						currentPatternSearchFragment = relatedEventTypes[i];
+						searchField.property("value", currentPatternSearchInput);
+						// Updates the suggestion list
+						relatedEventTypes = eventTypes.filter(function(e, j) {
+							return e.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
+						});
+						relatedEventTypes.sort();
+
+						if (relatedEventTypes.length > 0) {
+							currentPatternSearchSuggestionIdx = 0;
+							suggestionDiv.html("");
+							relatedEventTypes.forEach(function(e,j) {
+								suggestionDiv.append("p")
+									.classed("selected", j==currentPatternSearchSuggestionIdx)
+									.text(baseValue + e);
+							});
+						} else {
+							currentPatternSearchSuggestionIdx = -1;
+							suggestionDiv.html("");
+						}
+						
+						createPatternListDisplay();
+						suggestionDiv.style("display", "none");
+					});
+			});
+		} else {
+			currentPatternSearchSuggestionIdx = -1;
+			suggestionDiv.html("");
+		}
+	} else {
+		currentPatternSearchInput = "";
+		currentPatternSearchSuggestionIdx = -1;
+		currentPatternSearchFragment = "";
+		relatedEventTypes = [];
+		suggestionDiv.html("");
+	}
+	
+	createPatternListDisplay();
+}
+
+/**
  * Updates the value for the maximum pattern support
  * @param {number} newSupport The new value
  */
@@ -3391,8 +3466,10 @@ function addPatternToList(message) {
 	if (maxPatternSupport < pSupport)
 		increaseMaxPatternSupport(pSupport);
 
-	if (maxPatternSize < pSize)
+	if (maxPatternSize < pSize) {
 		increaseMaxPatternSize(pSize);
+		patternMetrics["sizeDistribution"][pSize] = 0;
+	}
 
 	let pUsers = message.userDistribution.users.split(";");
 	
@@ -3408,42 +3485,36 @@ function addPatternToList(message) {
 	patternsInformation[pId] = [pString, pSize, pSupport, pItems, pUsers];
 	
 	// Update the relevant metrics
-	if (patternMetrics["sizeDistribution"][pSize])
-		patternMetrics["sizeDistribution"][pSize] = patternMetrics["sizeDistribution"][pSize] + 1;
-	else
-		patternMetrics["sizeDistribution"][pSize] = 1;
-
-	// Don't take this pattern into consideration if it doesn"t pass the sliders' filter
-	if (!supportSlider.hasValueSelected(pSupport) || !sizeSlider.hasValueSelected(pSize))
-		return;
-
-	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
-	
-	if (correctPositionInList == -1)
-		patternIdList.push(pId);
-	else
-		patternIdList.splice(correctPositionInList, 0, pId);
+	patternMetrics["sizeDistribution"][pSize]++;
 	
 	// Update the number of patterns display
 	d3.select("#patternNumberSpan").text(numberOfPattern);
-	
-	// Only add the pattern to the list if:
-	// - No filter is applied
-	// - The applied filter accepts the pattern
+
 	let properPatternSearchInput = currentPatternSearchInput.split(" ")
 		.filter(function(d,i) {
 			return d.length > 0;
 		}).join(" ");
-	if (pString.includes(properPatternSearchInput) == true) {
-		if (correctPositionInList == -1) { // append at the end of the list
-			document.getElementById("patternTableBody").appendChild(createPatternRow(pId));
-		} else { // append at the right position in the list
-			let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
-			//console.log("First unselectedId: "+firstUnselectedId);
-			let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
-			
-			firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
-		}
+	// Don't take this pattern into consideration if it doesn"t pass the filter
+	if (!supportSlider.hasValueSelected(pSupport) ||
+		!sizeSlider.hasValueSelected(pSize) ||
+		!pString.includes(properPatternSearchInput)) {
+			filteredOutPatterns.push(pId);
+			return;
+	}
+
+	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
+	
+	if (correctPositionInList == -1) {// append at the end of the list
+		patternIdList.push(pId);
+		document.getElementById("patternTableBody")
+			.appendChild(createPatternRow(pId));
+	} else { // append at the right position in the list
+		patternIdList.splice(correctPositionInList, 0, pId);
+		let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
+		//console.log("First unselectedId: "+firstUnselectedId);
+		let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
+		
+		firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
 	}
 }
 
@@ -5415,81 +5486,6 @@ function filterUserList() {
 		suggestionDiv.html("");
 	}
 	createUserListDisplay();
-}
-
-/**
- * Updates the list of patterns depending on the value in the pattern search field.
- * A debounced version of this function is stored in debouncedFilterPatternList.
- */
-function filterPatternList() {
-	let searchField = d3.select("#patternListArea input.searchField");
-	let suggestionDiv = d3.select("#patternListArea .suggestionDiv");
-
-	suggestionDiv.style("display", "block");
-	let currentValue = searchField.property("value");
-	currentPatternSearchInput = currentValue;
-	currentPatternSearchFragment = currentValue.split(" ").pop();
-	
-	if(currentPatternSearchFragment.length > 0) {
-		let baseLength = currentPatternSearchInput.length -
-							currentPatternSearchFragment.length;
-		let baseValue = currentPatternSearchInput.substr(0, baseLength);
-		relatedEventTypes = eventTypes.filter(function(d, i) {
-			return d.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
-		});
-		relatedEventTypes.sort();
-		
-		if (relatedEventTypes.length > 0) {
-			currentPatternSearchSuggestionIdx = 0;
-			suggestionDiv.html("");
-			relatedEventTypes.forEach(function(d,i) {
-				suggestionDiv.append("p")
-					.classed("selected", i==currentPatternSearchSuggestionIdx)
-					.classed("clickable", true)
-					.text(baseValue + d)
-					.on("click", function() {
-						let baseLength = currentPatternSearchInput.length - 
-										currentPatternSearchFragment.length;
-						let baseValue = currentPatternSearchInput.substr(0, baseLength);
-						currentPatternSearchInput = baseValue + relatedEventTypes[i];
-						currentPatternSearchFragment = relatedEventTypes[i];
-						searchField.property("value", currentPatternSearchInput);
-						// Updates the suggestion list
-						relatedEventTypes = eventTypes.filter(function(e, j) {
-							return e.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
-						});
-						relatedEventTypes.sort();
-
-						if (relatedEventTypes.length > 0) {
-							currentPatternSearchSuggestionIdx = 0;
-							suggestionDiv.html("");
-							relatedEventTypes.forEach(function(e,j) {
-								suggestionDiv.append("p")
-									.classed("selected", j==currentPatternSearchSuggestionIdx)
-									.text(baseValue + e);
-							});
-						} else {
-							currentPatternSearchSuggestionIdx = -1;
-							suggestionDiv.html("");
-						}
-						
-						createPatternListDisplay();
-						suggestionDiv.style("display", "none");
-					});
-			});
-		} else {
-			currentPatternSearchSuggestionIdx = -1;
-			suggestionDiv.html("");
-		}
-	} else {
-		currentPatternSearchInput = "";
-		currentPatternSearchSuggestionIdx = -1;
-		currentPatternSearchFragment = "";
-		relatedEventTypes = [];
-		suggestionDiv.html("");
-	}
-	
-	createPatternListDisplay();
 }
 
 /**
