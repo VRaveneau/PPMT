@@ -628,6 +628,10 @@ function handleKeyPress() {
 			timeline.zoomRect.call(timeline.zoom.scaleBy, 0.9);
 			timeline.zoomRectUsers.call(timeline.zoomUsers.scaleBy, 0.9);
 			break;
+		case "Escape":
+			if (useExtendedAlgorithmView)
+				toggleExtendedAlgorithmView();
+			break;
 		default:
 		}
 	}
