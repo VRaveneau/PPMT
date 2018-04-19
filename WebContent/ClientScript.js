@@ -536,6 +536,13 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 
 /**
+ * Prevents events against propagating to other DOM elements
+ */
+function stopEventPropagation() {
+	d3.event.stopPropagation();
+}
+
+/**
  * Displays a debug message sent by the server
  * @param {JSON} message - The message sent by the server
  */
@@ -1132,6 +1139,9 @@ function setupTool() {
 	setupAlgorithmSearchField();
 	setupUserSearchField();
 	
+	d3.select("#showPatternTextInput")
+		.on("click", stopEventPropagation);
+
 	// Setup the input for the number of users to display
 	d3.select("#showAllUserSessionsInput")
 		.on("change", function() {
@@ -4264,31 +4274,58 @@ function clickOnSelectedPatternSupportHeader() {
 }
 
 /**
+ * Updates the headline of the table of patterns for the current sort
+ */
+function updatePatternTableHead() {
+	let nameTxt = "";
+	let supportTxt = "";
+	let nbUsersTxt = "";
+	let sizeTxt = "";
+
+	switch(lastPatternSort) {
+		case "nameDown":
+			nameTxt = "↑";
+			break;
+		case "nameUp":
+			nameTxt = "↓";
+			break;
+		case "supportDown":
+			supportTxt = "↑";
+			break;
+		case "supportUp":
+			supportTxt = "↓";
+			break;
+		case "nbUsersDown":
+			nbUsersTxt = "↑";
+			break;
+		case "nbUsersUp":
+			nbUsersTxt = "↓";
+			break;
+		case "sizeDown":
+			sizeTxt = "↑";
+			break;
+		case "sizeUp":
+			sizeTxt = "↓";
+			break;
+		default:
+	}
+
+	d3.select("#patternTable th[value='name'] .sortIndicator")
+		.text(nameTxt);
+	d3.select("#patternTable th[value='support'] .sortIndicator")
+		.text(supportTxt);
+	d3.select("#patternTable th[value='nbUsers'] .sortIndicator")
+		.text(nbUsersTxt);
+	d3.select("#patternTable th[value='size'] .sortIndicator")
+		.text(sizeTxt);
+}
+
+/**
  * Handles a click on the 'name' header in the pattern list
  */
 function clickOnPatternNameHeader() {
-	let nameHeader = null;
-	let nameTxt = "";
-	// Remove the sorting indicators
-	d3.select("#patternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Name") {
-				nameHeader = this;
-				nameTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastPatternSort == "nameDown") {
-		d3.select(nameHeader).text(nameTxt + "\u00A0↓");
-		sortPatternsByName();
-	} else {
-		d3.select(nameHeader).text(nameTxt + "\u00A0↑");
-		sortPatternsByName(true);
-	}
-	
+	sortPatternsByName(!(lastPatternSort == "nameDown"));
+	updatePatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4296,28 +4333,8 @@ function clickOnPatternNameHeader() {
  * Handles a click on the 'size' header in the pattern list
  */
 function clickOnPatternSizeHeader() {
-	let sizeHeader = null;
-	let sizeTxt = "";
-	// Remove the sorting indicators
-	d3.select("#patternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Size") {
-				sizeHeader = this;
-				sizeTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastPatternSort == "sizeDown") {
-		d3.select(sizeHeader).text(sizeTxt + "\u00A0↓");
-		sortPatternsBySize();
-	} else {
-		d3.select(sizeHeader).text(sizeTxt + "\u00A0↑");
-		sortPatternsBySize(true);
-	}
-	
+	sortPatternsBySize(!(lastPatternSort == "sizeDown"));
+	updatePatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4325,28 +4342,8 @@ function clickOnPatternSizeHeader() {
  * Handles a click on the 'nb users' header in the pattern list
  */
 function clickOnPatternNbUsersHeader() {
-	let nbUsersHeader = null;
-	let nbUsersTxt = "";
-	// Remove the sorting indicators
-	d3.select("#patternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0users") {
-				nbUsersHeader = this;
-				nbUsersTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastPatternSort == "nbUsersDown") {
-		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↓");
-		sortPatternsByNbUsers();
-	} else {
-		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↑");
-		sortPatternsByNbUsers(true);
-	}
-	
+	sortPatternsByNbUsers(!(lastPatternSort == "nbUsersDown"));
+	updatePatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4354,28 +4351,8 @@ function clickOnPatternNbUsersHeader() {
  * Handles a click on the 'support' header in the pattern list
  */
 function clickOnPatternSupportHeader() {
-	let supportHeader = null;
-	let supportTxt = "";
-	// Remove the sorting indicators
-	d3.select("#patternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Support") {
-				supportHeader = this;
-				supportTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastPatternSort == "supportDown") {
-		d3.select(supportHeader).text(supportTxt + "\u00A0↓");
-		sortPatternsBySupport();
-	} else {
-		d3.select(supportHeader).text(supportTxt + "\u00A0↑");
-		sortPatternsBySupport(true);
-	}
-	
+	sortPatternsBySupport(!(lastPatternSort == "supportDown"));
+	updatePatternTableHead();
 	createPatternListDisplay();
 }
 
