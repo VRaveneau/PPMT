@@ -1790,6 +1790,10 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	d3.select("#currentWindowExtended").text(windowSize);
 	d3.select("#currentSizeExtended").text(maxSize+" events");
 	d3.select("#currentMaxDurationExtended").text(maxDuration/1000+"s");
+	supportModifySlider.updateValues([minSupport]);
+	gapModifySlider.updateValues([minGap, maxGap]);
+	sizeModifySlider.updateValues([maxSize]);
+	durationModifySlider.updateValues([maxDuration]);
 }
 
 // TODO Store current parameters in global variables and use them instead of startInitialMining()
@@ -6563,7 +6567,22 @@ function ModifySlider(elemId, options) {
 		
 		self.handles.push(obj);
 	}
-		
+	
+	self.updateValues = function(values) {
+		values.forEach( (val, idx) => {
+			if (val < self.currentMinValue) {
+				self.domain[0] = val;
+				self.currentMinValue = val;
+				self.axis.domain(self.domain);
+			} else if (val > self.currentMaxValue) {
+				self.domain[1] = val;
+				self.currentMaxValue = val;
+				self.axis.domain(self.domain);
+			}
+
+			self.moveHandleTo(self.handles[idx], val);
+		});
+	}
 
 	self.moveHandleTo = function(handleObject, value) {
 		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
