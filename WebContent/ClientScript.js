@@ -5347,6 +5347,10 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 			
 			// Update the number of selected patterns display
 			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+			
+			d3.select("#resetPatternSelectionButton")
+				.classed("hidden", selectedPatternIds.length == 0);
+
 			setHighlights();
 		});
 	
@@ -6220,6 +6224,8 @@ function unselectAllPatterns() {
 	
 	// Update the number of selected patterns display
 	d3.select("#selectedPatternNumberSpan").text('0');
+	d3.select("#resetPatternSelectionButton")
+				.classed("hidden", selectedPatternIds.length == 0);
 	setHighlights();
 }
 
