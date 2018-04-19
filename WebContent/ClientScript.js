@@ -207,6 +207,15 @@ var sizeSlider = null;
 // Slider controling the gap parameter of the algorithm
 var gapSlider = null;
 
+// Slider controling the modification of the support parameter of the algorithm
+var supportModifySlider = null;
+// Slider controling the modification of the window size parameter of the algorithm
+var windowModifySlider = null;
+// Slider controling the modification of the size parameter of the algorithm
+var sizeModifySlider = null;
+// Slider controling the modification of the gap parameter of the algorithm
+var gapModifySlider = null;
+
 // Svg component displaying the activity indicator
 var runningTaskIndicatorSvg = d3.select("#top").select("svg").select("circle");
 
@@ -1389,12 +1398,12 @@ function setupAlgorithmSliders() {
 	//setupAlgorithmGapSlider();
 
 	// Setup the parameter modifying sliders
-	d3.select("#algorithmExtended").classed("hidden", false);
+	toggleExtendedAlgorithmView(); // Open the extended view to setup the width properly
 	setupSupportParameterSlider();
 	setupGapParameterSlider();
 	setupDurationParameterSlider();
 	setupSizeParameterSlider();
-	d3.select("#algorithmExtended").classed("hidden", true);
+	toggleExtendedAlgorithmView(); // Close the extended view now that we're done
 }
 
 /**
@@ -1539,7 +1548,7 @@ function setupSupportParameterSlider() {
 	let sliderOptions = {
 		brushNumber: 1
 	}
-	new ModifySlider("minSupportChangeSlider", sliderOptions);
+	supportModifySlider = new ModifySlider("minSupportChangeSlider", sliderOptions);
 }
 
 /**
@@ -1549,7 +1558,7 @@ function setupGapParameterSlider() {
 	let sliderOptions = {
 		brushNumber: 2
 	}
-	new ModifySlider("gapChangeSlider", sliderOptions);
+	gapModifySlider = new ModifySlider("gapChangeSlider", sliderOptions);
 }
 
 /**
@@ -1559,7 +1568,7 @@ function setupDurationParameterSlider() {
 	let sliderOptions = {
 		brushNumber: 1
 	}
-	new ModifySlider("maxDurationChangeSlider", sliderOptions);
+	durationModifySlider = new ModifySlider("maxDurationChangeSlider", sliderOptions);
 }
 
 /**
@@ -1569,7 +1578,7 @@ function setupSizeParameterSlider() {
 	let sliderOptions = {
 		brushNumber: 1
 	}
-	new ModifySlider("maxSizeChangeSlider", sliderOptions);
+	sizeModifySlider = new ModifySlider("maxSizeChangeSlider", sliderOptions);
 }
 
 /**
@@ -1772,6 +1781,13 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 // TODO Store current parameters in global variables and use them instead of startInitialMining()
 function requestAlgorithmReStart() {
 	startInitialMining();
+}
+
+/**
+ * Updates the parameters used by the algorithm
+ */
+function changeAlgorithmParameters() {
+	console.log(":P");
 }
 
 /*************************************/
@@ -3642,6 +3658,34 @@ function resetDataFilters() {
 /*			HCI manipulation		*/
 /************************************/
 
+/**
+ * Opens a modal window to confirm or cancel the change of parameters for the algorithm
+ */
+function askConfirmationToChangeAlgorithmParameters() {
+	showConfirmationModal();
+	d3.select("#modalTitle")
+		.text("Confirm the parameters change");
+	d3.select("#actionConfirmation #contentHeader")
+		.text("Do you confirm the following changes :");
+	d3.select("#actionConfirmation #contentBody")
+		.text("param changes ...");
+		// Add a warning that it will relaunch the process
+	d3.select("#confirmationConfirm")
+		.on("click", function() {
+			changeAlgorithmParameters();
+			// TODO relaunch the algorithm
+			console.log("!! no restart yet !!")
+			closeModal();
+		});
+	d3.select("#confirmationCancel")
+		.on("click", function() {
+			toggleExtendedAlgorithmView();
+		});
+}
+
+/**
+ * Opens a modal window to confirm or cancel the removal of event types
+ */
 function askConfirmationToRemoveEventType(eventTypeName) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
@@ -3655,8 +3699,15 @@ function askConfirmationToRemoveEventType(eventTypeName) {
 			requestEventTypeRemoval(eventTypeName);
 			closeModal();
 		});
+	d3.select("#confirmationCancel")
+		.on("click", function() {
+			closeModal();
+		});
 }
 
+/**
+ * Opens a modal window to confirm or cancel the removal of users
+ */
 function askConfirmationToRemoveUser(userName) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
@@ -3668,6 +3719,10 @@ function askConfirmationToRemoveUser(userName) {
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
 			requestUserRemoval(userName);
+			closeModal();
+		});
+	d3.select("#confirmationCancel")
+		.on("click", function() {
 			closeModal();
 		});
 }
@@ -6413,10 +6468,6 @@ function ModifySlider(elemId, options) {
 	self.domain = [0,10];
 	self.currentMinValue = self.domain[0];
 	self.currentMaxValue = self.domain[1];
-	self.handleValues = [];
-
-	for(let brushNb = 0; brushNb < options.brushNumber; brushNb++)
-		self.handleValues.push(self.currentMinValue);
 
 	self.axis = d3.scaleLinear()
 		.domain(self.domain)
@@ -6432,64 +6483,93 @@ function ModifySlider(elemId, options) {
 		.attr("x1",self.axis.range()[0])
 		.attr("x2",self.axis.range()[1])
 		.attr("stroke", "black");
-	
-	self.blueLine = self.slider.append("line")
-		.attr("class","bluetrack")
-		.attr("x1",self.axis(_.min(self.handleValues)))
-		.attr("x2",self.axis(_.max(self.handleValues)))
-		.attr("stroke", "lightblue");
-	
+		
 	self.ticks = self.slider.insert("g",".track-overlay")
 		.attr("class","ticks")
 		.attr("transform", "translate(0,"+18+")");
 	self.ticks.selectAll("text")
 		.data(self.axis.ticks(5))
 		.enter().append("text")
-			.attr("x",self.axis)
-			.attr("text-anchor","middle")
-			.text(function(d) { return d; });
-	
+		.attr("x",self.axis)
+		.attr("text-anchor","middle")
+		.text(function(d) { return d; });
+		
 	self.currentMin = self.slider.insert("rect", ".track-overlay")
 		.attr("class","boundary")
 		.attr("x",self.axis(self.currentMinValue))
 		.attr("y",-5)
 		.attr("width",2)
 		.attr("height",10);
-	
+		
 	self.currentMax = self.slider.insert("rect", ".track-overlay")
 		.attr("class","boundary")
 		.attr("x",self.axis(self.currentMaxValue))
 		.attr("y",-5)
 		.attr("width",2)
 		.attr("height",10);
-	
+		
+	self.blueLine = options.brushNumber == 1 ? null :
+		self.slider.append("line")
+			.attr("class","bluetrack")
+			.attr("x1", self.axis(self.currentMinValue))
+			.attr("x2",self.axis(self.currentMinValue))
+			.attr("stroke", "lightblue");
+
 	self.handles = [];
-
-	self.handleValues.forEach(function(handleValue) {
+		
+	for(let brushNb = 0; brushNb < options.brushNumber; brushNb++) {
+		let value = self.currentMinValue;
+		
+		let obj = {
+			value: value,
+			handle: null,
+			tooltip: null
+		};
+		
 		let handle = self.slider.insert("circle", ".track-overlay")
-			.attr("class","handleSlider")
-			.attr("r",5)
-			.attr("cx",self.axis(handleValue))
-			.call(d3.drag()
-					.on("start.interrupt", function() { self.slider.interrupt(); })
-					.on("start drag", function() {
-						var roundedPos = Math.round(self.axis.invert(d3.event.x));
-						self.moveHandle1To(roundedPos);
-						}));
-		self.handles.push(handle);
-	});
+		.attr("class","handleSlider")
+		.attr("r",5)
+		.attr("cx",self.axis(value))
+		.call(d3.drag()
+		.on("start.interrupt", function() { self.slider.interrupt(); })
+		.on("start drag", function() {
+			var roundedPos = Math.round(self.axis.invert(d3.event.x));
+			self.moveHandleTo(obj, roundedPos);
+		}));
 
-	self.tooltips = [];
+		let tooltip = self.slider.insert("text", ".track-overlay")
+		.attr("class","handleSliderText")
+		.attr("x", self.axis(value))
+		.attr("text-anchor","middle")
+		.attr("transform", "translate(0,-"+10+")")
+		.text(value);
+		
+		obj.handle = handle;
+		obj.tooltip = tooltip;
+		
+		self.handles.push(obj);
+	}
+		
 
-	self.handleValues.forEach(function(handleValue) {
-		let tt = self.slider.insert("text", ".track-overlay")
-			.attr("class","handleSliderText")
-			.attr("x", self.axis(handleValue))
-			.attr("text-anchor","middle")
-			.attr("transform", "translate(0,-"+10+")")
-			.text(handleValue);
-		self.tooltips.push(tt);
-	});
+	self.moveHandleTo = function(handleObject, value) {
+		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
+			handleObject.value = value;
+			handleObject.handle.attr("cx",self.axis(Math.round(value)));
+			handleObject.tooltip.attr("x", self.axis(handleObject.value))
+				.text(Math.round(handleObject.value));
+
+			if (self.blueLine) {
+				self.blueLine.attr("x1",self.axis(_.min(_.reduce(self.handles,(prev, cur) => {
+						prev.push(cur.value);
+						return prev;
+					}, []))))
+					.attr("x2",self.axis(_.max(_.reduce(self.handles,(prev, cur) => {
+						prev.push(cur.value);
+						return prev;
+					}, []))));
+			}
+		}
+	};
 }
 
 /**

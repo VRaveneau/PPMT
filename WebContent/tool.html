@@ -396,47 +396,43 @@
 							</div>
 							
 							<div id="algorithmSpeedArea" class="section">
-								<div class="title">Speed</div>
+								<!--<div class="title">Speed</div>-->
 								<div class="body">
 									<div id="patternsPerSec" class="subsection">
 										<div class="title">Patterns per second</div>
 										<div class="body">
-											plop
+											<svg width="200px" height="100px"></svg>
 										</div>
 									</div>
 									<div id="candidatesCheckedPerSec" class="subsection">
 										<div class="title">Candidates checked per second</div>
 										<div class="body">
-											plop
+											<svg width="200px" height="100px"></svg>
 										</div>
 									</div>
 								</div>
 							</div>
 							
 							<div id="algorithmParametersChange" class="section">
-								<div id="minSupportChangeSliderArea">
+								<div class="title">Change parameters</div>
+								<div class="body">
 									<p>minSupport</p>
 									<div id="minSupportChangeSlider">
 	
 									</div>
-								</div>
-								<div id="gapChangeSliderArea">
 									<p>gap</p>
 									<div id="gapChangeSlider">
 	
 									</div>
-								</div>
-								<div id="maxDurationChangeSliderArea">
 									<p>maxDuration</p>
 									<div id="maxDurationChangeSlider">
 	
 									</div>
-								</div>
-								<div id="maxSizeChangeSliderArea">
 									<p>maxSize</p>
 									<div id="maxSizeChangeSlider">
 	
 									</div>
+									<button onclick="askConfirmationToChangeAlgorithmParameters();"; class="clickable">Restart with these parameters</button>
 								</div>
 							</div>
 

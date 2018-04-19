@@ -1295,7 +1295,7 @@ table {
 	grid-template-columns:
 		[currentParameters-start] 1fr
 		[currentParameters-end total-start] 1fr
-		[total-end speed-start] 2fr
+		[total-end speed-start] max-content
 		[speed-end changeParameters-start] 2fr
 		[changeParameters-end];
 	grid-template-rows: 
@@ -1375,6 +1375,11 @@ table {
 	grid-row: main-top / table-top;
 }
 
+#algorithmSpeedArea .body {
+	display: flex;
+	flex-direction: row;
+}
+
 /********************************/
 /* 	Algorithm parameter change 	*/
 /********************************/
@@ -1383,11 +1388,27 @@ table {
 	grid-column: changeParameters-start / changeParameters-end;
 	grid-row: main-top / main-bottom;
 	padding: 0px;
-	flex-direction: row;
 }
 
-#algorithmParametersChange:not(.hidden) {
-	display: flex;
+#algorithmParametersChange .body {
+	display: grid;
+	grid-template-columns: 
+		[main-start] min-content
+		[slider-start] 1fr
+		[main-end];
+	grid-template-rows: 
+		[main-top support-start] max-content
+		[gap-start] max-content
+		[duration-start] max-content
+		[size-start] max-content
+		[validate-start] 50px
+		[main-bottom];
+}
+
+#algorithmParametersChange button {
+	grid-column: main-start / main-end;
+	width: 70%;
+	justify-self: center;
 }
 
 /********************************/
