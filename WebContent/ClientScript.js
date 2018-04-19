@@ -4570,7 +4570,8 @@ function createEventTypesListDisplay() {
 			.classed("contextActions", true);
 		contextActions.append("button")
 			.classed("clickable", true)
-			.text("Remove")
+			.classed("icon-remove", true)
+			.attr("title", "Remove")
 			.on("click", function() {
 				d3.event.stopPropagation();
 				askConfirmationToRemoveEventType(eType);
@@ -4755,7 +4756,8 @@ function createUserListDisplay() {
 			.classed("contextActions", true);
 		contextActions.append("button")
 			.classed("clickable", true)
-			.text("Remove")
+			.classed("icon-remove", true)
+			.attr("title", "Remove")
 			.on("click", function() {
 				d3.event.stopPropagation();
 				askConfirmationToRemoveUser(user);
@@ -5372,14 +5374,16 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.classed("contextActions", true);
 	contextActions.append("button")
 		.classed("clickable", true)
-		.text("To eventType")
+		.classed("icon-toEventType", true)
+		.attr("title", "Convert to event type")
 		.on("click", function() {
 			d3.event.stopPropagation();
 			requestEventTypeCreationFromPattern(pId);
 		});
 	contextActions.append("button")
 		.classed("clickable", true)
-		.text("Prefix steering")
+		.classed("icon-steering", true)
+		.attr("title", "Steer algorithm")
 		.on("click", function() {
 			d3.event.stopPropagation();
 			requestSteeringOnPattern(pId);
