@@ -7269,7 +7269,7 @@ var Timeline = function(elemId, options) {
 				
 				y = self.yFocus(maxHeight-bin.value.eventCount);
 				binHeight = self.yFocus(bin.value.eventCount);
-				self.canvasContext.fillStyle = "#04B7FB";
+				self.canvasContext.fillStyle = "#a6a7a8";
 				self.canvasContext.fillRect(x, binHeight, x2-x, y);
 				self.canvasContext.lineWidth = 0.25;
 				self.canvasContext.strokeStyle = "black";
@@ -7289,9 +7289,11 @@ var Timeline = function(elemId, options) {
 				} else {
 					console.log('Warning : too many colors needed for the main hidden canvas');
 				}
-				
+
 				let eventTypesColors = [];
-				let splitEventTypes = Object.keys(bin.value.events).filter((d)=>{return bin.value.events[d]>0;});
+				let splitEventTypes = Object.keys(bin.value.events).filter( (d) => {
+					return bin.value.events[d]>0;
+				});
 				splitEventTypes.forEach(function(et) {
 					eventTypesColors.push(et+":"+getEventColor(et));
 				});
