@@ -3442,6 +3442,21 @@ function selectUsersBasedOnPatternSelection() {
 }
 
 /**
+ * Adds all the users presenting a pattern to the user selection if they don't
+ * already belong to it
+ * @param {number} patternId The id of the pattern
+ */
+function selectUsersHavingPattern(patternId) {
+	patternsInformation[patternId][4].forEach( function(e,j) {
+		if (!highlightedUsers.includes(e))
+			highlightUserRow(e);
+	});
+	
+	setHighlights();
+	refreshUserPatterns();
+}
+
+/**
  * Dehighlights all the users
  */
 function clearUserSelection() {
@@ -5374,11 +5389,11 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.classed("contextActions", true);
 	contextActions.append("button")
 		.classed("clickable", true)
-		.classed("icon-toEventType", true)
-		.attr("title", "Convert to event type")
+		.classed("icon-selectUsers", true)
+		.attr("title", "Highlight users having this pattern")
 		.on("click", function() {
 			d3.event.stopPropagation();
-			requestEventTypeCreationFromPattern(pId);
+			selectUsersHavingPattern(pId);
 		});
 	contextActions.append("button")
 		.classed("clickable", true)
@@ -5387,6 +5402,14 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.on("click", function() {
 			d3.event.stopPropagation();
 			requestSteeringOnPattern(pId);
+		});
+	contextActions.append("button")
+		.classed("clickable", true)
+		.classed("icon-toEventType", true)
+		.attr("title", "Convert to event type")
+		.on("click", function() {
+			d3.event.stopPropagation();
+			requestEventTypeCreationFromPattern(pId);
 		});
 	
 	return row;

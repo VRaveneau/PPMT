@@ -656,6 +656,22 @@ body {
 	background-size: 300%;
 }
 
+.icon-selectUsers {
+	background: url("./img/icons.png") 0px -40px;
+	/*background-position: */
+	background-size: 300%;
+}
+
+.icon-selectUsers:hover {
+	background: url("./img/icons.png") -20px -40px;
+	background-size: 300%;
+}
+
+.icon-selectUsers:active {
+	background: url("./img/icons.png") -40px -40px;
+	background-size: 300%;
+}
+
 thead {
 	background-color: white;
 	position: -webkit-sticky;
