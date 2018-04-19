@@ -1186,6 +1186,22 @@ table {
   display: none;
 }
 
+/****************************************************/
+/*	Pattern sizes in the algorithm extended view	*/
+/****************************************************/
+
+#patternSizeTableContent svg {
+	float: right;
+}
+
+#patternSizeTableContent tr .bar {
+	fill: rgb(119, 119, 119);
+}
+
+#patternSizeTableContent tr:hover .bar {
+	fill: lightgrey;
+}
+
 /********************************/
 /* 			Modal window 		*/
 /********************************/
@@ -1277,25 +1293,29 @@ table {
 	grid-column: modal-left / modal-right;
     display: grid;
 	grid-template-columns:
+		[currentParameters-start] 1fr
+		[currentParameters-end total-start] 1fr
+		[total-end speed-start] 2fr
+		[speed-end changeParameters-start] 2fr
+		[changeParameters-end];
+	grid-template-rows: 
+		[main-top] min-content
+		[table-top] 1fr
+		[table-bottom main-bottom];
+/*
 		[patternSizeTable-start] 6fr
 		[patternSizeTable-end patternSizeChart-start] 2fr
-		[patternSizeChart-end sidebar-start] 2fr [sidebar-end];
-}
-
-#algorithmExtendedSidePanel {
-	grid-area: sidebar;
-	display: flex;
-	flex-direction: column;
-	/*flex-grow: 2;*/
-	justify-content: flex-start;
+		[patternSizeChart-end sidebar-start] 2fr [sidebar-end];*/
 }
 
 #patternSizeTableArea {
-	grid-area: patternSizeTable;
+	grid-column: currentParameters-start / changeParameters-start;
+	grid-row: table-top / table-bottom;
 }
 
 #extendedPatternSizesChart {
-	grid-area: patternSizeChart;
+	grid-column: speed-start / changeParameters-start;
+	grid-row: table-top / table-bottom;
 }
 
 #patternSizeTable {
@@ -1337,6 +1357,13 @@ table {
 }
 
 #extendedAlgorithmStrategyArea {
+	grid-column: total-start / total-end;
+	grid-row: main-top / table-top;
+}
+
+#extendedAlgorithmParametersArea {
+	grid-column: currentParameters-start / currentParameters-end;
+	grid-row: main-top / table-top:
 }
 
 #extendedAlgorithmParametersArea button {
@@ -1344,6 +1371,8 @@ table {
 }
 
 #algorithmSpeedArea {
+	grid-column: speed-start / speed-end;
+	grid-row: main-top / table-top;
 }
 
 /********************************/
@@ -1351,7 +1380,8 @@ table {
 /********************************/
 
 #algorithmParametersChange {
-	grid-column: modal-left / modal-right;
+	grid-column: changeParameters-start / changeParameters-end;
+	grid-row: main-top / main-bottom;
 	padding: 0px;
 	flex-direction: row;
 }

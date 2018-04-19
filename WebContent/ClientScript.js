@@ -1389,12 +1389,12 @@ function setupAlgorithmSliders() {
 	//setupAlgorithmGapSlider();
 
 	// Setup the parameter modifying sliders
-	d3.select("#algorithmParametersChange").classed("hidden", false);
+	d3.select("#algorithmExtended").classed("hidden", false);
 	setupSupportParameterSlider();
 	setupGapParameterSlider();
 	setupDurationParameterSlider();
 	setupSizeParameterSlider();
-	d3.select("#algorithmParametersChange").classed("hidden", true);
+	d3.select("#algorithmExtended").classed("hidden", true);
 }
 
 /**
@@ -4832,7 +4832,7 @@ function stopAlgorithmRuntime(time) {
 	d3.select("#currentAlgorithmWork")
 		.text("(ended)");
 }
-
+var algorithmExtendedBarAxis = d3.scaleLinear().rangeRound([0, 200]);
 /**
  * Updates the display of the algorithm state
  */
@@ -4849,6 +4849,9 @@ function updateAlgorithmStateDisplay() {
 		algorithmState.addTime(timeDiff);
 	}
 	// Update the extended view
+
+	algorithmExtendedBarAxis.domain([0, algorithmState.getMaxPatternNumber()]);
+
 	// Update the table
 	let table = d3.select("#patternSizeTable");
 	algorithmState.getOrderedLevels().forEach( function(lvl) {
@@ -4863,8 +4866,13 @@ function updateAlgorithmStateDisplay() {
 				.classed("levelactive", false)
 				.classed("level"+lvlData.status, true)
 				.text(algorithmState.getVerboseStatus(lvlData.status));
-			row.select(".patternSizeCount")
-				.text(lvlData.patternCount);
+			let patternCount = row.select(".patternSizeCount");
+			patternCount.select("span")
+				.text(lvlData.patternCount)
+			patternCount.selectAll(".bar")
+			  	.data([lvlData.patternCount])
+				.transition().duration(0)
+				.attr("width", (d) => algorithmExtendedBarAxis(d));
 			row.select(".patternSizeCandidates")
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.select(".patternSizeProgression")
@@ -4880,9 +4888,22 @@ function updateAlgorithmStateDisplay() {
 				.classed("patternSizeStatus", true)
 				.classed("level"+lvlData.status, true)
 				.text(algorithmState.getVerboseStatus(lvlData.status));
-			row.append("td")
-				.classed("patternSizeCount", true)
-				.text(lvlData.patternCount);
+			let patternCount = row.append("td")
+				.classed("patternSizeCount", true);
+			patternCount.append("span")
+				.text(lvlData.patternCount)
+			patternCount.append("svg")
+				.attr("width", "200px")
+				.attr("height", "15px")
+			  .selectAll(".bar")
+				.data([lvlData.patternCount])
+				.enter()
+			  .append("rect")
+				  .attr("class", "bar")
+				  .attr("x", 0)
+				  .attr("y", 0 )
+				  .attr("height", 15)
+				  .attr("width", (d) => algorithmExtendedBarAxis(d));
 			row.append("td")
 				.classed("patternSizeCandidates", true)
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
@@ -5601,31 +5622,18 @@ function toggleExtendedAlgorithmView() {
 		d3.select("#algorithmExtended").classed("hidden", false);
 		d3.select("#modalTitle").text("Current algorithm state");
 		d3.select("#modalBackground").classed("hidden", false);
-		// Move the graph into the extended view
+		/*// Move the graph into the extended view
 		document.getElementById("extendedPatternSizesChart")
-			.appendChild(d3.select("#patternSizesSvg").node());
+			.appendChild(d3.select("#patternSizesSvg").node());*/
 		
 	} else { // Show the shrinked view
 		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#modalTitle").text("");
 		d3.select("#algorithmExtended").classed("hidden", true);
-		// Move the graph out of the extended view
+		/*// Move the graph out of the extended view
 		document.getElementById("patternSizesChart")
-			.appendChild(d3.select("#patternSizesSvg").node());
+			.appendChild(d3.select("#patternSizesSvg").node());*/
 	}
-}
-
-/**
- * Expands or shrinks the algorithm parameters change panel
- */
-function toggleAlgorithmParametersChange() {
-	let isHidden = d3.select("#algorithmParametersChange").classed("hidden");
-	if (useExtendedAlgorithmView)
-		toggleExtendedAlgorithmView();
-	d3.select("#modalBackground").classed("hidden", !isHidden);
-	d3.select("#actionConfirmation").classed("hidden", true);
-	d3.select("#algorithmParametersChange").classed("hidden", !isHidden);
-	d3.select("#modalTitle").text(!isHidden ? "" : "Algorithm parameters modification");
 }
 
 /**
@@ -5636,7 +5644,6 @@ function closeModal() {
 		toggleExtendedAlgorithmView();
 	d3.select("#modalBackground").classed("hidden", true);
 	d3.select("#modalTitle").text("");
-	d3.select("#algorithmParametersChange").classed("hidden", true);
 	d3.select("#actionConfirmation").classed("hidden", true);
 }
 
@@ -5644,7 +5651,6 @@ function showConfirmationModal() {
 	d3.select("#modalBackground").classed("hidden", false);
 	d3.select("#modalTitle").text("Action confirmation");
 	d3.select("#algorithmExtended").classed("hidden", true);
-	d3.select("#algorithmParametersChange").classed("hidden", true);
 	d3.select("#actionConfirmation").classed("hidden", false);
 	document.getElementById("confirmationCancel").focus();
 }
@@ -6673,6 +6679,17 @@ function AlgorithmState() {
 
 	this.getGlobalStatus = function() {
 		return this.globalStatus;
+	}
+
+	this.getMaxPatternNumber = function() {
+		let maxNbr = 0;
+
+		for (level of Object.keys(this.patternSizeInfo)) {
+			if (this.patternSizeInfo[level].patternCount > maxNbr)
+				maxNbr = this.patternSizeInfo[level].patternCount;
+		}
+
+		return maxNbr;
 	}
 }
 

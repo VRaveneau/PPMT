@@ -265,7 +265,6 @@
 						<div id="patternSizesChart">
 							
 						</div>
-						<!--<button id="algorithmChangeParametersBtn" onclick="toggleAlgorithmParametersChange();" class="clickable">Change parameters</button>-->
 						<!--<button id="algorithmShowMoreBtn" class="clickable">Show more</button>-->
 
 						<!--<div id="Algorithm" class="hidden tabContent">
@@ -380,6 +379,67 @@
 							X
 						</div>
 						<div id="algorithmExtended" class="section hidden">
+							<div id="extendedAlgorithmParametersArea" class="section">
+								<div class="title">Current parameters</div>
+								<div class="body">
+									<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
+									<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
+									<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
+									<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
+									<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
+								</div>
+							</div>
+							
+							<div id="extendedAlgorithmStrategyArea" class="section">
+								<div class="title">Current strategy</div>
+								<div class="body">Not Running</div>
+							</div>
+							
+							<div id="algorithmSpeedArea" class="section">
+								<div class="title">Speed</div>
+								<div class="body">
+									<div id="patternsPerSec" class="subsection">
+										<div class="title">Patterns per second</div>
+										<div class="body">
+											plop
+										</div>
+									</div>
+									<div id="candidatesCheckedPerSec" class="subsection">
+										<div class="title">Candidates checked per second</div>
+										<div class="body">
+											plop
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<div id="algorithmParametersChange" class="section">
+								<div id="minSupportChangeSliderArea">
+									<p>minSupport</p>
+									<div id="minSupportChangeSlider">
+	
+									</div>
+								</div>
+								<div id="gapChangeSliderArea">
+									<p>gap</p>
+									<div id="gapChangeSlider">
+	
+									</div>
+								</div>
+								<div id="maxDurationChangeSliderArea">
+									<p>maxDuration</p>
+									<div id="maxDurationChangeSlider">
+	
+									</div>
+								</div>
+								<div id="maxSizeChangeSliderArea">
+									<p>maxSize</p>
+									<div id="maxSizeChangeSlider">
+	
+									</div>
+								</div>
+							</div>
+
 							<div id="patternSizeTableArea" class="section">
 								<div class="body">
 									<table id="patternSizeTable">
@@ -410,66 +470,6 @@
 							</div>
 							<div id="extendedPatternSizesChart">
 
-							</div>
-							<div id="algorithmExtendedSidePanel">
-								<div id="extendedAlgorithmStrategyArea" class="section">
-									<div class="title">Current strategy</div>
-									<div class="body">Not Running</div>
-								</div>
-								<div id="extendedAlgorithmParametersArea" class="section">
-									<div class="title">Current parameters</div>
-									<div class="body">
-										<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
-										<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
-										<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
-										<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
-										<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
-										<button onclick="toggleAlgorithmParametersChange();" class="clickable">Change parameters</button>
-									</div>
-								</div>
-								<div id="algorithmSpeedArea" class="section">
-									<div class="title">Speed</div>
-									<div class="body">
-										<div id="patternsPerSec" class="subsection">
-											<div class="title">Patterns per second</div>
-											<div class="body">
-												plop
-											</div>
-										</div>
-										<div id="candidatesCheckedPerSec" class="subsection">
-											<div class="title">Candidates checked per second</div>
-											<div class="body">
-												plop
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-						<div id="algorithmParametersChange" class="section hidden">
-							<div id="minSupportChangeSliderArea">
-								<p>minSupport</p>
-								<div id="minSupportChangeSlider">
-
-								</div>
-							</div>
-							<div id="gapChangeSliderArea">
-								<p>gap</p>
-								<div id="gapChangeSlider">
-
-								</div>
-							</div>
-							<div id="maxDurationChangeSliderArea">
-								<p>maxDuration</p>
-								<div id="maxDurationChangeSlider">
-
-								</div>
-							</div>
-							<div id="maxSizeChangeSliderArea">
-								<p>maxSize</p>
-								<div id="maxSizeChangeSlider">
-
-								</div>
 							</div>
 						</div>
 						<div id="actionConfirmation" class="section hidden">
