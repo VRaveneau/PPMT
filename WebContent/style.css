@@ -739,7 +739,7 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	height: 100%;
 	margin: 0px;
 	padding: 0px;
-	background-color: #e4e7ec;
+	background-color: #96989a;
 	display: flex;
 	flex-direction: column;
 }
