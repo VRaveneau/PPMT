@@ -78,17 +78,22 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 }
 
 #patternListArea {
-	display: flex;
-	flex-direction: column;
-	
-	flex: 1;
+	display: grid;
+	grid-template-columns: 1fr;
+	grid-template-rows:
+		[filters-start] min-content 
+		[filters-end patternList-start] 1fr [patternList-end];
+}
+
+#selectedPatternTable {
+	border-collapse: collapse;
 }
 
 #patternTable {
 	border-collapse: collapse;
 }
 
-#selectedPatternTableBody {
+.selectedPattern {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
 	  This may be a MacOS exclusive issue.
@@ -96,8 +101,28 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	-webkit-font-smoothing: antialiased;
 }
 
-#patternTableBody {
-	font-weight: normal;
+.contextActions {
+	position: absolute;
+	visibility: hidden;
+	right: 2px;
+	overflow: hidden;
+}
+
+tr:hover > .contextActions {
+	visibility: visible;
+}
+
+.contextActions button {
+	width: 20px;
+	height: 20px;
+	margin: 0px 0px 0px 2px;
+	padding: 0px;
+	border: 0px;
+}
+
+tbody > tr:hover {
+	background-color: rgb(124, 124, 124);
+	color: white;
 }
 
 .section {
@@ -130,7 +155,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	/*width: 100%;*/
 }
 
-.subsection + .subsection {
+#center .subsection + .subsection {
 	margin-top: 40px;
 }
 
@@ -173,6 +198,8 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	
 	overflow: auto;
 	grid-area: body;
+
+	position: relative;
 }
 
 .subsection > .title {
@@ -581,6 +608,70 @@ body {
 /*								*/
 /********************************/
 
+.icon-remove {
+	background: url("./img/icons.png") 0px 0px;
+	/*background-position: */
+	background-size: 300%;
+}
+
+.icon-remove:hover {
+	background: url("./img/icons.png") -20px 0px;
+	background-size: 300%;
+}
+
+.icon-remove:active {
+	background: url("./img/icons.png") -40px 0px;
+	background-size: 300%;
+}
+
+.icon-toEventType {
+	background: url("./img/icons.png") 0px -60px;
+	/*background-position: */
+	background-size: 300%;
+}
+
+.icon-toEventType:hover {
+	background: url("./img/icons.png") -20px -60px;
+	background-size: 300%;
+}
+
+.icon-toEventType:active {
+	background: url("./img/icons.png") -40px -60px;
+	background-size: 300%;
+}
+
+.icon-steering {
+	background: url("./img/icons.png") 0px -20px;
+	/*background-position: */
+	background-size: 300%;
+}
+
+.icon-steering:hover {
+	background: url("./img/icons.png") -20px -20px;
+	background-size: 300%;
+}
+
+.icon-steering:active {
+	background: url("./img/icons.png") -40px -20px;
+	background-size: 300%;
+}
+
+.icon-selectUsers {
+	background: url("./img/icons.png") 0px -40px;
+	/*background-position: */
+	background-size: 300%;
+}
+
+.icon-selectUsers:hover {
+	background: url("./img/icons.png") -20px -40px;
+	background-size: 300%;
+}
+
+.icon-selectUsers:active {
+	background: url("./img/icons.png") -40px -40px;
+	background-size: 300%;
+}
+
 thead {
 	background-color: white;
 	position: -webkit-sticky;
@@ -648,7 +739,7 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	height: 100%;
 	margin: 0px;
 	padding: 0px;
-	background-color: #e4e7ec;
+	background-color: #96989a;
 	display: flex;
 	flex-direction: column;
 }
@@ -675,8 +766,20 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 #tool {
 	display: grid;
 	grid-gap: 5px;
-	grid-template-columns: [main-start] 23% [center-start] 1fr [center-end] 23% [main-end];
-	grid-template-rows: [main-top] 30px [center-top] minmax(min-content, 20%) [algorithm-bottom] 1fr [main-bottom] 0px [gutter-bottom];
+	grid-template-columns:
+		[main-start] 23% [center-start] 1fr [center-end] 23% [main-end];
+	grid-template-rows:
+		[main-top]
+		30px
+		[center-top]
+		minmax(min-content, 20%)
+		[algorithm-bottom selectedPatterns-start]
+		min-content
+		[selectedPatterns-end]
+		1fr
+		[main-bottom]
+		0px
+		[gutter-bottom];
 	
 	flex: 1;
 	
@@ -781,13 +884,17 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 		"showMore showMore";
 }
 
-#algorithmInfo .body:hover {
+#algorithmInfo .title span:hover {
+	font-style: italic;
+}
+
+#algorithmInfo:hover {
 	background-color: lightgray;
 }
 
 #patternArea {
 	grid-column: center-end / main-end;
-	grid-row: algorithm-bottom / gutter-bottom;
+	grid-row: selectedPatterns-end / gutter-bottom;
 	
 	/*flex: 1;
 	
@@ -828,6 +935,40 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	text-align: center;
+	overflow: visible;
+}
+
+#top .body > div {
+	position: relative;
+}
+
+.detailedHighlight {
+	position: absolute;
+	visibility: hidden;
+	top: 100%;
+	z-index: 10;
+
+	border: 1px solid black;
+	border-radius: 5px;
+	width: 100%;
+
+	background-color: white;
+}
+
+.detailedHighlight:hover {
+	visibility: visible;
+}
+
+#userHighlight:hover > .detailedHighlight {
+	visibility: visible;
+}
+
+#eventTypeHighlight:hover > .detailedHighlight {
+	visibility: visible;
+}
+
+#patternHighlight:hover > .detailedHighlight {
+	visibility: visible;
 }
 
 /************************************/
@@ -897,6 +1038,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 table {
 	width: 100%;
+	position: relative;
+}
+
+.searchBarArea {
+	grid-area: searchField;
+	margin: 0px 20px;
 }
 
 .searchBarArea input.searchButton {
@@ -996,10 +1143,18 @@ table {
 	background-color: white;
 }
 
+#selectedPatternsArea {
+	grid-row: selectedPatterns-start / selectedPatterns-end;
+	grid-column: center-end / main-end;
+}
+
 #List {
-	overflow: auto;
-	flex: 1;
+	grid-row: patternList-start / patternList-end;
 	/*max-height: 90%;*/
+}
+
+#List body {
+	overflow: auto;
 }
 
 #Metrics {
@@ -1009,11 +1164,19 @@ table {
 }
 
 #Algorithm {
+	grid-row: filters-start / filters-end;
+}
+
+#Algorithm .body {
 	overflow: auto;
-	grid-template-rows: repeat(2, minmax(min-content, 1fr));
+	display: grid;
+	grid-template-columns: min-content 1fr min-content;
+	grid-template-rows: repeat(3, minmax(min-content, 1fr));
 	grid-template-areas: 
-		"slider-support"
-		"slider-size";
+		". slider-support ."
+		". slider-size ."
+		". searchField .";
+	align-items: center;
 }
 
 #Execution {
@@ -1063,23 +1226,6 @@ table {
 	font-weight: normal;
 }
 
-.contextActions {
-	flex-direction: row;
-	position: absolute;
-	justify-content: flex-end;
-	pointer-events: none;
-	border: 1px solid black;
-	border-radius: 3px;
-}
-
-.contextActions:not(.hidden) {
-	display: flex;
-}
-
-.contextActions button {
-	pointer-events: all;
-}
-
 /********************************/
 /*		pattern sizes graph		*/
 /********************************/
@@ -1105,6 +1251,22 @@ table {
 
 #patternSizesSvg .axis--x.axis path {
   display: none;
+}
+
+/****************************************************/
+/*	Pattern sizes in the algorithm extended view	*/
+/****************************************************/
+
+#patternSizeTableContent svg {
+	float: right;
+}
+
+#patternSizeTableContent tr .bar {
+	fill: rgb(119, 119, 119);
+}
+
+#patternSizeTableContent tr:hover .bar {
+	fill: lightgrey;
 }
 
 /********************************/
@@ -1198,25 +1360,29 @@ table {
 	grid-column: modal-left / modal-right;
     display: grid;
 	grid-template-columns:
+		[currentParameters-start] 1fr
+		[currentParameters-end total-start] 1fr
+		[total-end speed-start] max-content
+		[speed-end changeParameters-start] 2fr
+		[changeParameters-end];
+	grid-template-rows: 
+		[main-top] min-content
+		[table-top] 1fr
+		[table-bottom main-bottom];
+/*
 		[patternSizeTable-start] 6fr
 		[patternSizeTable-end patternSizeChart-start] 2fr
-		[patternSizeChart-end sidebar-start] 2fr [sidebar-end];
-}
-
-#algorithmExtendedSidePanel {
-	grid-area: sidebar;
-	display: flex;
-	flex-direction: column;
-	/*flex-grow: 2;*/
-	justify-content: flex-start;
+		[patternSizeChart-end sidebar-start] 2fr [sidebar-end];*/
 }
 
 #patternSizeTableArea {
-	grid-area: patternSizeTable;
+	grid-column: currentParameters-start / changeParameters-start;
+	grid-row: table-top / table-bottom;
 }
 
 #extendedPatternSizesChart {
-	grid-area: patternSizeChart;
+	grid-column: speed-start / changeParameters-start;
+	grid-row: table-top / table-bottom;
 }
 
 #patternSizeTable {
@@ -1258,6 +1424,13 @@ table {
 }
 
 #extendedAlgorithmStrategyArea {
+	grid-column: total-start / total-end;
+	grid-row: main-top / table-top;
+}
+
+#extendedAlgorithmParametersArea {
+	grid-column: currentParameters-start / currentParameters-end;
+	grid-row: main-top / table-top:
 }
 
 #extendedAlgorithmParametersArea button {
@@ -1265,6 +1438,13 @@ table {
 }
 
 #algorithmSpeedArea {
+	grid-column: speed-start / speed-end;
+	grid-row: main-top / table-top;
+}
+
+#algorithmSpeedArea .body {
+	display: flex;
+	flex-direction: row;
 }
 
 /********************************/
@@ -1272,13 +1452,30 @@ table {
 /********************************/
 
 #algorithmParametersChange {
-	grid-column: modal-left / modal-right;
+	grid-column: changeParameters-start / changeParameters-end;
+	grid-row: main-top / main-bottom;
 	padding: 0px;
-	flex-direction: row;
 }
 
-#algorithmParametersChange:not(.hidden) {
-	display: flex;
+#algorithmParametersChange .body {
+	display: grid;
+	grid-template-columns: 
+		[main-start] min-content
+		[slider-start] 1fr
+		[main-end];
+	grid-template-rows: 
+		[main-top support-start] max-content
+		[gap-start] max-content
+		[duration-start] max-content
+		[size-start] max-content
+		[validate-start] 50px
+		[main-bottom];
+}
+
+#algorithmParametersChange button {
+	grid-column: main-start / main-end;
+	width: 70%;
+	justify-self: center;
 }
 
 /********************************/
@@ -1364,6 +1561,15 @@ table {
 
 #eventTableBody tr:not(.selectedEventTypeRow) {
 	font-weight: normal;
+}
+
+.eventTypeDescription {
+	color: grey;
+	font-style: italic;
+}
+
+tr:hover .eventTypeDescription {
+	color: white;
 }
 
 /********************************/
@@ -1453,7 +1659,7 @@ table {
 	border-radius: 3px;
 }
 
-.highlightsResetOption span{
+.underlined {
 	text-decoration: underline;
 }
 
@@ -1581,11 +1787,6 @@ table {
 	background: #367ebd;
 }
 
-#sliderSupportArea, #sliderSizeArea {
-	display: grid;
-	grid-template-rows: min-content 1fr;
-}
-
 #sliderSupportArea p {
 	margin: 0px;
 }
@@ -1594,39 +1795,21 @@ table {
 	margin: 0px;
 }
 
-#sliderSupportArea {
+#sliderSupport {
 	grid-area: slider-support;
 }
 
-#sliderGapArea {
-	grid-area: slider-gap;
-}
-
-#sliderWindowArea {
-	grid-area: slider-window;
-}
-
-#sliderSizeArea {
+#sliderSize {
 	grid-area: slider-size;
 }
 
-#sliderSupport, #sliderGap, #sliderWindow, #sliderSize {
+#sliderSupport, #sliderSize {
 	margin: 0px 20px;
 }
 
-
-#sliderGap {
-	width: 100%;
-	height: 75px;
-}
-
-#sliderGap p {
-	margin: 0px;
-}
-	
 .slider {
 	width: 100%;
-	height: 50px;	
+	height: 35px;	
 }
 
 .ticks {

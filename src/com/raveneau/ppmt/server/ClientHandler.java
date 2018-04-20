@@ -285,7 +285,14 @@ public class ClientHandler {
 		if (patternManager == null) {
 			setPatternManager(new PatternManager(this));
 			dataset.addPatternManagerToSession(session, patternManager);
+		} else {
+			algorithmHandler.stopMining();
+			dataset.removePatternManagerFromSession(session);
+			
+			setPatternManager(new PatternManager(this));
+			dataset.addPatternManagerToSession(session, patternManager);
 		}
+		
 		algorithmHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
 	}
 	

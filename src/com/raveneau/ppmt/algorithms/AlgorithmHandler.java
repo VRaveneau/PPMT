@@ -12,7 +12,7 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 	
 	private ClientHandler clientHandler = null;
 	
-	private GspParameters algorithmParameters;
+	private GspParameters algorithmParameters = null;
 	
 	private GspThread algorithm = null;
 	private Thread thread = null;
@@ -40,7 +40,8 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 	}
 	
 	public void stopMining() {
-		algorithmParameters.setTerminationRequested(true);
+		if (algorithmParameters != null)
+			algorithmParameters.setTerminationRequested(true);
 	}
 
 	@Override
