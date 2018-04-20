@@ -231,8 +231,26 @@ var distributionDayThreshold = 60*60*24*7*3; // 3 weeks
 var distributionHalfDayThreshold = 60*60*24*3; // 3 days
 
 /*************************************/
+/*		Algorithm parameters		 */
+/*************************************/
+
+// The minimum support parameter for the algorithm
+var algoMinSupport = 500;
+// The window size parameter for the algorithm
+var algoWindowSize = 60;
+// The maximum size parameter for the algorithm
+var algoMaxSize = 10;
+// The minimum gap parameter for the algorithm
+var algoMinGap = 0;
+// The maximum gap parameter for the algorithm
+var algoMaxGap = 2;
+// The maximum duration parameter for the algorithm
+var algoMaxDuration = 30000;
+
+/*************************************/
 /*			Data elements			 */
 /*************************************/
+
 // Name of the selected dataset
 var currentDatasetName = "";
 
@@ -1699,56 +1717,48 @@ function addToHistory(action) {
  */
 function startInitialMining() {
 	// TODO Stop using hard coded value depending on the dataset
-
-	let defaultMinSupport = "500";
-	let defaultWindowSize = "60";
-	let defaultMaxSize = "10";
-	let defaultMinGap = "0";
-	let defaultMaxGap = "2";
-	let defaultMaxDuration = "30000";
-	let datasetName = currentDatasetName;
 	
 	switch(currentDatasetName) {
 		case "recsysSamplecategory":
-			defaultMinSupport = "10";
-			defaultWindowSize = "60";
-			defaultMaxSize = "20";
-			defaultMinGap = "0";
-			defaultMaxGap = "2";
-			defaultMaxDuration = "30000";
+			algoMinSupport = 10;
+			algoWindowSize = 60;
+			algoMaxSize = 20;
+			algoMinGap = 0;
+			algoMaxGap = 2;
+			algoMaxDuration = 30000;
 			break;
 		case "coconotesPPMT":
-			defaultMinSupport = "150";
-			defaultWindowSize = "60";
-			defaultMaxSize = "20";
-			defaultMinGap = "0";
-			defaultMaxGap = "2";
-			defaultMaxDuration = "30000";
+			algoMinSupport = 150;
+			algoWindowSize = 60;
+			algoMaxSize = 20;
+			algoMinGap = 0;
+			algoMaxGap = 2;
+			algoMaxDuration = 30000;
 			break;
 		case "coconotesPPMTLarge":
-			defaultMinSupport = "100";
-			defaultWindowSize = "60";
-			defaultMaxSize = "20";
-			defaultMinGap = "0";
-			defaultMaxGap = "2";
-			defaultMaxDuration = "30000";
+			algoMinSupport = 100;
+			algoWindowSize = 60;
+			algoMaxSize = 20;
+			algoMinGap = 0;
+			algoMaxGap = 2;
+			algoMaxDuration = 30000;
 			break;
 		default:
 	}
-	requestAlgorithmStart(defaultMinSupport, defaultWindowSize, defaultMaxSize,
-		 defaultMinGap, defaultMaxGap, defaultMaxDuration, datasetName);
+	requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
+		 algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName);
 }
 
 /**
  * Specifies the parameters to be used by the algorithm, displays them and
  * sends the request
- * @param {string} minSupport The minimum absolute support threashold
- * @param {string} windowSize The size of the window
- * @param {string} maxSize The maximum pattern size
- * @param {string} minGap The minimum allowed gap between two events of a pattern
- * @param {string} maxGap The maximum allowed gap between two events of a pattern
- * @param {string} maxDuration The maximum duration of a pattern occurrence
- * @param {string} datasetName The name of the dataset to be used
+ * @param {number} minSupport The minimum absolute support threashold
+ * @param {number} windowSize The size of the window
+ * @param {number} maxSize The maximum pattern size
+ * @param {number} minGap The minimum allowed gap between two events of a pattern
+ * @param {number} maxGap The maximum allowed gap between two events of a pattern
+ * @param {number} maxDuration The maximum duration of a pattern occurrence
+ * @param {number} datasetName The name of the dataset to be used
  */
 function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 								maxDuration, datasetName) {
@@ -1760,12 +1770,12 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	let action = {
 		action: "run",
 		object: "algorithm",
-		minSup: minSupport,
-		windowSize: windowSize,
-		maxSize: maxSize,
-		minGap: minGap,
-		maxGap: maxGap,
-		maxDuration: maxDuration,
+		minSup: minSupport.toString(),
+		windowSize: windowSize.toString(),
+		maxSize: maxSize.toString(),
+		minGap: minGap.toString(),
+		maxGap: maxGap.toString(),
+		maxDuration: maxDuration.toString(),
 		datasetName: datasetName
 	};
 	sendToServer(action);
@@ -1796,16 +1806,33 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	durationModifySlider.updateValues([maxDuration]);
 }
 
-// TODO Store current parameters in global variables and use them instead of startInitialMining()
+/**
+ * Restarts the algorithm with the current parameters
+ */
 function requestAlgorithmReStart() {
-	startInitialMining();
+	updateUserInformations();
+	updateDatasetInfo();
+	resetPatterns();
+	displayDatasetInfo();
+	createUserListDisplay();
+	//createEventTypesListDisplay();
+	timeline.displayData();
+	
+	requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
+		algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName);
 }
 
 /**
- * Updates the parameters used by the algorithm
+ * Updates the parameters used by the algorithm, based on the sliders in the
+ * extended algorithm view
  */
 function changeAlgorithmParameters() {
-	console.log(":P");
+	algoMinSupport = supportModifySlider.getValues()[0];
+	algoMaxSize = sizeModifySlider.getValues()[0];
+	let gapValues = gapModifySlider.getValues();
+	algoMinGap = gapValues[0];
+	algoMaxGap = gapValues[1];
+	algoMaxDuration = durationModifySlider.getValues()[0];
 }
 
 /*************************************/
@@ -1982,13 +2009,6 @@ function processMessage(message/*Compressed*/) {
 		if (msg.type === "userRemoved") {
 			updateDatasetForRemovedUser(msg.removedIds, msg.removedUser);
 		}
-		updateUserInformations();
-		updateDatasetInfo();
-		resetPatterns();
-		displayDatasetInfo();
-		createUserListDisplay();
-		//createEventTypesListDisplay();
-		timeline.displayData();
 		// Restart the mining
 		requestAlgorithmReStart();
 	}
@@ -3706,8 +3726,7 @@ function askConfirmationToChangeAlgorithmParameters() {
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
 			changeAlgorithmParameters();
-			// TODO relaunch the algorithm
-			console.log("!! no restart yet !!")
+			requestAlgorithmReStart();
 			closeModal();
 		});
 	d3.select("#confirmationCancel")
@@ -6603,6 +6622,10 @@ function ModifySlider(elemId, options) {
 			}
 		}
 	};
+
+	self.getValues = function() {
+		return self.handles.map( (h) => h.value ).sort();
+	}
 }
 
 /**
