@@ -1701,9 +1701,10 @@ function setupEventBinDimensions() {
 /**
  * Adds an action to the displayed history
  * @param {string} action - The message to be added to the history
+ * @param {string} details - More information about the action
  */
-function addToHistory(action) {
-	let history = d3.select("#history");
+function addToHistory(action, details="") {
+	let history = d3.select("#historyList");
 	if (historyDisplayIsDefault) {
 		history.text("");
 		historyDisplayIsDefault = false;
@@ -1711,11 +1712,19 @@ function addToHistory(action) {
 	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
 	let formatTime = d3.timeFormat("%H:%M:%S");
 	let now = formatTime(new Date());
-	history.insert("p",":first-child")
-		.text("- "+action)
-	  .append("span")
-		.classed("timestamp", true)
-		.text(" "+now.toString());
+	let item = history.insert("div",":first-child")
+		.classed("historyItem", true);
+	item.append("p")
+		.classed("historyTitle", true)
+		.text(action);
+	if (details.length > 0) {
+		item.append("p")
+			.classed("historyContent", true)
+			.text(details);
+	}
+	item.append("p")
+		.classed("historyTimestamp", true)
+		.text(now.toString());
 }
 
 /*************************************/
@@ -3882,7 +3891,7 @@ function resetDatasetInfo() {
  * TODO check the deprecation
  */
 function resetHistory() {
-	let historyDiv = document.getElementById("history");
+	let historyDiv = document.getElementById("historyList");
 	historyDiv.textContent = "No history to display";
 	
 	historyDisplayIsDefault = true;
