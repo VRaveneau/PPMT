@@ -396,7 +396,7 @@ body {
     color: black;
     background-color: #dddee0;
     padding: 0px 2px 0px 2px;
-    margin: auto;
+    margin: 2px;
     border-radius: 5px;
     box-shadow: none;
     border: 1px solid black;
@@ -953,6 +953,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	width: 100%;
 
 	background-color: white;
+	
+	display: flex;
+    flex-wrap: wrap;
+	justify-content: space-evenly;
+	overflow: auto;
+	max-height: 40vh;
 }
 
 .detailedHighlight:hover {
