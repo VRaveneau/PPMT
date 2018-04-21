@@ -430,6 +430,7 @@ var lastUserSort = "nbEvents_down";
 
 // Sort order for the list of event types. Expected value is one of the following :
 // support_down - support_up
+// nbUsers_down - nbUsers_up
 // name_down - name_up
 // category_down - category_up
 var lastEventTypeSort = "support_down";
@@ -2483,8 +2484,7 @@ function receiveEventTypes(message) {
 		};
 	});
 	
-	sortEventTypesBySupport(true);
-	
+	sortEventTypes();
 	createEventTypesListDisplay();
 }
 
@@ -3434,6 +3434,30 @@ function sortPatternsBySupport(decreasing=false) {
 		lastPatternSort = "support_down";
 	} else {
 		lastPatternSort = "support_up";
+	}
+}
+
+/**
+ * Sorts the event types list according to the current sort order
+ */
+function sortEventTypes() {
+	let [target, direction] = lastEventTypeSort.split("_");
+
+	switch(target) {
+		case "name":
+			sortEventTypesByName(direction == "down");
+			break;
+		case "support":
+			sortEventTypesBySupport(direction == "down");
+			break;
+		case "nbUsers":
+			sortEventTypesByNbUsers(direction == "down");
+			break;
+		case "category":
+			sortEventTypesByCategory(direction == "down");
+			break;
+		default:
+			console.warn("Trying to sort event types in an unknown current order : "+lastEventTypeSort);
 	}
 }
 
