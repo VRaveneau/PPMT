@@ -384,6 +384,19 @@ body {
 	cursor: pointer;
 }
 
+.clickableText {
+	text-decoration: underline;
+}
+
+.clickableText:hover {
+	font-style: italic;
+}
+
+.smallText {
+	font-size: 90%;
+	font-weight: normal;
+}
+
 .bold {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
@@ -899,10 +912,6 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	grid-template-areas:
 		"parameters graph"
 		"showMore showMore";
-}
-
-#algorithmInfo .title span:hover {
-	font-style: italic;
 }
 
 #algorithmInfo:hover {
@@ -1680,6 +1689,7 @@ tr:hover .eventTypeDescription {
 	font-weight: bold;
 	border: 1px solid black;
 	border-radius: 3px;
+	text-decoration: none;
 }
 
 .underlined {

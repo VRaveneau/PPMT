@@ -1180,7 +1180,9 @@ function setupTool() {
 	setupUserSearchField();
 	
 	d3.select("#showPatternTextInput")
-		.on("click", stopEventPropagation);
+		.on("click", switchShowPatternText);
+	d3.select("#showEventTypeDescriptionInput")
+		.on("click", switchShowEventTypeDescription);
 
 	// Setup the input for the number of users to display
 	d3.select("#showAllUserSessionsInput")
@@ -3944,14 +3946,19 @@ function openAlgorithmTab(evt, tabName) {
  * Shows or hides the description of event types
  */
 function switchShowEventTypeDescription() {
+	d3.event.stopPropagation();
 	if (showEventTypeDescription == true) {
 		showEventTypeDescription = false;
 		d3.selectAll(".eventTypeDescription")
 			.style("display", "none");
+		document.getElementById("showEventTypeDescriptionInput")
+			.textContent = "Show description";
 	} else {
 		showEventTypeDescription = true;
 		d3.selectAll(".eventTypeDescription")
 			.style("display", "initial");
+		document.getElementById("showEventTypeDescriptionInput")
+			.textContent = "Hide description";
 	}
 }
 
@@ -3959,14 +3966,19 @@ function switchShowEventTypeDescription() {
  * Shows or hides the name of event types inside a pattern, besides their symbol
  */
 function switchShowPatternText() {
+	d3.event.stopPropagation();
 	if (showPatternText == true) {
 		showPatternText = false;
 		d3.selectAll(".patternText")
 			.style("display", "none");
+		document.getElementById("showPatternTextInput")
+			.textContent = "Show text";
 	} else {
 		showPatternText = true;
 		d3.selectAll(".patternText")
 			.style("display", "initial");
+		document.getElementById("showPatternTextInput")
+			.textContent = "Hide text";
 	}
 }
 
