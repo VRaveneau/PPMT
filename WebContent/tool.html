@@ -76,10 +76,10 @@
 							<table id="eventTable">
 								<thead>
 									<tr class="clickable">
-										<th onclick="clickOnEventTypeNameHeader()" value="name">Event&nbsp;type&nbsp;<span class="sortIndicator"></span></th>
-										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeSupportHeader()" value="support">Support&nbsp;<span class="sortIndicator">↑</span></th>
-										<th onclick="clickOnEventTypeNbUsersHeader()" value="nbUsers">Nb&nbsp;users&nbsp;<span class="sortIndicator"></span></th>
-										<th onclick="clickOnEventTypeCategoryHeader()" value="category">Category&nbsp;<span class="sortIndicator"></span></th>
+										<th onclick="clickOnEventTypeNameHeader()" value="name">Event&nbsp;type<span class="sortIndicator"></span></th>
+										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeSupportHeader()" value="support">Support<span class="sortIndicator"></span></th>
+										<th onclick="clickOnEventTypeNbUsersHeader()" value="nbUsers">Nb&nbsp;users<span class="sortIndicator"></span></th>
+										<th onclick="clickOnEventTypeCategoryHeader()" value="category">Category<span class="sortIndicator"></span></th>
 									</tr>
 								</thead>
 								<tbody id="eventTableBody">
@@ -104,12 +104,12 @@
 								<table id="userTable">
 									<thead>
 										<tr class="clickable">
-											<th onclick="clickOnUserNameHeader()" value="name">User&nbsp;<span class="sortIndicator"></span></th>
-											<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()" value="nbEvents">Nb&nbsp;events&nbsp;<span class="sortIndicator">↑</span></th>
-											<th onclick="clickOnUserDurationHeader()" value="duration">Duration&nbsp;<span class="sortIndicator"></span></th>
-											<th onclick="clickOnUserNbSessionsHeader()" value="nbSessions">Nb&nbsp;sessions&nbsp;<span class="sortIndicator"></span></th>
-											<th onclick="clickOnUserStartHeader()" value="start">Start&nbsp;<span class="sortIndicator"></span></th>
-											<th onclick="clickOnUserEndHeader()" value="end">End&nbsp;<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserNameHeader()" value="name">User<span class="sortIndicator"></span></th>
+											<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()" value="nbEvents">Nb&nbsp;events<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserDurationHeader()" value="duration">Duration<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserNbSessionsHeader()" value="nbSessions">Nb&nbsp;sessions<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserStartHeader()" value="start">Start<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserEndHeader()" value="end">End<span class="sortIndicator"></span></th>
 										</tr>
 									</thead>
 									<tbody id="userTableBody">
@@ -297,10 +297,10 @@
 						<table id="selectedPatternTable">
 							<thead>
 								<tr class="clickable">
-									<th onclick="clickOnSelectedPatternNameHeader()" value="name">Name&nbsp;<span class="sortIndicator"></span></th>
-									<th onclick="clickOnSelectedPatternSupportHeader()" value="support">Support&nbsp;<span class="sortIndicator"></span></th>
-									<th onclick="clickOnSelectedPatternNbUsersHeader()" value="nbUsers">Nb&nbsp;users&nbsp;<span class="sortIndicator"></span></th>
-									<th onclick="clickOnSelectedPatternSizeHeader()" value="size">Size&nbsp;<span class="sortIndicator">↓</span></th>
+									<th onclick="clickOnSelectedPatternNameHeader()" value="name">Name<span class="sortIndicator"></span></th>
+									<th onclick="clickOnSelectedPatternSupportHeader()" value="support">Support<span class="sortIndicator"></span></th>
+									<th onclick="clickOnSelectedPatternNbUsersHeader()" value="nbUsers">Nb&nbsp;users<span class="sortIndicator"></span></th>
+									<th onclick="clickOnSelectedPatternSizeHeader()" value="size">Size<span class="sortIndicator"></span></th>
 								</tr>
 							</thead>
 							<tbody id="selectedPatternTableBody">
@@ -341,10 +341,10 @@
 								<table id="patternTable">
 									<thead>
 										<tr class="clickable">
-											<th onclick="clickOnPatternNameHeader()" value="name">Name&nbsp;<span class="sortIndicator"></span> (Show text: <input type="checkbox" class="clickable" id="showPatternTextInput" checked onchange="switchShowPatternText();">)</th>
-											<th onclick="clickOnPatternSupportHeader()" value="support">Support&nbsp;<span class="sortIndicator"></span></th>
-											<th onclick="clickOnPatternNbUsersHeader()" value="nbUsers">Nb&nbsp;users&nbsp;<span class="sortIndicator"></span></th>
-											<th onclick="clickOnPatternSizeHeader()" value="size">Size&nbsp;<span class="sortIndicator">↓</span></th>
+											<th onclick="clickOnPatternNameHeader()" value="name">Name<span class="sortIndicator"></span> (Show text: <input type="checkbox" class="clickable" id="showPatternTextInput" checked onchange="switchShowPatternText();">)</th>
+											<th onclick="clickOnPatternSupportHeader()" value="support">Support<span class="sortIndicator"></span></th>
+											<th onclick="clickOnPatternNbUsersHeader()" value="nbUsers">Nb&nbsp;users<span class="sortIndicator"></span></th>
+											<th onclick="clickOnPatternSizeHeader()" value="size">Size<span class="sortIndicator"></span></th>
 										</tr>
 									</thead>
 									<tbody id="patternTableBody">
@@ -469,6 +469,16 @@
 				</div>
 			</div>
 		</div>
+
+		<template id="sortIndicator">
+			<svg height="16" width="15">
+				<polygon class="upIndicator" points="7,0 14,7 0,7" />
+				<polygon class="downIndicator" points="0,8 14,8 7,15" />
+				<!--<polygon class="upIndicator" points="10,2 17,9 3,9" />
+				<polygon class="downIndicator" points="3,11 17,11 10,18" />-->
+			</svg>
+		</template>
+
 	    <script src="config.js" type="text/javascript" charset="utf-8"></script>
 		<script src="ServerInterface.js" type="text/javascript" charset="utf-8"></script>
 		<script src="jscolor/jscolor.js" type="text/javascript"></script> <!-- http://jscolor.com -->

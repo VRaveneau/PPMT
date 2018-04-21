@@ -392,6 +392,23 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
+.sortIndicator svg {
+	vertical-align: middle;
+}
+
+.sortIndicator polygon {
+	fill:lightgrey;
+	stroke-width:0;
+}
+
+.sortedUp .upIndicator {
+	fill: #006992;
+}
+
+.sortedDown .downIndicator {
+	fill: #006992;
+}
+
 .highlightButton {
     color: black;
     background-color: #dddee0;

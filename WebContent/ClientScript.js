@@ -426,26 +426,26 @@ var userInputIsDisabled = false;
 // nbSessions_down - nbSessions_up
 // start_down - start_up
 // end_down - end_up
-var lastUserSort = "";
+var lastUserSort = "nbEvents_down";
 
 // Sort order for the list of event types. Expected value is one of the following :
-// supportDown - supportUp
-// nameDown - nameUp
-// categoryDown - categoryUp
-var lastEventTypeSort = "";
+// support_down - support_up
+// name_down - name_up
+// category_down - category_up
+var lastEventTypeSort = "support_down";
 
 // Sort order for the list of patterns. Expected value is one of the following :
-// sizeDown - sizeUp
-// supportDown - supportUp
-// nameDown - nameUp
-// nbUsersDown - nbUsersUp
-var lastPatternSort = "sizeUp";
+// size_down - size_up
+// support_down - support_up
+// name_down - name_up
+// nbUsers_down - nbUsers_up
+var lastPatternSort = "size_up";
 // Sort order for the list of selected patterns. Expected value is one of the following :
-// sizeDown - sizeUp
-// supportDown - supportUp
-// nameDown - nameUp
-// nbUsersDown - nbUsersUp
-var lastSelectedPatternSort = "sizeUp";
+// size_down - size_up
+// support_down - support_up
+// name_down - name_up
+// nbUsers_down - nbUsers_up
+var lastSelectedPatternSort = "size_up";
 
 // The current display mode for the session view. Value is one of the following:
 // all - selected - some
@@ -953,35 +953,35 @@ function getEventColor(eventType) {
  */
 function findNewPatternIndex(patternInfos) {
 	switch(lastPatternSort) {
-	case "nameDown":
+	case "name_down":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][0] < patternInfos[0];
 		});
-	case "nameUp":
+	case "name_up":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][0] > patternInfos[0];
 		});
-	case "sizeDown":
+	case "size_down":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][1] < patternInfos[1];
 		});
-	case "sizeUp":
+	case "size_up":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][1] > patternInfos[1];
 		});
-	case "nbUsersDown":
+	case "nbUsers_down":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][4].length < patternInfos[4].length;
 		});
-	case "nbUsersUp":
+	case "nbUsers_up":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][4].length > patternInfos[4].length;
 		});
-	case "supportDown":
+	case "support_down":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][2] < patternInfos[2];
 		});
-	case "supportUp":
+	case "support_up":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][2] > patternInfos[2];
 		});
@@ -1153,9 +1153,28 @@ function createServer() {
 }
 
 /**
+ * Creates the sort indicators for the tables
+ */
+function setupTableSortIndicators() {
+	let template = document.getElementById("sortIndicator");
+	let headers = document.getElementsByClassName("sortIndicator");
+
+	for (let i = 0; i < headers.length; i++) {
+		let clone = document.importNode(template.content, true);
+		headers[i].appendChild(clone);
+	}
+
+	updateEventTypeTableHead();
+	updateUserTableHead();
+	updateSelectedPatternTableHead();
+	updatePatternTableHead();
+}
+
+/**
  * Initializes the tool once a dataset has been selected
  */
 function setupTool() {
+	setupTableSortIndicators();
 	setupModalWindows();
 	setupAlgorithmSearchField();
 	setupUserSearchField();
@@ -3255,9 +3274,9 @@ function sortSelectedPatternsByName(decreasing=false) {
 	
 	if (decreasing == true) {
 		selectedPatternIds.reverse();
-		lastSelectedPatternSort = "nameDown";
+		lastSelectedPatternSort = "name_down";
 	} else {
-		lastSelectedPatternSort = "nameUp";
+		lastSelectedPatternSort = "name_up";
 	}
 }
 
@@ -3280,9 +3299,9 @@ function sortSelectedPatternsByNbUsers(decreasing=false) {
 	
 	if (decreasing == true) {
 		selectedPatternIds.reverse();
-		lastSelectedPatternSort = "nbUsersDown";
+		lastSelectedPatternSort = "nbUsers_down";
 	} else {
-		lastSelectedPatternSort = "nbUsersUp";
+		lastSelectedPatternSort = "nbUsers_up";
 	}
 }
 
@@ -3300,9 +3319,9 @@ function sortSelectedPatternsBySize(decreasing=false) {
 	
 	if (decreasing == true) {
 		selectedPatternIds.reverse();
-		lastSelectedPatternSort = "sizeDown";
+		lastSelectedPatternSort = "size_down";
 	} else {
-		lastSelectedPatternSort = "sizeUp";
+		lastSelectedPatternSort = "size_up";
 	}
 }
 
@@ -3320,9 +3339,9 @@ function sortSelectedPatternsBySupport(decreasing=false) {
 	
 	if (decreasing == true) {
 		selectedPatternIds.reverse();
-		lastSelectedPatternSort = "supportDown";
+		lastSelectedPatternSort = "support_down";
 	} else {
-		lastSelectedPatternSort = "supportUp";
+		lastSelectedPatternSort = "support_up";
 	}
 }
 
@@ -3345,9 +3364,9 @@ function sortPatternsByName(decreasing=false) {
 	
 	if (decreasing == true) {
 		patternIdList.reverse();
-		lastPatternSort = "nameDown";
+		lastPatternSort = "name_down";
 	} else {
-		lastPatternSort = "nameUp";
+		lastPatternSort = "name_up";
 	}
 }
 
@@ -3370,9 +3389,9 @@ function sortPatternsByNbUsers(decreasing=false) {
 	
 	if (decreasing == true) {
 		patternIdList.reverse();
-		lastPatternSort = "nbUsersDown";
+		lastPatternSort = "nbUsers_down";
 	} else {
-		lastPatternSort = "nbUsersUp";
+		lastPatternSort = "nbUsers_up";
 	}
 }
 
@@ -3390,9 +3409,9 @@ function sortPatternsBySize(decreasing=false) {
 	
 	if (decreasing == true) {
 		patternIdList.reverse();
-		lastPatternSort = "sizeDown";
+		lastPatternSort = "size_down";
 	} else {
-		lastPatternSort = "sizeUp";
+		lastPatternSort = "size_up";
 	}
 }
 
@@ -3410,9 +3429,9 @@ function sortPatternsBySupport(decreasing=false) {
 	
 	if (decreasing == true) {
 		patternIdList.reverse();
-		lastPatternSort = "supportDown";
+		lastPatternSort = "support_down";
 	} else {
-		lastPatternSort = "supportUp";
+		lastPatternSort = "support_up";
 	}
 }
 
@@ -3425,9 +3444,9 @@ function sortEventTypesByName(decreasing=false) {
 	
 	if (decreasing == true) {
 		eventTypes.reverse();
-		lastEventTypeSort = "nameDown";
+		lastEventTypeSort = "name_down";
 	} else {
-		lastEventTypeSort = "nameUp";
+		lastEventTypeSort = "name_up";
 	}
 }
 
@@ -3442,9 +3461,9 @@ function sortEventTypesBySupport(decreasing=false) {
 	
 	if (decreasing == true) {
 		eventTypes.reverse();
-		lastEventTypeSort = "supportDown";
+		lastEventTypeSort = "support_down";
 	} else {
-		lastEventTypeSort = "supportUp";
+		lastEventTypeSort = "support_up";
 	}
 }
 
@@ -3459,9 +3478,9 @@ function sortEventTypesByNbUsers(decreasing=false) {
 	
 	if (decreasing == true) {
 		eventTypes.reverse();
-		lastEventTypeSort = "nbUsersDown";
+		lastEventTypeSort = "nbUsers_down";
 	} else {
-		lastEventTypeSort = "nbUsersUp";
+		lastEventTypeSort = "nbUsers_up";
 	}
 }
 
@@ -3479,9 +3498,9 @@ function sortEventTypesByCategory(decreasing=false) {
 	
 	if (decreasing == true) {
 		eventTypes.reverse();
-		lastEventTypeSort = "categoryDown";
+		lastEventTypeSort = "category_down";
 	} else {
-		lastEventTypeSort = "categoryUp";
+		lastEventTypeSort = "category_up";
 	}
 }
 
@@ -3955,65 +3974,14 @@ function switchShowPatternText() {
  * Updates the headline of the table of users for the current sort
  */
 function updateUserTableHead() {
-	let nameTxt = "";
-	let nbEventsTxt = "";
-	let durationTxt = "";
-	let nbSessionsTxt = "";
-	let startTxt = "";
-	let endTxt = "";
+	document.querySelectorAll("#userTable th .sortIndicator").forEach( (node) => {
+		node.className = "sortIndicator";
+	});
 
-	switch(lastUserSort) {
-		case "name_down":
-			nameTxt = "↑";
-			break;
-		case "name_up":
-			nameTxt = "↓";
-			break;
-		case "nbEvents_down":
-			nbEventsTxt = "↑";
-			break;
-		case "nbEvents_up":
-			nbEventsTxt = "↓";
-			break;
-		case "duration_down":
-			durationTxt = "↑";
-			break;
-		case "duration_up":
-			durationTxt = "↓";
-			break;
-		case "nbSessions_down":
-			nbSessionsTxt = "↑";
-			break;
-		case "nbSessions_up":
-			nbSessionsTxt = "↓";
-			break;
-		case "start_down":
-			startTxt = "↑";
-			break;
-		case "start_up":
-			startTxt = "↓";
-			break;
-		case "end_down":
-			endTxt = "↑";
-			break;
-		case "end_up":
-			endTxt = "↓";
-			break;
-		default:
-	}
+	let [value, direction] = lastUserSort.split("_");
 
-	d3.select("#userTable th[value='name'] .sortIndicator")
-		.text(nameTxt);
-	d3.select("#userTable th[value='nbEvents'] .sortIndicator")
-		.text(nbEventsTxt);
-	d3.select("#userTable th[value='duration'] .sortIndicator")
-		.text(durationTxt);
-	d3.select("#userTable th[value='nbSessions'] .sortIndicator")
-		.text(nbSessionsTxt);
-	d3.select("#userTable th[value='start'] .sortIndicator")
-		.text(startTxt);
-	d3.select("#userTable th[value='end'] .sortIndicator")
-		.text(endTxt);
+	document.querySelector(`#userTable th[value='${value}'] .sortIndicator`)
+				.className += ` sorted${_.capitalize(direction)}`;
 }
 
 /**
@@ -4080,54 +4048,21 @@ function clickOnUserEndHeader() {
  * Updates the headline of the table of event types for the current sort
  */
 function updateEventTypeTableHead() {
-	let nameTxt = "";
-	let supportTxt = "";
-	let nbUsersTxt = "";
-	let categoryTxt = "";
+	document.querySelectorAll("#eventTable th .sortIndicator").forEach( (node) => {
+		node.className = "sortIndicator";
+	});
 
-	switch(lastEventTypeSort) {
-		case "nameDown":
-			nameTxt = "↑";
-			break;
-		case "nameUp":
-			nameTxt = "↓";
-			break;
-		case "supportDown":
-			supportTxt = "↑";
-			break;
-		case "supportUp":
-			supportTxt = "↓";
-			break;
-		case "nbUsersDown":
-			nbUsersTxt = "↑";
-			break;
-		case "nbUsersUp":
-			nbUsersTxt = "↓";
-			break;
-		case "categoryDown":
-			categoryTxt = "↑";
-			break;
-		case "categoryUp":
-			categoryTxt = "↓";
-			break;
-		default:
-	}
-
-	d3.select("#eventTable th[value='name'] .sortIndicator")
-		.text(nameTxt);
-	d3.select("#eventTable th[value='support'] .sortIndicator")
-		.text(supportTxt);
-	d3.select("#eventTable th[value='nbUsers'] .sortIndicator")
-		.text(nbUsersTxt);
-	d3.select("#eventTable th[value='category'] .sortIndicator")
-		.text(categoryTxt);
+	let [value, direction] = lastEventTypeSort.split("_");
+	
+	document.querySelector(`#eventTable th[value='${value}'] .sortIndicator`)
+		.className += ` sorted${_.capitalize(direction)}`;
 }
 
 /**
  * Handles a click on the 'name' header in the event types list
  */
 function clickOnEventTypeNameHeader() {
-	sortEventTypesByName(!(lastEventTypeSort == "nameDown"));
+	sortEventTypesByName(!(lastEventTypeSort == "name_down"));
 	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
@@ -4138,7 +4073,7 @@ function clickOnEventTypeNameHeader() {
  * Handles a click on the 'support' header in the event types list
  */
 function clickOnEventTypeSupportHeader() {
-	sortEventTypesBySupport(!(lastEventTypeSort == "supportDown"));
+	sortEventTypesBySupport(!(lastEventTypeSort == "support_down"));
 	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
@@ -4149,7 +4084,7 @@ function clickOnEventTypeSupportHeader() {
  * Handles a click on the 'nbUsers' header in the event types list
  */
 function clickOnEventTypeNbUsersHeader() {
-	sortEventTypesByNbUsers(!(lastEventTypeSort == "nbUsersDown"));
+	sortEventTypesByNbUsers(!(lastEventTypeSort == "nbUsers_down"));
 	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
@@ -4160,7 +4095,7 @@ function clickOnEventTypeNbUsersHeader() {
  * Handles a click on the 'category' header in the event types list
  */
 function clickOnEventTypeCategoryHeader() {
-	sortEventTypesByCategory(!(lastEventTypeSort == "categoryDown"));
+	sortEventTypesByCategory(!(lastEventTypeSort == "category_down"));
 	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
@@ -4171,54 +4106,21 @@ function clickOnEventTypeCategoryHeader() {
  * Updates the headline of the table of selected patterns for the current sort
  */
 function updateSelectedPatternTableHead() {
-	let nameTxt = "";
-	let supportTxt = "";
-	let nbUsersTxt = "";
-	let sizeTxt = "";
+	document.querySelectorAll("#selectedPatternTable th .sortIndicator").forEach( (node) => {
+		node.className = "sortIndicator";
+	});
 
-	switch(lastSelectedPatternSort) {
-		case "nameDown":
-			nameTxt = "↑";
-			break;
-		case "nameUp":
-			nameTxt = "↓";
-			break;
-		case "supportDown":
-			supportTxt = "↑";
-			break;
-		case "supportUp":
-			supportTxt = "↓";
-			break;
-		case "nbUsersDown":
-			nbUsersTxt = "↑";
-			break;
-		case "nbUsersUp":
-			nbUsersTxt = "↓";
-			break;
-		case "sizeDown":
-			sizeTxt = "↑";
-			break;
-		case "sizeUp":
-			sizeTxt = "↓";
-			break;
-		default:
-	}
+	let [value, direction] = lastSelectedPatternSort.split("_");
 
-	d3.select("#selectedPatternTable th[value='name'] .sortIndicator")
-		.text(nameTxt);
-	d3.select("#selectedPatternTable th[value='support'] .sortIndicator")
-		.text(supportTxt);
-	d3.select("#selectedPatternTable th[value='nbUsers'] .sortIndicator")
-		.text(nbUsersTxt);
-	d3.select("#selectedPatternTable th[value='size'] .sortIndicator")
-		.text(sizeTxt);
+	document.querySelector(`#selectedPatternTable th[value='${value}'] .sortIndicator`)
+				.className += ` sorted${_.capitalize(direction)}`;
 }
 
 /**
  * Handles a click on the 'name' header in the selected pattern list
  */
 function clickOnSelectedPatternNameHeader() {
-	sortSelectedPatternsByName(!(lastSelectedPatternSort == "nameDown"));
+	sortSelectedPatternsByName(!(lastSelectedPatternSort == "name_down"));
 	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
@@ -4227,7 +4129,7 @@ function clickOnSelectedPatternNameHeader() {
  * Handles a click on the 'size' header in the selected pattern list
  */
 function clickOnSelectedPatternSizeHeader() {
-	sortSelectedPatternsBySize(!(lastSelectedPatternSort == "sizeDown"));
+	sortSelectedPatternsBySize(!(lastSelectedPatternSort == "size_down"));
 	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
@@ -4236,7 +4138,7 @@ function clickOnSelectedPatternSizeHeader() {
  * Handles a click on the 'nb users' header in the selected pattern list
  */
 function clickOnSelectedPatternNbUsersHeader() {
-	sortSelectedPatternsByNbUsers(!(lastSelectedPatternSort == "nbUsersDown"));
+	sortSelectedPatternsByNbUsers(!(lastSelectedPatternSort == "nbUsers_down"));
 	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
@@ -4245,7 +4147,7 @@ function clickOnSelectedPatternNbUsersHeader() {
  * Handles a click on the 'support' header in the selected pattern list
  */
 function clickOnSelectedPatternSupportHeader() {
-	sortSelectedPatternsBySupport(!(lastSelectedPatternSort == "supportDown"));
+	sortSelectedPatternsBySupport(!(lastSelectedPatternSort == "support_down"));
 	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
@@ -4254,54 +4156,21 @@ function clickOnSelectedPatternSupportHeader() {
  * Updates the headline of the table of patterns for the current sort
  */
 function updatePatternTableHead() {
-	let nameTxt = "";
-	let supportTxt = "";
-	let nbUsersTxt = "";
-	let sizeTxt = "";
+	document.querySelectorAll("#patternTable th .sortIndicator").forEach( (node) => {
+		node.className = "sortIndicator";
+	});
 
-	switch(lastPatternSort) {
-		case "nameDown":
-			nameTxt = "↑";
-			break;
-		case "nameUp":
-			nameTxt = "↓";
-			break;
-		case "supportDown":
-			supportTxt = "↑";
-			break;
-		case "supportUp":
-			supportTxt = "↓";
-			break;
-		case "nbUsersDown":
-			nbUsersTxt = "↑";
-			break;
-		case "nbUsersUp":
-			nbUsersTxt = "↓";
-			break;
-		case "sizeDown":
-			sizeTxt = "↑";
-			break;
-		case "sizeUp":
-			sizeTxt = "↓";
-			break;
-		default:
-	}
+	let [value, direction] = lastPatternSort.split("_");
 
-	d3.select("#patternTable th[value='name'] .sortIndicator")
-		.text(nameTxt);
-	d3.select("#patternTable th[value='support'] .sortIndicator")
-		.text(supportTxt);
-	d3.select("#patternTable th[value='nbUsers'] .sortIndicator")
-		.text(nbUsersTxt);
-	d3.select("#patternTable th[value='size'] .sortIndicator")
-		.text(sizeTxt);
+	document.querySelector(`#patternTable th[value='${value}'] .sortIndicator`)
+				.className += ` sorted${_.capitalize(direction)}`;
 }
 
 /**
  * Handles a click on the 'name' header in the pattern list
  */
 function clickOnPatternNameHeader() {
-	sortPatternsByName(!(lastPatternSort == "nameDown"));
+	sortPatternsByName(!(lastPatternSort == "name_down"));
 	updatePatternTableHead();
 	createPatternListDisplay();
 }
@@ -4310,7 +4179,7 @@ function clickOnPatternNameHeader() {
  * Handles a click on the 'size' header in the pattern list
  */
 function clickOnPatternSizeHeader() {
-	sortPatternsBySize(!(lastPatternSort == "sizeDown"));
+	sortPatternsBySize(!(lastPatternSort == "size_down"));
 	updatePatternTableHead();
 	createPatternListDisplay();
 }
@@ -4319,7 +4188,7 @@ function clickOnPatternSizeHeader() {
  * Handles a click on the 'nb users' header in the pattern list
  */
 function clickOnPatternNbUsersHeader() {
-	sortPatternsByNbUsers(!(lastPatternSort == "nbUsersDown"));
+	sortPatternsByNbUsers(!(lastPatternSort == "nbUsers_down"));
 	updatePatternTableHead();
 	createPatternListDisplay();
 }
@@ -4328,7 +4197,7 @@ function clickOnPatternNbUsersHeader() {
  * Handles a click on the 'support' header in the pattern list
  */
 function clickOnPatternSupportHeader() {
-	sortPatternsBySupport(!(lastPatternSort == "supportDown"));
+	sortPatternsBySupport(!(lastPatternSort == "support_down"));
 	updatePatternTableHead();
 	createPatternListDisplay();
 }
