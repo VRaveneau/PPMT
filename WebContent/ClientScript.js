@@ -516,6 +516,9 @@ var tooltipCloseTimeout;
 /*				?????				 */
 /*************************************/
 
+// The axis for the number of patterns bars in the algorithm extended view
+var algorithmExtendedBarAxis = d3.scaleLinear().rangeRound([0, 200]);
+
 // List of month names to display dates
 var monthsNames = [
 	"January", "February", "March",
@@ -2332,6 +2335,8 @@ function receiveEvents(events) {
 		addToHistory("Dataset "+datasetInfo.name+" received");
 		buildUserSessions();
 		computeMaxEventAtOneTime();
+		computeUsersPerEventType();
+		createEventTypesListDisplay();
 		timeline.displayData();
 		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
 		dataDimensions.time.filterRange(currentTimeFilter);
@@ -2449,10 +2454,11 @@ function receiveEventTypes(message) {
 		itemShapes[eType] = eCode;
 		
 		eventTypeInformations[eType] = {
-				"category":eCategory,
-				"description":eDescription,
-				"nbOccs":eNbOccs,
-				"code":eCode
+				"category": eCategory,
+				"description": eDescription,
+				"nbOccs": eNbOccs,
+				"code": eCode,
+				"nbUsers": 0
 		};
 	});
 	
@@ -2464,6 +2470,21 @@ function receiveEventTypes(message) {
 /************************************/
 /*		Data manipulation			*/
 /************************************/
+
+/**
+ * Computes the number of users for each event type
+ */
+function computeUsersPerEventType() {
+	dataDimensions.time.filterAll();
+	Object.keys(eventTypeInformations).forEach( (type) => {
+		dataDimensions.type.filterExact(type);
+		eventTypeInformations[type].nbUsers = dataDimensions.user.group().all()
+			.filter( (d) => d.value > 0 ).length;
+	});
+	dataDimensions.type.filterAll();
+	if (currentTimeFilter)
+		dataDimensions.time.filterRange(currentTimeFilter);
+}
 
 /**
  * Filters the patterns according to all sliders
@@ -3663,6 +3684,8 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	console.log("Added");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
+	computeUsersPerEventType();
+	createEventTypesListDisplay();
 	addToHistory("Event type "+newEvents[0].type+" created from pattern");
 }
 
@@ -3679,6 +3702,8 @@ function updateDatasetForRemovedEventType(removedIds, removedEvent) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
+	computeUsersPerEventType();
+	createEventTypesListDisplay();
 	addToHistory("Event type "+removedEvent+" removed");
 }
 
@@ -3695,6 +3720,8 @@ function updateDatasetForRemovedUser(removedIds, removedUser) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
+	computeUsersPerEventType();
+	createEventTypesListDisplay();
 	addToHistory("User "+removedUser+" removed");
 }
 
@@ -4572,6 +4599,9 @@ function createEventTypesListDisplay() {
 			.style("display", showEventTypeDescription == true ? "initial" : "none")
 			.text(eventTypeInformations[eType].description);
 		eventRow.append("td").text(eventTypeInformations[eType].nbOccs);
+		eventRow.append("td").text(eventTypeInformations[eType].nbUsers == 0 ?
+			"??" :
+			eventTypeInformations[eType].nbUsers);
 		eventRow.append("td")
 			.style("color",colorList[eType][0].toString())
 			.text(eventTypeInformations[eType].category);
@@ -4908,7 +4938,7 @@ function stopAlgorithmRuntime(time) {
 	d3.select("#currentAlgorithmWork")
 		.text("(ended)");
 }
-var algorithmExtendedBarAxis = d3.scaleLinear().rangeRound([0, 200]);
+
 /**
  * Updates the display of the algorithm state
  */
