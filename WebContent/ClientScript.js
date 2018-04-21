@@ -3449,6 +3449,23 @@ function sortEventTypesBySupport(decreasing=false) {
 }
 
 /**
+ * Sorts the event types list according to the number of users associated to them
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortEventTypesByNbUsers(decreasing=false) {
+	eventTypes.sort(function(a,b) {
+		return eventTypeInformations[a].nbUsers - eventTypeInformations[b].nbUsers;
+	});
+	
+	if (decreasing == true) {
+		eventTypes.reverse();
+		lastEventTypeSort = "nbUsersDown";
+	} else {
+		lastEventTypeSort = "nbUsersUp";
+	}
+}
+
+/**
  * Sorts the event types list according to their category
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
@@ -3935,31 +3952,76 @@ function switchShowPatternText() {
 }
 
 /**
+ * Updates the headline of the table of users for the current sort
+ */
+function updateUserTableHead() {
+	let nameTxt = "";
+	let nbEventsTxt = "";
+	let durationTxt = "";
+	let nbSessionsTxt = "";
+	let startTxt = "";
+	let endTxt = "";
+
+	switch(lastUserSort) {
+		case "name_down":
+			nameTxt = "↑";
+			break;
+		case "name_up":
+			nameTxt = "↓";
+			break;
+		case "nbEvents_down":
+			nbEventsTxt = "↑";
+			break;
+		case "nbEvents_up":
+			nbEventsTxt = "↓";
+			break;
+		case "duration_down":
+			durationTxt = "↑";
+			break;
+		case "duration_up":
+			durationTxt = "↓";
+			break;
+		case "nbSessions_down":
+			nbSessionsTxt = "↑";
+			break;
+		case "nbSessions_up":
+			nbSessionsTxt = "↓";
+			break;
+		case "start_down":
+			startTxt = "↑";
+			break;
+		case "start_up":
+			startTxt = "↓";
+			break;
+		case "end_down":
+			endTxt = "↑";
+			break;
+		case "end_up":
+			endTxt = "↓";
+			break;
+		default:
+	}
+
+	d3.select("#userTable th[value='name'] .sortIndicator")
+		.text(nameTxt);
+	d3.select("#userTable th[value='nbEvents'] .sortIndicator")
+		.text(nbEventsTxt);
+	d3.select("#userTable th[value='duration'] .sortIndicator")
+		.text(durationTxt);
+	d3.select("#userTable th[value='nbSessions'] .sortIndicator")
+		.text(nbSessionsTxt);
+	d3.select("#userTable th[value='start'] .sortIndicator")
+		.text(startTxt);
+	d3.select("#userTable th[value='end'] .sortIndicator")
+		.text(endTxt);
+}
+
+/**
  * Handles a click on the 'name' header in the user list
  */
 function clickOnUserNameHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "User") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "name_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByName();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByName(true);
-	}
-	
+	sortUsersByName(!(lastUserSort == "name_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -3968,28 +4030,8 @@ function clickOnUserNameHeader() {
  * Handles a click on the 'nbEvents' header in the user list
  */
 function clickOnUserNbEventsHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0events") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "nbEvents_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByNbEvents();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByNbEvents(true);
-	}
-	
+	sortUsersByNbEvents(!(lastUserSort == "nbEvents_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -3998,28 +4040,8 @@ function clickOnUserNbEventsHeader() {
  * Handles a click on the 'duration' header in the user list
  */
 function clickOnUserDurationHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Duration") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "duration_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByTraceDuration();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByTraceDuration(true);
-	}
-	
+	sortUsersByTraceDuration(!(lastUserSort == "duration_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -4028,28 +4050,8 @@ function clickOnUserDurationHeader() {
  * Handles a click on the 'nbSessions' header in the user list
  */
 function clickOnUserNbSessionsHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0sessions") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "nbSessions_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByNbSessions();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByNbSessions(true);
-	}
-	
+	sortUsersByNbSessions(!(lastUserSort == "nbSessions_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -4058,28 +4060,8 @@ function clickOnUserNbSessionsHeader() {
  * Handles a click on the 'start' header in the user list
  */
 function clickOnUserStartHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Start") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "start_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByStartDate();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByStartDate(true);
-	}
-	
+	sortUsersByStartDate(!(lastUserSort == "start_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -4088,58 +4070,65 @@ function clickOnUserStartHeader() {
  * Handles a click on the 'end' header in the user list
  */
 function clickOnUserEndHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "End") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "end_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByEndDate();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByEndDate(true);
-	}
-	
+	sortUsersByEndDate(!(lastUserSort == "end_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
+}
+
+/**
+ * Updates the headline of the table of event types for the current sort
+ */
+function updateEventTypeTableHead() {
+	let nameTxt = "";
+	let supportTxt = "";
+	let nbUsersTxt = "";
+	let categoryTxt = "";
+
+	switch(lastEventTypeSort) {
+		case "nameDown":
+			nameTxt = "↑";
+			break;
+		case "nameUp":
+			nameTxt = "↓";
+			break;
+		case "supportDown":
+			supportTxt = "↑";
+			break;
+		case "supportUp":
+			supportTxt = "↓";
+			break;
+		case "nbUsersDown":
+			nbUsersTxt = "↑";
+			break;
+		case "nbUsersUp":
+			nbUsersTxt = "↓";
+			break;
+		case "categoryDown":
+			categoryTxt = "↑";
+			break;
+		case "categoryUp":
+			categoryTxt = "↓";
+			break;
+		default:
+	}
+
+	d3.select("#eventTable th[value='name'] .sortIndicator")
+		.text(nameTxt);
+	d3.select("#eventTable th[value='support'] .sortIndicator")
+		.text(supportTxt);
+	d3.select("#eventTable th[value='nbUsers'] .sortIndicator")
+		.text(nbUsersTxt);
+	d3.select("#eventTable th[value='category'] .sortIndicator")
+		.text(categoryTxt);
 }
 
 /**
  * Handles a click on the 'name' header in the event types list
  */
 function clickOnEventTypeNameHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#eventTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Event\u00A0type") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastEventTypeSort == "nameDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesByName();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesByName(true);
-	}
-	
+	sortEventTypesByName(!(lastEventTypeSort == "nameDown"));
+	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
 		timeline.displayData();
@@ -4149,28 +4138,19 @@ function clickOnEventTypeNameHeader() {
  * Handles a click on the 'support' header in the event types list
  */
 function clickOnEventTypeSupportHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#eventTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Support") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastEventTypeSort == "supportDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesBySupport();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesBySupport(true);
-	}
-	
+	sortEventTypesBySupport(!(lastEventTypeSort == "supportDown"));
+	updateEventTypeTableHead();
+	createEventTypesListDisplay();
+	if (timeline.displayMode == "events")
+		timeline.displayData();
+}
+
+/**
+ * Handles a click on the 'nbUsers' header in the event types list
+ */
+function clickOnEventTypeNbUsersHeader() {
+	sortEventTypesByNbUsers(!(lastEventTypeSort == "nbUsersDown"));
+	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
 		timeline.displayData();
@@ -4180,59 +4160,66 @@ function clickOnEventTypeSupportHeader() {
  * Handles a click on the 'category' header in the event types list
  */
 function clickOnEventTypeCategoryHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#eventTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Category") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastEventTypeSort == "categoryDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesByCategory();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesByCategory(true);
-	}
-	
+	sortEventTypesByCategory(!(lastEventTypeSort == "categoryDown"));
+	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
 		timeline.displayData();
 }
 
 /**
+ * Updates the headline of the table of selected patterns for the current sort
+ */
+function updateSelectedPatternTableHead() {
+	let nameTxt = "";
+	let supportTxt = "";
+	let nbUsersTxt = "";
+	let sizeTxt = "";
+
+	switch(lastSelectedPatternSort) {
+		case "nameDown":
+			nameTxt = "↑";
+			break;
+		case "nameUp":
+			nameTxt = "↓";
+			break;
+		case "supportDown":
+			supportTxt = "↑";
+			break;
+		case "supportUp":
+			supportTxt = "↓";
+			break;
+		case "nbUsersDown":
+			nbUsersTxt = "↑";
+			break;
+		case "nbUsersUp":
+			nbUsersTxt = "↓";
+			break;
+		case "sizeDown":
+			sizeTxt = "↑";
+			break;
+		case "sizeUp":
+			sizeTxt = "↓";
+			break;
+		default:
+	}
+
+	d3.select("#selectedPatternTable th[value='name'] .sortIndicator")
+		.text(nameTxt);
+	d3.select("#selectedPatternTable th[value='support'] .sortIndicator")
+		.text(supportTxt);
+	d3.select("#selectedPatternTable th[value='nbUsers'] .sortIndicator")
+		.text(nbUsersTxt);
+	d3.select("#selectedPatternTable th[value='size'] .sortIndicator")
+		.text(sizeTxt);
+}
+
+/**
  * Handles a click on the 'name' header in the selected pattern list
  */
 function clickOnSelectedPatternNameHeader() {
-	let nameHeader = null;
-	let nameTxt = "";
-	// Remove the sorting indicators
-	d3.select("#selectedPatternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Name") {
-				nameHeader = this;
-				nameTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastSelectedPatternSort == "nameDown") {
-		d3.select(nameHeader).text(nameTxt + "\u00A0↓");
-		sortSelectedPatternsByName();
-	} else {
-		d3.select(nameHeader).text(nameTxt + "\u00A0↑");
-		sortSelectedPatternsByName(true);
-	}
-	
+	sortSelectedPatternsByName(!(lastSelectedPatternSort == "nameDown"));
+	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4240,28 +4227,8 @@ function clickOnSelectedPatternNameHeader() {
  * Handles a click on the 'size' header in the selected pattern list
  */
 function clickOnSelectedPatternSizeHeader() {
-	let sizeHeader = null;
-	let sizeTxt = "";
-	// Remove the sorting indicators
-	d3.select("#selectedPatternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Size") {
-				sizeHeader = this;
-				sizeTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastSelectedPatternSort == "sizeDown") {
-		d3.select(sizeHeader).text(sizeTxt + "\u00A0↓");
-		sortSelectedPatternsBySize();
-	} else {
-		d3.select(sizeHeader).text(sizeTxt + "\u00A0↑");
-		sortSelectedPatternsBySize(true);
-	}
-	
+	sortSelectedPatternsBySize(!(lastSelectedPatternSort == "sizeDown"));
+	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4269,28 +4236,8 @@ function clickOnSelectedPatternSizeHeader() {
  * Handles a click on the 'nb users' header in the selected pattern list
  */
 function clickOnSelectedPatternNbUsersHeader() {
-	let nbUsersHeader = null;
-	let nbUsersTxt = "";
-	// Remove the sorting indicators
-	d3.select("#selectedPatternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0users") {
-				nbUsersHeader = this;
-				nbUsersTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastSelectedPatternSort == "nbUsersDown") {
-		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↓");
-		sortSelectedPatternsByNbUsers();
-	} else {
-		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↑");
-		sortSelectedPatternsByNbUsers(true);
-	}
-	
+	sortSelectedPatternsByNbUsers(!(lastSelectedPatternSort == "nbUsersDown"));
+	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4298,28 +4245,8 @@ function clickOnSelectedPatternNbUsersHeader() {
  * Handles a click on the 'support' header in the selected pattern list
  */
 function clickOnSelectedPatternSupportHeader() {
-	let supportHeader = null;
-	let supportTxt = "";
-	// Remove the sorting indicators
-	d3.select("#selectedPatternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Support") {
-				supportHeader = this;
-				supportTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastSelectedPatternSort == "supportDown") {
-		d3.select(supportHeader).text(supportTxt + "\u00A0↓");
-		sortSelectedPatternsBySupport();
-	} else {
-		d3.select(supportHeader).text(supportTxt + "\u00A0↑");
-		sortSelectedPatternsBySupport(true);
-	}
-	
+	sortSelectedPatternsBySupport(!(lastSelectedPatternSort == "supportDown"));
+	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
 

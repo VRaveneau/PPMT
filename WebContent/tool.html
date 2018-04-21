@@ -76,10 +76,10 @@
 							<table id="eventTable">
 								<thead>
 									<tr class="clickable">
-										<th onclick="clickOnEventTypeNameHeader()">Event&nbsp;type&nbsp;</th>
-										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeSupportHeader()">Support&nbsp;↑</th>
-										<th onclick="clickOnEventTypeNbUsersHeader()">Nb&nbsp;users&nbsp;</th>
-										<th onclick="clickOnEventTypeCategoryHeader()">Category&nbsp;</th>
+										<th onclick="clickOnEventTypeNameHeader()" value="name">Event&nbsp;type&nbsp;<span class="sortIndicator"></span></th>
+										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeSupportHeader()" value="support">Support&nbsp;<span class="sortIndicator">↑</span></th>
+										<th onclick="clickOnEventTypeNbUsersHeader()" value="nbUsers">Nb&nbsp;users&nbsp;<span class="sortIndicator"></span></th>
+										<th onclick="clickOnEventTypeCategoryHeader()" value="category">Category&nbsp;<span class="sortIndicator"></span></th>
 									</tr>
 								</thead>
 								<tbody id="eventTableBody">
@@ -104,12 +104,12 @@
 								<table id="userTable">
 									<thead>
 										<tr class="clickable">
-											<th onclick="clickOnUserNameHeader()">User&nbsp;</th>
-											<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
-											<th onclick="clickOnUserDurationHeader()">Duration&nbsp;</th>
-											<th onclick="clickOnUserNbSessionsHeader()">Nb&nbsp;sessions&nbsp;</th>
-											<th onclick="clickOnUserStartHeader()">Start&nbsp;</th>
-											<th onclick="clickOnUserEndHeader()">End&nbsp;</th>
+											<th onclick="clickOnUserNameHeader()" value="name">User&nbsp;<span class="sortIndicator"></span></th>
+											<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()" value="nbEvents">Nb&nbsp;events&nbsp;<span class="sortIndicator">↑</span></th>
+											<th onclick="clickOnUserDurationHeader()" value="duration">Duration&nbsp;<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserNbSessionsHeader()" value="nbSessions">Nb&nbsp;sessions&nbsp;<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserStartHeader()" value="start">Start&nbsp;<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserEndHeader()" value="end">End&nbsp;<span class="sortIndicator"></span></th>
 										</tr>
 									</thead>
 									<tbody id="userTableBody">
@@ -297,10 +297,10 @@
 						<table id="selectedPatternTable">
 							<thead>
 								<tr class="clickable">
-									<th onclick="clickOnSelectedPatternNameHeader()">Name&nbsp;</th>
-									<th onclick="clickOnSelectedPatternSupportHeader()">Support&nbsp;</th>
-									<th onclick="clickOnSelectedPatternNbUsersHeader()">Nb&nbsp;users&nbsp;</th>
-									<th onclick="clickOnSelectedPatternSizeHeader()">Size&nbsp;↓</th>
+									<th onclick="clickOnSelectedPatternNameHeader()" value="name">Name&nbsp;<span class="sortIndicator"></span></th>
+									<th onclick="clickOnSelectedPatternSupportHeader()" value="support">Support&nbsp;<span class="sortIndicator"></span></th>
+									<th onclick="clickOnSelectedPatternNbUsersHeader()" value="nbUsers">Nb&nbsp;users&nbsp;<span class="sortIndicator"></span></th>
+									<th onclick="clickOnSelectedPatternSizeHeader()" value="size">Size&nbsp;<span class="sortIndicator">↓</span></th>
 								</tr>
 							</thead>
 							<tbody id="selectedPatternTableBody">
