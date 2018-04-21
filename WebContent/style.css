@@ -638,68 +638,98 @@ body {
 /*								*/
 /********************************/
 
+/********************/
+/*	Helper icon		*/
+/********************/
+
+.helper {
+	background-image: url("./img/icons.png");
+	background-size: 100%;
+	min-width: 15px;
+	min-height: 15px;
+	cursor: help;
+	position: relative;
+	border-radius: 50%;
+}
+
+.helper:hover {
+	background-color: black;
+}
+
+.helperMessage {
+	position: absolute;
+	visibility: hidden;
+	right: 120%;
+    top: -25%;
+    background-color: white;
+    border: 1px solid black;
+    border-radius: 5px;
+    white-space: nowrap;
+    padding: 2px;
+}
+
+.helper:hover > .helperMessage {
+	visibility: visible;
+}
+
+/************************************/
+/*		Context action icons		*/
+/************************************/
+
 .icon-remove {
-	background: url("./img/icons.png") 0px 0px;
-	/*background-position: */
+	background-image: url("./img/icons_context_actions.png");
+	background-position:  0px 0px;
 	background-size: 300%;
 }
 
 .icon-remove:hover {
-	background: url("./img/icons.png") -20px 0px;
-	background-size: 300%;
+	background-position: -20px 0px;
 }
 
 .icon-remove:active {
-	background: url("./img/icons.png") -40px 0px;
-	background-size: 300%;
+	background-position: -40px 0px;
 }
 
 .icon-toEventType {
-	background: url("./img/icons.png") 0px -60px;
-	/*background-position: */
+	background-image: url("./img/icons_context_actions.png");
+	background-position: 0px -60px;
 	background-size: 300%;
 }
 
 .icon-toEventType:hover {
-	background: url("./img/icons.png") -20px -60px;
-	background-size: 300%;
+	background-position: -20px -60px;
 }
 
 .icon-toEventType:active {
-	background: url("./img/icons.png") -40px -60px;
-	background-size: 300%;
+	background-position: -40px -60px;
 }
 
 .icon-steering {
-	background: url("./img/icons.png") 0px -20px;
-	/*background-position: */
+	background-image: url("./img/icons_context_actions.png");
+	background-position: 0px -20px;
 	background-size: 300%;
 }
 
 .icon-steering:hover {
-	background: url("./img/icons.png") -20px -20px;
-	background-size: 300%;
+	background-position: -20px -20px;
 }
 
 .icon-steering:active {
-	background: url("./img/icons.png") -40px -20px;
-	background-size: 300%;
+	background-position: -40px -20px;
 }
 
 .icon-selectUsers {
-	background: url("./img/icons.png") 0px -40px;
-	/*background-position: */
+	background-image: url("./img/icons_context_actions.png");
+	background-position: 0px -40px;
 	background-size: 300%;
 }
 
 .icon-selectUsers:hover {
-	background: url("./img/icons.png") -20px -40px;
-	background-size: 300%;
+	background-position: -20px -40px;
 }
 
 .icon-selectUsers:active {
-	background: url("./img/icons.png") -40px -40px;
-	background-size: 300%;
+	background-position: -40px -40px;
 }
 
 thead {
@@ -1911,10 +1941,4 @@ margin-left:5px;
 overflow:hidden;
 }
 
-/********************/
-/*	Helper icon		*/
-/********************/
 
-.iconHelper {
-	color: grey;
-}

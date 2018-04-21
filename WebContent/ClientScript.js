@@ -1210,7 +1210,6 @@ function setupTool() {
 	document.getElementById("selectablePatternSpan").textContent = maxSelectedPatternNb;
 	
 	timeline = new Timeline("timeline",{});
-	setupHelpers();
 	
 	setupAlgorithmSliders();
 	setupPatternSizesChart();
@@ -1636,20 +1635,6 @@ function setupSizeParameterSlider() {
 		brushNumber: 1
 	}
 	sizeModifySlider = new ModifySlider("maxSizeChangeSlider", sliderOptions);
-}
-
-/**
- * Setup the help messages for the algorithm parameters' sliders
- */
-function setupHelpers() {
-	d3.select("#helpSupport")
-		.attr("title", "Number of occurrences of a pattern");
-	/*d3.select("#helpGap")
-		.attr("title", "Number of events in the pattern that don't belong to it");
-	d3.select("#helpWindow")
-		.attr("title", "The minimal support for a pattern to be frequent");*/
-	d3.select("#helpSize")
-		.attr("title", "Number of events in a pattern");
 }
 
 /**
