@@ -1265,12 +1265,14 @@ function setupTool() {
 }
 
 var patternsPerSecondChart;
+var candidatesCheckedPerSecondChart;
 
 /**
  * Setups the speed graphs in the extended algorithm state view
  */
 function setupAlgorithmSpeedGraphs() {
-	patternsPerSecondChart = new patternPerSecondGraph("patternsPerSecond");
+	patternsPerSecondChart = new PatternPerSecondGraph("patternsPerSecond");
+	candidatesCheckedPerSecondChart = new CandidatesCheckedPerSecondGraph("candidatesCheckedPerSecond");
 	//patternsPerSecondSvg.draw();
 	
 }
@@ -3795,6 +3797,7 @@ function resetPatterns() {
 	// TODO Deal with the potential other pattern metrics in patternMetrics
 	patternMetrics.sizeDistribution = {};
 	patternsPerSecondChart.reset();
+	candidatesCheckedPerSecondChart.reset();
 	resetMaxPatternSupport();
 	resetMaxPatternSize();
 	drawPatternSizesChart();
@@ -5050,7 +5053,7 @@ function updateAlgorithmStateDisplay() {
 	}
 	d3.select("#extendedAlgorithmStrategyArea div.body")
 		.text(strategyTxt);
-	// Update the speed
+	// Update the speeds
 	let dateNow = Date.now();
 	let lastData = patternsPerSecondChart.getLastData();
 	if (lastData) {
@@ -5058,12 +5061,27 @@ function updateAlgorithmStateDisplay() {
 			let patternNb = algorithmState.getTotalPatternNumber();
 			let valueDifference = patternNb - lastData.total;
 			patternsPerSecondChart.addData({date: dateNow, delta: valueDifference, total: patternNb});
+			patternsPerSecondChart.draw();
 		}
 	} else {
 		let patternNb = algorithmState.getTotalPatternNumber();
 		patternsPerSecondChart.addData({date: dateNow, delta: patternNb, total: patternNb});
+		patternsPerSecondChart.draw();
 	}
-	patternsPerSecondChart.draw();
+
+	lastData = candidatesCheckedPerSecondChart.getLastData();
+	if (lastData) {
+		if (dateNow - lastData.date >= 1000 ) {
+			let candidatesNb = algorithmState.getTotalCandidatesChecked();
+			let valueDifference = candidatesNb - lastData.total;
+			candidatesCheckedPerSecondChart.addData({date: dateNow, delta: valueDifference, total: candidatesNb});
+			candidatesCheckedPerSecondChart.draw();
+		}
+	} else {
+		let candidatesNb = algorithmState.getTotalCandidatesChecked();
+		candidatesCheckedPerSecondChart.addData({date: dateNow, delta: candidatesNb, total: candidatesNb});
+		candidatesCheckedPerSecondChart.draw();
+	}
 	
 	// Update the reduced view
 	// Update the display of the runtime
@@ -6872,7 +6890,81 @@ function AlgorithmState() {
  * Creates a graph displaying the number of patterns discovered each second
  * @param {string} elemId The id of the parent node for the graph
  */
-function patternPerSecondGraph(elemId) {
+function PatternPerSecondGraph(elemId) {
+	let self = this;
+
+	self.parentNode = document.getElementById(elemId);
+	self.svg = d3.select(self.parentNode).append("svg")
+		.attr("width", "200")
+		.attr("height", "100");
+	
+	self.margin = {top: 10, right: 10, bottom:20, left: 20};
+	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
+	self.height = +self.svg.attr("height") - self.margin.top - self.margin.bottom;	
+
+	self.x = d3.scaleTime().range([0, self.width]);
+	self.y = d3.scaleLinear().range([self.height, 0]);
+	self.xAxis = d3.axisBottom(self.x)
+		.ticks(5);
+	self.yAxis = d3.axisLeft(self.y)
+		.ticks(5);
+
+	self.area = self.svg.append("g")
+		.attr("transform", `translate(${self.margin.left},${self.margin.top})`);
+	self.xAxisG = self.svg.append("g")
+		.attr("class", "axis axis--x")
+		.attr("transform", `translate(${self.margin.left},${self.height + self.margin.top})`)
+		.call(self.xAxis);
+	self.yAxisG = self.svg.append("g")
+		.attr("class", "axis axis--y")
+		.attr("transform", `translate(${self.margin.left},${self.margin.top})`)
+		.call(self.yAxis);
+	
+	self.line = d3.line()
+		.x( (d) => self.x(d.date) )
+		.y( (d) => self.y(d.delta) );
+	self.path = self.area.append("path");
+
+	self.data = [];
+
+	self.draw = function() {
+		self.x.domain(d3.extent(self.data, (d) => d.date ));
+		self.y.domain(d3.extent(self.data, (d) => d.delta ));
+		
+		self.xAxisG.call(self.xAxis);
+		self.yAxisG.call(self.yAxis);
+
+		self.path.datum(self.data)
+			.attr("fill", "none")
+			.attr("stroke", "steelblue")
+			.attr("stroke-linejoin", "round")
+			.attr("stroke-linecap", "round")
+			.attr("stroke-width", 1.5)
+			.attr("d", self.line);
+	}
+
+	self.getLastData = function() {
+		if (self.data.length > 0)
+			return self.data[self.data.length-1];
+		else
+			return null;
+	}
+
+	self.addData = function(newData) {
+		self.data.push(newData);
+	}
+
+	self.reset = function() {
+		self.data = [];
+		self.draw();
+	}
+}
+
+/**
+ * Creates a graph displaying the number of candidates checked each second
+ * @param {string} elemId The id of the parent node for the graph
+ */
+function CandidatesCheckedPerSecondGraph(elemId) {
 	let self = this;
 
 	self.parentNode = document.getElementById(elemId);

@@ -216,6 +216,7 @@ tbody > tr:hover {
 	/*background-color: #006992;
 	color: white;*/
 	grid-area: title;
+	white-space: nowrap;
 }
 
 .section > .subtitle {
@@ -257,6 +258,7 @@ tbody > tr:hover {
 	color: white;*/
 	width: 90%;
 	align-self: center;
+	white-space: nowrap;
 }
 
 .subsection > .param {
@@ -1467,10 +1469,6 @@ table {
 
 #patternSizeTableContent tr .bar {
 	fill: rgb(119, 119, 119);
-}
-
-#patternSizeTableContent tr:hover .bar {
-	fill: lightgrey;
 }
 
 /********************************/
