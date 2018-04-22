@@ -573,6 +573,21 @@ function askConfirmationToRemoveNotHighlightedEventTypes() {
 }
 
 /**
+ * Utility function to ask for the removal of all highlighted users at once
+ */
+function askConfirmationToRemoveHighlightedUsers() {
+	askConfirmationToRemoveUsers(...highlightedUsers);
+}
+
+/**
+ * Utility function to ask for the removal of all not highlighted users at once
+ */
+function askConfirmationToRemoveNotHighlightedUsers() {
+	let notHighlighted = _.difference(userList, highlightedUsers);
+	askConfirmationToRemoveUsers(...notHighlighted);
+}
+
+/**
  * Prevents events against propagating to other DOM elements
  */
 function stopEventPropagation() {
@@ -2040,8 +2055,8 @@ function processMessage(message/*Compressed*/) {
 		if (msg.type === "eventTypeRemoved") {
 			updateDatasetForRemovedEventTypes(msg.removedIds, msg.removedEvents);
 		}
-		if (msg.type === "userRemoved") {
-			updateDatasetForRemovedUser(msg.removedIds, msg.removedUser);
+		if (msg.type === "usersRemoved") {
+			updateDatasetForRemovedUsers(msg.removedIds, msg.removedUsers);
 		}
 		// Restart the mining
 		requestAlgorithmReStart();
@@ -2230,15 +2245,15 @@ function requestEventTypesRemoval(eventNames) {
 }
 
 /**
- * Requests an alteration of the dataset by removing a user
- * @param {string} userName - The name of the user
+ * Requests an alteration of the dataset by removing some users
+ * @param {string[]} userNames - The name of the users
  */
-function requestUserRemoval(userName) {
-	console.log('requesting the removal of user '+userName);
+function requestUsersRemoval(userNames) {
+	console.log('requesting the removal of users '+userNames);
 	let action = {
 			action: "alterDataset",
-			alteration: "removeUser",
-			userName: userName
+			alteration: "removeUsers",
+			userNames: userNames
 	};
 	sendToServer(action);
 }
@@ -3770,7 +3785,7 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
-	// Clean the highlight if necessary
+	// Clean the highlights if necessary
 	let intersection = _.intersection(highlightedEventTypes, removedEvents);
 	if (intersection.length > 0) {
 		highlightedEventTypes = _.difference(highlightedEventTypes, intersection);
@@ -3781,25 +3796,31 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	dataDimensions.time.filterRange(currentTimeFilter);
 	computeUsersPerEventType();
 	createEventTypesListDisplay();
-	addToHistory(removedEvents.length + " event types removed", removedEvents.join(', '));
+	addToHistory(removedEvents.length + " event types removed", removedEvents.join(", "));
 }
 
 /**
  * Updates the data after the removal of a user
  * @param {number[]} removedIds Ids of events to be removed
- * @param {string} removedUser The name of the removed user
+ * @param {string[]} removedUsers The name of the removed users
  */
-function updateDatasetForRemovedUser(removedIds, removedUser) {
+function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	resetDataFilters();
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	// Clean the highlights if necessary
+	let intersection = _.intersection(highlightedUsers, removedUsers);
+	if (intersection.length > 0) {
+		highlightedUsers = _.difference(highlightedUsers, intersection);
+		setHighlights();
+	}
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	computeUsersPerEventType();
 	createEventTypesListDisplay();
-	addToHistory("User "+removedUser+" removed");
+	addToHistory(removedUsers.length + " users removed", removedUsers.join(", "));
 }
 
 /**
@@ -3868,18 +3889,23 @@ function askConfirmationToRemoveEventTypes(...eventTypeNames) {
 
 /**
  * Opens a modal window to confirm or cancel the removal of users
+ * @param {...string} userNames The name of users whose removal must be confirmed
  */
-function askConfirmationToRemoveUser(userName) {
+function askConfirmationToRemoveUsers(...userNames) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
 		.text("Confirm user removal");
 	d3.select("#actionConfirmation #contentHeader")
 		.text("Confirm the removal of all events of the following users :");
-	d3.select("#actionConfirmation #contentBody")
-		.text(userName);
+	let contentArea = d3.select("#actionConfirmation #contentBody")
+		.text("");
+	userNames.forEach( (userName) => {
+		contentArea.append("div")
+			.text(userName);
+	});
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
-			requestUserRemoval(userName);
+			requestUsersRemoval(userNames);
 			closeModal();
 		});
 	d3.select("#confirmationCancel")
@@ -4679,7 +4705,7 @@ function createUserListDisplay() {
 			.attr("title", "Remove")
 			.on("click", function() {
 				d3.event.stopPropagation();
-				askConfirmationToRemoveUser(user);
+				askConfirmationToRemoveUsers(user);
 			});
 		
 		let extendedRemoveActions = removeAction.append("div")
@@ -4688,12 +4714,20 @@ function createUserListDisplay() {
 			.text("Remove one")
 			.on("click", function() {
 				d3.event.stopPropagation();
-				askConfirmationToRemoveUser(user);
+				askConfirmationToRemoveUsers(user);
 			});
 		extendedRemoveActions.append("p")
-			.text("Remove all highlighted");
+			.text("Remove all highlighted")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveHighlightedUsers();
+			});
 		extendedRemoveActions.append("p")
-			.text("Remove all unhighlighted");
+			.text("Remove all unhighlighted")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveNotHighlightedUsers();
+			});
 
 
 		userRow.on("click", function(){

@@ -550,8 +550,8 @@ public class ClientHandler {
 		patternManager = null;
 	}
 	
-	public void removeUser(String userName) {
-		TraceModification modifs = dataset.removeUser(userName, session);
+	public void removeUsers(JsonArray userNames) {
+		TraceModification modifs = dataset.removeUsers(userNames, session);
 		
 		// Stop the algorithm
 		algorithmHandler.stopMining();
@@ -563,8 +563,8 @@ public class ClientHandler {
 		JsonProvider provider = JsonProvider.provider();
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "dataAlteration")
-				.add("type", "userRemoved")
-				.add("removedUser", userName);
+				.add("type", "usersRemoved")
+				.add("removedUsers", userNames);
 		
 		JsonArrayBuilder removedIds = provider.createArrayBuilder();
 		for (Integer id : modifs.getRemovedIds())

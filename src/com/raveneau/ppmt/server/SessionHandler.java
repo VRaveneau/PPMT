@@ -181,8 +181,8 @@ public class SessionHandler {
 		clientHandlers.get(session).removeEventTypes(eventNames);
 	}
 	
-	public void removeUser(String userName, Session session) {
-		clientHandlers.get(session).removeUser(userName);
+	public void removeUsers(JsonArray userNames, Session session) {
+		clientHandlers.get(session).removeUsers(userNames);
 	}
 
 	/**
