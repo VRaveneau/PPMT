@@ -45,7 +45,12 @@ public class ServerEndpointPPMT {
 					int maxGap = Integer.parseInt(jsonMessage.getString("maxGap"));
 					int maxDuration = Integer.parseInt(jsonMessage.getString("maxDuration"));
 					String datasetName = jsonMessage.getString("datasetName");
-					sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName, session);
+					if (jsonMessage.containsKey("delay")) {
+						long delay = jsonMessage.getJsonNumber("delay").longValue();
+						sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay, datasetName, session);
+					} else {
+						sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName, session);
+					}
 				}
 				break;
 				
@@ -97,8 +102,14 @@ public class ServerEndpointPPMT {
 				break;
 				
 			case "steerOnPattern":
-				System.out.println("ServerEndpoint : receive steering request on pattern id "+jsonMessage.getInt("patternId"));
-		  		sessionHandler.requestSteeringOnPattern(jsonMessage.getInt("patternId"),session);
+				switch(jsonMessage.getString("object")) {
+				case "start":
+					System.out.println("ServerEndpoint : receive steering request on pattern id "+jsonMessage.getInt("patternId"));
+					sessionHandler.requestSteeringOnPatternStart(jsonMessage.getInt("patternId"),session);					
+					break;
+				default:
+					System.out.println("Unknown object for a steering on pattern: "+ jsonMessage.getString("object"));
+				}
 				break;
 				
 			case "steerOnUser":

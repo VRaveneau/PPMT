@@ -116,7 +116,7 @@ class SupportCounting {
         		
         		String steeringValue = "";
         		switch (parameters.getSteeringTypeOccurring()) {
-				case PATTERN:
+				case PATTERN_START:
 					for (String event : patternManager.getPattern(parameters.getSteeringPatternIdOccurring()).getItems())
 						steeringValue+=event+" "; // TODO get the event name instead of the id
 					steeringValue = steeringValue.trim();
@@ -128,6 +128,7 @@ class SupportCounting {
 					steeringValue = "user";
 					break;
 				default:
+					System.out.println("Unknown steering type occurring : "+parameters.getSteeringTypeOccurring());
 					break;
 				}
         		
@@ -135,20 +136,27 @@ class SupportCounting {
         		
         	}
         	/*		STEERING on pattern, check if the pattern matches		*/
-        	if (parameters.steeringIsOccurring() &&
-        			parameters.getSteeringTypeOccurring() == SteeringTypes.PATTERN) {
-        		List<String> steeringTargetItems = patternManager.getPattern(parameters.getSteeringPatternIdOccurring()).getItems();
-        		//List<ItemAbstractionPair> candidateItems = candidate.getElements();
-        		if (steeringTargetItems.size() > candidateItems.size())
-        			continue;
-        		else {
-        			boolean unmatch = false;
-            		for(int i=0; i < steeringTargetItems.size() && !unmatch; i++) {
-            			if (!steeringTargetItems.get(i).equals(candidateItems.get(i)))
-            				unmatch = true;
-            		}
-            		if (unmatch)
-            			continue;
+        	if (parameters.steeringIsOccurring()) {
+        		if (parameters.getSteeringTypeOccurring() == SteeringTypes.PATTERN_START) {
+	        		List<String> steeringTargetItems = patternManager.getPattern(parameters.getSteeringPatternIdOccurring()).getItems();
+	        		//List<ItemAbstractionPair> candidateItems = candidate.getElements();
+	        		if (steeringTargetItems.size() > candidateItems.size())
+	        			continue;
+	        		else {
+	        			boolean unmatch = false;
+	            		for(int i=0; i < steeringTargetItems.size() && !unmatch; i++) {
+	            			if (!steeringTargetItems.get(i).equals(candidateItems.get(i)))
+	            				unmatch = true;
+	            		}
+	            		if (unmatch)
+	            			continue;
+	        		}
+    			}
+        		if (parameters.getSteeringTypeOccurring() == SteeringTypes.PATTERN_ANY) {
+        			System.out.println("!!!!!!! Steering on PATTERN_ANY not implemented !!!!!!!");
+        		}
+        		if (parameters.getSteeringTypeOccurring() == SteeringTypes.PATTERN_END) {
+        			System.out.println("!!!!!!! Steering on PATTERN_END not implemented !!!!!!!");
         		}
         	}
             //we check for each sequence of the original database if it appears in it
@@ -182,6 +190,13 @@ class SupportCounting {
                 }
                 patternManager.addPattern(cItems, cSupport, fullSIds, users, timestamps, eventIds, true);
             }
+            
+            try {
+				Thread.sleep(parameters.getDelay());
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         }
         candidateSet = null;
         //We end returning the frequent candidates, i.e. the frequent k-sequence set

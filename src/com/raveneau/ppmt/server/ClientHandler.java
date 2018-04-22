@@ -236,9 +236,9 @@ public class ClientHandler {
 		sendToSession(session, dataMessage.build());
 	}
 	
-	public void requestSteeringOnPattern(int patternId) {
+	public void requestSteeringOnPatternStart(int patternId) {
 		for(SteeringListener listener : getSteeringListeners()) {
-			listener.steeringRequestedOnPattern(new Integer(patternId));
+			listener.steeringRequestedOnPatternStart(new Integer(patternId));
 			System.out.println("ClientHandler: transmitting steering request on pattern id "+patternId);
 		}
 	}
@@ -294,6 +294,21 @@ public class ClientHandler {
 		}
 		
 		algorithmHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
+	}
+	
+	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, long delay) {
+		if (patternManager == null) {
+			setPatternManager(new PatternManager(this));
+			dataset.addPatternManagerToSession(session, patternManager);
+		} else {
+			algorithmHandler.stopMining();
+			dataset.removePatternManagerFromSession(session);
+			
+			setPatternManager(new PatternManager(this));
+			dataset.addPatternManagerToSession(session, patternManager);
+		}
+		
+		algorithmHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay);
 	}
 	
 	public void alertOfNewPattern(Pattern p) {

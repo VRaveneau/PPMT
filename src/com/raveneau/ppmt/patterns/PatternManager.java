@@ -239,7 +239,7 @@ public class PatternManager {
 	
 	public void sendSteeringNotificationToClient(SteeringTypes type, String value) {
 		switch (type) {
-		case PATTERN:
+		case PATTERN_START:
 			this.clientHandler.signalSteeringStarted("pattern", value);
 			break;
 		case TIME:

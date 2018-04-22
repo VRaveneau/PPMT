@@ -1809,8 +1809,14 @@ function startInitialMining() {
 			break;
 		default:
 	}
-	requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
-		 algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName);
+	if (pageParameters.serverDelay) {
+		let delay = parseInt(pageParameters.serverDelay);
+		requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
+			algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName, delay);
+	} else {
+		requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
+			algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName);
+	}
 }
 
 /**
@@ -1823,13 +1829,14 @@ function startInitialMining() {
  * @param {number} maxGap The maximum allowed gap between two events of a pattern
  * @param {number} maxDuration The maximum duration of a pattern occurrence
  * @param {number} datasetName The name of the dataset to be used
+ * @param {number} delay The delay (in ms) between each candidate check on the server
  */
 function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
-								maxDuration, datasetName) {
+								maxDuration, datasetName, ...delay) {
 	console.log("Requesting algorithm start:");
 	console.log("   minSup: "+minSupport+", windowSize: "+windowSize+
 		", maxSize: "+maxSize+", minGap: "+minGap+", maxGap: "+maxGap+
-		", maxDuration: "+maxDuration+", datasetName: "+datasetName);
+		", maxDuration: "+maxDuration+", datasetName: "+datasetName+", delay: "+delay);
 	
 	let action = {
 		action: "run",
@@ -1842,6 +1849,10 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 		maxDuration: maxDuration.toString(),
 		datasetName: datasetName
 	};
+
+	if (delay.length > 0) {
+		action.delay = delay[0];
+	}
 	sendToServer(action);
 
 	// Start the timer independently from the server
@@ -2203,13 +2214,14 @@ function requestUserList(datasetName) {
 }
 
 /**
- * Requests a steering of the algorithm on a given pattern
+ * Requests a steering of the algorithm on a given pattern as prefix
  * @param {string} patternId - Id of the pattern to steer on
  */
-function requestSteeringOnPattern(patternId) {
-	console.log('requesting steering on patternId '+patternId);
+function requestSteeringOnPatternPrefix(patternId) {
+	console.log('requesting steering on patternId '+patternId+' as prefix');
 	let action = {
 			action: "steerOnPattern",
+			object: "start",
 			patternId: patternId
 	};
 	sendToServer(action);
@@ -5379,7 +5391,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.attr("title", "Steer algorithm")
 		.on("click", function() {
 			d3.event.stopPropagation();
-			requestSteeringOnPattern(pId);
+			requestSteeringOnPatternPrefix(pId);
 		});
 	contextActions.append("button")
 		.classed("clickable", true)

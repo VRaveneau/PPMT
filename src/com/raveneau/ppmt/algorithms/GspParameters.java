@@ -11,6 +11,8 @@ public class GspParameters {
     private int windowSize = 0;
     private long maxDuration = 30000;
     
+    private long delay = 0;
+    
     private boolean verbose = false;
     private boolean outputSequenceIdentifiers = false;
     
@@ -51,6 +53,18 @@ public class GspParameters {
 		
 		setChanged(true);
 	}
+	
+	public void updateParameters(int minSupAbsolute, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, long delay) {
+		this.minSupAbsolute = minSupAbsolute;
+		this.maxSize = maxSize;
+		this.minGap = minGap;
+		this.maxGap = maxGap;
+		this.windowSize = windowSize;
+		this.maxDuration = maxDuration;
+		this.delay = delay;
+		
+		setChanged(true);
+	}
 
 	public float getMinSupRelative() {
 		return minSupRelative;
@@ -78,6 +92,10 @@ public class GspParameters {
 
 	public long getMaxDuration() {
 		return maxDuration;
+	}
+	
+	public long getDelay() {
+		return delay;
 	}
 
 	public boolean isVerbose() {
@@ -115,6 +133,10 @@ public class GspParameters {
 	public void setMaxDuration(long maxDuration) {
 		this.maxDuration = maxDuration;
 	}
+	
+	public void setDelay(long delay) {
+		this.delay = delay;
+	}
 
 	public void setVerbose(boolean verbose) {
 		this.verbose = verbose;
@@ -128,9 +150,9 @@ public class GspParameters {
 		return this.steeringRequested;
 	}
 	
-	public void requestSteeringOnPattern(int patternId) {
+	public void requestSteeringOnPatternStart(int patternId) {
 		this.steeringRequested = true;
-		this.steeringTypeRequested = SteeringTypes.PATTERN;
+		this.steeringTypeRequested = SteeringTypes.PATTERN_START;
 		this.steeringPatternIdRequested = patternId;
 	}
 	
@@ -171,7 +193,7 @@ public class GspParameters {
 		startSteering(getSteeringTypeRequested());
 		cancelSteeringRequest();
 		switch (getSteeringTypeOccurring()) {
-		case PATTERN:
+		case PATTERN_START:
 			this.steeringPatternIdOccurring = this.steeringPatternIdRequested;
 			break;
 		case USER:

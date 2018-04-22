@@ -78,8 +78,8 @@ public class SessionHandler {
 		clientHandlers.get(session).provideEventTypes();
 	}
 
-	public void requestSteeringOnPattern(int patternId, Session session) {
-		clientHandlers.get(session).requestSteeringOnPattern(patternId);
+	public void requestSteeringOnPatternStart(int patternId, Session session) {
+		clientHandlers.get(session).requestSteeringOnPatternStart(patternId);
 	}
 
 	public void requestSteeringOnUser(String userId, Session session) {
@@ -102,6 +102,11 @@ public class SessionHandler {
 	// TODO See if the datasetName is still needed
 	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, String datasetName, Session session) {
 		clientHandlers.get(session).runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
+	}
+	
+	// TODO See if the datasetName is still needed
+	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, long delay, String datasetName, Session session) {
+		clientHandlers.get(session).runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay);
 	}
 
 	/**
