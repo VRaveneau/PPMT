@@ -702,6 +702,10 @@ body {
 	font-size: smaller;
 }
 
+.historyContent p {
+	margin: 2px 0px;
+}
+
 #pattern-view {
 	width: 30%;
 	max-height: 69%;

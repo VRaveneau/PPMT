@@ -1731,9 +1731,9 @@ function setupEventBinDimensions() {
 /**
  * Adds an action to the displayed history
  * @param {string} action - The message to be added to the history
- * @param {string} details - More information about the action
+ * @param {...string} details - More information about the action
  */
-function addToHistory(action, details="") {
+function addToHistory(action, ...details) {
 	let history = d3.select("#historyList");
 	if (historyDisplayIsDefault) {
 		history.text("");
@@ -1748,21 +1748,24 @@ function addToHistory(action, details="") {
 		.classed("historyTitle", true)
 		.text(action);
 	if (details.length > 0) {
-		let content = item.append("p")
-			.classed("historyContent hidden", true)
-			.text(details);
+		let content = item.append("div")
+			.classed("historyContent hidden", true);
 		item.append("p")
-			.text("(Show details)")
+			.text("Show details")
 			.classed("clickable clickableText smallText historyShowMore", true)
 			.on("click", function() {
 				if (content.classed("hidden")) {
-					this.textContent = "(Hide details)";
+					this.textContent = "Hide details";
 					content.classed("hidden", false);
 				} else {
-					this.textContent = "(Show details)";
+					this.textContent = "Show details";
 					content.classed("hidden", true);
 				}
 			});
+		details.forEach( (detail) => {
+			content.append("p")
+				.text(detail);
+		});
 	}
 	item.append("p")
 		.classed("historyTimestamp", true)
@@ -5011,7 +5014,12 @@ function handleAlgorithmStartSignal(msg) {
 	let dateUTC = new Date(msg.time);
 	startAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.start();
-	addToHistory("Algorithm started");
+
+	let detailSupport = "Min. support: " + algoMinSupport; 
+	let detailGap = "Gap: " + algoMinGap + " - " + algoMaxGap;
+	let detailDuration = "Max. duration: " + algoMaxDuration + "ms";
+	let detailSize = "Max. size: " + algoMaxSize;
+	addToHistory("Algorithm started", "Parameters:", detailSupport, detailGap, detailDuration, detailSize);
 }
 
 /**
@@ -5023,7 +5031,10 @@ function handleAlgorithmEndSignal(msg) {
 	stopAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.stop();
 	updateAlgorithmStateDisplay();
-	addToHistory("Algorithm ended");
+	
+	let details = algorithmState.getTotalPatternNumber() + " patterns found over ";
+	details += algorithmState.getTotalElapsedTime() + "ms"
+	addToHistory("Algorithm ended", details);
 }
 
 /**
