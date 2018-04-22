@@ -249,6 +249,12 @@ public class ClientHandler {
 		}
 	}
 
+	public void requestSteeringOnTime(long start, long end) {
+		for(SteeringListener listener : getSteeringListeners()) {
+			listener.steeringRequestedOnTime(start, end);
+		}
+	}
+
 	public void addSteeringListener(SteeringListener listener) {
 		listeners.add(SteeringListener.class, listener);
 	}

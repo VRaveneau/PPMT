@@ -135,8 +135,9 @@ class SupportCounting {
         		patternManager.sendSteeringNotificationToClient(parameters.getSteeringTypeOccurring(), steeringValue);
         		
         	}
-        	/*		STEERING on pattern, check if the pattern matches		*/
+      
         	if (parameters.steeringIsOccurring()) {
+        		/*		STEERING on pattern as prefix, check if the pattern matches		*/
         		if (parameters.getSteeringTypeOccurring() == SteeringTypes.PATTERN_START) {
 	        		List<String> steeringTargetItems = patternManager.getPattern(parameters.getSteeringPatternIdOccurring()).getItems();
 	        		//List<ItemAbstractionPair> candidateItems = candidate.getElements();
@@ -152,11 +153,19 @@ class SupportCounting {
 	            			continue;
 	        		}
     			}
+        		/*		STEERING on pattern anywhere, check if the pattern matches		*/
         		if (parameters.getSteeringTypeOccurring() == SteeringTypes.PATTERN_ANY) {
         			System.out.println("!!!!!!! Steering on PATTERN_ANY not implemented !!!!!!!");
         		}
+        		/*		STEERING on pattern as suffix, check if the pattern matches		*/
         		if (parameters.getSteeringTypeOccurring() == SteeringTypes.PATTERN_END) {
         			System.out.println("!!!!!!! Steering on PATTERN_END not implemented !!!!!!!");
+        		}
+        		
+        		/*		STEERING on time, check if the pattern is found		*/
+        		if (parameters.getSteeringTypeOccurring() == SteeringTypes.TIME) {
+        			if (!checkCandidateInSubSequence(k, candidate, parameters.getMaxDuration(), parameters.getMinGap(), parameters.getMaxGap(), parameters.getSteeringStartOccurring(), parameters.getSteeringEndOccurring()))
+        				continue;
         		}
         	}
             //we check for each sequence of the original database if it appears in it
@@ -250,6 +259,25 @@ class SupportCounting {
         }
     }
 
+    private boolean checkCandidateInSubSequence(int k, Pattern candidate, long maxDuration, int minGap, int maxGap, long l, long m) {
+    	boolean found = false;
+    	//For each sequence in the database, or until we found an occurrence
+        for (Sequence sequence : database.getSequences()) {
+            //We define a list of k positions, all initialized at itemset 0, item 0, i.e. first itemset, first item.
+            List<int[]> position = new ArrayList<int[]>(k);
+            for (int i = 0; i < k; i++) {
+                position.add(new int[]{0,0});
+            }
+            CandidateInSequenceFinder finder = new CandidateInSequenceFinder(abstractionCreator);
+            //we check if the current candidate appears in the sequence
+            if (abstractionCreator.isCandidateInSubSequence(finder, candidate, sequence, k, 0, position, maxDuration, minGap, maxGap, l, m)) {
+            	found = true;
+            	break;
+            }
+        }
+        return found;
+    }
+    
     /**
      * Method to create the indexation map useful for the next step of
      * generation of candidates

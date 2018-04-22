@@ -445,6 +445,12 @@ public class AbstractionCreator_Qualitative implements AbstractionCreator {
         finder.isCandidatePresentInTheSequence_qualitative(candidate, sequence, k, 0, position, maxDuration, minGap, maxGap);
     }
 
+	@Override
+	public boolean isCandidateInSubSequence(CandidateInSequenceFinder finder, Pattern candidate, Sequence sequence, int k, int i, List<int[]> position, long maxDuration, int minGap, int maxGap, long start, long end) {
+		return finder.isCandidatePresentInTheSubSequence_qualitative(candidate, sequence, k, 0, position, maxDuration, minGap, maxGap, start, end);
+		
+	}
+
     public List<Pattern> generateSize2Candidates(AbstractionCreator creator, Pattern pat1, Pattern pat2) {
         List<Pattern> output = new LinkedList<Pattern>();
         PatternCreator patternCreator = PatternCreator.getInstance();

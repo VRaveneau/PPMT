@@ -86,6 +86,10 @@ public class SessionHandler {
 		clientHandlers.get(session).requestSteeringOnUser(userId);
 	}
 
+	public void requestSteeringOnTime(long start, long end, Session session) {
+		clientHandlers.get(session).requestSteeringOnTime(start, end);
+	}
+
 	public void addSteeringListener(SteeringListener listener, Session session) {
 		clientHandlers.get(session).addSteeringListener(listener);
 	}

@@ -2241,6 +2241,23 @@ function requestSteeringOnUser(userId) {
 }
 
 /**
+ * Requests a steering of the algorithm on a given time period
+ * @param {number} start - The start of the period
+ * @param {number} end - The end of the period
+ */
+function requestSteeringOnTime(start, end) {
+	console.log('requesting steering on time between '+start+' and '+end);
+	// Numbers are sent as strings to prevent an error when their value is read
+	// by the server
+	let action = {
+			action: "steerOnTime",
+			start: start+"",
+			end: end+""
+	};
+	sendToServer(action);
+}
+
+/**
  * Requests an alteration of the dataset by creating a new event type from
  * a pattern
  * @param {number} patternId - Id of the pattern

@@ -115,7 +115,11 @@ public class ServerEndpointPPMT {
 			case "steerOnUser":
 				sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
 				break;
-			
+			case "steerOnTime":
+				long longStart = Long.parseLong(jsonMessage.getString("start"));
+				long longEnd = Long.parseLong(jsonMessage.getString("end"));
+				sessionHandler.requestSteeringOnTime(longStart, longEnd, session);
+				break;
 			case "alterDataset":
 				sessionHandler.sessionAltersDataset(session);
 				switch(jsonMessage.getString("alteration")) {

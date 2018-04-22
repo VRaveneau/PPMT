@@ -98,9 +98,9 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 	}
 
 	@Override
-	public void steeringRequestedOnTime(String start, String end) {
-		// TODO Auto-generated method stub
+	public void steeringRequestedOnTime(long start, long end) {
 		System.out.println("Steering requested on time between "+start+" and "+end);
+		this.algorithmParameters.requestSteeringOnTime(start, end);
 	}
 
 	/* Belongs to ThreadListener, used for SPAM

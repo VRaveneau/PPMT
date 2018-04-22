@@ -24,9 +24,13 @@ public class GspParameters {
 
 	private int steeringPatternIdRequested = -1;
 	private int steeringPatternIdOccurring = -1;
+	private long steeringStartOccurring = -1;
+	private long steeringEndOccurring = -1;
 	
 	private String steeringUserIdRequested = "";
 	private String steeringUserIdOccurring = "";
+	private long steeringStartRequested = -1;
+	private long steeringEndRequested = -1;
 	
 	private boolean terminationRequested = false;
 	
@@ -162,6 +166,13 @@ public class GspParameters {
 		this.steeringUserIdRequested = userId;
 	}
 	
+	public void requestSteeringOnTime(long start, long end) {
+		this.steeringRequested = true;
+		this.steeringTypeRequested = SteeringTypes.TIME;
+		this.steeringStartRequested = start;
+		this.steeringEndRequested = end;
+	}
+	
 	public void cancelSteeringRequest() {
 		this.steeringRequested = false;
 		this.steeringTypeRequested = null;
@@ -200,7 +211,8 @@ public class GspParameters {
 			this.steeringUserIdOccurring = this.steeringUserIdRequested;
 			break;
 		case TIME:
-			
+			this.steeringStartOccurring = this.steeringStartRequested;
+			this.steeringEndOccurring = this.steeringEndRequested;
 			break;
 		default:
 			break;
@@ -239,6 +251,38 @@ public class GspParameters {
 		this.steeringUserIdOccurring = steeringUserIdOccurring;
 	}
 
+	public long getSteeringStartRequested() {
+		return steeringStartRequested;
+	}
+
+	public void setSteeringStartRequested(long steeringStartRequested) {
+		this.steeringStartRequested = steeringStartRequested;
+	}
+
+	public long getSteeringStartOccurring() {
+		return steeringStartOccurring;
+	}
+
+	public void setSteeringStartOccurring(long steeringStartOccurring) {
+		this.steeringStartOccurring = steeringStartOccurring;
+	}
+
+	public long getSteeringEndRequested() {
+		return steeringEndRequested;
+	}
+
+	public void setSteeringEndRequested(long steeringEndRequested) {
+		this.steeringEndRequested = steeringEndRequested;
+	}
+
+	public long getSteeringEndOccurring() {
+		return steeringEndOccurring;
+	}
+
+	public void setSteeringEndOccurring(long steeringEndOccurring) {
+		this.steeringEndOccurring = steeringEndOccurring;
+	}
+	
 	public boolean isTerminationRequested() {
 		return terminationRequested;
 	}
