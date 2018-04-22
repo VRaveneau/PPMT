@@ -461,8 +461,8 @@ var loadingAlgorithmDataAnimation;
 //  loads the data
 var loadingAlgorithmDataAnimationState = 1;
 
-// Interval for the timer of the algorithm's runtime
-var algorithmTimer;
+// Whether the algorithm is running or not
+var algorithmIsRunning;
 // Time (in ms) at which the algorithm started
 var algorithmStartTime = -1;
 // Delay (in ms) between the server and the client
@@ -556,6 +556,15 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 /*				Utility				 */
 /*************************************/
+
+/**
+ * Keeps refreshing the algorithm state display each frame while it is running
+ */
+function updateAlgorithmStateDisplayOnRAF() {
+	updateAlgorithmStateDisplay();
+	if (algorithmIsRunning)
+		requestAnimationFrame(updateAlgorithmStateDisplayOnRAF);
+}
 
 /**
  * Utility function to ask for the removal of all highlighted event types at once
@@ -4869,7 +4878,8 @@ function startAlgorithmRuntime(time) {
 	let clientTime = new Date();
 	algorithmStartTime = new Date(time);
 	startDelayFromServer = algorithmStartTime - clientTime;
-	algorithmTimer = setInterval(updateAlgorithmStateDisplay, 100);
+	algorithmIsRunning = true;
+	updateAlgorithmStateDisplayOnRAF();
 }
 
 /**
@@ -4878,7 +4888,7 @@ function startAlgorithmRuntime(time) {
  */
 function stopAlgorithmRuntime(time) {
 	if (algorithmStartTime > 0) {
-		clearInterval(algorithmTimer);
+		algorithmIsRunning = false;
 		// checks if the timer is coherent with the server's
 		let thisDate = new Date(time);
 		let elapsedTime = thisDate - algorithmStartTime;
