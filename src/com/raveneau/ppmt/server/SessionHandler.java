@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.enterprise.context.ApplicationScoped;
+import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.spi.JsonProvider;
@@ -176,8 +177,8 @@ public class SessionHandler {
 		clientHandlers.get(session).createEventTypeFromPattern(patternId);
 	}
 	
-	public void removeEventType(String eventName, Session session) {
-		clientHandlers.get(session).removeEventType(eventName);
+	public void removeEventTypes(JsonArray eventNames, Session session) {
+		clientHandlers.get(session).removeEventTypes(eventNames);
 	}
 	
 	public void removeUser(String userName, Session session) {

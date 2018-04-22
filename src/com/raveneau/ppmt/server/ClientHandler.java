@@ -521,8 +521,8 @@ public class ClientHandler {
 		patternManager = null;
 	}
 	
-	public void removeEventType(String eventName) {
-		TraceModification modifs = dataset.removeEventType(eventName, session);
+	public void removeEventTypes(JsonArray eventNames) {
+		TraceModification modifs = dataset.removeEventTypes(eventNames, session);
 		
 		// Stop the algorithm
 		algorithmHandler.stopMining();
@@ -535,7 +535,7 @@ public class ClientHandler {
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "dataAlteration")
 				.add("type", "eventTypeRemoved")
-				.add("removedEvent", eventName);
+				.add("removedEvents", eventNames);
 		
 		JsonArrayBuilder removedIds = provider.createArrayBuilder();
 		for (Integer id : modifs.getRemovedIds())

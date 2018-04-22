@@ -130,6 +130,7 @@ tr:hover > .contextActions {
 	padding: 3px;
 	white-space: nowrap;
 	visibility: hidden;
+	font-weight: normal;
 }
 
 .contextActions div:hover > .extendedContextAction {

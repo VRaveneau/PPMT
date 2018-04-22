@@ -558,6 +558,21 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 
 /**
+ * Utility function to ask for the removal of all highlighted event types at once
+ */
+function askConfirmationToRemoveHighlightedEventTypes() {
+	askConfirmationToRemoveEventTypes(...highlightedEventTypes);
+}
+
+/**
+ * Utility function to ask for the removal of all not highlighted event types at once
+ */
+function askConfirmationToRemoveNotHighlightedEventTypes() {
+	let notHighlighted = _.difference(eventTypes, highlightedEventTypes);
+	askConfirmationToRemoveEventTypes(...notHighlighted);
+}
+
+/**
  * Prevents events against propagating to other DOM elements
  */
 function stopEventPropagation() {
@@ -2023,7 +2038,7 @@ function processMessage(message/*Compressed*/) {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
 		}
 		if (msg.type === "eventTypeRemoved") {
-			updateDatasetForRemovedEventType(msg.removedIds, msg.removedEvent);
+			updateDatasetForRemovedEventTypes(msg.removedIds, msg.removedEvents);
 		}
 		if (msg.type === "userRemoved") {
 			updateDatasetForRemovedUser(msg.removedIds, msg.removedUser);
@@ -2201,15 +2216,15 @@ function requestEventTypeCreationFromPattern(patternId) {
 }
 
 /**
- * Requests an alteration of the dataset by removing an event type
- * @param {string} eventName - The name of the event type
+ * Requests an alteration of the dataset by removing some event types
+ * @param {[string]} eventNames - The name of the event types
  */
-function requestEventTypeRemoval(eventName) {
-	console.log('requesting the removal of event type '+eventName);
+function requestEventTypesRemoval(eventNames) {
+	console.log('requesting the removal of event types '+ eventNames);
 	let action = {
 			action: "alterDataset",
-			alteration: "removeEventType",
-			eventName: eventName
+			alteration: "removeEventTypes",
+			eventNames: eventNames
 	};
 	sendToServer(action);
 }
@@ -3748,19 +3763,25 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 /**
  * Updates the data after the removal of an event type
  * @param {number[]} removedIds Ids of events to be removed
- * @param {string} removedEvent The name of the removed event type
+ * @param {string[]} removedEvents The name of the removed event types
  */
-function updateDatasetForRemovedEventType(removedIds, removedEvent) {
+function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	resetDataFilters();
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	// Clean the highlight if necessary
+	let intersection = _.intersection(highlightedEventTypes, removedEvents);
+	if (intersection.length > 0) {
+		highlightedEventTypes = _.difference(highlightedEventTypes, intersection);
+		setHighlights();
+	}
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	computeUsersPerEventType();
 	createEventTypesListDisplay();
-	addToHistory("Event type "+removedEvent+" removed");
+	addToHistory(removedEvents.length + " event types removed", removedEvents.join(', '));
 }
 
 /**
@@ -3820,18 +3841,23 @@ function askConfirmationToChangeAlgorithmParameters() {
 
 /**
  * Opens a modal window to confirm or cancel the removal of event types
+ * @param {...string} eventTypeNames The name of event types whose removal must be confirmed
  */
-function askConfirmationToRemoveEventType(eventTypeName) {
+function askConfirmationToRemoveEventTypes(...eventTypeNames) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
 		.text("Confirm event type removal");
 	d3.select("#actionConfirmation #contentHeader")
 		.text("Confirm the removal of all events of the following types :");
-	d3.select("#actionConfirmation #contentBody")
-		.text(eventTypeName);
+	let contentArea = d3.select("#actionConfirmation #contentBody")
+		.text("");
+	eventTypeNames.forEach( (typeName) => {
+		contentArea.append("div")
+			.text(typeName);
+	});
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
-			requestEventTypeRemoval(eventTypeName);
+			requestEventTypesRemoval(eventTypeNames);
 			closeModal();
 		});
 	d3.select("#confirmationCancel")
@@ -4446,7 +4472,7 @@ function createEventTypesListDisplay() {
 			.attr("title", "Remove")
 			.on("click", function() {
 				d3.event.stopPropagation();
-				askConfirmationToRemoveEventType(eType);
+				askConfirmationToRemoveEventTypes(eType);
 			});
 		let extendedRemoveActions = removeAction.append("div")
 			.classed("extendedContextAction", true);
@@ -4454,12 +4480,20 @@ function createEventTypesListDisplay() {
 			.text("Remove one")
 			.on("click", function() {
 				d3.event.stopPropagation();
-				askConfirmationToRemoveEventType(eType);
+				askConfirmationToRemoveEventTypes(eType);
 			});
 		extendedRemoveActions.append("p")
-			.text("Remove all highlighted");
+			.text("Remove all highlighted")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveHighlightedEventTypes();
+			});
 		extendedRemoveActions.append("p")
-			.text("Remove all unhighlighted");
+			.text("Remove all unhighlighted")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveNotHighlightedEventTypes();
+			});
 		
 		/* Old symbol cell, using svg
 		var symbolRow = eventRow.append("td")
