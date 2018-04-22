@@ -191,12 +191,14 @@ class SupportCounting {
                 patternManager.addPattern(cItems, cSupport, fullSIds, users, timestamps, eventIds, true);
             }
             
-            try {
-				Thread.sleep(parameters.getDelay());
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+            if (!parameters.steeringIsOccurring()) {
+	            try {
+					Thread.sleep(parameters.getDelay());
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+            }
         }
         candidateSet = null;
         //We end returning the frequent candidates, i.e. the frequent k-sequence set
