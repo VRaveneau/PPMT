@@ -1744,13 +1744,25 @@ function addToHistory(action, details="") {
 	let now = formatTime(new Date());
 	let item = history.insert("div",":first-child")
 		.classed("historyItem", true);
-	item.append("p")
+	let title = item.append("p")
 		.classed("historyTitle", true)
 		.text(action);
 	if (details.length > 0) {
-		item.append("p")
-			.classed("historyContent", true)
+		let content = item.append("p")
+			.classed("historyContent hidden", true)
 			.text(details);
+		item.append("p")
+			.text("(Show details)")
+			.classed("clickable clickableText smallText historyShowMore", true)
+			.on("click", function() {
+				if (content.classed("hidden")) {
+					this.textContent = "(Hide details)";
+					content.classed("hidden", false);
+				} else {
+					this.textContent = "(Show details)";
+					content.classed("hidden", true);
+				}
+			});
 	}
 	item.append("p")
 		.classed("historyTimestamp", true)

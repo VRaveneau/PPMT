@@ -657,7 +657,7 @@ body {
 		min-content
 		[content-bottom main-bottom];
 	grid-template-columns:
-		[title-start] 1fr [title-end timestamp-start] min-content [timestamp-end];
+		[title-start] 1fr [title-end showMore-start] min-content [showMore-end timestamp-start] min-content [timestamp-end];
 	
 	border: 1px solid lightgrey;
 	border-radius: 5px;
@@ -673,6 +673,14 @@ body {
 	grid-column: title-start / title-end;
 	text-align: left;
 	margin: 0px;
+}
+
+.historyShowMore {
+	grid-row: title-top / title-bottom;
+	grid-column:  showMore-start / showMore-end;
+	margin: 0px;
+	padding-right: 5px;
+	white-space: nowrap;
 }
 
 .historyTimestamp {
