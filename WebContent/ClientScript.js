@@ -4439,7 +4439,8 @@ function createEventTypesListDisplay() {
 		// Add the context actions
 		let contextActions = eventRow.append("div")
 			.classed("contextActions", true);
-		contextActions.append("button")
+		let removeAction = contextActions.append("div");
+		removeAction.append("button")
 			.classed("clickable", true)
 			.classed("icon-remove", true)
 			.attr("title", "Remove")
@@ -4447,6 +4448,18 @@ function createEventTypesListDisplay() {
 				d3.event.stopPropagation();
 				askConfirmationToRemoveEventType(eType);
 			});
+		let extendedRemoveActions = removeAction.append("div")
+			.classed("extendedContextAction", true);
+		extendedRemoveActions.append("p")
+			.text("Remove one")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveEventType(eType);
+			});
+		extendedRemoveActions.append("p")
+			.text("Remove all highlighted");
+		extendedRemoveActions.append("p")
+			.text("Remove all unhighlighted");
 		
 		/* Old symbol cell, using svg
 		var symbolRow = eventRow.append("td")
@@ -4625,7 +4638,8 @@ function createUserListDisplay() {
 		// Add the context actions
 		let contextActions = userRow.append("div")
 			.classed("contextActions", true);
-		contextActions.append("button")
+		let removeAction = contextActions.append("div");
+		removeAction.append("button")
 			.classed("clickable", true)
 			.classed("icon-remove", true)
 			.attr("title", "Remove")
@@ -4633,6 +4647,19 @@ function createUserListDisplay() {
 				d3.event.stopPropagation();
 				askConfirmationToRemoveUser(user);
 			});
+		
+		let extendedRemoveActions = removeAction.append("div")
+			.classed("extendedContextAction", true);
+		extendedRemoveActions.append("p")
+			.text("Remove one")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveUser(user);
+			});
+		extendedRemoveActions.append("p")
+			.text("Remove all highlighted");
+		extendedRemoveActions.append("p")
+			.text("Remove all unhighlighted");
 
 
 		userRow.on("click", function(){

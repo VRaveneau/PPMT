@@ -105,7 +105,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	position: absolute;
 	visibility: hidden;
 	right: 2px;
-	overflow: hidden;
+	overflow: visible;
 }
 
 tr:hover > .contextActions {
@@ -118,11 +118,48 @@ tr:hover > .contextActions {
 	margin: 0px 0px 0px 2px;
 	padding: 0px;
 	border: 0px;
+	box-sizing: border-box;
+}
+
+.extendedContextAction {
+	position: absolute;
+	top: 100%;
+	right: 0%;
+    background-color: white;
+    border: 1px black solid;
+	padding: 3px;
+	white-space: nowrap;
+	visibility: hidden;
+}
+
+.contextActions div:hover > .extendedContextAction {
+	visibility: visible;
+}
+
+.extendedContextAction::before {
+	content: "";
+	width: 5px;
+	height: 5px;
+	position: absolute;
+	top: -4px;
+	right: 6px;
+    border-top: solid 1px black;
+	border-left: solid 1px black;
+	background-color: white;
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+.extendedContextAction p {
+	margin: 0px;
+}
+
+.extendedContextAction p:hover {
+	background-color: rgba(124, 124, 124, 0.4);
 }
 
 tbody > tr:hover {
-	background-color: rgb(124, 124, 124);
-	color: white;
+	background-color: rgba(124, 124, 124, 0.4);
 }
 
 .section {
@@ -731,6 +768,7 @@ body {
 
 .helper {
 	background-image: url("./img/icons.png");
+	background-repeat: no-repeat;
 	background-size: 100%;
 	min-width: 15px;
 	min-height: 15px;
@@ -765,6 +803,7 @@ body {
 
 .icon-remove {
 	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
 	background-position:  0px 0px;
 	background-size: 300%;
 }
@@ -779,6 +818,7 @@ body {
 
 .icon-toEventType {
 	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
 	background-position: 0px -60px;
 	background-size: 300%;
 }
@@ -793,6 +833,7 @@ body {
 
 .icon-steering {
 	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
 	background-position: 0px -20px;
 	background-size: 300%;
 }
@@ -807,6 +848,7 @@ body {
 
 .icon-selectUsers {
 	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
 	background-position: 0px -40px;
 	background-size: 300%;
 }
