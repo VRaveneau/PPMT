@@ -20,6 +20,10 @@ public class TraceModification {
 	public void setRemovedIds(List<Integer> removedIds) {
 		this.removedIds = removedIds;
 	}
+	
+	public void addRemovedIds(List<Integer> removedIds) {
+		this.removedIds.addAll(removedIds);
+	}
 
 	public List<Event> getNewEvents() {
 		return newEvents;
