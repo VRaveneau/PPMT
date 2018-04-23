@@ -236,9 +236,9 @@ public class ClientHandler {
 		sendToSession(session, dataMessage.build());
 	}
 	
-	public void requestSteeringOnPattern(int patternId) {
+	public void requestSteeringOnPatternStart(int patternId) {
 		for(SteeringListener listener : getSteeringListeners()) {
-			listener.steeringRequestedOnPattern(new Integer(patternId));
+			listener.steeringRequestedOnPatternStart(new Integer(patternId));
 			System.out.println("ClientHandler: transmitting steering request on pattern id "+patternId);
 		}
 	}
@@ -246,6 +246,12 @@ public class ClientHandler {
 	public void requestSteeringOnUser(String userId) {
 		for(SteeringListener listener : getSteeringListeners()) {
 			listener.steeringRequestedOnUser(userId);
+		}
+	}
+
+	public void requestSteeringOnTime(long start, long end) {
+		for(SteeringListener listener : getSteeringListeners()) {
+			listener.steeringRequestedOnTime(start, end);
 		}
 	}
 
@@ -294,6 +300,21 @@ public class ClientHandler {
 		}
 		
 		algorithmHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
+	}
+	
+	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, long delay) {
+		if (patternManager == null) {
+			setPatternManager(new PatternManager(this));
+			dataset.addPatternManagerToSession(session, patternManager);
+		} else {
+			algorithmHandler.stopMining();
+			dataset.removePatternManagerFromSession(session);
+			
+			setPatternManager(new PatternManager(this));
+			dataset.addPatternManagerToSession(session, patternManager);
+		}
+		
+		algorithmHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay);
 	}
 	
 	public void alertOfNewPattern(Pattern p) {
@@ -521,8 +542,8 @@ public class ClientHandler {
 		patternManager = null;
 	}
 	
-	public void removeEventType(String eventName) {
-		TraceModification modifs = dataset.removeEventType(eventName, session);
+	public void removeEventTypes(JsonArray eventNames) {
+		TraceModification modifs = dataset.removeEventTypes(eventNames, session);
 		
 		// Stop the algorithm
 		algorithmHandler.stopMining();
@@ -535,7 +556,7 @@ public class ClientHandler {
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "dataAlteration")
 				.add("type", "eventTypeRemoved")
-				.add("removedEvent", eventName);
+				.add("removedEvents", eventNames);
 		
 		JsonArrayBuilder removedIds = provider.createArrayBuilder();
 		for (Integer id : modifs.getRemovedIds())
@@ -550,8 +571,8 @@ public class ClientHandler {
 		patternManager = null;
 	}
 	
-	public void removeUser(String userName) {
-		TraceModification modifs = dataset.removeUser(userName, session);
+	public void removeUsers(JsonArray userNames) {
+		TraceModification modifs = dataset.removeUsers(userNames, session);
 		
 		// Stop the algorithm
 		algorithmHandler.stopMining();
@@ -563,8 +584,8 @@ public class ClientHandler {
 		JsonProvider provider = JsonProvider.provider();
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "dataAlteration")
-				.add("type", "userRemoved")
-				.add("removedUser", userName);
+				.add("type", "usersRemoved")
+				.add("removedUsers", userNames);
 		
 		JsonArrayBuilder removedIds = provider.createArrayBuilder();
 		for (Integer id : modifs.getRemovedIds())

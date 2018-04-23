@@ -45,7 +45,12 @@ public class ServerEndpointPPMT {
 					int maxGap = Integer.parseInt(jsonMessage.getString("maxGap"));
 					int maxDuration = Integer.parseInt(jsonMessage.getString("maxDuration"));
 					String datasetName = jsonMessage.getString("datasetName");
-					sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName, session);
+					if (jsonMessage.containsKey("delay")) {
+						long delay = jsonMessage.getJsonNumber("delay").longValue();
+						sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay, datasetName, session);
+					} else {
+						sessionHandler.runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, datasetName, session);
+					}
 				}
 				break;
 				
@@ -97,25 +102,35 @@ public class ServerEndpointPPMT {
 				break;
 				
 			case "steerOnPattern":
-				System.out.println("ServerEndpoint : receive steering request on pattern id "+jsonMessage.getInt("patternId"));
-		  		sessionHandler.requestSteeringOnPattern(jsonMessage.getInt("patternId"),session);
+				switch(jsonMessage.getString("object")) {
+				case "start":
+					System.out.println("ServerEndpoint : receive steering request on pattern id "+jsonMessage.getInt("patternId"));
+					sessionHandler.requestSteeringOnPatternStart(jsonMessage.getInt("patternId"),session);					
+					break;
+				default:
+					System.out.println("Unknown object for a steering on pattern: "+ jsonMessage.getString("object"));
+				}
 				break;
 				
 			case "steerOnUser":
 				sessionHandler.requestSteeringOnUser(jsonMessage.getString("userId"),session);
 				break;
-			
+			case "steerOnTime":
+				long longStart = Long.parseLong(jsonMessage.getString("start"));
+				long longEnd = Long.parseLong(jsonMessage.getString("end"));
+				sessionHandler.requestSteeringOnTime(longStart, longEnd, session);
+				break;
 			case "alterDataset":
 				sessionHandler.sessionAltersDataset(session);
 				switch(jsonMessage.getString("alteration")) {
 					case "createEventTypeFromPattern" :
 						sessionHandler.createEventTypeFromPattern(jsonMessage.getInt("patternId"), session);
 						break;
-					case "removeEventType" :
-						sessionHandler.removeEventType(jsonMessage.getString("eventName"), session);
+					case "removeEventTypes" :
+						sessionHandler.removeEventTypes(jsonMessage.getJsonArray("eventNames"), session);
 						break;
-					case "removeUser" :
-						sessionHandler.removeUser(jsonMessage.getString("userName"), session);
+					case "removeUsers" :
+						sessionHandler.removeUsers(jsonMessage.getJsonArray("userNames"), session);
 						break;
 					default:
 						System.out.println("Unknwon dataset alteration : " + jsonMessage.getString("alteration"));

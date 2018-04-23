@@ -426,26 +426,27 @@ var userInputIsDisabled = false;
 // nbSessions_down - nbSessions_up
 // start_down - start_up
 // end_down - end_up
-var lastUserSort = "";
+var lastUserSort = "nbEvents_down";
 
 // Sort order for the list of event types. Expected value is one of the following :
-// supportDown - supportUp
-// nameDown - nameUp
-// categoryDown - categoryUp
-var lastEventTypeSort = "";
+// support_down - support_up
+// nbUsers_down - nbUsers_up
+// name_down - name_up
+// category_down - category_up
+var lastEventTypeSort = "support_down";
 
 // Sort order for the list of patterns. Expected value is one of the following :
-// sizeDown - sizeUp
-// supportDown - supportUp
-// nameDown - nameUp
-// nbUsersDown - nbUsersUp
-var lastPatternSort = "sizeUp";
+// size_down - size_up
+// support_down - support_up
+// name_down - name_up
+// nbUsers_down - nbUsers_up
+var lastPatternSort = "size_up";
 // Sort order for the list of selected patterns. Expected value is one of the following :
-// sizeDown - sizeUp
-// supportDown - supportUp
-// nameDown - nameUp
-// nbUsersDown - nbUsersUp
-var lastSelectedPatternSort = "sizeUp";
+// size_down - size_up
+// support_down - support_up
+// name_down - name_up
+// nbUsers_down - nbUsers_up
+var lastSelectedPatternSort = "size_up";
 
 // The current display mode for the session view. Value is one of the following:
 // all - selected - some
@@ -460,8 +461,8 @@ var loadingAlgorithmDataAnimation;
 //  loads the data
 var loadingAlgorithmDataAnimationState = 1;
 
-// Interval for the timer of the algorithm's runtime
-var algorithmTimer;
+// Whether the algorithm is running or not
+var algorithmIsRunning;
 // Time (in ms) at which the algorithm started
 var algorithmStartTime = -1;
 // Delay (in ms) between the server and the client
@@ -516,6 +517,9 @@ var tooltipCloseTimeout;
 /*				?????				 */
 /*************************************/
 
+// The axis for the number of patterns bars in the algorithm extended view
+var algorithmExtendedBarAxis = d3.scaleLinear().rangeRound([0, 200]);
+
 // List of month names to display dates
 var monthsNames = [
 	"January", "February", "March",
@@ -552,6 +556,45 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 /*				Utility				 */
 /*************************************/
+
+/**
+ * Keeps refreshing the algorithm state display each frame while it is running
+ */
+function updateAlgorithmStateDisplayOnRAF() {
+	updateAlgorithmStateDisplay();
+	if (algorithmIsRunning)
+		requestAnimationFrame(updateAlgorithmStateDisplayOnRAF);
+}
+
+/**
+ * Utility function to ask for the removal of all highlighted event types at once
+ */
+function askConfirmationToRemoveHighlightedEventTypes() {
+	askConfirmationToRemoveEventTypes(...highlightedEventTypes);
+}
+
+/**
+ * Utility function to ask for the removal of all not highlighted event types at once
+ */
+function askConfirmationToRemoveNotHighlightedEventTypes() {
+	let notHighlighted = _.difference(eventTypes, highlightedEventTypes);
+	askConfirmationToRemoveEventTypes(...notHighlighted);
+}
+
+/**
+ * Utility function to ask for the removal of all highlighted users at once
+ */
+function askConfirmationToRemoveHighlightedUsers() {
+	askConfirmationToRemoveUsers(...highlightedUsers);
+}
+
+/**
+ * Utility function to ask for the removal of all not highlighted users at once
+ */
+function askConfirmationToRemoveNotHighlightedUsers() {
+	let notHighlighted = _.difference(userList, highlightedUsers);
+	askConfirmationToRemoveUsers(...notHighlighted);
+}
 
 /**
  * Prevents events against propagating to other DOM elements
@@ -950,35 +993,35 @@ function getEventColor(eventType) {
  */
 function findNewPatternIndex(patternInfos) {
 	switch(lastPatternSort) {
-	case "nameDown":
+	case "name_down":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][0] < patternInfos[0];
 		});
-	case "nameUp":
+	case "name_up":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][0] > patternInfos[0];
 		});
-	case "sizeDown":
+	case "size_down":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][1] < patternInfos[1];
 		});
-	case "sizeUp":
+	case "size_up":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][1] > patternInfos[1];
 		});
-	case "nbUsersDown":
+	case "nbUsers_down":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][4].length < patternInfos[4].length;
 		});
-	case "nbUsersUp":
+	case "nbUsers_up":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][4].length > patternInfos[4].length;
 		});
-	case "supportDown":
+	case "support_down":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][2] < patternInfos[2];
 		});
-	case "supportUp":
+	case "support_up":
 		return patternIdList.findIndex(function(elt, idx) {
 			return patternsInformation[elt][2] > patternInfos[2];
 		});
@@ -1150,15 +1193,37 @@ function createServer() {
 }
 
 /**
+ * Creates the sort indicators for the tables
+ */
+function setupTableSortIndicators() {
+	let template = document.getElementById("sortIndicator");
+	let headers = document.getElementsByClassName("sortIndicator");
+
+	for (let i = 0; i < headers.length; i++) {
+		let clone = document.importNode(template.content, true);
+		headers[i].appendChild(clone);
+	}
+
+	updateEventTypeTableHead();
+	updateUserTableHead();
+	updateSelectedPatternTableHead();
+	updatePatternTableHead();
+}
+
+/**
  * Initializes the tool once a dataset has been selected
  */
 function setupTool() {
+	setupAlgorithmSpeedGraphs();
+	setupTableSortIndicators();
 	setupModalWindows();
 	setupAlgorithmSearchField();
 	setupUserSearchField();
 	
 	d3.select("#showPatternTextInput")
-		.on("click", stopEventPropagation);
+		.on("click", switchShowPatternText);
+	d3.select("#showEventTypeDescriptionInput")
+		.on("click", switchShowEventTypeDescription);
 
 	// Setup the input for the number of users to display
 	d3.select("#showAllUserSessionsInput")
@@ -1185,7 +1250,6 @@ function setupTool() {
 	document.getElementById("selectablePatternSpan").textContent = maxSelectedPatternNb;
 	
 	timeline = new Timeline("timeline",{});
-	setupHelpers();
 	
 	setupAlgorithmSliders();
 	setupPatternSizesChart();
@@ -1198,6 +1262,19 @@ function setupTool() {
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
 	resetHistory();	// Reset the history display
+}
+
+var patternsPerSecondChart;
+var candidatesCheckedPerSecondChart;
+
+/**
+ * Setups the speed graphs in the extended algorithm state view
+ */
+function setupAlgorithmSpeedGraphs() {
+	patternsPerSecondChart = new PatternPerSecondGraph("patternsPerSecond");
+	candidatesCheckedPerSecondChart = new CandidatesCheckedPerSecondGraph("candidatesCheckedPerSecond");
+	//patternsPerSecondSvg.draw();
+	
 }
 
 /**
@@ -1614,20 +1691,6 @@ function setupSizeParameterSlider() {
 }
 
 /**
- * Setup the help messages for the algorithm parameters' sliders
- */
-function setupHelpers() {
-	d3.select("#helpSupport")
-		.attr("title", "Number of occurrences of a pattern");
-	/*d3.select("#helpGap")
-		.attr("title", "Number of events in the pattern that don't belong to it");
-	d3.select("#helpWindow")
-		.attr("title", "The minimal support for a pattern to be frequent");*/
-	d3.select("#helpSize")
-		.attr("title", "Number of events in a pattern");
-}
-
-/**
  * Sets up the modal windows
  */
 function setupModalWindows() {
@@ -1691,9 +1754,10 @@ function setupEventBinDimensions() {
 /**
  * Adds an action to the displayed history
  * @param {string} action - The message to be added to the history
+ * @param {...string} details - More information about the action
  */
-function addToHistory(action) {
-	let history = d3.select("#history");
+function addToHistory(action, ...details) {
+	let history = d3.select("#historyList");
 	if (historyDisplayIsDefault) {
 		history.text("");
 		historyDisplayIsDefault = false;
@@ -1701,11 +1765,34 @@ function addToHistory(action) {
 	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
 	let formatTime = d3.timeFormat("%H:%M:%S");
 	let now = formatTime(new Date());
-	history.insert("p",":first-child")
-		.text("- "+action)
-	  .append("span")
-		.classed("timestamp", true)
-		.text(" "+now.toString());
+	let item = history.insert("div",":first-child")
+		.classed("historyItem", true);
+	let title = item.append("p")
+		.classed("historyTitle", true)
+		.text(action);
+	if (details.length > 0) {
+		let content = item.append("div")
+			.classed("historyContent hidden", true);
+		item.append("p")
+			.text("Show details")
+			.classed("clickable clickableText smallText historyShowMore", true)
+			.on("click", function() {
+				if (content.classed("hidden")) {
+					this.textContent = "Hide details";
+					content.classed("hidden", false);
+				} else {
+					this.textContent = "Show details";
+					content.classed("hidden", true);
+				}
+			});
+		details.forEach( (detail) => {
+			content.append("p")
+				.text(detail);
+		});
+	}
+	item.append("p")
+		.classed("historyTimestamp", true)
+		.text(now.toString());
 }
 
 /*************************************/
@@ -1745,8 +1832,14 @@ function startInitialMining() {
 			break;
 		default:
 	}
-	requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
-		 algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName);
+	if (pageParameters.serverDelay) {
+		let delay = parseInt(pageParameters.serverDelay);
+		requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
+			algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName, delay);
+	} else {
+		requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
+			algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName);
+	}
 }
 
 /**
@@ -1759,13 +1852,14 @@ function startInitialMining() {
  * @param {number} maxGap The maximum allowed gap between two events of a pattern
  * @param {number} maxDuration The maximum duration of a pattern occurrence
  * @param {number} datasetName The name of the dataset to be used
+ * @param {number} delay The delay (in ms) between each candidate check on the server
  */
 function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
-								maxDuration, datasetName) {
+								maxDuration, datasetName, ...delay) {
 	console.log("Requesting algorithm start:");
 	console.log("   minSup: "+minSupport+", windowSize: "+windowSize+
 		", maxSize: "+maxSize+", minGap: "+minGap+", maxGap: "+maxGap+
-		", maxDuration: "+maxDuration+", datasetName: "+datasetName);
+		", maxDuration: "+maxDuration+", datasetName: "+datasetName+", delay: "+delay);
 	
 	let action = {
 		action: "run",
@@ -1778,6 +1872,10 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 		maxDuration: maxDuration.toString(),
 		datasetName: datasetName
 	};
+
+	if (delay.length > 0) {
+		action.delay = delay[0];
+	}
 	sendToServer(action);
 
 	// Start the timer independently from the server
@@ -2004,10 +2102,10 @@ function processMessage(message/*Compressed*/) {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
 		}
 		if (msg.type === "eventTypeRemoved") {
-			updateDatasetForRemovedEventType(msg.removedIds, msg.removedEvent);
+			updateDatasetForRemovedEventTypes(msg.removedIds, msg.removedEvents);
 		}
-		if (msg.type === "userRemoved") {
-			updateDatasetForRemovedUser(msg.removedIds, msg.removedUser);
+		if (msg.type === "usersRemoved") {
+			updateDatasetForRemovedUsers(msg.removedIds, msg.removedUsers);
 		}
 		// Restart the mining
 		requestAlgorithmReStart();
@@ -2139,13 +2237,14 @@ function requestUserList(datasetName) {
 }
 
 /**
- * Requests a steering of the algorithm on a given pattern
+ * Requests a steering of the algorithm on a given pattern as prefix
  * @param {string} patternId - Id of the pattern to steer on
  */
-function requestSteeringOnPattern(patternId) {
-	console.log('requesting steering on patternId '+patternId);
+function requestSteeringOnPatternPrefix(patternId) {
+	console.log('requesting steering on patternId '+patternId+' as prefix');
 	let action = {
 			action: "steerOnPattern",
+			object: "start",
 			patternId: patternId
 	};
 	sendToServer(action);
@@ -2160,6 +2259,23 @@ function requestSteeringOnUser(userId) {
 	let action = {
 			action: "steerOnUser",
 			userId: userId
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests a steering of the algorithm on a given time period
+ * @param {number} start - The start of the period
+ * @param {number} end - The end of the period
+ */
+function requestSteeringOnTime(start, end) {
+	console.log('requesting steering on time between '+start+' and '+end);
+	// Numbers are sent as strings to prevent an error when their value is read
+	// by the server
+	let action = {
+			action: "steerOnTime",
+			start: start+"",
+			end: end+""
 	};
 	sendToServer(action);
 }
@@ -2182,29 +2298,29 @@ function requestEventTypeCreationFromPattern(patternId) {
 }
 
 /**
- * Requests an alteration of the dataset by removing an event type
- * @param {string} eventName - The name of the event type
+ * Requests an alteration of the dataset by removing some event types
+ * @param {[string]} eventNames - The name of the event types
  */
-function requestEventTypeRemoval(eventName) {
-	console.log('requesting the removal of event type '+eventName);
+function requestEventTypesRemoval(eventNames) {
+	console.log('requesting the removal of event types '+ eventNames);
 	let action = {
 			action: "alterDataset",
-			alteration: "removeEventType",
-			eventName: eventName
+			alteration: "removeEventTypes",
+			eventNames: eventNames
 	};
 	sendToServer(action);
 }
 
 /**
- * Requests an alteration of the dataset by removing a user
- * @param {string} userName - The name of the user
+ * Requests an alteration of the dataset by removing some users
+ * @param {string[]} userNames - The name of the users
  */
-function requestUserRemoval(userName) {
-	console.log('requesting the removal of user '+userName);
+function requestUsersRemoval(userNames) {
+	console.log('requesting the removal of users '+userNames);
 	let action = {
 			action: "alterDataset",
-			alteration: "removeUser",
-			userName: userName
+			alteration: "removeUsers",
+			userNames: userNames
 	};
 	sendToServer(action);
 }
@@ -2332,6 +2448,8 @@ function receiveEvents(events) {
 		addToHistory("Dataset "+datasetInfo.name+" received");
 		buildUserSessions();
 		computeMaxEventAtOneTime();
+		computeUsersPerEventType();
+		createEventTypesListDisplay();
 		timeline.displayData();
 		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
 		dataDimensions.time.filterRange(currentTimeFilter);
@@ -2449,21 +2567,36 @@ function receiveEventTypes(message) {
 		itemShapes[eType] = eCode;
 		
 		eventTypeInformations[eType] = {
-				"category":eCategory,
-				"description":eDescription,
-				"nbOccs":eNbOccs,
-				"code":eCode
+				"category": eCategory,
+				"description": eDescription,
+				"nbOccs": eNbOccs,
+				"code": eCode,
+				"nbUsers": 0
 		};
 	});
 	
-	sortEventTypesBySupport(true);
-	
+	sortEventTypes();
 	createEventTypesListDisplay();
 }
 
 /************************************/
 /*		Data manipulation			*/
 /************************************/
+
+/**
+ * Computes the number of users for each event type
+ */
+function computeUsersPerEventType() {
+	dataDimensions.time.filterAll();
+	Object.keys(eventTypeInformations).forEach( (type) => {
+		dataDimensions.type.filterExact(type);
+		eventTypeInformations[type].nbUsers = dataDimensions.user.group().all()
+			.filter( (d) => d.value > 0 ).length;
+	});
+	dataDimensions.type.filterAll();
+	if (currentTimeFilter)
+		dataDimensions.time.filterRange(currentTimeFilter);
+}
 
 /**
  * Filters the patterns according to all sliders
@@ -3234,9 +3367,9 @@ function sortSelectedPatternsByName(decreasing=false) {
 	
 	if (decreasing == true) {
 		selectedPatternIds.reverse();
-		lastSelectedPatternSort = "nameDown";
+		lastSelectedPatternSort = "name_down";
 	} else {
-		lastSelectedPatternSort = "nameUp";
+		lastSelectedPatternSort = "name_up";
 	}
 }
 
@@ -3259,9 +3392,9 @@ function sortSelectedPatternsByNbUsers(decreasing=false) {
 	
 	if (decreasing == true) {
 		selectedPatternIds.reverse();
-		lastSelectedPatternSort = "nbUsersDown";
+		lastSelectedPatternSort = "nbUsers_down";
 	} else {
-		lastSelectedPatternSort = "nbUsersUp";
+		lastSelectedPatternSort = "nbUsers_up";
 	}
 }
 
@@ -3279,9 +3412,9 @@ function sortSelectedPatternsBySize(decreasing=false) {
 	
 	if (decreasing == true) {
 		selectedPatternIds.reverse();
-		lastSelectedPatternSort = "sizeDown";
+		lastSelectedPatternSort = "size_down";
 	} else {
-		lastSelectedPatternSort = "sizeUp";
+		lastSelectedPatternSort = "size_up";
 	}
 }
 
@@ -3299,9 +3432,9 @@ function sortSelectedPatternsBySupport(decreasing=false) {
 	
 	if (decreasing == true) {
 		selectedPatternIds.reverse();
-		lastSelectedPatternSort = "supportDown";
+		lastSelectedPatternSort = "support_down";
 	} else {
-		lastSelectedPatternSort = "supportUp";
+		lastSelectedPatternSort = "support_up";
 	}
 }
 
@@ -3324,9 +3457,9 @@ function sortPatternsByName(decreasing=false) {
 	
 	if (decreasing == true) {
 		patternIdList.reverse();
-		lastPatternSort = "nameDown";
+		lastPatternSort = "name_down";
 	} else {
-		lastPatternSort = "nameUp";
+		lastPatternSort = "name_up";
 	}
 }
 
@@ -3349,9 +3482,9 @@ function sortPatternsByNbUsers(decreasing=false) {
 	
 	if (decreasing == true) {
 		patternIdList.reverse();
-		lastPatternSort = "nbUsersDown";
+		lastPatternSort = "nbUsers_down";
 	} else {
-		lastPatternSort = "nbUsersUp";
+		lastPatternSort = "nbUsers_up";
 	}
 }
 
@@ -3369,9 +3502,9 @@ function sortPatternsBySize(decreasing=false) {
 	
 	if (decreasing == true) {
 		patternIdList.reverse();
-		lastPatternSort = "sizeDown";
+		lastPatternSort = "size_down";
 	} else {
-		lastPatternSort = "sizeUp";
+		lastPatternSort = "size_up";
 	}
 }
 
@@ -3389,9 +3522,33 @@ function sortPatternsBySupport(decreasing=false) {
 	
 	if (decreasing == true) {
 		patternIdList.reverse();
-		lastPatternSort = "supportDown";
+		lastPatternSort = "support_down";
 	} else {
-		lastPatternSort = "supportUp";
+		lastPatternSort = "support_up";
+	}
+}
+
+/**
+ * Sorts the event types list according to the current sort order
+ */
+function sortEventTypes() {
+	let [target, direction] = lastEventTypeSort.split("_");
+
+	switch(target) {
+		case "name":
+			sortEventTypesByName(direction == "down");
+			break;
+		case "support":
+			sortEventTypesBySupport(direction == "down");
+			break;
+		case "nbUsers":
+			sortEventTypesByNbUsers(direction == "down");
+			break;
+		case "category":
+			sortEventTypesByCategory(direction == "down");
+			break;
+		default:
+			console.warn("Trying to sort event types in an unknown current order : "+lastEventTypeSort);
 	}
 }
 
@@ -3404,9 +3561,9 @@ function sortEventTypesByName(decreasing=false) {
 	
 	if (decreasing == true) {
 		eventTypes.reverse();
-		lastEventTypeSort = "nameDown";
+		lastEventTypeSort = "name_down";
 	} else {
-		lastEventTypeSort = "nameUp";
+		lastEventTypeSort = "name_up";
 	}
 }
 
@@ -3421,9 +3578,26 @@ function sortEventTypesBySupport(decreasing=false) {
 	
 	if (decreasing == true) {
 		eventTypes.reverse();
-		lastEventTypeSort = "supportDown";
+		lastEventTypeSort = "support_down";
 	} else {
-		lastEventTypeSort = "supportUp";
+		lastEventTypeSort = "support_up";
+	}
+}
+
+/**
+ * Sorts the event types list according to the number of users associated to them
+ * @param {boolean} decreasing - Whether or not to sort in descending order
+ */
+function sortEventTypesByNbUsers(decreasing=false) {
+	eventTypes.sort(function(a,b) {
+		return eventTypeInformations[a].nbUsers - eventTypeInformations[b].nbUsers;
+	});
+	
+	if (decreasing == true) {
+		eventTypes.reverse();
+		lastEventTypeSort = "nbUsers_down";
+	} else {
+		lastEventTypeSort = "nbUsers_up";
 	}
 }
 
@@ -3441,9 +3615,9 @@ function sortEventTypesByCategory(decreasing=false) {
 	
 	if (decreasing == true) {
 		eventTypes.reverse();
-		lastEventTypeSort = "categoryDown";
+		lastEventTypeSort = "category_down";
 	} else {
-		lastEventTypeSort = "categoryUp";
+		lastEventTypeSort = "category_up";
 	}
 }
 
@@ -3622,6 +3796,8 @@ function resetPatterns() {
 	selectedPatternIds = [];
 	// TODO Deal with the potential other pattern metrics in patternMetrics
 	patternMetrics.sizeDistribution = {};
+	patternsPerSecondChart.reset();
+	candidatesCheckedPerSecondChart.reset();
 	resetMaxPatternSupport();
 	resetMaxPatternSize();
 	drawPatternSizesChart();
@@ -3663,39 +3839,57 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 	console.log("Added");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
+	computeUsersPerEventType();
+	createEventTypesListDisplay();
 	addToHistory("Event type "+newEvents[0].type+" created from pattern");
 }
 
 /**
  * Updates the data after the removal of an event type
  * @param {number[]} removedIds Ids of events to be removed
- * @param {string} removedEvent The name of the removed event type
+ * @param {string[]} removedEvents The name of the removed event types
  */
-function updateDatasetForRemovedEventType(removedIds, removedEvent) {
+function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	resetDataFilters();
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	// Clean the highlights if necessary
+	let intersection = _.intersection(highlightedEventTypes, removedEvents);
+	if (intersection.length > 0) {
+		highlightedEventTypes = _.difference(highlightedEventTypes, intersection);
+		setHighlights();
+	}
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	addToHistory("Event type "+removedEvent+" removed");
+	computeUsersPerEventType();
+	createEventTypesListDisplay();
+	addToHistory(removedEvents.length + " event types removed", removedEvents.join(", "));
 }
 
 /**
  * Updates the data after the removal of a user
  * @param {number[]} removedIds Ids of events to be removed
- * @param {string} removedUser The name of the removed user
+ * @param {string[]} removedUsers The name of the removed users
  */
-function updateDatasetForRemovedUser(removedIds, removedUser) {
+function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	resetDataFilters();
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	// Clean the highlights if necessary
+	let intersection = _.intersection(highlightedUsers, removedUsers);
+	if (intersection.length > 0) {
+		highlightedUsers = _.difference(highlightedUsers, intersection);
+		setHighlights();
+	}
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	addToHistory("User "+removedUser+" removed");
+	computeUsersPerEventType();
+	createEventTypesListDisplay();
+	addToHistory(removedUsers.length + " users removed", removedUsers.join(", "));
 }
 
 /**
@@ -3737,18 +3931,23 @@ function askConfirmationToChangeAlgorithmParameters() {
 
 /**
  * Opens a modal window to confirm or cancel the removal of event types
+ * @param {...string} eventTypeNames The name of event types whose removal must be confirmed
  */
-function askConfirmationToRemoveEventType(eventTypeName) {
+function askConfirmationToRemoveEventTypes(...eventTypeNames) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
 		.text("Confirm event type removal");
 	d3.select("#actionConfirmation #contentHeader")
 		.text("Confirm the removal of all events of the following types :");
-	d3.select("#actionConfirmation #contentBody")
-		.text(eventTypeName);
+	let contentArea = d3.select("#actionConfirmation #contentBody")
+		.text("");
+	eventTypeNames.forEach( (typeName) => {
+		contentArea.append("div")
+			.text(typeName);
+	});
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
-			requestEventTypeRemoval(eventTypeName);
+			requestEventTypesRemoval(eventTypeNames);
 			closeModal();
 		});
 	d3.select("#confirmationCancel")
@@ -3759,18 +3958,23 @@ function askConfirmationToRemoveEventType(eventTypeName) {
 
 /**
  * Opens a modal window to confirm or cancel the removal of users
+ * @param {...string} userNames The name of users whose removal must be confirmed
  */
-function askConfirmationToRemoveUser(userName) {
+function askConfirmationToRemoveUsers(...userNames) {
 	showConfirmationModal();
 	d3.select("#modalTitle")
 		.text("Confirm user removal");
 	d3.select("#actionConfirmation #contentHeader")
 		.text("Confirm the removal of all events of the following users :");
-	d3.select("#actionConfirmation #contentBody")
-		.text(userName);
+	let contentArea = d3.select("#actionConfirmation #contentBody")
+		.text("");
+	userNames.forEach( (userName) => {
+		contentArea.append("div")
+			.text(userName);
+	});
 	d3.select("#confirmationConfirm")
 		.on("click", function() {
-			requestUserRemoval(userName);
+			requestUsersRemoval(userNames);
 			closeModal();
 		});
 	d3.select("#confirmationCancel")
@@ -3808,7 +4012,7 @@ function resetDatasetInfo() {
  * TODO check the deprecation
  */
 function resetHistory() {
-	let historyDiv = document.getElementById("history");
+	let historyDiv = document.getElementById("historyList");
 	historyDiv.textContent = "No history to display";
 	
 	historyDisplayIsDefault = true;
@@ -3881,14 +4085,19 @@ function openAlgorithmTab(evt, tabName) {
  * Shows or hides the description of event types
  */
 function switchShowEventTypeDescription() {
+	d3.event.stopPropagation();
 	if (showEventTypeDescription == true) {
 		showEventTypeDescription = false;
 		d3.selectAll(".eventTypeDescription")
 			.style("display", "none");
+		document.getElementById("showEventTypeDescriptionInput")
+			.textContent = "Show description";
 	} else {
 		showEventTypeDescription = true;
 		d3.selectAll(".eventTypeDescription")
 			.style("display", "initial");
+		document.getElementById("showEventTypeDescriptionInput")
+			.textContent = "Hide description";
 	}
 }
 
@@ -3896,43 +4105,42 @@ function switchShowEventTypeDescription() {
  * Shows or hides the name of event types inside a pattern, besides their symbol
  */
 function switchShowPatternText() {
+	d3.event.stopPropagation();
 	if (showPatternText == true) {
 		showPatternText = false;
 		d3.selectAll(".patternText")
 			.style("display", "none");
+		document.getElementById("showPatternTextInput")
+			.textContent = "Show text";
 	} else {
 		showPatternText = true;
 		d3.selectAll(".patternText")
 			.style("display", "initial");
+		document.getElementById("showPatternTextInput")
+			.textContent = "Hide text";
 	}
+}
+
+/**
+ * Updates the headline of the table of users for the current sort
+ */
+function updateUserTableHead() {
+	document.querySelectorAll("#userTable th .sortIndicator").forEach( (node) => {
+		node.className = "sortIndicator";
+	});
+
+	let [value, direction] = lastUserSort.split("_");
+
+	document.querySelector(`#userTable th[value='${value}'] .sortIndicator`)
+				.className += ` sorted${_.capitalize(direction)}`;
 }
 
 /**
  * Handles a click on the 'name' header in the user list
  */
 function clickOnUserNameHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "User") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "name_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByName();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByName(true);
-	}
-	
+	sortUsersByName(!(lastUserSort == "name_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -3941,28 +4149,8 @@ function clickOnUserNameHeader() {
  * Handles a click on the 'nbEvents' header in the user list
  */
 function clickOnUserNbEventsHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0events") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "nbEvents_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByNbEvents();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByNbEvents(true);
-	}
-	
+	sortUsersByNbEvents(!(lastUserSort == "nbEvents_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -3971,28 +4159,8 @@ function clickOnUserNbEventsHeader() {
  * Handles a click on the 'duration' header in the user list
  */
 function clickOnUserDurationHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Duration") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "duration_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByTraceDuration();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByTraceDuration(true);
-	}
-	
+	sortUsersByTraceDuration(!(lastUserSort == "duration_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -4001,28 +4169,8 @@ function clickOnUserDurationHeader() {
  * Handles a click on the 'nbSessions' header in the user list
  */
 function clickOnUserNbSessionsHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0sessions") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "nbSessions_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByNbSessions();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByNbSessions(true);
-	}
-	
+	sortUsersByNbSessions(!(lastUserSort == "nbSessions_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -4031,28 +4179,8 @@ function clickOnUserNbSessionsHeader() {
  * Handles a click on the 'start' header in the user list
  */
 function clickOnUserStartHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Start") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "start_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByStartDate();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByStartDate(true);
-	}
-	
+	sortUsersByStartDate(!(lastUserSort == "start_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
 }
@@ -4061,58 +4189,32 @@ function clickOnUserStartHeader() {
  * Handles a click on the 'end' header in the user list
  */
 function clickOnUserEndHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#userTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "End") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastUserSort == "end_down") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortUsersByEndDate();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortUsersByEndDate(true);
-	}
-	
+	sortUsersByEndDate(!(lastUserSort == "end_down"));
+	updateUserTableHead();
 	createUserListDisplay();
 	timeline.drawUsersPatterns();
+}
+
+/**
+ * Updates the headline of the table of event types for the current sort
+ */
+function updateEventTypeTableHead() {
+	document.querySelectorAll("#eventTable th .sortIndicator").forEach( (node) => {
+		node.className = "sortIndicator";
+	});
+
+	let [value, direction] = lastEventTypeSort.split("_");
+	
+	document.querySelector(`#eventTable th[value='${value}'] .sortIndicator`)
+		.className += ` sorted${_.capitalize(direction)}`;
 }
 
 /**
  * Handles a click on the 'name' header in the event types list
  */
 function clickOnEventTypeNameHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#eventTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Event\u00A0type") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastEventTypeSort == "nameDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesByName();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesByName(true);
-	}
-	
+	sortEventTypesByName(!(lastEventTypeSort == "name_down"));
+	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
 		timeline.displayData();
@@ -4122,28 +4224,19 @@ function clickOnEventTypeNameHeader() {
  * Handles a click on the 'support' header in the event types list
  */
 function clickOnEventTypeSupportHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#eventTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Support") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastEventTypeSort == "supportDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesBySupport();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesBySupport(true);
-	}
-	
+	sortEventTypesBySupport(!(lastEventTypeSort == "support_down"));
+	updateEventTypeTableHead();
+	createEventTypesListDisplay();
+	if (timeline.displayMode == "events")
+		timeline.displayData();
+}
+
+/**
+ * Handles a click on the 'nbUsers' header in the event types list
+ */
+function clickOnEventTypeNbUsersHeader() {
+	sortEventTypesByNbUsers(!(lastEventTypeSort == "nbUsers_down"));
+	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
 		timeline.displayData();
@@ -4153,59 +4246,33 @@ function clickOnEventTypeSupportHeader() {
  * Handles a click on the 'category' header in the event types list
  */
 function clickOnEventTypeCategoryHeader() {
-	let header = null;
-	let txt = "";
-	// Remove the sorting indicators
-	d3.select("#eventTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Category") {
-				header = this;
-				txt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastEventTypeSort == "categoryDown") {
-		d3.select(header).text(txt + "\u00A0↓");
-		sortEventTypesByCategory();
-	} else {
-		d3.select(header).text(txt + "\u00A0↑");
-		sortEventTypesByCategory(true);
-	}
-	
+	sortEventTypesByCategory(!(lastEventTypeSort == "category_down"));
+	updateEventTypeTableHead();
 	createEventTypesListDisplay();
 	if (timeline.displayMode == "events")
 		timeline.displayData();
 }
 
 /**
+ * Updates the headline of the table of selected patterns for the current sort
+ */
+function updateSelectedPatternTableHead() {
+	document.querySelectorAll("#selectedPatternTable th .sortIndicator").forEach( (node) => {
+		node.className = "sortIndicator";
+	});
+
+	let [value, direction] = lastSelectedPatternSort.split("_");
+
+	document.querySelector(`#selectedPatternTable th[value='${value}'] .sortIndicator`)
+				.className += ` sorted${_.capitalize(direction)}`;
+}
+
+/**
  * Handles a click on the 'name' header in the selected pattern list
  */
 function clickOnSelectedPatternNameHeader() {
-	let nameHeader = null;
-	let nameTxt = "";
-	// Remove the sorting indicators
-	d3.select("#selectedPatternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Name") {
-				nameHeader = this;
-				nameTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastSelectedPatternSort == "nameDown") {
-		d3.select(nameHeader).text(nameTxt + "\u00A0↓");
-		sortSelectedPatternsByName();
-	} else {
-		d3.select(nameHeader).text(nameTxt + "\u00A0↑");
-		sortSelectedPatternsByName(true);
-	}
-	
+	sortSelectedPatternsByName(!(lastSelectedPatternSort == "name_down"));
+	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4213,28 +4280,8 @@ function clickOnSelectedPatternNameHeader() {
  * Handles a click on the 'size' header in the selected pattern list
  */
 function clickOnSelectedPatternSizeHeader() {
-	let sizeHeader = null;
-	let sizeTxt = "";
-	// Remove the sorting indicators
-	d3.select("#selectedPatternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Size") {
-				sizeHeader = this;
-				sizeTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastSelectedPatternSort == "sizeDown") {
-		d3.select(sizeHeader).text(sizeTxt + "\u00A0↓");
-		sortSelectedPatternsBySize();
-	} else {
-		d3.select(sizeHeader).text(sizeTxt + "\u00A0↑");
-		sortSelectedPatternsBySize(true);
-	}
-	
+	sortSelectedPatternsBySize(!(lastSelectedPatternSort == "size_down"));
+	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4242,28 +4289,8 @@ function clickOnSelectedPatternSizeHeader() {
  * Handles a click on the 'nb users' header in the selected pattern list
  */
 function clickOnSelectedPatternNbUsersHeader() {
-	let nbUsersHeader = null;
-	let nbUsersTxt = "";
-	// Remove the sorting indicators
-	d3.select("#selectedPatternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Nb\u00A0users") {
-				nbUsersHeader = this;
-				nbUsersTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastSelectedPatternSort == "nbUsersDown") {
-		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↓");
-		sortSelectedPatternsByNbUsers();
-	} else {
-		d3.select(nbUsersHeader).text(nbUsersTxt + "\u00A0↑");
-		sortSelectedPatternsByNbUsers(true);
-	}
-	
+	sortSelectedPatternsByNbUsers(!(lastSelectedPatternSort == "nbUsers_down"));
+	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4271,28 +4298,8 @@ function clickOnSelectedPatternNbUsersHeader() {
  * Handles a click on the 'support' header in the selected pattern list
  */
 function clickOnSelectedPatternSupportHeader() {
-	let supportHeader = null;
-	let supportTxt = "";
-	// Remove the sorting indicators
-	d3.select("#selectedPatternTable").selectAll("th")
-		.each(function(d, i) {
-			let colName = d3.select(this).text().split(/\s/);
-			colName.pop();
-			colName = colName.join("\u00A0").trim();
-			if (colName == "Support") {
-				supportHeader = this;
-				supportTxt = colName;
-			} else
-				d3.select(this).text(colName+"\u00A0\u00A0");
-		});
-	if (lastSelectedPatternSort == "supportDown") {
-		d3.select(supportHeader).text(supportTxt + "\u00A0↓");
-		sortSelectedPatternsBySupport();
-	} else {
-		d3.select(supportHeader).text(supportTxt + "\u00A0↑");
-		sortSelectedPatternsBySupport(true);
-	}
-	
+	sortSelectedPatternsBySupport(!(lastSelectedPatternSort == "support_down"));
+	updateSelectedPatternTableHead();
 	createPatternListDisplay();
 }
 
@@ -4300,54 +4307,21 @@ function clickOnSelectedPatternSupportHeader() {
  * Updates the headline of the table of patterns for the current sort
  */
 function updatePatternTableHead() {
-	let nameTxt = "";
-	let supportTxt = "";
-	let nbUsersTxt = "";
-	let sizeTxt = "";
+	document.querySelectorAll("#patternTable th .sortIndicator").forEach( (node) => {
+		node.className = "sortIndicator";
+	});
 
-	switch(lastPatternSort) {
-		case "nameDown":
-			nameTxt = "↑";
-			break;
-		case "nameUp":
-			nameTxt = "↓";
-			break;
-		case "supportDown":
-			supportTxt = "↑";
-			break;
-		case "supportUp":
-			supportTxt = "↓";
-			break;
-		case "nbUsersDown":
-			nbUsersTxt = "↑";
-			break;
-		case "nbUsersUp":
-			nbUsersTxt = "↓";
-			break;
-		case "sizeDown":
-			sizeTxt = "↑";
-			break;
-		case "sizeUp":
-			sizeTxt = "↓";
-			break;
-		default:
-	}
+	let [value, direction] = lastPatternSort.split("_");
 
-	d3.select("#patternTable th[value='name'] .sortIndicator")
-		.text(nameTxt);
-	d3.select("#patternTable th[value='support'] .sortIndicator")
-		.text(supportTxt);
-	d3.select("#patternTable th[value='nbUsers'] .sortIndicator")
-		.text(nbUsersTxt);
-	d3.select("#patternTable th[value='size'] .sortIndicator")
-		.text(sizeTxt);
+	document.querySelector(`#patternTable th[value='${value}'] .sortIndicator`)
+				.className += ` sorted${_.capitalize(direction)}`;
 }
 
 /**
  * Handles a click on the 'name' header in the pattern list
  */
 function clickOnPatternNameHeader() {
-	sortPatternsByName(!(lastPatternSort == "nameDown"));
+	sortPatternsByName(!(lastPatternSort == "name_down"));
 	updatePatternTableHead();
 	createPatternListDisplay();
 }
@@ -4356,7 +4330,7 @@ function clickOnPatternNameHeader() {
  * Handles a click on the 'size' header in the pattern list
  */
 function clickOnPatternSizeHeader() {
-	sortPatternsBySize(!(lastPatternSort == "sizeDown"));
+	sortPatternsBySize(!(lastPatternSort == "size_down"));
 	updatePatternTableHead();
 	createPatternListDisplay();
 }
@@ -4365,7 +4339,7 @@ function clickOnPatternSizeHeader() {
  * Handles a click on the 'nb users' header in the pattern list
  */
 function clickOnPatternNbUsersHeader() {
-	sortPatternsByNbUsers(!(lastPatternSort == "nbUsersDown"));
+	sortPatternsByNbUsers(!(lastPatternSort == "nbUsers_down"));
 	updatePatternTableHead();
 	createPatternListDisplay();
 }
@@ -4374,7 +4348,7 @@ function clickOnPatternNbUsersHeader() {
  * Handles a click on the 'support' header in the pattern list
  */
 function clickOnPatternSupportHeader() {
-	sortPatternsBySupport(!(lastPatternSort == "supportDown"));
+	sortPatternsBySupport(!(lastPatternSort == "support_down"));
 	updatePatternTableHead();
 	createPatternListDisplay();
 }
@@ -4572,6 +4546,9 @@ function createEventTypesListDisplay() {
 			.style("display", showEventTypeDescription == true ? "initial" : "none")
 			.text(eventTypeInformations[eType].description);
 		eventRow.append("td").text(eventTypeInformations[eType].nbOccs);
+		eventRow.append("td").text(eventTypeInformations[eType].nbUsers == 0 ?
+			"??" :
+			eventTypeInformations[eType].nbUsers);
 		eventRow.append("td")
 			.style("color",colorList[eType][0].toString())
 			.text(eventTypeInformations[eType].category);
@@ -4583,13 +4560,34 @@ function createEventTypesListDisplay() {
 		// Add the context actions
 		let contextActions = eventRow.append("div")
 			.classed("contextActions", true);
-		contextActions.append("button")
+		let removeAction = contextActions.append("div");
+		removeAction.append("button")
 			.classed("clickable", true)
 			.classed("icon-remove", true)
 			.attr("title", "Remove")
 			.on("click", function() {
 				d3.event.stopPropagation();
-				askConfirmationToRemoveEventType(eType);
+				askConfirmationToRemoveEventTypes(eType);
+			});
+		let extendedRemoveActions = removeAction.append("div")
+			.classed("extendedContextAction", true);
+		extendedRemoveActions.append("p")
+			.text("Remove one")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveEventTypes(eType);
+			});
+		extendedRemoveActions.append("p")
+			.text("Remove all highlighted")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveHighlightedEventTypes();
+			});
+		extendedRemoveActions.append("p")
+			.text("Remove all unhighlighted")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveNotHighlightedEventTypes();
 			});
 		
 		/* Old symbol cell, using svg
@@ -4769,13 +4767,35 @@ function createUserListDisplay() {
 		// Add the context actions
 		let contextActions = userRow.append("div")
 			.classed("contextActions", true);
-		contextActions.append("button")
+		let removeAction = contextActions.append("div");
+		removeAction.append("button")
 			.classed("clickable", true)
 			.classed("icon-remove", true)
 			.attr("title", "Remove")
 			.on("click", function() {
 				d3.event.stopPropagation();
-				askConfirmationToRemoveUser(user);
+				askConfirmationToRemoveUsers(user);
+			});
+		
+		let extendedRemoveActions = removeAction.append("div")
+			.classed("extendedContextAction", true);
+		extendedRemoveActions.append("p")
+			.text("Remove one")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveUsers(user);
+			});
+		extendedRemoveActions.append("p")
+			.text("Remove all highlighted")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveHighlightedUsers();
+			});
+		extendedRemoveActions.append("p")
+			.text("Remove all unhighlighted")
+			.on("click", function() {
+				d3.event.stopPropagation();
+				askConfirmationToRemoveNotHighlightedUsers();
 			});
 
 
@@ -4874,7 +4894,8 @@ function startAlgorithmRuntime(time) {
 	let clientTime = new Date();
 	algorithmStartTime = new Date(time);
 	startDelayFromServer = algorithmStartTime - clientTime;
-	algorithmTimer = setInterval(updateAlgorithmStateDisplay, 100);
+	algorithmIsRunning = true;
+	updateAlgorithmStateDisplayOnRAF();
 }
 
 /**
@@ -4883,7 +4904,7 @@ function startAlgorithmRuntime(time) {
  */
 function stopAlgorithmRuntime(time) {
 	if (algorithmStartTime > 0) {
-		clearInterval(algorithmTimer);
+		algorithmIsRunning = false;
 		// checks if the timer is coherent with the server's
 		let thisDate = new Date(time);
 		let elapsedTime = thisDate - algorithmStartTime;
@@ -4908,7 +4929,7 @@ function stopAlgorithmRuntime(time) {
 	d3.select("#currentAlgorithmWork")
 		.text("(ended)");
 }
-var algorithmExtendedBarAxis = d3.scaleLinear().rangeRound([0, 200]);
+
 /**
  * Updates the display of the algorithm state
  */
@@ -5032,8 +5053,36 @@ function updateAlgorithmStateDisplay() {
 	}
 	d3.select("#extendedAlgorithmStrategyArea div.body")
 		.text(strategyTxt);
-	// Update the speed
-		
+	// Update the speeds
+	let dateNow = Date.now();
+	let lastData = patternsPerSecondChart.getLastData();
+	if (lastData) {
+		if (dateNow - lastData.date >= 1000 ) {
+			let patternNb = algorithmState.getTotalPatternNumber();
+			let valueDifference = patternNb - lastData.total;
+			patternsPerSecondChart.addData({date: dateNow, delta: valueDifference, total: patternNb});
+			patternsPerSecondChart.draw();
+		}
+	} else {
+		let patternNb = algorithmState.getTotalPatternNumber();
+		patternsPerSecondChart.addData({date: dateNow, delta: patternNb, total: patternNb});
+		patternsPerSecondChart.draw();
+	}
+
+	lastData = candidatesCheckedPerSecondChart.getLastData();
+	if (lastData) {
+		if (dateNow - lastData.date >= 1000 ) {
+			let candidatesNb = algorithmState.getTotalCandidatesChecked();
+			let valueDifference = candidatesNb - lastData.total;
+			candidatesCheckedPerSecondChart.addData({date: dateNow, delta: valueDifference, total: candidatesNb});
+			candidatesCheckedPerSecondChart.draw();
+		}
+	} else {
+		let candidatesNb = algorithmState.getTotalCandidatesChecked();
+		candidatesCheckedPerSecondChart.addData({date: dateNow, delta: candidatesNb, total: candidatesNb});
+		candidatesCheckedPerSecondChart.draw();
+	}
+	
 	// Update the reduced view
 	// Update the display of the runtime
 	d3.select("#runtime")
@@ -5048,7 +5097,12 @@ function handleAlgorithmStartSignal(msg) {
 	let dateUTC = new Date(msg.time);
 	startAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.start();
-	addToHistory("Algorithm started");
+
+	let detailSupport = "Min. support: " + algoMinSupport; 
+	let detailGap = "Gap: " + algoMinGap + " - " + algoMaxGap;
+	let detailDuration = "Max. duration: " + algoMaxDuration + "ms";
+	let detailSize = "Max. size: " + algoMaxSize;
+	addToHistory("Algorithm started", "Parameters:", detailSupport, detailGap, detailDuration, detailSize);
 }
 
 /**
@@ -5060,7 +5114,10 @@ function handleAlgorithmEndSignal(msg) {
 	stopAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.stop();
 	updateAlgorithmStateDisplay();
-	addToHistory("Algorithm ended");
+	
+	let details = algorithmState.getTotalPatternNumber() + " patterns found over ";
+	details += algorithmState.getTotalElapsedTime() + "ms"
+	addToHistory("Algorithm ended", details);
 }
 
 /**
@@ -5405,7 +5462,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.attr("title", "Steer algorithm")
 		.on("click", function() {
 			d3.event.stopPropagation();
-			requestSteeringOnPattern(pId);
+			requestSteeringOnPatternPrefix(pId);
 		});
 	contextActions.append("button")
 		.classed("clickable", true)
@@ -6829,7 +6886,153 @@ function AlgorithmState() {
 	}
 }
 
+/**
+ * Creates a graph displaying the number of patterns discovered each second
+ * @param {string} elemId The id of the parent node for the graph
+ */
+function PatternPerSecondGraph(elemId) {
+	let self = this;
 
+	self.parentNode = document.getElementById(elemId);
+	self.svg = d3.select(self.parentNode).append("svg")
+		.attr("width", "200")
+		.attr("height", "100");
+	
+	self.margin = {top: 10, right: 10, bottom:20, left: 20};
+	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
+	self.height = +self.svg.attr("height") - self.margin.top - self.margin.bottom;	
+
+	self.x = d3.scaleTime().range([0, self.width]);
+	self.y = d3.scaleLinear().range([self.height, 0]);
+	self.xAxis = d3.axisBottom(self.x)
+		.ticks(5);
+	self.yAxis = d3.axisLeft(self.y)
+		.ticks(5);
+
+	self.area = self.svg.append("g")
+		.attr("transform", `translate(${self.margin.left},${self.margin.top})`);
+	self.xAxisG = self.svg.append("g")
+		.attr("class", "axis axis--x")
+		.attr("transform", `translate(${self.margin.left},${self.height + self.margin.top})`)
+		.call(self.xAxis);
+	self.yAxisG = self.svg.append("g")
+		.attr("class", "axis axis--y")
+		.attr("transform", `translate(${self.margin.left},${self.margin.top})`)
+		.call(self.yAxis);
+	
+	self.line = d3.line()
+		.x( (d) => self.x(d.date) )
+		.y( (d) => self.y(d.delta) );
+	self.path = self.area.append("path");
+
+	self.data = [];
+
+	self.draw = function() {
+		self.x.domain(d3.extent(self.data, (d) => d.date ));
+		self.y.domain(d3.extent(self.data, (d) => d.delta ));
+		
+		self.xAxisG.call(self.xAxis);
+		self.yAxisG.call(self.yAxis);
+
+		self.path.datum(self.data)
+			.attr("fill", "none")
+			.attr("stroke", "steelblue")
+			.attr("stroke-linejoin", "round")
+			.attr("stroke-linecap", "round")
+			.attr("stroke-width", 1.5)
+			.attr("d", self.line);
+	}
+
+	self.getLastData = function() {
+		if (self.data.length > 0)
+			return self.data[self.data.length-1];
+		else
+			return null;
+	}
+
+	self.addData = function(newData) {
+		self.data.push(newData);
+	}
+
+	self.reset = function() {
+		self.data = [];
+		self.draw();
+	}
+}
+
+/**
+ * Creates a graph displaying the number of candidates checked each second
+ * @param {string} elemId The id of the parent node for the graph
+ */
+function CandidatesCheckedPerSecondGraph(elemId) {
+	let self = this;
+
+	self.parentNode = document.getElementById(elemId);
+	self.svg = d3.select(self.parentNode).append("svg")
+		.attr("width", "200")
+		.attr("height", "100");
+	
+	self.margin = {top: 10, right: 10, bottom:20, left: 20};
+	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
+	self.height = +self.svg.attr("height") - self.margin.top - self.margin.bottom;	
+
+	self.x = d3.scaleTime().range([0, self.width]);
+	self.y = d3.scaleLinear().range([self.height, 0]);
+	self.xAxis = d3.axisBottom(self.x)
+		.ticks(5);
+	self.yAxis = d3.axisLeft(self.y)
+		.ticks(5);
+
+	self.area = self.svg.append("g")
+		.attr("transform", `translate(${self.margin.left},${self.margin.top})`);
+	self.xAxisG = self.svg.append("g")
+		.attr("class", "axis axis--x")
+		.attr("transform", `translate(${self.margin.left},${self.height + self.margin.top})`)
+		.call(self.xAxis);
+	self.yAxisG = self.svg.append("g")
+		.attr("class", "axis axis--y")
+		.attr("transform", `translate(${self.margin.left},${self.margin.top})`)
+		.call(self.yAxis);
+	
+	self.line = d3.line()
+		.x( (d) => self.x(d.date) )
+		.y( (d) => self.y(d.delta) );
+	self.path = self.area.append("path");
+
+	self.data = [];
+
+	self.draw = function() {
+		self.x.domain(d3.extent(self.data, (d) => d.date ));
+		self.y.domain(d3.extent(self.data, (d) => d.delta ));
+		
+		self.xAxisG.call(self.xAxis);
+		self.yAxisG.call(self.yAxis);
+
+		self.path.datum(self.data)
+			.attr("fill", "none")
+			.attr("stroke", "steelblue")
+			.attr("stroke-linejoin", "round")
+			.attr("stroke-linecap", "round")
+			.attr("stroke-width", 1.5)
+			.attr("d", self.line);
+	}
+
+	self.getLastData = function() {
+		if (self.data.length > 0)
+			return self.data[self.data.length-1];
+		else
+			return null;
+	}
+
+	self.addData = function(newData) {
+		self.data.push(newData);
+	}
+
+	self.reset = function() {
+		self.data = [];
+		self.draw();
+	}
+}
 
 
 

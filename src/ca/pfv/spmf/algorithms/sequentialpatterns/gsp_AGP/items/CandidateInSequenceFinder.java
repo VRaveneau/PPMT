@@ -192,6 +192,123 @@ public class CandidateInSequenceFinder {
     }
 
     /**
+     * Recursive method to search for a candidate in a sub sequence. If the
+     * candidate appears in the sequence, set the flag present to true
+     *
+     * @param candidate to find in the sequence
+     * @param sequence the sequence where we will search for the candidate
+     * @param k the level in which we are in the main loop of GSP, i.e. the
+     * number of items of the candidate
+     * @param length the current element with which we are dealing with.
+     * @param position List of the positions of all of the elements of the
+     * candidate in the sequence
+     */
+    public boolean isCandidatePresentInTheSubSequence_qualitative(Pattern candidate, Sequence sequence, int k, int length, List<int[]> position, long maxDuration, int minGap, int maxGap, long start, long end) {
+    	// The position of the found items
+        List<int[]> foundPositions = new ArrayList<>();
+        // Current start of the search for item
+        int[] currentStart = new int[]{0,0};
+        // Current item in the pattern we are looking for
+        int currentItem = 0;
+    	//System.out.println("------- Looking for candidate in sequence------");
+    	//System.out.println("Sequence:"+sequence);
+    	//System.out.println("Candidate:"+candidate);
+        // while we still have items in the sequence
+        while (currentStart[0] < sequence.size()) {
+        	//System.out.println("Start at "+currentStart[0]+","+currentStart[1]+", looking for item "+currentItem);
+        	//We get the current pair to deal with
+            ItemAbstractionPair pair = candidate.getIthElement(currentItem);
+            //And we keep its item,
+            Item itemPair = pair.getItem();
+            //its abstraction
+            Abstraction_Generic abstractionPair = pair.getAbstraction();
+            // and the previous abstraction
+            Abstraction_Generic previousAbstraction = currentItem > 0 ? candidate.getIthElement(currentItem - 1).getAbstraction() : null;
+            //Initialization of the position of the current item, itemPair, to search for
+            int[] pos = null;
+            
+        	/*If we are dealing with the first element of the candidate, we 
+             * search for the item from the beginning of the sequence
+             */
+            if (currentItem == 0) {
+                pos = sequence.searchForTheFirstAppearance(currentStart[0], currentStart[1], itemPair);
+            } else {
+                /*
+                 * Otherwise, we find that item depending on the temporal relation
+                 * between the  current abstraction and the previous one
+                 */
+            	int[] lastPosition = foundPositions.get(foundPositions.size()-1);
+                pos = creator.findPositionOfItemInSequence(sequence, itemPair, abstractionPair, currentStart[0], currentStart[1], lastPosition[0], lastPosition[1]);
+            }
+            
+            //If a duple <itemset index, item index> is found
+            if (pos != null) {
+            	//System.out.println("  Occurrence of item "+currentItem+" found at pos "+pos[0]+","+pos[1]);
+            	// if we are not looking for the first item of the candidate
+            	// we check the constraints (gap and duration)
+            	boolean violatedConstraint = false;
+        		
+        		// Check that we are in the sub sequence
+            	long ts = sequence.get(pos[0]).getTimestamp();
+            	if (ts < start || ts > end)
+            		violatedConstraint = true;
+            	
+            	if (!violatedConstraint && foundPositions.size() > 0) {
+            		// Check that the duration between the first item and this one is lower than the maxDuration
+            		long duration = sequence.get(pos[0]).getTimestamp()-sequence.get(foundPositions.get(0)[0]).getTimestamp();
+            		//System.out.println("   Duration : "+duration);
+            		if (duration > maxDuration) {
+            			//System.out.println("    Duration constraint violated");
+            			violatedConstraint = true;
+            		}
+            		
+            		// Check the gap between this item and the previous one
+            		int gap = sequence.getGap(foundPositions.get(foundPositions.size()-1), pos);
+            		//System.out.println("   Gap: "+gap);
+            		if (gap < minGap || gap > maxGap) {
+            			//System.out.println("    Gap constraint violated");
+            			violatedConstraint = true;
+            		}
+            	}
+        		
+        		if (violatedConstraint) {
+        			// We reset the found elements
+        			foundPositions = new ArrayList<>();
+        			// We establish as the starting position the following one
+                    currentStart = increasePosition(sequence, currentStart);
+                    // We reset the current item
+                    currentItem = 0;
+                    // We go to the next search
+                    continue;
+        		}
+            	
+                //We keep it in the current index of the position list
+                foundPositions.add(pos);
+
+                //If we are in the last element of the candidate
+                if (currentItem + 1 == k) {
+                	return true;
+                } else {
+                	// We update the next item to look for
+                	currentItem++;
+                }
+                //We establish as the starting position the following one
+                currentStart = increasePosition(sequence, pos);
+                
+                
+            } else {//If we cannot find a position where the item appears
+            	//System.out.println("    No position found");
+            	//We establish as the starting position the following one
+                //currentStart = increasePosition(sequence, currentStart);
+            	// We stop searching for this candidate
+            	break;
+            }
+            
+        }
+        return false;
+    }
+    
+    /**
      * Recursive method to search for a candidate in a sequence. If the
      * candidate appears in the sequence, set the flag present to true
      *

@@ -105,7 +105,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	position: absolute;
 	visibility: hidden;
 	right: 2px;
-	overflow: hidden;
+	overflow: visible;
 }
 
 tr:hover > .contextActions {
@@ -118,11 +118,49 @@ tr:hover > .contextActions {
 	margin: 0px 0px 0px 2px;
 	padding: 0px;
 	border: 0px;
+	box-sizing: border-box;
+}
+
+.extendedContextAction {
+	position: absolute;
+	top: 100%;
+	right: 0%;
+    background-color: white;
+    border: 1px black solid;
+	padding: 3px;
+	white-space: nowrap;
+	visibility: hidden;
+	font-weight: normal;
+}
+
+.contextActions div:hover > .extendedContextAction {
+	visibility: visible;
+}
+
+.extendedContextAction::before {
+	content: "";
+	width: 5px;
+	height: 5px;
+	position: absolute;
+	top: -4px;
+	right: 6px;
+    border-top: solid 1px black;
+	border-left: solid 1px black;
+	background-color: white;
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+.extendedContextAction p {
+	margin: 0px;
+}
+
+.extendedContextAction p:hover {
+	background-color: rgba(124, 124, 124, 0.4);
 }
 
 tbody > tr:hover {
-	background-color: rgb(124, 124, 124);
-	color: white;
+	background-color: rgba(124, 124, 124, 0.4);
 }
 
 .section {
@@ -178,6 +216,7 @@ tbody > tr:hover {
 	/*background-color: #006992;
 	color: white;*/
 	grid-area: title;
+	white-space: nowrap;
 }
 
 .section > .subtitle {
@@ -219,6 +258,7 @@ tbody > tr:hover {
 	color: white;*/
 	width: 90%;
 	align-self: center;
+	white-space: nowrap;
 }
 
 .subsection > .param {
@@ -384,6 +424,19 @@ body {
 	cursor: pointer;
 }
 
+.clickableText {
+	text-decoration: underline;
+}
+
+.clickableText:hover {
+	font-style: italic;
+}
+
+.smallText {
+	font-size: 90%;
+	font-weight: normal;
+}
+
 .bold {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
@@ -392,11 +445,28 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
+.sortIndicator svg {
+	vertical-align: middle;
+}
+
+.sortIndicator polygon {
+	fill:lightgrey;
+	stroke-width:0;
+}
+
+.sortedUp .upIndicator {
+	fill: #006992;
+}
+
+.sortedDown .downIndicator {
+	fill: #006992;
+}
+
 .highlightButton {
     color: black;
     background-color: #dddee0;
     padding: 0px 2px 0px 2px;
-    margin: auto;
+    margin: 2px;
     border-radius: 5px;
     box-shadow: none;
     border: 1px solid black;
@@ -532,11 +602,110 @@ body {
 
 #history {
 	margin-left: 5px;
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: flex-start;
 }
 
-#history .timestamp{
+#historyTimeline {
+	align-self: stretch;
+    min-width: 6px;
+    min-height: 100%;
+    background-color: black;
+    border-top-right-radius: 10%;
+    border-top-left-radius: 10%;
+}
+
+#historyTimeline::before {
+	content: '';
+    position: absolute;
+    top: -1px;
+    left: -2px;
+    width: 8px;
+    height: 8px;
+    border-top: solid 2px black;
+    border-left: solid 2px black;
+    background-color: transparent;
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+#historyTimeline::after {
+	content: '';
+    position: absolute;
+    bottom: -9px;
+    left: -2px;
+    width: 10px;
+    height: 10px;
+    background-color: white;
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+#historyList {
+	margin-left: 10px;
+	flex-grow: 1;
+}
+
+.historyItem {
+	max-width: 100%;
+	background-color: whitesmoke;
+	display: grid;
+	grid-template-rows: 
+		[main-top title-top]
+		min-content
+		[title-bottom content-top]
+		min-content
+		[content-bottom main-bottom];
+	grid-template-columns:
+		[title-start] 1fr [title-end showMore-start] min-content [showMore-end timestamp-start] min-content [timestamp-end];
+	
+	border: 1px solid lightgrey;
+	border-radius: 5px;
+	padding: 5px;
+}
+
+.historyItem + .historyItem {
+	margin-top: 5px;
+}
+
+.historyTitle {
+	grid-row: title-top / title-bottom;
+	grid-column: title-start / title-end;
+	text-align: left;
+	margin: 0px;
+}
+
+.historyShowMore {
+	grid-row: title-top / title-bottom;
+	grid-column:  showMore-start / showMore-end;
+	margin: 0px;
+	padding-right: 5px;
+	white-space: nowrap;
+}
+
+.historyTimestamp {
+	grid-row: title-top / title-bottom;
+	grid-column: timestamp-start / timestamp-end;
+
+	margin: 0px;
 	color: grey;
 	font-style: italic;
+	text-align: right;
+}
+
+.historyContent {
+	grid-row: content-top / content-bottom;
+	grid-column: 1 / -1;
+
+	margin: 0px 5px;
+	border-top: 1px solid lightgrey;
+	font-size: smaller;
+}
+
+.historyContent p {
+	margin: 2px 0px;
 }
 
 #pattern-view {
@@ -608,68 +777,103 @@ body {
 /*								*/
 /********************************/
 
+/********************/
+/*	Helper icon		*/
+/********************/
+
+.helper {
+	background-image: url("./img/icons.png");
+	background-repeat: no-repeat;
+	background-size: 100%;
+	min-width: 15px;
+	min-height: 15px;
+	cursor: help;
+	position: relative;
+	border-radius: 50%;
+}
+
+.helper:hover {
+	background-color: black;
+}
+
+.helperMessage {
+	position: absolute;
+	visibility: hidden;
+	right: 120%;
+    top: -25%;
+    background-color: white;
+    border: 1px solid black;
+    border-radius: 5px;
+    white-space: nowrap;
+    padding: 2px;
+}
+
+.helper:hover > .helperMessage {
+	visibility: visible;
+}
+
+/************************************/
+/*		Context action icons		*/
+/************************************/
+
 .icon-remove {
-	background: url("./img/icons.png") 0px 0px;
-	/*background-position: */
+	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
+	background-position:  0px 0px;
 	background-size: 300%;
 }
 
 .icon-remove:hover {
-	background: url("./img/icons.png") -20px 0px;
-	background-size: 300%;
+	background-position: -20px 0px;
 }
 
 .icon-remove:active {
-	background: url("./img/icons.png") -40px 0px;
-	background-size: 300%;
+	background-position: -40px 0px;
 }
 
 .icon-toEventType {
-	background: url("./img/icons.png") 0px -60px;
-	/*background-position: */
+	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
+	background-position: 0px -60px;
 	background-size: 300%;
 }
 
 .icon-toEventType:hover {
-	background: url("./img/icons.png") -20px -60px;
-	background-size: 300%;
+	background-position: -20px -60px;
 }
 
 .icon-toEventType:active {
-	background: url("./img/icons.png") -40px -60px;
-	background-size: 300%;
+	background-position: -40px -60px;
 }
 
 .icon-steering {
-	background: url("./img/icons.png") 0px -20px;
-	/*background-position: */
+	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
+	background-position: 0px -20px;
 	background-size: 300%;
 }
 
 .icon-steering:hover {
-	background: url("./img/icons.png") -20px -20px;
-	background-size: 300%;
+	background-position: -20px -20px;
 }
 
 .icon-steering:active {
-	background: url("./img/icons.png") -40px -20px;
-	background-size: 300%;
+	background-position: -40px -20px;
 }
 
 .icon-selectUsers {
-	background: url("./img/icons.png") 0px -40px;
-	/*background-position: */
+	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
+	background-position: 0px -40px;
 	background-size: 300%;
 }
 
 .icon-selectUsers:hover {
-	background: url("./img/icons.png") -20px -40px;
-	background-size: 300%;
+	background-position: -20px -40px;
 }
 
 .icon-selectUsers:active {
-	background: url("./img/icons.png") -40px -40px;
-	background-size: 300%;
+	background-position: -40px -40px;
 }
 
 thead {
@@ -884,10 +1088,6 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 		"showMore showMore";
 }
 
-#algorithmInfo .title span:hover {
-	font-style: italic;
-}
-
 #algorithmInfo:hover {
 	background-color: lightgray;
 }
@@ -953,6 +1153,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	width: 100%;
 
 	background-color: white;
+	
+	display: flex;
+    flex-wrap: wrap;
+	justify-content: space-evenly;
+	overflow: auto;
+	max-height: 40vh;
 }
 
 .detailedHighlight:hover {
@@ -1263,10 +1469,6 @@ table {
 
 #patternSizeTableContent tr .bar {
 	fill: rgb(119, 119, 119);
-}
-
-#patternSizeTableContent tr:hover .bar {
-	fill: lightgrey;
 }
 
 /********************************/
@@ -1657,6 +1859,7 @@ tr:hover .eventTypeDescription {
 	font-weight: bold;
 	border: 1px solid black;
 	border-radius: 3px;
+	text-decoration: none;
 }
 
 .underlined {
@@ -1878,10 +2081,4 @@ margin-left:5px;
 overflow:hidden;
 }
 
-/********************/
-/*	Helper icon		*/
-/********************/
 
-.iconHelper {
-	color: grey;
-}

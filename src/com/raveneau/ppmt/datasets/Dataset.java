@@ -994,67 +994,79 @@ public class Dataset {
 		return modifs;
 	}
 	
-	public TraceModification removeEventType(String eventName, Session session) {
-		System.out.println("Event type "+eventName+" removal started");
-		List<Integer> eventIdToDelete = new ArrayList<>();
-		List<Event> eventsToDelete = new ArrayList<>();
+	public TraceModification removeEventTypes(JsonArray eventNames, Session session) {
+		
 		TraceModification modifs = new TraceModification();
 		
-		for (Event evt : timeSortedEvents) {
-			if (evt.getType().equals(eventName)) {
-				eventIdToDelete.add(evt.getId());
-				eventsToDelete.add(evt);
+		for (int i = 0; i < eventNames.size(); i++) {
+			String eventName = eventNames.getString(i);
+			List<Integer> eventIdToDelete = new ArrayList<>();
+			List<Event> eventsToDelete = new ArrayList<>();
+			
+			System.out.println("Event type "+eventName+" removal started");
+			
+			for (Event evt : timeSortedEvents) {
+				if (evt.getType().equals(eventName)) {
+					eventIdToDelete.add(evt.getId());
+					eventsToDelete.add(evt);
+				}
 			}
+			
+			System.out.println("Removing events");
+			
+			System.out.println("Nb evt to delete: "+eventsToDelete.size());
+			System.out.println("Size before : "+timeSortedEvents.size());
+			
+			removeEvents(eventsToDelete);
+			modifs.addRemovedIds(eventIdToDelete);
+			
+			System.out.println("Size after : "+timeSortedEvents.size());
+
+			String code = eventsCoded.remove(eventName);
+			
+			System.out.println("Removed the code "+code);
+			
+			parameters.removeEventType('"'+eventName+'"');
+			eventsReadable.remove(code);
+			eventOccs.remove(eventName);
+			events.remove(eventName);
 		}
-
-		System.out.println("Removing events");
-		
-		System.out.println("Nb evt to delete: "+eventsToDelete.size());
-		System.out.println("Size before : "+timeSortedEvents.size());
-		
-		removeEvents(eventsToDelete);
-		modifs.setRemovedIds(eventIdToDelete);
-		
-		System.out.println("Size after : "+timeSortedEvents.size());
-
-		String code = eventsCoded.remove(eventName);
-		
-		System.out.println("Removed the code "+code);
-		
-		parameters.removeEventType('"'+eventName+'"');
-		eventsReadable.remove(code);
-		eventOccs.remove(eventName);
-		events.remove(eventName);
 		
 		System.out.println("Event type removal done");
 		
 		return modifs;
 	}
 	
-	public TraceModification removeUser(String userName, Session session) {
-		System.out.println("Usere "+userName+" removal started");
-		List<Integer> eventIdToDelete = new ArrayList<>();
-		List<Event> eventsToDelete = new ArrayList<>();
+	public TraceModification removeUsers(JsonArray userNames, Session session) {
 		TraceModification modifs = new TraceModification();
 		
-		for (Event evt : timeSortedEvents) {
-			if (evt.getUser().equals(userName)) {
-				eventIdToDelete.add(evt.getId());
-				eventsToDelete.add(evt);
+		for (int i = 0; i < userNames.size(); i++) {
+			String userName = userNames.getString(i);
+			
+			System.out.println("Usere "+userName+" removal started");
+			List<Integer> eventIdToDelete = new ArrayList<>();
+			List<Event> eventsToDelete = new ArrayList<>();
+			
+			for (Event evt : timeSortedEvents) {
+				if (evt.getUser().equals(userName)) {
+					eventIdToDelete.add(evt.getId());
+					eventsToDelete.add(evt);
+				}
 			}
-		}
 
-		System.out.println("Removing events");
+			System.out.println("Removing events");
+			
+			System.out.println("Nb evt to delete: "+eventsToDelete.size());
+			System.out.println("Size before : "+timeSortedEvents.size());
+			
+			removeEvents(eventsToDelete);
+			modifs.addRemovedIds(eventIdToDelete);
+			
+			System.out.println("Size after : "+timeSortedEvents.size());
+			
+			parameters.removeUser(userName);
+		}
 		
-		System.out.println("Nb evt to delete: "+eventsToDelete.size());
-		System.out.println("Size before : "+timeSortedEvents.size());
-		
-		removeEvents(eventsToDelete);
-		modifs.setRemovedIds(eventIdToDelete);
-		
-		System.out.println("Size after : "+timeSortedEvents.size());
-		
-		parameters.removeUser(userName);
 		
 		System.out.println("User removal done");
 		

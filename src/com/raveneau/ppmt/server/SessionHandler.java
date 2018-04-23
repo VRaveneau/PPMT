@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.enterprise.context.ApplicationScoped;
+import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.spi.JsonProvider;
@@ -77,12 +78,16 @@ public class SessionHandler {
 		clientHandlers.get(session).provideEventTypes();
 	}
 
-	public void requestSteeringOnPattern(int patternId, Session session) {
-		clientHandlers.get(session).requestSteeringOnPattern(patternId);
+	public void requestSteeringOnPatternStart(int patternId, Session session) {
+		clientHandlers.get(session).requestSteeringOnPatternStart(patternId);
 	}
 
 	public void requestSteeringOnUser(String userId, Session session) {
 		clientHandlers.get(session).requestSteeringOnUser(userId);
+	}
+
+	public void requestSteeringOnTime(long start, long end, Session session) {
+		clientHandlers.get(session).requestSteeringOnTime(start, end);
 	}
 
 	public void addSteeringListener(SteeringListener listener, Session session) {
@@ -101,6 +106,11 @@ public class SessionHandler {
 	// TODO See if the datasetName is still needed
 	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, String datasetName, Session session) {
 		clientHandlers.get(session).runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
+	}
+	
+	// TODO See if the datasetName is still needed
+	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, long delay, String datasetName, Session session) {
+		clientHandlers.get(session).runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay);
 	}
 
 	/**
@@ -176,12 +186,12 @@ public class SessionHandler {
 		clientHandlers.get(session).createEventTypeFromPattern(patternId);
 	}
 	
-	public void removeEventType(String eventName, Session session) {
-		clientHandlers.get(session).removeEventType(eventName);
+	public void removeEventTypes(JsonArray eventNames, Session session) {
+		clientHandlers.get(session).removeEventTypes(eventNames);
 	}
 	
-	public void removeUser(String userName, Session session) {
-		clientHandlers.get(session).removeUser(userName);
+	public void removeUsers(JsonArray userNames, Session session) {
+		clientHandlers.get(session).removeUsers(userNames);
 	}
 
 	/**
