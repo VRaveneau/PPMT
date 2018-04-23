@@ -6926,15 +6926,18 @@ function PatternPerSecondGraph(elemId) {
 	self.path = self.area.append("path");
 
 	self.data = [];
+	self.lastMinutesData = [];
+
+	self.timeDisplayed = 60*1000;
 
 	self.draw = function() {
-		self.x.domain(d3.extent(self.data, (d) => d.date ));
+		self.x.domain(d3.extent(self.lastMinutesData, (d) => d.date ));
 		self.y.domain(d3.extent(self.data, (d) => d.delta ));
 		
 		self.xAxisG.call(self.xAxis);
 		self.yAxisG.call(self.yAxis);
 
-		self.path.datum(self.data)
+		self.path.datum(self.lastMinutesData)
 			.attr("fill", "none")
 			.attr("stroke", "steelblue")
 			.attr("stroke-linejoin", "round")
@@ -6944,18 +6947,30 @@ function PatternPerSecondGraph(elemId) {
 	}
 
 	self.getLastData = function() {
-		if (self.data.length > 0)
-			return self.data[self.data.length-1];
+		if (self.lastMinutesData.length > 0)
+			return self.lastMinutesData[self.lastMinutesData.length-1];
 		else
 			return null;
 	}
 
 	self.addData = function(newData) {
+		if (self.lastMinutesData.length > 0) {
+			let lastDataTime = self.lastMinutesData[self.lastMinutesData.length - 1].date;
+			while(self.lastMinutesData.length > 0) {
+				if (lastDataTime - self.timeDisplayed > self.lastMinutesData[0].date) {
+					self.lastMinutesData.shift();
+				} else {
+					break;
+				}
+			}
+		}
 		self.data.push(newData);
+		self.lastMinutesData.push(newData);
 	}
 
 	self.reset = function() {
 		self.data = [];
+		self.lastMinutesData = [];
 		self.draw();
 	}
 }
@@ -7000,15 +7015,18 @@ function CandidatesCheckedPerSecondGraph(elemId) {
 	self.path = self.area.append("path");
 
 	self.data = [];
+	self.lastMinutesData = [];
+
+	self.timeDisplayed = 60*1000;
 
 	self.draw = function() {
-		self.x.domain(d3.extent(self.data, (d) => d.date ));
+		self.x.domain(d3.extent(self.lastMinutesData, (d) => d.date ));
 		self.y.domain(d3.extent(self.data, (d) => d.delta ));
 		
 		self.xAxisG.call(self.xAxis);
 		self.yAxisG.call(self.yAxis);
 
-		self.path.datum(self.data)
+		self.path.datum(self.lastMinutesData)
 			.attr("fill", "none")
 			.attr("stroke", "steelblue")
 			.attr("stroke-linejoin", "round")
@@ -7018,18 +7036,30 @@ function CandidatesCheckedPerSecondGraph(elemId) {
 	}
 
 	self.getLastData = function() {
-		if (self.data.length > 0)
-			return self.data[self.data.length-1];
+		if (self.lastMinutesData.length > 0)
+			return self.lastMinutesData[self.lastMinutesData.length-1];
 		else
 			return null;
 	}
 
 	self.addData = function(newData) {
+		if (self.lastMinutesData.length > 0) {
+			let lastDataTime = self.lastMinutesData[self.lastMinutesData.length - 1].date;
+			while(self.lastMinutesData.length > 0) {
+				if (lastDataTime - self.timeDisplayed > self.lastMinutesData[0].date) {
+					self.lastMinutesData.shift();
+				} else {
+					break;
+				}
+			}
+		}
 		self.data.push(newData);
+		self.lastMinutesData.push(newData);
 	}
 
 	self.reset = function() {
 		self.data = [];
+		self.lastMinutesData = [];
 		self.draw();
 	}
 }
