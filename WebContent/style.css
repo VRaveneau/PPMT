@@ -78,17 +78,22 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 }
 
 #patternListArea {
-	display: flex;
-	flex-direction: column;
-	
-	flex: 1;
+	display: grid;
+	grid-template-columns: 1fr;
+	grid-template-rows:
+		[filters-start] min-content 
+		[filters-end patternList-start] 1fr [patternList-end];
+}
+
+#selectedPatternTable {
+	border-collapse: collapse;
 }
 
 #patternTable {
 	border-collapse: collapse;
 }
 
-#selectedPatternTableBody {
+.selectedPattern {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
 	  This may be a MacOS exclusive issue.
@@ -96,8 +101,66 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	-webkit-font-smoothing: antialiased;
 }
 
-#patternTableBody {
+.contextActions {
+	position: absolute;
+	visibility: hidden;
+	right: 2px;
+	overflow: visible;
+}
+
+tr:hover > .contextActions {
+	visibility: visible;
+}
+
+.contextActions button {
+	width: 20px;
+	height: 20px;
+	margin: 0px 0px 0px 2px;
+	padding: 0px;
+	border: 0px;
+	box-sizing: border-box;
+}
+
+.extendedContextAction {
+	position: absolute;
+	top: 100%;
+	right: 0%;
+    background-color: white;
+    border: 1px black solid;
+	padding: 3px;
+	white-space: nowrap;
+	visibility: hidden;
 	font-weight: normal;
+}
+
+.contextActions div:hover > .extendedContextAction {
+	visibility: visible;
+}
+
+.extendedContextAction::before {
+	content: "";
+	width: 5px;
+	height: 5px;
+	position: absolute;
+	top: -4px;
+	right: 6px;
+    border-top: solid 1px black;
+	border-left: solid 1px black;
+	background-color: white;
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+.extendedContextAction p {
+	margin: 0px;
+}
+
+.extendedContextAction p:hover {
+	background-color: rgba(124, 124, 124, 0.4);
+}
+
+tbody > tr:hover {
+	background-color: rgba(124, 124, 124, 0.4);
 }
 
 .section {
@@ -105,8 +168,15 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	background-color: white;
 	border-radius: 5px;
 	
-	position: relative;
+	/*position: relative;*
 	/*border: 1px solid #006992;*/
+	display: grid;
+	grid-template-rows: min-content min-content min-content 1fr;
+	grid-template-areas: 
+		"title"
+		"subtitle"
+		"params"
+		"body";
 }
 
 .section + .section {
@@ -123,7 +193,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	/*width: 100%;*/
 }
 
-.subsection + .subsection {
+#center .subsection + .subsection {
 	margin-top: 40px;
 }
 
@@ -145,6 +215,8 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	padding: 10px 10px 5px 10px;
 	/*background-color: #006992;
 	color: white;*/
+	grid-area: title;
+	white-space: nowrap;
 }
 
 .section > .subtitle {
@@ -152,16 +224,21 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	text-align: center;
 	font-style: italic;
 	font-weight: lighter;
+	grid-area: subtitle;
 }
 
 .section > .param {
 	padding: 0px 5px 5px 5px;
+	grid-area: params;
 }
 
 .section > .body {
 	padding: 5px 5px 5px 5px;
 	
 	overflow: auto;
+	grid-area: body;
+
+	position: relative;
 }
 
 .subsection > .title {
@@ -181,6 +258,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	color: white;*/
 	width: 90%;
 	align-self: center;
+	white-space: nowrap;
 }
 
 .subsection > .param {
@@ -196,11 +274,12 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 
 .tabContainer {
 	display: grid;
-    grid-template-columns: repeat(6, minmax(max-content,1fr));
+	grid-template-columns: repeat(6, minmax(max-content,1fr));
+	grid-template-rows: min-content 1fr;
 }
 
 .tabHeader {
-	grid-row: 1;
+	grid-row: 1 / 2;
 	
     text-align: center;
     padding: 8px 14px;
@@ -240,13 +319,12 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 }
 
 .tabContent {
-	grid-row: 2;
-	grid-column-start: 1;
-	grid-column-end: -1;
+	grid-row: 2 / -1;
+	grid-column: 1 / -1;
 
     border-top: 1px solid grey;
     overflow: auto;
-	flex: 1;
+	/*flex: 1;*/
 	padding-top: 5px;
 
 	display: grid;
@@ -346,6 +424,19 @@ body {
 	cursor: pointer;
 }
 
+.clickableText {
+	text-decoration: underline;
+}
+
+.clickableText:hover {
+	font-style: italic;
+}
+
+.smallText {
+	font-size: 90%;
+	font-weight: normal;
+}
+
 .bold {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
@@ -354,11 +445,28 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
+.sortIndicator svg {
+	vertical-align: middle;
+}
+
+.sortIndicator polygon {
+	fill:lightgrey;
+	stroke-width:0;
+}
+
+.sortedUp .upIndicator {
+	fill: #006992;
+}
+
+.sortedDown .downIndicator {
+	fill: #006992;
+}
+
 .highlightButton {
     color: black;
     background-color: #dddee0;
     padding: 0px 2px 0px 2px;
-    margin: auto;
+    margin: 2px;
     border-radius: 5px;
     box-shadow: none;
     border: 1px solid black;
@@ -374,15 +482,6 @@ body {
 
 .focusZoomInfo {
 	float: left;
-}
-
-#highlightResetButtons {
-	position: absolute;
-	top: 8px;
-	right: 5px;
-
-	display: flex;
-	flex-direction: row;
 }
 
 #timeline-view {
@@ -503,11 +602,110 @@ body {
 
 #history {
 	margin-left: 5px;
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: flex-start;
 }
 
-#history .timestamp{
+#historyTimeline {
+	align-self: stretch;
+    min-width: 6px;
+    min-height: 100%;
+    background-color: black;
+    border-top-right-radius: 10%;
+    border-top-left-radius: 10%;
+}
+
+#historyTimeline::before {
+	content: '';
+    position: absolute;
+    top: -1px;
+    left: -2px;
+    width: 8px;
+    height: 8px;
+    border-top: solid 2px black;
+    border-left: solid 2px black;
+    background-color: transparent;
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+#historyTimeline::after {
+	content: '';
+    position: absolute;
+    bottom: -9px;
+    left: -2px;
+    width: 10px;
+    height: 10px;
+    background-color: white;
+    -webkit-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+#historyList {
+	margin-left: 10px;
+	flex-grow: 1;
+}
+
+.historyItem {
+	max-width: 100%;
+	background-color: whitesmoke;
+	display: grid;
+	grid-template-rows: 
+		[main-top title-top]
+		min-content
+		[title-bottom content-top]
+		min-content
+		[content-bottom main-bottom];
+	grid-template-columns:
+		[title-start] 1fr [title-end showMore-start] min-content [showMore-end timestamp-start] min-content [timestamp-end];
+	
+	border: 1px solid lightgrey;
+	border-radius: 5px;
+	padding: 5px;
+}
+
+.historyItem + .historyItem {
+	margin-top: 5px;
+}
+
+.historyTitle {
+	grid-row: title-top / title-bottom;
+	grid-column: title-start / title-end;
+	text-align: left;
+	margin: 0px;
+}
+
+.historyShowMore {
+	grid-row: title-top / title-bottom;
+	grid-column:  showMore-start / showMore-end;
+	margin: 0px;
+	padding-right: 5px;
+	white-space: nowrap;
+}
+
+.historyTimestamp {
+	grid-row: title-top / title-bottom;
+	grid-column: timestamp-start / timestamp-end;
+
+	margin: 0px;
 	color: grey;
 	font-style: italic;
+	text-align: right;
+}
+
+.historyContent {
+	grid-row: content-top / content-bottom;
+	grid-column: 1 / -1;
+
+	margin: 0px 5px;
+	border-top: 1px solid lightgrey;
+	font-size: smaller;
+}
+
+.historyContent p {
+	margin: 2px 0px;
 }
 
 #pattern-view {
@@ -579,6 +777,105 @@ body {
 /*								*/
 /********************************/
 
+/********************/
+/*	Helper icon		*/
+/********************/
+
+.helper {
+	background-image: url("./img/icons.png");
+	background-repeat: no-repeat;
+	background-size: 100%;
+	min-width: 15px;
+	min-height: 15px;
+	cursor: help;
+	position: relative;
+	border-radius: 50%;
+}
+
+.helper:hover {
+	background-color: black;
+}
+
+.helperMessage {
+	position: absolute;
+	visibility: hidden;
+	right: 120%;
+    top: -25%;
+    background-color: white;
+    border: 1px solid black;
+    border-radius: 5px;
+    white-space: nowrap;
+    padding: 2px;
+}
+
+.helper:hover > .helperMessage {
+	visibility: visible;
+}
+
+/************************************/
+/*		Context action icons		*/
+/************************************/
+
+.icon-remove {
+	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
+	background-position:  0px 0px;
+	background-size: 300%;
+}
+
+.icon-remove:hover {
+	background-position: -20px 0px;
+}
+
+.icon-remove:active {
+	background-position: -40px 0px;
+}
+
+.icon-toEventType {
+	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
+	background-position: 0px -60px;
+	background-size: 300%;
+}
+
+.icon-toEventType:hover {
+	background-position: -20px -60px;
+}
+
+.icon-toEventType:active {
+	background-position: -40px -60px;
+}
+
+.icon-steering {
+	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
+	background-position: 0px -20px;
+	background-size: 300%;
+}
+
+.icon-steering:hover {
+	background-position: -20px -20px;
+}
+
+.icon-steering:active {
+	background-position: -40px -20px;
+}
+
+.icon-selectUsers {
+	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
+	background-position: 0px -40px;
+	background-size: 300%;
+}
+
+.icon-selectUsers:hover {
+	background-position: -20px -40px;
+}
+
+.icon-selectUsers:active {
+	background-position: -40px -40px;
+}
+
 thead {
 	background-color: white;
 	position: -webkit-sticky;
@@ -646,7 +943,7 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	height: 100%;
 	margin: 0px;
 	padding: 0px;
-	background-color: #e4e7ec;
+	background-color: #96989a;
 	display: flex;
 	flex-direction: column;
 }
@@ -673,8 +970,20 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 #tool {
 	display: grid;
 	grid-gap: 5px;
-	grid-template-columns: [main-start] 23% [center-start] 1fr [center-end] 23% [main-end];
-	grid-template-rows: [main-top] 30px [center-top] minmax(min-content, 20%) [algorithm-bottom] 1fr [main-bottom] 0px [gutter-bottom];
+	grid-template-columns:
+		[main-start] 23% [center-start] 1fr [center-end] 23% [main-end];
+	grid-template-rows:
+		[main-top]
+		30px
+		[center-top]
+		minmax(min-content, 20%)
+		[algorithm-bottom selectedPatterns-start]
+		min-content
+		[selectedPatterns-end]
+		1fr
+		[main-bottom]
+		0px
+		[gutter-bottom];
 	
 	flex: 1;
 	
@@ -703,10 +1012,10 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	grid-row: 1 / -1;
 	/*flex: 1;
 	
-	order: 1;*/
+	order: 1;
 	
 	display: flex;
-	flex-direction: column;
+	flex-direction: column;*/
 }
 
 #tooltip {
@@ -770,14 +1079,27 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	/*padding-left: 5px;*/
 }
 
+#algorithmInfo .body {
+	display: grid;
+	grid-template-columns: 4fr 6fr;
+    grid-gap: 5px;
+	grid-template-areas:
+		"parameters graph"
+		"showMore showMore";
+}
+
+#algorithmInfo:hover {
+	background-color: lightgray;
+}
+
 #patternArea {
 	grid-column: center-end / main-end;
-	grid-row: algorithm-bottom / gutter-bottom;
+	grid-row: selectedPatterns-end / gutter-bottom;
 	
-	/*flex: 1;*/
+	/*flex: 1;
 	
 	display: flex;
-	flex-direction: column;
+	flex-direction: column;*/
 }
 
 .caps {
@@ -813,6 +1135,46 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	text-align: center;
+	overflow: visible;
+}
+
+#top .body > div {
+	position: relative;
+}
+
+.detailedHighlight {
+	position: absolute;
+	visibility: hidden;
+	top: 100%;
+	z-index: 10;
+
+	border: 1px solid black;
+	border-radius: 5px;
+	width: 100%;
+
+	background-color: white;
+	
+	display: flex;
+    flex-wrap: wrap;
+	justify-content: space-evenly;
+	overflow: auto;
+	max-height: 40vh;
+}
+
+.detailedHighlight:hover {
+	visibility: visible;
+}
+
+#userHighlight:hover > .detailedHighlight {
+	visibility: visible;
+}
+
+#eventTypeHighlight:hover > .detailedHighlight {
+	visibility: visible;
+}
+
+#patternHighlight:hover > .detailedHighlight {
+	visibility: visible;
 }
 
 /************************************/
@@ -872,6 +1234,9 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 /* 			Control tabs 		*/
 /********************************/
 
+#Trace {
+	grid-template-rows: repeat(2, min-content);
+}
 
 #Trace button {
 	width: 80%;
@@ -879,6 +1244,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 table {
 	width: 100%;
+	position: relative;
+}
+
+.searchBarArea {
+	grid-area: searchField;
+	margin: 0px 20px;
 }
 
 .searchBarArea input.searchButton {
@@ -978,10 +1349,18 @@ table {
 	background-color: white;
 }
 
+#selectedPatternsArea {
+	grid-row: selectedPatterns-start / selectedPatterns-end;
+	grid-column: center-end / main-end;
+}
+
 #List {
-	overflow: auto;
-	flex: 1;
+	grid-row: patternList-start / patternList-end;
 	/*max-height: 90%;*/
+}
+
+#List body {
+	overflow: auto;
 }
 
 #Metrics {
@@ -991,9 +1370,19 @@ table {
 }
 
 #Algorithm {
+	grid-row: filters-start / filters-end;
+}
+
+#Algorithm .body {
 	overflow: auto;
-	max-height: 90%;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns: min-content 1fr min-content;
+	grid-template-rows: repeat(3, minmax(min-content, 1fr));
+	grid-template-areas: 
+		". slider-support ."
+		". slider-size ."
+		". searchField .";
+	align-items: center;
 }
 
 #Execution {
@@ -1043,23 +1432,6 @@ table {
 	font-weight: normal;
 }
 
-.contextActions {
-	flex-direction: row;
-	position: absolute;
-	justify-content: flex-end;
-	pointer-events: none;
-	border: 1px solid black;
-	border-radius: 3px;
-}
-
-.contextActions:not(.hidden) {
-	display: flex;
-}
-
-.contextActions button {
-	pointer-events: all;
-}
-
 /********************************/
 /*		pattern sizes graph		*/
 /********************************/
@@ -1085,6 +1457,18 @@ table {
 
 #patternSizesSvg .axis--x.axis path {
   display: none;
+}
+
+/****************************************************/
+/*	Pattern sizes in the algorithm extended view	*/
+/****************************************************/
+
+#patternSizeTableContent svg {
+	float: right;
+}
+
+#patternSizeTableContent tr .bar {
+	fill: rgb(119, 119, 119);
 }
 
 /********************************/
@@ -1178,25 +1562,29 @@ table {
 	grid-column: modal-left / modal-right;
     display: grid;
 	grid-template-columns:
+		[currentParameters-start] 1fr
+		[currentParameters-end total-start] 1fr
+		[total-end speed-start] max-content
+		[speed-end changeParameters-start] 2fr
+		[changeParameters-end];
+	grid-template-rows: 
+		[main-top] min-content
+		[table-top] 1fr
+		[table-bottom main-bottom];
+/*
 		[patternSizeTable-start] 6fr
 		[patternSizeTable-end patternSizeChart-start] 2fr
-		[patternSizeChart-end sidebar-start] 2fr [sidebar-end];
-}
-
-#algorithmExtendedSidePanel {
-	grid-area: sidebar;
-	display: flex;
-	flex-direction: column;
-	/*flex-grow: 2;*/
-	justify-content: flex-start;
+		[patternSizeChart-end sidebar-start] 2fr [sidebar-end];*/
 }
 
 #patternSizeTableArea {
-	grid-area: patternSizeTable;
+	grid-column: currentParameters-start / changeParameters-start;
+	grid-row: table-top / table-bottom;
 }
 
 #extendedPatternSizesChart {
-	grid-area: patternSizeChart;
+	grid-column: speed-start / changeParameters-start;
+	grid-row: table-top / table-bottom;
 }
 
 #patternSizeTable {
@@ -1238,6 +1626,13 @@ table {
 }
 
 #extendedAlgorithmStrategyArea {
+	grid-column: total-start / total-end;
+	grid-row: main-top / table-top;
+}
+
+#extendedAlgorithmParametersArea {
+	grid-column: currentParameters-start / currentParameters-end;
+	grid-row: main-top / table-top:
 }
 
 #extendedAlgorithmParametersArea button {
@@ -1245,6 +1640,13 @@ table {
 }
 
 #algorithmSpeedArea {
+	grid-column: speed-start / speed-end;
+	grid-row: main-top / table-top;
+}
+
+#algorithmSpeedArea .body {
+	display: flex;
+	flex-direction: row;
 }
 
 /********************************/
@@ -1252,13 +1654,30 @@ table {
 /********************************/
 
 #algorithmParametersChange {
-	grid-column: modal-left / modal-right;
+	grid-column: changeParameters-start / changeParameters-end;
+	grid-row: main-top / main-bottom;
 	padding: 0px;
-	flex-direction: row;
 }
 
-#algorithmParametersChange:not(.hidden) {
-	display: flex;
+#algorithmParametersChange .body {
+	display: grid;
+	grid-template-columns: 
+		[main-start] min-content
+		[slider-start] 1fr
+		[main-end];
+	grid-template-rows: 
+		[main-top support-start] max-content
+		[gap-start] max-content
+		[duration-start] max-content
+		[size-start] max-content
+		[validate-start] 50px
+		[main-bottom];
+}
+
+#algorithmParametersChange button {
+	grid-column: main-start / main-end;
+	width: 70%;
+	justify-self: center;
 }
 
 /********************************/
@@ -1346,6 +1765,15 @@ table {
 	font-weight: normal;
 }
 
+.eventTypeDescription {
+	color: grey;
+	font-style: italic;
+}
+
+tr:hover .eventTypeDescription {
+	color: white;
+}
+
 /********************************/
 /* 			Users tabs 			*/
 /********************************/
@@ -1431,6 +1859,11 @@ table {
 	font-weight: bold;
 	border: 1px solid black;
 	border-radius: 3px;
+	text-decoration: none;
+}
+
+.underlined {
+	text-decoration: underline;
 }
 
 /********************/
@@ -1557,27 +1990,29 @@ table {
 	background: #367ebd;
 }
 
-#sliderSupportArea, #sliderGapArea, #sliderWindowArea, #sliderSizeArea {
-	height: 100px;
-}
-
-#sliderSupport, #sliderGap, #sliderWindow, #sliderSize {
-	margin: 10px 20px;
-}
-
-/*
-#sliderGap {
-	width: 100%;
-	height: 75px;
-}
-
-#sliderGap p {
+#sliderSupportArea p {
 	margin: 0px;
 }
-	
+
+#sliderSizeArea p {
+	margin: 0px;
+}
+
+#sliderSupport {
+	grid-area: slider-support;
+}
+
+#sliderSize {
+	grid-area: slider-size;
+}
+
+#sliderSupport, #sliderSize {
+	margin: 0px 20px;
+}
+
 .slider {
 	width: 100%;
-	height: 50px;	
+	height: 35px;	
 }
 
 .ticks {
@@ -1585,14 +2020,14 @@ table {
 }
 
 .track {
-  stroke: #black;
+  stroke: black;
   stroke-opacity: 0.3;
   stroke-width: 5px;
   stroke-linecap: round;
 }
 
 .bluetrack {
-  stroke: #lightblue;
+  stroke: lightblue;
   stroke-width: 5px;
   stroke-linecap: round;
 }
@@ -1604,12 +2039,16 @@ table {
   stroke-width: 1.25px;
 }
 
+.handleSliderText {
+	font: 10px sans-serif;
+  }
+
 .boundary {
-  fill: #grey;
+  fill: grey;
   stroke: #000;
   stroke-opacity: 0.5;
   stroke-width: 1.25px;
-}*/
+}
 
 /********************/
 /*	Tooltip			*/
@@ -1642,10 +2081,4 @@ margin-left:5px;
 overflow:hidden;
 }
 
-/********************/
-/*	Helper icon		*/
-/********************/
 
-.iconHelper {
-	color: grey;
-}

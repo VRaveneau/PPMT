@@ -59,6 +59,8 @@ public interface AbstractionCreator {
     public Pattern generateCandidates(AbstractionCreator creador, Pattern patron1, Pattern patron2,double minSupport);
 
     public void isCandidateInSequence(CandidateInSequenceFinder buscador, Pattern candidato, Sequence secuencia, int k, int i, List<int[]> posicion, long maxDuration, int minGap, int maxGap);
+   
+    public boolean isCandidateInSubSequence(CandidateInSequenceFinder buscador, Pattern candidato, Sequence secuencia, int k, int i, List<int[]> posicion, long maxDuration, int minGap, int maxGap, long l, long m);
 
     public List<Pattern> generateSize2Candidates(AbstractionCreator creador, Pattern get, Pattern get0);
 }

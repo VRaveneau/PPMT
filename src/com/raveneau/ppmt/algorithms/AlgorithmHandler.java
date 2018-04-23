@@ -12,7 +12,7 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 	
 	private ClientHandler clientHandler = null;
 	
-	private GspParameters algorithmParameters;
+	private GspParameters algorithmParameters = null;
 	
 	private GspThread algorithm = null;
 	private Thread thread = null;
@@ -38,16 +38,35 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 			System.out.println("  Tip : Steering should be used instead, or a restart");
 		}
 	}
+
+	public void startMining(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, long delay) {
+		
+		if (algorithm == null || algorithm.isFinished()) {
+			this.algorithmParameters = new GspParameters();
+			this.algorithmParameters.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay);
+			
+			// TODO Make sure any existing pattern has been deleted
+			algorithm = new GspThread(clientHandler.getDataset(), clientHandler.getPatternManager(), algorithmParameters);
+			// Useless if the parameters are passed in the constructor //algorithm.updateParameters(minSup, windowSize, maxSize, minGap, maxGap, maxDuration);
+			
+			this.thread = new Thread(algorithm);
+			thread.start();
+		} else {
+			System.out.println("Error : Trying to start mining while already running");
+			System.out.println("  Tip : Steering should be used instead, or a restart");
+		}
+	}
 	
 	public void stopMining() {
-		algorithmParameters.setTerminationRequested(true);
+		if (algorithmParameters != null)
+			algorithmParameters.setTerminationRequested(true);
 	}
 
 	@Override
-	public void steeringRequestedOnPattern(int patternId) {
+	public void steeringRequestedOnPatternStart(int patternId) {
 		System.out.println("AlgoHandler: Steering on pattern id " + Integer.toString(patternId) + " (" + clientHandler.getPatternManager().getPattern(patternId).itemsToString() + ")");
-		
-		this.algorithmParameters.requestSteeringOnPattern(patternId);
+		//System.out.println("AlgoHandler: Steering on pattern id " + Integer.toString(patternId));
+		this.algorithmParameters.requestSteeringOnPatternStart(patternId);
 		/*
 		 * Version if two threads are used
 		 * 
@@ -79,9 +98,9 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 	}
 
 	@Override
-	public void steeringRequestedOnTime(String start, String end) {
-		// TODO Auto-generated method stub
+	public void steeringRequestedOnTime(long start, long end) {
 		System.out.println("Steering requested on time between "+start+" and "+end);
+		this.algorithmParameters.requestSteeringOnTime(start, end);
 	}
 
 	/* Belongs to ThreadListener, used for SPAM

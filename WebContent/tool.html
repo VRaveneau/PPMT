@@ -58,37 +58,33 @@
 								
 								</div>
 							</div>
-							<!-- <hr>
-							<p>You can:</p>
-							<button type="button" class='trace-action-button'>Create event</button>
-							<button type="button" class='trace-action-button'>Delete event</button>
-							<button type="button" class='trace-action-button'>Truncate trace</button>
-							<button type="button" class='trace-action-button'>Delete user</button> -->
-							<hr>
 							<!-- history -->
 							<div class="subsection">
 								<div class="title">Analysis history</div>
 								<div class="body" id="history">
-								
+									<div id="historyTimeline"></div>
+									<div id="historyList"></div>
 								</div>
 							</div>
 						</div>
 						
 						<div id="Events" class="tabContent hidden">
-							<div class="left-aligned">
+							<!--<div class="left-aligned">
 								Show descriptions:
 								<input type="checkbox" class="clickable" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
-							</div>
+							</div>-->
 						
 							<table id="eventTable">
 								<thead>
 									<tr class="clickable">
-										<th onclick="clickOnEventTypeNameHeader()">Event&nbsp;type&nbsp;</th>
-										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeSupportHeader()">Support&nbsp;↑</th>
-										<th onclick="clickOnEventTypeCategoryHeader()">Category&nbsp;</th>
+										<!--<th onclick="clickOnEventTypeNameHeader()" value="name">Event&nbsp;type<span class="sortIndicator"></span><span class="smallText">(Show description <input type="checkbox" class="clickable" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">)</span></th>-->
+										<th onclick="clickOnEventTypeNameHeader()" value="name">Event&nbsp;type<span class="sortIndicator"></span><span class="smallText">(<span class="clickable clickableText" id="showEventTypeDescriptionInput">Hide description</span>)</span></th>
+										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeSupportHeader()" value="support">Support<span class="sortIndicator"></span></th>
+										<th onclick="clickOnEventTypeNbUsersHeader()" value="nbUsers">Nb&nbsp;users<span class="sortIndicator"></span></th>
+										<th onclick="clickOnEventTypeCategoryHeader()" value="category">Category<span class="sortIndicator"></span></th>
 									</tr>
 								</thead>
-								<tbody id="eventTableBody" onmouseout="prepareToHideEventTypeContextActions();">
+								<tbody id="eventTableBody">
 								</tbody>
 							</table>
 							<p id="noEvent">No event available. Try connecting to a server and selecting a dataset.</p>
@@ -110,15 +106,15 @@
 								<table id="userTable">
 									<thead>
 										<tr class="clickable">
-											<th onclick="clickOnUserNameHeader()">User&nbsp;</th>
-											<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()">Nb&nbsp;events&nbsp;↑</th>
-											<th onclick="clickOnUserDurationHeader()">Duration&nbsp;</th>
-											<th onclick="clickOnUserNbSessionsHeader()">Nb&nbsp;sessions&nbsp;</th>
-											<th onclick="clickOnUserStartHeader()">Start&nbsp;</th>
-											<th onclick="clickOnUserEndHeader()">End&nbsp;</th>
+											<th onclick="clickOnUserNameHeader()" value="name">User<span class="sortIndicator"></span></th>
+											<th id="eventsPerUserColumn" onclick="clickOnUserNbEventsHeader()" value="nbEvents">Nb&nbsp;events<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserDurationHeader()" value="duration">Duration<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserNbSessionsHeader()" value="nbSessions">Nb&nbsp;sessions<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserStartHeader()" value="start">Start<span class="sortIndicator"></span></th>
+											<th onclick="clickOnUserEndHeader()" value="end">End<span class="sortIndicator"></span></th>
 										</tr>
 									</thead>
-									<tbody id="userTableBody" onmouseout="prepareToHideUserContextActions();">
+									<tbody id="userTableBody">
 									</tbody>
 								</table>
 							</div>
@@ -143,21 +139,22 @@
 				</div>
 				
 				<div id="top" class="section">
-					<!--<div class="title">Current highlights</div>-->
 					<div class="body">
 						<!-- Activity indicator, disabled for now
 						<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
 							<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
 						</svg> -->
-						<!-- <p class="leftAligned no-margin-top no-margin-bottom">Current highlights: </p> -->
-						<div id="userHighlight" onmousemove="moveTooltipOnHighlights('users');">
-							0 highlighted user
+						<div id="eventTypeHighlight">
+							<span class="highlightsValue">0</span> highlighted event types <span class="highlightsResetOption clickable hidden" onclick="clearEventTypeSelection();">(<span class="clickableText">reset</span>)</span>
+							<div id="detailedEventTypeHighlight" class="detailedHighlight"></div>
 						</div>
-						<div id="eventTypeHighlight" onmousemove="moveTooltipOnHighlights('eventTypes');">
-							0 highlighted event type
+						<div id="userHighlight">
+							<span class="highlightsValue">0</span> highlighted users <span class="highlightsResetOption clickable hidden" onclick="clearUserSelection();">(<span class="clickableText">reset</span>)</span>
+							<div id="detailedUserHighlight" class="detailedHighlight"></div>
 						</div>
-						<div id="patternHighlight" onmousemove="moveTooltipOnHighlights('patterns');">
-							0 selected pattern
+						<div id="patternHighlight">
+							<span class="highlightsValue">0</span> selected patterns <span class="highlightsResetOption clickable hidden" onclick="unselectAllPatterns();">(<span class="clickableText">reset</span>)</span>
+							<div id="detailedPatternHighlight" class="detailedHighlight"></div>
 						</div>
 					</div>
 				</div>
@@ -182,17 +179,17 @@
 									</form>
 									<div class="focusZoomInfo">
 										Data grouped by:
-										<span id="zoomInfoYear" class="zoomInfoSpan clickable" onclick="goToYearDistribution();">year</span>
+										<span id="zoomInfoYear" class="zoomInfoSpan clickable clickableText" onclick="goToYearDistribution();">year</span>
 										<span class="zoomInfoSpan"> > </span>
-										<span id="zoomInfoMonth" class="zoomInfoSpan clickable" onclick="goToMonthDistribution();">month</span>
+										<span id="zoomInfoMonth" class="zoomInfoSpan clickable clickableText" onclick="goToMonthDistribution();">month</span>
 										<span class="zoomInfoSpan"> > </span>
-										<span id="zoomInfoHalfMonth" class="zoomInfoSpan clickable" onclick="goToHalfMonthDistribution();">half month</span>
+										<span id="zoomInfoHalfMonth" class="zoomInfoSpan clickable clickableText" onclick="goToHalfMonthDistribution();">half month</span>
 										<span class="zoomInfoSpan"> > </span>
-										<span id="zoomInfoDay" class="zoomInfoSpan clickable" onclick="goToDayDistribution();">day</span>
+										<span id="zoomInfoDay" class="zoomInfoSpan clickable clickableText" onclick="goToDayDistribution();">day</span>
 										<span class="zoomInfoSpan"> > </span>
-										<span id="zoomInfoHalfDay" class="zoomInfoSpan clickable" onclick="goToHalfDayDistribution();">half day</span>
+										<span id="zoomInfoHalfDay" class="zoomInfoSpan clickable clickableText" onclick="goToHalfDayDistribution();">half day</span>
 										<span class="zoomInfoSpan"> > </span>
-										<span id="zoomInfoEvent" class="zoomInfoSpan clickable" onclick="goToEvents();">event</span>
+										<span id="zoomInfoEvent" class="zoomInfoSpan clickable clickableText" onclick="goToEvents();">event</span>
 									</div>
 									<form id="binDisplayStyleForm" class="displayControlForm">
 										<label class="hidden">Relative size: </label>
@@ -255,106 +252,111 @@
 				
 				</div>
 					
-				<div id="algorithmInfo" class="section">
-					<div class="title">Algorithm</div>
-					<div class="body tabContainer">
+				<div id="algorithmInfo" class="section clickable" onclick="toggleExtendedAlgorithmView();">
+					<div class="title">Algorithm (<span class="clickable clickableText">More information, restart...</span>)</div>
+					<div class="body">
+						<div id="algorithmParameters">
+							<p>Runtime: <span id="runtime">00:00</span> <span id="currentAlgorithmWork">(Algorithm not running)</span></p>
+							<p class="algoParameterRecap">Min. support: <span id="currentSupport">??</span></p>
+							<p class="algoParameterRecap">Gap interval: <span id="currentGap">??</span></p>
+							<p class="algoParameterRecap">Max. duration: <span id="currentMaxDuration">??</span></p>
+							<p class="algoParameterRecap">Max. size: <span id="currentSize">??</span></p>
+							<p class="algoParameterRecap hidden">Window size: <span id="currentWindow">??</span></p>
+							<!-- <p>Data used: <span id="dataUsed"></span></p>
+							<p>Focusing on: <span id="focus"></span></p> -->
+						</div>
+						<div id="patternSizesChart">
+							
+						</div>
+						<!--<button id="algorithmShowMoreBtn" class="clickable">Show more</button>-->
 
-						<div class="tabHeader active" onclick="openAlgorithmTab(event, 'Execution')">
-							Execution
-						</div>
-						<div class="tabHeader" onclick="openAlgorithmTab(event, 'Algorithm')">
-							Mining
-						</div>
-					
-						<div id="Execution" class="tabContent">
-							<div id="algorithmParameters">
-								<p>Runtime: <span id="runtime">00:00</span> <span id="currentAlgorithmWork">(Algorithm not running)</span></p>
-								<p class="algoParameterRecap">Min. support: <span id="currentSupport">??</span></p>
-								<p class="algoParameterRecap">Gap interval: <span id="currentGap">??</span></p>
-								<p class="algoParameterRecap">Max. duration: <span id="currentMaxDuration">??</span></p>
-								<p class="algoParameterRecap">Max. size: <span id="currentSize">??</span></p>
-								<p class="algoParameterRecap hidden">Window size: <span id="currentWindow">??</span></p>
-								<!-- <p>Data used: <span id="dataUsed"></span></p>
-								<p>Focusing on: <span id="focus"></span></p> -->
-							</div>
-							<div id="patternSizesChart">
-								
-							</div>
-							<button id="algorithmChangeParametersBtn" onclick="toggleAlgorithmParametersChange();" class="clickable">Change parameters</button>
-							<button id="algorithmShowMoreBtn" onclick="toggleExtendedAlgorithmView();" class="clickable">Show more</button>
-						</div>
-
-						<div id="Algorithm" class="hidden tabContent">
+						<!--<div id="Algorithm" class="hidden tabContent">
 							<div id="sliderSupportArea">
-								<p>Min. support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
-								<br>
+								<p>Support:<span class="iconHelper" id="helpSupport">&nbsp;&nbsp;(?)</span></p>
 								<div id="sliderSupport"></div>
 							</div>
-							<div id="sliderGapArea">
+							<!--<div id="sliderGapArea">
 								<p>Min. and max. gap:<span class="iconHelper" id="helpGap" title="Number of events in the pattern that don't belong to it">&nbsp;&nbsp;(?)</span></p>
-								<br>
 								<div id="sliderGap"></div>
 							</div>
 							<div id="sliderWindowArea">
 								<p>Window:<span class="iconHelper" id="helpWindow">&nbsp;&nbsp;(?)</span></p>
-								<br>
 								<div id="sliderWindow"></div>
-							</div>
-							<div id="sliderSizeArea">
-								<p>Max. size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
-								<br>
+							</div>-->
+							<!--<div id="sliderSizeArea">
+								<p>Size:<span class="iconHelper" id="helpSize">&nbsp;&nbsp;(?)</span></p>
 								<div id="sliderSize"></div>
 							</div>
-						</div>
+						</div>-->
+					</div>
+				</div>
+
+				<div id="selectedPatternsArea" class="section">
+					<div class="title">
+						Selected patterns (<span id="selectedPatternNumberSpan">0</span>/<span id="selectablePatternSpan">0</span>) <span id="resetPatternSelectionButton" class="clickable hidden" onclick="unselectAllPatterns();">(<span class="clickableText">reset</span>)</span>
+					</div>
+					<div class="body hidden">
+						<table id="selectedPatternTable">
+							<thead>
+								<tr class="clickable">
+									<th onclick="clickOnSelectedPatternNameHeader()" value="name">Name<span class="sortIndicator"></span></th>
+									<th onclick="clickOnSelectedPatternSupportHeader()" value="support">Support<span class="sortIndicator"></span></th>
+									<th onclick="clickOnSelectedPatternNbUsersHeader()" value="nbUsers">Nb&nbsp;users<span class="sortIndicator"></span></th>
+									<th onclick="clickOnSelectedPatternSizeHeader()" value="size">Size<span class="sortIndicator"></span></th>
+								</tr>
+							</thead>
+							<tbody id="selectedPatternTableBody">
+							</tbody>
+						</table>
 					</div>
 				</div>
 
 				<div id="patternArea" class="section">
 				
-					<div class="title">Patterns</div>
-					<div class="subtitle"><span id="patternNumberSpan">0</span> discovered, <span id="selectedPatternNumberSpan">0</span> selected, <span id="highlightedPatternNumberSpan">0</span> matching the filter</div>
-					<div class="param">
-						<div class="left-aligned">
-							Show text:
-							<input type="checkbox" class="clickable" id="showPatternTextInput" checked onchange="switchShowPatternText();">
-						</div>
-						<div class="right-aligned">
-							<button onclick="selectUsersBasedOnPatternSelection();" class="clickable">Highlight relevant users</button>
-							<button onclick="unselectAllPatterns();" class="clickable">Unselect all patterns</button>
-						</div>
-					</div>
+					<div class="title">All patterns (<span id="highlightedPatternNumberSpan">0</span>/<span id="patternNumberSpan">0</span>)</div>
 					<div id="patternListArea" class="body">
-						<form>
-							<div class="searchBarArea">
-								<div class="searchFieldArea">
-									&nbsp;
-									<input type="text" class="searchField" placeholder="Write event types here">
-									<input type="text" class="hidden" disabled> <!-- To prevent submitting the form and reloading the page -->
-									<div class="suggestionDiv">
-									</div>
+						<div id="Algorithm" class="subsection">
+							<div class="body">
+								<div>Support:</div>
+								<div id="sliderSupport"></div>
+								<div class="helper" id="helpSupport">
+									<div class="helperMessage">Number of occurrences of a pattern</div>
+								</div>
+								<div>Size:</div>
+								<div id="sliderSize"></div>
+								<div class="helper" id="helpSize">
+									<div class="helperMessage">Number of events in a pattern</div>
+								</div>
+								<div>Name:</div>
+								<div class="searchBarArea">
+									<form>
+										<div class="searchFieldArea">
+											&nbsp;
+											<input type="text" class="searchField" placeholder="Write event types here">
+											<input type="text" class="hidden" disabled> <!-- To prevent submitting the form and reloading the page -->
+											<div class="suggestionDiv">
+											</div>
+										</div>
+									</form>
 								</div>
 							</div>
-						</form>
-						 
-						<div id="List">
-							<table id="patternTable">
-								<thead>
-									<tr class="clickable">
-										<th onclick="clickOnPatternNameHeader()">Name&nbsp;</th>
-										<th onclick="clickOnPatternSupportHeader()">Support&nbsp;</th>
-										<th onclick="clickOnPatternNbUsersHeader()">Nb&nbsp;users&nbsp;</th>
-										<th onclick="clickOnPatternSizeHeader()">Size&nbsp;↓</th>
-									</tr>
-								</thead>
-								<tbody id="selectedPatternTableBody" onmouseout="prepareToHidePatternContextActions();">
-								</tbody>
-								<tr id="patternListSeparator">
-									<td colspan="4"><hr></td>
-								</tr>
-								<tbody id="patternTableBody" onmouseout="prepareToHidePatternContextActions();">
-								</tbody>
-							</table>
-					
+						</div>
+
+						<div id="List" class="subsection">
+							<div class="body">
+								<table id="patternTable">
+									<thead>
+										<tr class="clickable">
+											<th onclick="clickOnPatternNameHeader()" value="name">Name<span class="sortIndicator"></span><span class="smallText">(<span class="clickable clickableText" id="showPatternTextInput">Hide text</span>)</span></th>
+											<th onclick="clickOnPatternSupportHeader()" value="support">Support<span class="sortIndicator"></span></th>
+											<th onclick="clickOnPatternNbUsersHeader()" value="nbUsers">Nb&nbsp;users<span class="sortIndicator"></span></th>
+											<th onclick="clickOnPatternSizeHeader()" value="size">Size<span class="sortIndicator"></span></th>
+										</tr>
+									</thead>
+									<tbody id="patternTableBody">
+									</tbody>
+								</table>
+							</div>
 						</div>
 					</div>
 				
@@ -374,6 +376,61 @@
 							X
 						</div>
 						<div id="algorithmExtended" class="section hidden">
+							<div id="extendedAlgorithmParametersArea" class="section">
+								<div class="title">Current parameters</div>
+								<div class="body">
+									<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
+									<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
+									<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
+									<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
+									<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
+								</div>
+							</div>
+							
+							<div id="extendedAlgorithmStrategyArea" class="section">
+								<div class="title">Current strategy</div>
+								<div class="body">Not Running</div>
+							</div>
+							
+							<div id="algorithmSpeedArea" class="section">
+								<!--<div class="title">Speed</div>-->
+								<div class="body">
+									<div class="subsection">
+										<div class="title">Patterns per second</div>
+										<div class="body" id="patternsPerSecond">
+										</div>
+									</div>
+									<div class="subsection">
+										<div class="title">Candidates checked per second</div>
+										<div class="body" id="candidatesCheckedPerSecond">
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<div id="algorithmParametersChange" class="section">
+								<div class="title">Change parameters</div>
+								<div class="body">
+									<p>minSupport</p>
+									<div id="minSupportChangeSlider">
+	
+									</div>
+									<p>gap</p>
+									<div id="gapChangeSlider">
+	
+									</div>
+									<p>maxDuration</p>
+									<div id="maxDurationChangeSlider">
+	
+									</div>
+									<p>maxSize</p>
+									<div id="maxSizeChangeSlider">
+	
+									</div>
+									<button onclick="askConfirmationToChangeAlgorithmParameters();"; class="clickable">Restart with these parameters</button>
+								</div>
+							</div>
+
 							<div id="patternSizeTableArea" class="section">
 								<div class="body">
 									<table id="patternSizeTable">
@@ -405,46 +462,6 @@
 							<div id="extendedPatternSizesChart">
 
 							</div>
-							<div id="algorithmExtendedSidePanel">
-								<div id="extendedAlgorithmStrategyArea" class="section">
-									<div class="title">Current strategy</div>
-									<div class="body">Not Running</div>
-								</div>
-								<div id="extendedAlgorithmParametersArea" class="section">
-									<div class="title">Current parameters</div>
-									<div class="body">
-										<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
-										<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
-										<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
-										<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
-										<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
-										<button onclick="toggleAlgorithmParametersChange();" class="clickable">Change parameters</button>
-									</div>
-								</div>
-								<div id="algorithmSpeedArea" class="section">
-									<div class="title">Speed</div>
-									<div class="body">
-										<div id="patternsPerSec" class="subsection">
-											<div class="title">Patterns per second</div>
-											<div class="body">
-												plop
-											</div>
-										</div>
-										<div id="candidatesCheckedPerSec" class="subsection">
-											<div class="title">Candidates checked per second</div>
-											<div class="body">
-												plop
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-						<div id="algorithmParametersChange" class="section hidden">
-							<div>Support</div>
-							<div>Gap</div>
-							<div>Max duration</div>
-							<div>max size</div>
 						</div>
 						<div id="actionConfirmation" class="section hidden">
 							<div id="contentHeader"></div>
@@ -454,18 +471,18 @@
 						</div>
 					</div>
 				</div>
-				<div id="patternContextActions" class="contextActions hidden">
-					<button id="createEventButton" class="clickable">To eventType</button>
-					<button id="prefixSteeringButton" class="clickable">Prefix steering</button>
-				</div>
-				<div id="eventTypeContextActions" class="contextActions hidden">
-					<button id="removeEventTypeButton" class="clickable">Remove</button>
-				</div>
-				<div id="userContextActions" class="contextActions hidden">
-					<button id="removeUserButton" class="clickable">Remove</button>
-				</div>
 			</div>
 		</div>
+
+		<template id="sortIndicator">
+			<svg height="16" width="15">
+				<polygon class="upIndicator" points="7,0 14,7 0,7" />
+				<polygon class="downIndicator" points="0,8 14,8 7,15" />
+				<!--<polygon class="upIndicator" points="10,2 17,9 3,9" />
+				<polygon class="downIndicator" points="3,11 17,11 10,18" />-->
+			</svg>
+		</template>
+
 	    <script src="config.js" type="text/javascript" charset="utf-8"></script>
 		<script src="ServerInterface.js" type="text/javascript" charset="utf-8"></script>
 		<script src="jscolor/jscolor.js" type="text/javascript"></script> <!-- http://jscolor.com -->
