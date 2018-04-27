@@ -587,6 +587,13 @@ function resetDataset() {
 }
 
 /**
+ * Requests a steering on the time period under the overview brush
+ */
+function steerOnDisplayedTime() {
+	requestSteeringOnTime(...currentTimeFilter);
+}
+
+/**
  * Keeps refreshing the algorithm state display each frame while it is running
  */
 function updateAlgorithmStateDisplayOnRAF() {
