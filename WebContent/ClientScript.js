@@ -261,6 +261,15 @@ var currentDatasetName = "";
  */
 var datasetInfo = {};
 
+// The value for the EventTypeInformations variable for an unmodified dataset
+var defaultEventTypeInformations = [];
+// The value for the EventTypes variable for an unmodified dataset
+var defaultEventTypes = [];
+// The value for the ColorList variable for an unmodified dataset
+var defaultColorList = [];
+// The value for the ItemShapes variable for an unmodified dataset
+var defaultItemShapes = [];
+
 // The categories of event types
 var eventTypeCategories = [];
 // For each category, the list of event types that belong to it
@@ -2610,6 +2619,11 @@ function receiveEventTypes(message) {
 		};
 	});
 	
+	defaultEventTypeInformations = eventTypeInformations;
+	defaultEventTypes = eventTypes;
+	defaultColorList = colorList;
+	defaultItemShapes = itemShapes;
+
 	sortEventTypes();
 	createEventTypesListDisplay();
 }
@@ -2632,8 +2646,14 @@ function restoreInitialData() {
 
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
+
+	eventTypeInformations = defaultEventTypeInformations;
+	eventTypes = defaultEventTypes;
+	colorList = defaultColorList;
+	itemShapes = defaultItemShapes;
+
+	updateUserInformations();
+	updateEventTypesInformations();
 	updateDatasetInfo(true);
 }
 
@@ -2857,6 +2877,42 @@ function updateUserInformations() {
 
 	userList = Object.keys(userInformations);
 	sortUsers();
+}
+
+/**
+ * Updates the information on each event type from the data
+ */
+function updateEventTypesInformations() {
+	dataDimensions.time.filterAll();
+	let oldInfo = eventTypeInformations;
+	eventTypeInformations = {};
+	eventTypesByCategory = {};
+	eventTypeCategories = [];
+
+	dataDimensions.type.group().dispose().all().forEach( function(type) {
+		let category = oldInfo[type.key].category;
+
+		eventTypeInformations[type.key] = {};
+		eventTypeInformations[type.key].category = category;
+		eventTypeInformations[type.key].description = oldInfo[type.key].description;
+		eventTypeInformations[type.key].nbOccs = type.value;
+		eventTypeInformations[type.key].code = oldInfo[type.key].code;
+		eventTypeInformations[type.key].nbUsers = oldInfo[type.key].nbUsers;
+
+		if (eventTypeCategories.includes(category) == false) {
+			eventTypesByCategory[category] = [];
+			eventTypeCategories.push(category);
+		}
+		eventTypesByCategory[category].push(type.key);
+	});
+
+	eventTypes = Object.keys(eventTypeInformations);
+	computeUsersPerEventType();
+	sortEventTypes();
+	createEventTypesListDisplay();
+
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
 }
 
 /**
@@ -3926,8 +3982,7 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
+	updateEventTypesInformations();
 	addToHistory(removedEvents.length + " event types removed", removedEvents.join(", "));
 }
 
@@ -3942,7 +3997,7 @@ function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
-	removedEventsList = _.concat(removedEventsListt, theseRemovedEvents);
+	removedEventsList = _.concat(removedEventsList, theseRemovedEvents);
 	// Clean the highlights if necessary
 	let intersection = _.intersection(highlightedUsers, removedUsers);
 	if (intersection.length > 0) {
@@ -3952,8 +4007,7 @@ function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
+	updateEventTypesInformations();
 	addToHistory(removedUsers.length + " users removed", removedUsers.join(", "));
 }
 

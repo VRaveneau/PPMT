@@ -208,7 +208,7 @@ public class ClientHandler {
 	}
 	
 	public void resetDataset() {
-		provideEventTypes();
+		//provideEventTypes();
 	}
 
 	public void provideEventTypes() {
@@ -553,7 +553,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
@@ -582,7 +582,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
