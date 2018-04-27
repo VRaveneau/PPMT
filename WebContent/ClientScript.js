@@ -326,6 +326,11 @@ var eventBins = {
 // name - nbEvents - duration - start - end
 var userInformations = {};
 
+// Events removed from the dataset
+var removedEventsList = [];
+// Ids of event added to the dataset
+var addedEventIdsList = [];
+
 // Number of extracted patterns
 var numberOfPattern = 0;
 // Information about the patterns
@@ -556,6 +561,21 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 /*				Utility				 */
 /*************************************/
+
+/**
+ * Resets the dataset to its unmodified state
+ */
+function resetDataset() {
+	d3.select("#resetDatasetButton")
+		.classed("hidden", true);
+	
+	requestDatasetReset();
+	restoreInitialData();
+	resetPatterns();
+	requestAlgorithmReStart();
+
+	addToHistory("Reset the dataset");
+}
 
 /**
  * Keeps refreshing the algorithm state display each frame while it is running
@@ -2098,7 +2118,11 @@ function processMessage(message/*Compressed*/) {
 		receiveDatasetList(msg);
 	}
 	if (msg.action === "dataAlteration") {
-		if (msg.type === "eventTypeCreated") {
+		// Show the reset button
+		d3.select("#resetDatasetButton")
+			.classed("hidden", false);
+		
+			if (msg.type === "eventTypeCreated") {
 			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
 		}
 		if (msg.type === "eventTypeRemoved") {
@@ -2191,6 +2215,17 @@ function requestDatasetInfo(datasetName) {
 			action: "request",
 			object: "datasetInfo",
 			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests a reset of the dataset to its initial state
+ */
+function requestDatasetReset() {
+	let action = {
+		action: "request",
+		object: "datasetReset"
 	};
 	sendToServer(action);
 }
@@ -2582,6 +2617,25 @@ function receiveEventTypes(message) {
 /************************************/
 /*		Data manipulation			*/
 /************************************/
+
+/**
+ * Restore the dataset in the state it was when sent by the server
+ */
+function restoreInitialData() {
+	resetDataFilters();
+
+	dataset.remove( (d,i) => addedEventIdsList.includes(d.id) );
+	addedEventIdsLis = [];
+
+	dataset.add(removedEventsList);
+	removedEventsList = [];
+
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+	computeUsersPerEventType();
+	createEventTypesListDisplay();
+	updateDatasetInfo(true);
+}
 
 /**
  * Computes the number of users for each event type
@@ -3818,10 +3872,13 @@ function resetPatterns() {
  */
 function updateDatasetForNewEventType(newEvents, removedIds) {
 	resetDataFilters();
+	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	removedEventsList = _.concat(removedEventsList, theseRemovedEvents);
 	console.log("Removed");
+
 	let toAdd = [];
 	newEvents.forEach(function(evt) {
 		let time = new Date(evt.start);
@@ -3834,9 +3891,11 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 			"properties": evt.properties
 		};
 		toAdd.push(evtObj);
+		addedEventIdsList.push(evt.id);
 	});
 	dataset.add(toAdd);
 	console.log("Added");
+
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	computeUsersPerEventType();
@@ -3851,9 +3910,13 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
  */
 function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	resetDataFilters();
+	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
+	console.log("thse/ "+theseRemovedEvents.length);
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	removedEventsList = _.concat(removedEventsList, theseRemovedEvents);
+	console.log("rem: "+removedEventsList.length);
 	// Clean the highlights if necessary
 	let intersection = _.intersection(highlightedEventTypes, removedEvents);
 	if (intersection.length > 0) {
@@ -3875,9 +3938,11 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
  */
 function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	resetDataFilters();
+	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	removedEventsList = _.concat(removedEventsListt, theseRemovedEvents);
 	// Clean the highlights if necessary
 	let intersection = _.intersection(highlightedUsers, removedUsers);
 	if (intersection.length > 0) {

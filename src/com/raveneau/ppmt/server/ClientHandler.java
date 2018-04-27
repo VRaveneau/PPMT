@@ -206,6 +206,10 @@ public class ClientHandler {
 		
 		sendToSession(session, dataMessage.build());
 	}
+	
+	public void resetDataset() {
+		provideEventTypes();
+	}
 
 	public void provideEventTypes() {
 		JsonObjectBuilder dataMessage = null;

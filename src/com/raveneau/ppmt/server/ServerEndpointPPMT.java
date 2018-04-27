@@ -81,6 +81,11 @@ public class ServerEndpointPPMT {
 			  			sessionHandler.provideDatasetInfo(jsonMessage.getString("dataset"),session);
 						break;
 						
+					case "datasetReset":
+						System.out.println("user requests a reset of its dataset");
+			  			sessionHandler.resetDataset(session);
+						break;
+						
 					case "eventTypes":
 						System.out.println("user requests event types on the "+jsonMessage.getString("dataset")+" dataset");
 			  			sessionHandler.provideEventTypes(jsonMessage.getString("dataset"),session);

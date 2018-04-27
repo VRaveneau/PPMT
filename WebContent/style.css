@@ -1238,8 +1238,8 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	grid-template-rows: repeat(2, min-content);
 }
 
-#Trace button {
-	width: 80%;
+#resetDatasetButton {
+	width: auto;
 }
 
 table {
