@@ -2131,8 +2131,8 @@ function processMessage(message/*Compressed*/) {
 		d3.select("#resetDatasetButton")
 			.classed("hidden", false);
 		
-			if (msg.type === "eventTypeCreated") {
-			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+		if (msg.type === "eventTypeCreated") {
+			updateDatasetForNewEventType(msg.newEvents, msg.removedIds, msg.typeInfo);
 		}
 		if (msg.type === "eventTypeRemoved") {
 			updateDatasetForRemovedEventTypes(msg.removedIds, msg.removedEvents);
@@ -2652,9 +2652,13 @@ function restoreInitialData() {
 	colorList = defaultColorList;
 	itemShapes = defaultItemShapes;
 
+	highlightedUsers = [];
+	highlightedEventTypes = [];
+
 	updateUserInformations();
 	updateEventTypesInformations();
 	updateDatasetInfo(true);
+	setHighlights();
 }
 
 /**
@@ -3913,6 +3917,7 @@ function resetPatterns() {
 	drawPatternSizesChart();
 	createPatternListDisplay();
 	updatePatternCountDisplay();
+	setHighlights();
 	// TODO Keep the initial sessions ?
 	buildUserSessions();
 	refreshUserPatterns();
@@ -3925,8 +3930,9 @@ function resetPatterns() {
  * Updates the data after the creation of a new event type
  * @param {JSON} newEvents New events to add to the data
  * @param {number[]} removedIds Ids of events to be removed
+ * @param {json} typeInfo Information about the new type
  */
-function updateDatasetForNewEventType(newEvents, removedIds) {
+function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
 	resetDataFilters();
 	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
 	dataset.remove(function(d,i) {
@@ -3954,9 +3960,49 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
-	addToHistory("Event type "+newEvents[0].type+" created from pattern");
+
+	eventTypeInformations[typeInfo.name] = {
+		"category": typeInfo.category,
+		"description": typeInfo.description,
+		"nbOccs": toAdd.length,
+		"nbUsers": 0
+	};
+
+	if (eventTypeCategories.includes(typeInfo.category) == false) {
+		eventTypesByCategory[typeInfo.category] = [];
+		eventTypeCategories.push(typeInfo.category);
+		let catColor = getNextCategoryColor();
+		eventTypeCategoryColors[typeInfo.category] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
+		
+		let categoryRow = d3.select("#categoryTableBody").append("tr");
+		categoryRow.append("td").text(typeInfo.category);
+		let categorySvg = categoryRow.append("td")
+			.append("svg")
+			.attr("width",60)
+			.attr("height", 20);
+		categorySvg.append("rect")
+			.attr("width", 30)
+			.attr("height", 20)
+			.attr("fill",eventTypeCategoryColors[typeInfo.category][0].toString());
+		categorySvg.append("rect")
+			.attr("width", 30)
+			.attr("height", 20)
+			.attr("x",30)
+			.attr("fill",eventTypeCategoryColors[typeInfo.category][1].toString());
+	}
+	eventTypesByCategory[typeInfo.category].push(typeInfo.name);
+
+	// Take the first available shape in this category
+	let eCode = shapes[(eventTypesByCategory[typeInfo.category].length - 1)%shapes.length];
+	let eColor = eventTypeCategoryColors[typeInfo.category];
+	
+	colorList[typeInfo.name] = eColor;
+	itemShapes[typeInfo.name] = eCode;
+
+	eventTypeInformations[typeInfo.name].code = eCode;
+
+	updateEventTypesInformations();
+	addToHistory("Event type created: "+newEvents[0].type, "From the occurrences of '"+typeInfo.name.replace("-"," ")+"'");
 }
 
 /**

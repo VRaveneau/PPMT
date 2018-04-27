@@ -585,7 +585,10 @@ public class Dataset {
 			if (desc.containsKey(eventsReadable.get(i))) {
 				infos.put("description", desc.get(eventsReadable.get(i)).replaceAll("\"", ""));
 			} else {
-				infos.put("description", "???");
+				if (eventsReadable.get(i).split("-").length > 1)
+					infos.put("description", "Created from "+eventsReadable.get(i).replace("-", " "));
+				else
+					infos.put("description", "???");
 			}
 			//	The event type category
 			Map<String, List<String>> categories = parameters.getEventByCategories();
@@ -603,7 +606,7 @@ public class Dataset {
 					break;
 			}
 			if (!found) {
-				infos.put("category", "defaultCat");
+				infos.put("category", "userCreated");
 			}
 			
 			res.put(eventsReadable.get(i), infos);
@@ -959,7 +962,7 @@ public class Dataset {
 		String newEventType = "";
 		for(String item : p.getReadableItems()) {
 			if (newEventType.length() > 0)
-				newEventType += "_";
+				newEventType += "-";
 			newEventType+=item;
 		}
 		addEventType(newEventType);
