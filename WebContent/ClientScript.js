@@ -6738,7 +6738,7 @@ function ModifySlider(elemId, options) {
 	self.axis = d3.scaleLinear()
 		.domain(self.domain)
 		.range([0,self.width])
-		.clamp(true);
+		.clamp(false);
 	
 	self.slider = self.svg.append("g")
 		.attr("class","slider")
@@ -6833,7 +6833,9 @@ function ModifySlider(elemId, options) {
 	}
 
 	self.moveHandleTo = function(handleObject, value) {
-		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
+		if (value < self.currentMinValue) {
+			self.decreaseMin(handleObject);
+		} else if (value >= self.currentMinValue && value <= self.currentMaxValue) {
 			handleObject.value = value;
 			handleObject.handle.attr("cx",self.axis(Math.round(value)));
 			handleObject.tooltip.attr("x", self.axis(handleObject.value))
@@ -6849,8 +6851,20 @@ function ModifySlider(elemId, options) {
 						return prev;
 					}, []))));
 			}
+		} else { // Touching the max value, we increase it by 1
+			self.increaseMax(handleObject);
 		}
 	};
+
+	self.increaseMax = _.throttle( function(handleObject) {
+		handleObject.value++;
+		self.updateValues(self.handles.map( (h) => h.value ));
+	}, 100);
+
+	self.decreaseMin = _.throttle( function(handleObject) {
+		handleObject.value--;
+		self.updateValues(self.handles.map( (h) => h.value ));
+	}, 100);
 
 	self.getValues = function() {
 		return self.handles.map( (h) => h.value ).sort();
