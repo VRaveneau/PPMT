@@ -1374,7 +1374,7 @@ table {
 }
 
 #Algorithm .body {
-	overflow: auto;
+	overflow: visible;
 	display: grid;
 	grid-template-columns: min-content 1fr min-content;
 	grid-template-rows: repeat(3, minmax(min-content, 1fr));
