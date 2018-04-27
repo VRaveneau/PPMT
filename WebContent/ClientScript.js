@@ -261,6 +261,15 @@ var currentDatasetName = "";
  */
 var datasetInfo = {};
 
+// The value for the EventTypeInformations variable for an unmodified dataset
+var defaultEventTypeInformations = [];
+// The value for the EventTypes variable for an unmodified dataset
+var defaultEventTypes = [];
+// The value for the ColorList variable for an unmodified dataset
+var defaultColorList = [];
+// The value for the ItemShapes variable for an unmodified dataset
+var defaultItemShapes = [];
+
 // The categories of event types
 var eventTypeCategories = [];
 // For each category, the list of event types that belong to it
@@ -325,6 +334,11 @@ var eventBins = {
 // For each key (userName), the available data is:
 // name - nbEvents - duration - start - end
 var userInformations = {};
+
+// Events removed from the dataset
+var removedEventsList = [];
+// Ids of event added to the dataset
+var addedEventIdsList = [];
 
 // Number of extracted patterns
 var numberOfPattern = 0;
@@ -556,6 +570,21 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 /*				Utility				 */
 /*************************************/
+
+/**
+ * Resets the dataset to its unmodified state
+ */
+function resetDataset() {
+	d3.select("#resetDatasetButton")
+		.classed("hidden", true);
+	
+	requestDatasetReset();
+	restoreInitialData();
+	resetPatterns();
+	requestAlgorithmReStart();
+
+	addToHistory("Reset the dataset");
+}
 
 /**
  * Keeps refreshing the algorithm state display each frame while it is running
@@ -2098,8 +2127,12 @@ function processMessage(message/*Compressed*/) {
 		receiveDatasetList(msg);
 	}
 	if (msg.action === "dataAlteration") {
+		// Show the reset button
+		d3.select("#resetDatasetButton")
+			.classed("hidden", false);
+		
 		if (msg.type === "eventTypeCreated") {
-			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+			updateDatasetForNewEventType(msg.newEvents, msg.removedIds, msg.typeInfo);
 		}
 		if (msg.type === "eventTypeRemoved") {
 			updateDatasetForRemovedEventTypes(msg.removedIds, msg.removedEvents);
@@ -2191,6 +2224,17 @@ function requestDatasetInfo(datasetName) {
 			action: "request",
 			object: "datasetInfo",
 			dataset: datasetName
+	};
+	sendToServer(action);
+}
+
+/**
+ * Requests a reset of the dataset to its initial state
+ */
+function requestDatasetReset() {
+	let action = {
+		action: "request",
+		object: "datasetReset"
 	};
 	sendToServer(action);
 }
@@ -2575,6 +2619,11 @@ function receiveEventTypes(message) {
 		};
 	});
 	
+	defaultEventTypeInformations = eventTypeInformations;
+	defaultEventTypes = eventTypes;
+	defaultColorList = colorList;
+	defaultItemShapes = itemShapes;
+
 	sortEventTypes();
 	createEventTypesListDisplay();
 }
@@ -2582,6 +2631,35 @@ function receiveEventTypes(message) {
 /************************************/
 /*		Data manipulation			*/
 /************************************/
+
+/**
+ * Restore the dataset in the state it was when sent by the server
+ */
+function restoreInitialData() {
+	resetDataFilters();
+
+	dataset.remove( (d,i) => addedEventIdsList.includes(d.id) );
+	addedEventIdsLis = [];
+
+	dataset.add(removedEventsList);
+	removedEventsList = [];
+
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+
+	eventTypeInformations = defaultEventTypeInformations;
+	eventTypes = defaultEventTypes;
+	colorList = defaultColorList;
+	itemShapes = defaultItemShapes;
+
+	highlightedUsers = [];
+	highlightedEventTypes = [];
+
+	updateUserInformations();
+	updateEventTypesInformations();
+	updateDatasetInfo(true);
+	setHighlights();
+}
 
 /**
  * Computes the number of users for each event type
@@ -2803,6 +2881,42 @@ function updateUserInformations() {
 
 	userList = Object.keys(userInformations);
 	sortUsers();
+}
+
+/**
+ * Updates the information on each event type from the data
+ */
+function updateEventTypesInformations() {
+	dataDimensions.time.filterAll();
+	let oldInfo = eventTypeInformations;
+	eventTypeInformations = {};
+	eventTypesByCategory = {};
+	eventTypeCategories = [];
+
+	dataDimensions.type.group().dispose().all().forEach( function(type) {
+		let category = oldInfo[type.key].category;
+
+		eventTypeInformations[type.key] = {};
+		eventTypeInformations[type.key].category = category;
+		eventTypeInformations[type.key].description = oldInfo[type.key].description;
+		eventTypeInformations[type.key].nbOccs = type.value;
+		eventTypeInformations[type.key].code = oldInfo[type.key].code;
+		eventTypeInformations[type.key].nbUsers = oldInfo[type.key].nbUsers;
+
+		if (eventTypeCategories.includes(category) == false) {
+			eventTypesByCategory[category] = [];
+			eventTypeCategories.push(category);
+		}
+		eventTypesByCategory[category].push(type.key);
+	});
+
+	eventTypes = Object.keys(eventTypeInformations);
+	computeUsersPerEventType();
+	sortEventTypes();
+	createEventTypesListDisplay();
+
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
 }
 
 /**
@@ -3803,6 +3917,7 @@ function resetPatterns() {
 	drawPatternSizesChart();
 	createPatternListDisplay();
 	updatePatternCountDisplay();
+	setHighlights();
 	// TODO Keep the initial sessions ?
 	buildUserSessions();
 	refreshUserPatterns();
@@ -3815,13 +3930,17 @@ function resetPatterns() {
  * Updates the data after the creation of a new event type
  * @param {JSON} newEvents New events to add to the data
  * @param {number[]} removedIds Ids of events to be removed
+ * @param {json} typeInfo Information about the new type
  */
-function updateDatasetForNewEventType(newEvents, removedIds) {
+function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
 	resetDataFilters();
+	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	removedEventsList = _.concat(removedEventsList, theseRemovedEvents);
 	console.log("Removed");
+
 	let toAdd = [];
 	newEvents.forEach(function(evt) {
 		let time = new Date(evt.start);
@@ -3834,14 +3953,56 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 			"properties": evt.properties
 		};
 		toAdd.push(evtObj);
+		addedEventIdsList.push(evt.id);
 	});
 	dataset.add(toAdd);
 	console.log("Added");
+
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
-	addToHistory("Event type "+newEvents[0].type+" created from pattern");
+
+	eventTypeInformations[typeInfo.name] = {
+		"category": typeInfo.category,
+		"description": typeInfo.description,
+		"nbOccs": toAdd.length,
+		"nbUsers": 0
+	};
+
+	if (eventTypeCategories.includes(typeInfo.category) == false) {
+		eventTypesByCategory[typeInfo.category] = [];
+		eventTypeCategories.push(typeInfo.category);
+		let catColor = getNextCategoryColor();
+		eventTypeCategoryColors[typeInfo.category] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
+		
+		let categoryRow = d3.select("#categoryTableBody").append("tr");
+		categoryRow.append("td").text(typeInfo.category);
+		let categorySvg = categoryRow.append("td")
+			.append("svg")
+			.attr("width",60)
+			.attr("height", 20);
+		categorySvg.append("rect")
+			.attr("width", 30)
+			.attr("height", 20)
+			.attr("fill",eventTypeCategoryColors[typeInfo.category][0].toString());
+		categorySvg.append("rect")
+			.attr("width", 30)
+			.attr("height", 20)
+			.attr("x",30)
+			.attr("fill",eventTypeCategoryColors[typeInfo.category][1].toString());
+	}
+	eventTypesByCategory[typeInfo.category].push(typeInfo.name);
+
+	// Take the first available shape in this category
+	let eCode = shapes[(eventTypesByCategory[typeInfo.category].length - 1)%shapes.length];
+	let eColor = eventTypeCategoryColors[typeInfo.category];
+	
+	colorList[typeInfo.name] = eColor;
+	itemShapes[typeInfo.name] = eCode;
+
+	eventTypeInformations[typeInfo.name].code = eCode;
+
+	updateEventTypesInformations();
+	addToHistory("Event type created: "+newEvents[0].type, "From the occurrences of '"+typeInfo.name.replace("-"," ")+"'");
 }
 
 /**
@@ -3851,9 +4012,13 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
  */
 function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	resetDataFilters();
+	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
+	console.log("thse/ "+theseRemovedEvents.length);
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	removedEventsList = _.concat(removedEventsList, theseRemovedEvents);
+	console.log("rem: "+removedEventsList.length);
 	// Clean the highlights if necessary
 	let intersection = _.intersection(highlightedEventTypes, removedEvents);
 	if (intersection.length > 0) {
@@ -3863,8 +4028,7 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
+	updateEventTypesInformations();
 	addToHistory(removedEvents.length + " event types removed", removedEvents.join(", "));
 }
 
@@ -3875,9 +4039,11 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
  */
 function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	resetDataFilters();
+	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	removedEventsList = _.concat(removedEventsList, theseRemovedEvents);
 	// Clean the highlights if necessary
 	let intersection = _.intersection(highlightedUsers, removedUsers);
 	if (intersection.length > 0) {
@@ -3887,8 +4053,7 @@ function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
+	updateEventTypesInformations();
 	addToHistory(removedUsers.length + " users removed", removedUsers.join(", "));
 }
 
@@ -6926,15 +7091,18 @@ function PatternPerSecondGraph(elemId) {
 	self.path = self.area.append("path");
 
 	self.data = [];
+	self.lastMinutesData = [];
+
+	self.timeDisplayed = 60*1000;
 
 	self.draw = function() {
-		self.x.domain(d3.extent(self.data, (d) => d.date ));
+		self.x.domain(d3.extent(self.lastMinutesData, (d) => d.date ));
 		self.y.domain(d3.extent(self.data, (d) => d.delta ));
 		
 		self.xAxisG.call(self.xAxis);
 		self.yAxisG.call(self.yAxis);
 
-		self.path.datum(self.data)
+		self.path.datum(self.lastMinutesData)
 			.attr("fill", "none")
 			.attr("stroke", "steelblue")
 			.attr("stroke-linejoin", "round")
@@ -6944,18 +7112,30 @@ function PatternPerSecondGraph(elemId) {
 	}
 
 	self.getLastData = function() {
-		if (self.data.length > 0)
-			return self.data[self.data.length-1];
+		if (self.lastMinutesData.length > 0)
+			return self.lastMinutesData[self.lastMinutesData.length-1];
 		else
 			return null;
 	}
 
 	self.addData = function(newData) {
+		if (self.lastMinutesData.length > 0) {
+			let lastDataTime = self.lastMinutesData[self.lastMinutesData.length - 1].date;
+			while(self.lastMinutesData.length > 0) {
+				if (lastDataTime - self.timeDisplayed > self.lastMinutesData[0].date) {
+					self.lastMinutesData.shift();
+				} else {
+					break;
+				}
+			}
+		}
 		self.data.push(newData);
+		self.lastMinutesData.push(newData);
 	}
 
 	self.reset = function() {
 		self.data = [];
+		self.lastMinutesData = [];
 		self.draw();
 	}
 }
@@ -7000,15 +7180,18 @@ function CandidatesCheckedPerSecondGraph(elemId) {
 	self.path = self.area.append("path");
 
 	self.data = [];
+	self.lastMinutesData = [];
+
+	self.timeDisplayed = 60*1000;
 
 	self.draw = function() {
-		self.x.domain(d3.extent(self.data, (d) => d.date ));
+		self.x.domain(d3.extent(self.lastMinutesData, (d) => d.date ));
 		self.y.domain(d3.extent(self.data, (d) => d.delta ));
 		
 		self.xAxisG.call(self.xAxis);
 		self.yAxisG.call(self.yAxis);
 
-		self.path.datum(self.data)
+		self.path.datum(self.lastMinutesData)
 			.attr("fill", "none")
 			.attr("stroke", "steelblue")
 			.attr("stroke-linejoin", "round")
@@ -7018,18 +7201,30 @@ function CandidatesCheckedPerSecondGraph(elemId) {
 	}
 
 	self.getLastData = function() {
-		if (self.data.length > 0)
-			return self.data[self.data.length-1];
+		if (self.lastMinutesData.length > 0)
+			return self.lastMinutesData[self.lastMinutesData.length-1];
 		else
 			return null;
 	}
 
 	self.addData = function(newData) {
+		if (self.lastMinutesData.length > 0) {
+			let lastDataTime = self.lastMinutesData[self.lastMinutesData.length - 1].date;
+			while(self.lastMinutesData.length > 0) {
+				if (lastDataTime - self.timeDisplayed > self.lastMinutesData[0].date) {
+					self.lastMinutesData.shift();
+				} else {
+					break;
+				}
+			}
+		}
 		self.data.push(newData);
+		self.lastMinutesData.push(newData);
 	}
 
 	self.reset = function() {
 		self.data = [];
+		self.lastMinutesData = [];
 		self.draw();
 	}
 }

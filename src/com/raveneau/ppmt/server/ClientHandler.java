@@ -206,6 +206,10 @@ public class ClientHandler {
 		
 		sendToSession(session, dataMessage.build());
 	}
+	
+	public void resetDataset() {
+		//provideEventTypes();
+	}
 
 	public void provideEventTypes() {
 		JsonObjectBuilder dataMessage = null;
@@ -515,7 +519,9 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
+		
+		Map<String,Map<String,String>> et = dataset.getEventTypeInfo();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
@@ -533,7 +539,17 @@ public class ClientHandler {
 			newEvents.add(e.toJsonObject());
 		}
 		dataMessage.add("newEvents", newEvents.build());
-				
+		
+		String evtType = modifs.getNewEvents().get(0).getType();
+		
+		JsonObject typeInfo = provider.createObjectBuilder()
+				.add("name", evtType)
+				.add("description", et.get(evtType).get("description"))
+				.add("category", et.get(evtType).get("category"))
+				.build();
+		
+		dataMessage.add("typeInfo", typeInfo);
+		
 		// Send this message
 		sendToSession(session, dataMessage.build());
 		
@@ -549,7 +565,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
@@ -578,7 +594,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
