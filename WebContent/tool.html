@@ -18,7 +18,7 @@
 				
 				<div id="debugHelp">
 					<div><span class="kbShort">H/?</span> : <span class="kbTxt">Exit debug mode</span></div>
-					<div><span class="kbShort">S</span> : <span class="kbTxt">Ignore further patterns</span></div>
+					<div id="debugHelpAcceptNewPatterns"><span class="kbShort">S</span> : <span class="kbTxt">Ignore new patterns</span></div>
 					<div id="debugHelpPointerTarget"><span class="kbShort">G</span> : <span class="kbTxt">Show pointer target</span></div>
 					<div><span class="kbShort">M</span> : <span class="kbTxt">Profile dataset memory</span></div>
 					<div id="filler">&nbsp;</div> <!-- Only here to have the background display properly -->
@@ -313,7 +313,7 @@
 
 				<div id="patternArea" class="section">
 				
-					<div class="title">All patterns (<span id="highlightedPatternNumberSpan">0</span>/<span id="patternNumberSpan">0</span>)</div>
+					<div class="title">Patterns (<span id="filteredInPatternNumberSpan">0</span>/<span id="patternNumberSpan">0</span>)</div>
 					<div id="patternListArea" class="body">
 						<div id="Algorithm" class="subsection">
 							<div class="body">

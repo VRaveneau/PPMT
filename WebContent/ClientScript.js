@@ -412,7 +412,7 @@ var debugMode = false;
 // Whether the pointer target is visible or not in the focus view
 var showPointerTarget = false;
 // Whether future patterns will be processed or not
-var updateUI = true;
+var acceptNewPatterns = true;
 
 // Whether information about the dataset is displayed (false) or not (true)
 var datasetInfoIsDefault = true;
@@ -726,7 +726,7 @@ function handleKeyPress() {
 		case "s":
 		case "S":
 			if (debugMode) {
-				stopUIUpdate();
+				switchPatternAcceptance();
 			}
 			break;
 		case "g":
@@ -794,11 +794,20 @@ function switchPointerTarget() {
 }
 
 /**
- * Stops handling incomming patterns
+ * Switches between accepting and rejecting incomming patterns
  */
-function stopUIUpdate() {
-	console.log("Pattern reception now ignored");
-	updateUI = false;
+function switchPatternAcceptance() {
+	if (acceptNewPatterns) {
+		console.log("New patterns will be rejected");
+		d3.select("#debugHelpAcceptNewPatterns .kbTxt")
+			.text("Accept new patterns");
+		acceptNewPatterns = false;
+	} else {
+		console.log("New patterns will be accepted");
+		d3.select("#debugHelpAcceptNewPatterns .kbTxt")
+			.text("Ignore new patterns");
+		acceptNewPatterns = true;
+	}
 }
 
 /**
@@ -1912,6 +1921,10 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 		", maxSize: "+maxSize+", minGap: "+minGap+", maxGap: "+maxGap+
 		", maxDuration: "+maxDuration+", datasetName: "+datasetName+", delay: "+delay);
 	
+	// Make sure that the patterns will be accepted
+	if (!acceptNewPatterns)
+		switchPatternAcceptance();
+
 	let action = {
 		action: "run",
 		object: "algorithm",
@@ -2116,7 +2129,7 @@ function processMessage(message/*Compressed*/) {
 	}
 	if (msg.action === "info") {
 		if (msg.object === "newPattern") {
-			if (updateUI) {
+			if (acceptNewPatterns) {
 				addPatternToList(msg);
 				drawPatternSizesChart();
 				algorithmState.addPattern();
@@ -3865,9 +3878,6 @@ function addPatternToList(message) {
 	
 	// Update the relevant metrics
 	patternMetrics["sizeDistribution"][pSize]++;
-	
-	// Update the number of patterns display
-	d3.select("#patternNumberSpan").text(numberOfPattern);
 
 	let properPatternSearchInput = currentPatternSearchInput.split(" ")
 		.filter(function(d,i) {
@@ -3878,6 +3888,7 @@ function addPatternToList(message) {
 		!sizeSlider.hasValueSelected(pSize) ||
 		!pString.includes(properPatternSearchInput)) {
 			filteredOutPatterns.push(pId);
+			updatePatternCountDisplay();
 			return;
 	}
 
@@ -3895,6 +3906,8 @@ function addPatternToList(message) {
 		
 		firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
 	}
+
+	updatePatternCountDisplay();
 }
 
 /**
@@ -4178,7 +4191,7 @@ function updatePatternCountDisplay() {
 	d3.select("#patternNumberSpan").text(numberOfPattern);
 	d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 	// TODO dynamically update the number of patterns matching the filter
-	d3.select("#highlightedPatternNumberSpan").text("0");
+	d3.select("#filteredInPatternNumberSpan").text(patternIdList.length);
 }
 
 /**
@@ -5549,7 +5562,7 @@ function createPatternListDisplay() {
 	});
 	d3.select("#selectedPatternsArea .body").classed("hidden", selectedPatternIds.length == 0);
 	
-	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
+	d3.select("#filteredInPatternNumberSpan").text(filteredPatterns);
 }
 
 /**
