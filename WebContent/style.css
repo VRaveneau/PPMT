@@ -437,6 +437,10 @@ body {
 	font-weight: normal;
 }
 
+.normalText {
+	font-variant: normal;
+}
+
 .bold {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.

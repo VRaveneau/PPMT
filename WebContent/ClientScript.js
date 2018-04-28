@@ -572,6 +572,21 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 
 /**
+ * Updates the value of the current time focus
+ * @param {number} start The start of the intervale
+ * @param {number} end The end of the intervale
+ */
+function updateCurrentTimeFilter(start, end) {
+	currentTimeFilter = [start, end];
+	
+	document.getElementById("focusStart")
+		.textContent = formatDate(new Date(start));
+	
+	document.getElementById("focusEnd")
+		.textContent = formatDate(new Date(end));
+}
+
+/**
  * Resets the dataset to its unmodified state
  */
 function resetDataset() {
@@ -2502,7 +2517,7 @@ function receiveEvents(events) {
 		computeUsersPerEventType();
 		createEventTypesListDisplay();
 		timeline.displayData();
-		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
+		updateCurrentTimeFilter(...timeline.xFocus.domain().map( x => x.getTime() ));
 		dataDimensions.time.filterRange(currentTimeFilter);
 		startInitialMining();
 		disableCentralOverlay();
@@ -7284,7 +7299,7 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisUsers);
 		
 		if (dataDimensions.time) {
-			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			updateCurrentTimeFilter(self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1);
 			dataDimensions.time.filterRange(currentTimeFilter);
 		}
 		/*self.focus.selectAll(".dot")
@@ -7315,7 +7330,7 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisUsers);
 
 		if (dataDimensions.time) {
-			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			updateCurrentTimeFilter(self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1);
 			dataDimensions.time.filterRange(currentTimeFilter);
 		}
 		/*self.focus.selectAll(".dot")
@@ -8171,7 +8186,7 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisUsers);
 		
 		if (dataDimensions.time) {
-			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			updateCurrentTimeFilter(self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1);
 			dataDimensions.time.filterRange(currentTimeFilter);
 		}
 		
