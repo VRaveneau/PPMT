@@ -7271,12 +7271,14 @@ function ActivityHistory(elemId) {
 	this.parent = d3.select("#"+elemId);
 	this.events = [];
 	this.timeFormat = d3.timeFormat("%H:%M:%S");
+	this.indentLevel = 0;
 
 	// Item management
 
 	this.createItem = function(title, date) {
 		let item = d3.select(document.createElement("div"))
-			.classed("historyItem", true);
+			.classed("historyItem", true)
+			.style("margin-left", `${this.indentLevel * 10}px`);
 		item.append("p")
 			.classed("historyTitle", true)
 			.text(title);
@@ -7312,88 +7314,68 @@ function ActivityHistory(elemId) {
 	// Entry points
 
 	this.resetDataset = function() {
-		let now = new Date();
 		let event = {
 			action: "resetDataset",
-			time: now,
+			time: new Date(),
 			properties: {}
 		};
 		this.events.push(event);
-		let item = this.createItem("Reset the dataset", this.timeFormat(now));
-		this.displayItem(item);
+		this.drawEvent(event);
 	}
 
 	this.receiveDataset = function(datasetName) {
-		let now = new Date();
 		let event = {
 			action: "receiveDataset",
-			time: now,
+			time: new Date(),
 			properties: {
 				name: datasetName
 			}
 		};
 		this.events.push(event);
-		let item = this.createItem("Dataset "+datasetName+" received", this.timeFormat(now));
-		this.displayItem(item);
+		this.drawEvent(event);
 	}
 
 	this.createEventType = function(typeName, parent) {
-		let now = new Date();
 		let event = {
 			action: "createEventType",
-			time: now,
+			time: new Date(),
 			properties: {
 				name: typeName,
 				parent: parent
 			}
 		};
 		this.events.push(event);
-		let item = this.createItem("Event type created: "+typeName, this.timeFormat(now));
-		let content = this.createContent(item);
-		content.append("p")
-			.text("From the occurrences of '"+parent+"'");
-		this.displayItem(item);
+		this.drawEvent(event);
 	}
 
 	this.removeEventTypes = function(typeNames) {
-		let now = new Date();
 		let event = {
 			action: "removeEventTypes",
-			time: now,
+			time: new Date(),
 			properties: {
 				names: typeNames
 			}
 		};
 		this.events.push(event);
-		let item = this.createItem(typeNames.length + " event types removed", this.timeFormat(now));
-		let content = this.createContent(item);
-		content.append("p")
-			.text(typeNames.join(", "));
-		this.displayItem(item);
+		this.drawEvent(event);
 	}
 
 	this.removeUsers = function(userNames) {
-		let now = new Date();
 		let event = {
 			action: "removeUsers",
-			time: now,
+			time: new Date(),
 			properties: {
 				names: userNames
 			}
 		};
 		this.events.push(event);
-		let item = this.createItem(userNames.length + " users removed", this.timeFormat(now));
-		let content = this.createContent(item);
-		content.append("p")
-			.text(userNames.join(", "));
-		this.displayItem(item);
+		this.drawEvent(event);
 	}
 
 	this.startAlgorithm = function(support, minGap, maxGap, duration, size) {
-		let now = new Date();
 		let event = {
 			action: "startAlgorithm",
-			time: now,
+			time: new Date(),
 			properties: {
 				support: support,
 				minGap: minGap,
@@ -7403,26 +7385,13 @@ function ActivityHistory(elemId) {
 			}
 		};
 		this.events.push(event);
-		let item = this.createItem("Algorithm started",this.timeFormat(now));
-		let content = this.createContent(item);
-		content.append("p")
-			.text("Parameters:");
-		content.append("p")
-			.text("Min. support: " + support);
-		content.append("p")
-			.text("Gap: " + minGap + " - " + maxGap);
-		content.append("p")
-			.text("Max. duration: " + duration + "ms");
-		content.append("p")
-			.text("Max. size: " + size);
-		this.displayItem(item);
+		this.drawEvent(event);
 	}
 
 	this.endAlgorithm = function(patternsFound, timeElapsed, hasCompleted=true) {
-		let now = new Date();
 		let event = {
 			action: "endAlgorithm",
-			time: now,
+			time: new Date(),
 			properties: {
 				patterns: patternsFound,
 				time: timeElapsed,
@@ -7430,65 +7399,129 @@ function ActivityHistory(elemId) {
 			}
 		};
 		this.events.push(event);
-		let item = this.createItem(hasCompleted ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(now));
-		let content = this.createContent(item);
-		content.append("p")
-			.text(patternsFound + " patterns found over " + timeElapsed + "ms");
-		this.displayItem(item);
+		this.drawEvent(event);
 	}
 
 	this.steerOnPrefix = function(patternId) {
-		let now = new Date();
 		let event = {
 			action: "steerOnPrefix",
-			time: now,
+			time: new Date(),
 			properties: {
 				patternId: patternId,
 				patternString: patternsInformation[patternId][0]
 			}
 		};
 		this.events.push(event);
-		let item = this.createItem("Steering on prefix", this.timeFormat(now));
-		let content = this.createContent(item);
-		content.append("p")
-			.text("Looking for patterns starting with '" + event.properties.patternString + "'");
-		this.displayItem(item);
+		this.drawEvent(event);
 	}
 
 	this.steerOnUser = function(userId) {
-		let now = new Date();
 		let event = {
 			action: "steerOnUser",
-			time: now,
+			time: new Date(),
 			properties: {
 				userId: userId,
 				name: userInformations[userId].name
 			}
 		};
 		this.events.push(event);
-		let item = this.createItem("Steering on user", this.timeFormat(now));
-		let content = this.createContent(item);
-		content.append("p")
-			.text("Looking for patterns present in the trace of user '" + event.properties.name + "'");
-		this.displayItem(item);
+		this.drawEvent(event);
 	}
 
 	this.steerOnTime = function(start, end) {
-		let now = new Date();
 		let event = {
 			action: "steerOnTime",
-			time: now,
+			time: new Date(),
 			properties: {
 				start: start,
 				end: end
 			}
 		};
 		this.events.push(event);
-		let item = this.createItem("Steering on time", this.timeFormat(now));
-		let content = this.createContent(item);
-		content.append("p")
-			.text("Looking for patterns present between " + formatDate(new Date(start)) + " and " + formatDate(new Date(end)));
-		this.displayItem(item);
+		this.drawEvent(event);
+	}
+
+	this.drawEvent = function(event) {
+		let item, content;
+
+		switch(event.action) {
+			case "resetDataset":
+				item = this.createItem("Reset the dataset", this.timeFormat(event.time));
+				this.displayItem(item);
+				break;
+			case "receiveDataset":
+				item = this.createItem("Dataset "+event.properties.name+" received", this.timeFormat(event.time));
+				this.displayItem(item);
+				break;
+			case "createEventType":
+				item = this.createItem("Event type created: "+event.properties.name, this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("From the occurrences of '"+event.properties.parent+"'");
+				this.displayItem(item);
+				break;
+			case "removeEventTypes":
+				item = this.createItem(event.properties.names.length + " event types removed", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.names.join(", "));
+				this.displayItem(item);
+				break;
+			case "removeUsers":
+				item = this.createItem(event.properties.names.length + " users removed", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.names.join(", "));
+				this.displayItem(item);
+				break;
+			case "startAlgorithm":
+				item = this.createItem("Algorithm started",this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Parameters:");
+				content.append("p")
+					.text("Min. support: " + event.properties.support);
+				content.append("p")
+					.text("Gap: " + event.properties.minGap + " - " + event.properties.maxGap);
+				content.append("p")
+					.text("Max. duration: " + event.properties.duration + "ms");
+				content.append("p")
+					.text("Max. size: " + event.properties.size);
+				this.displayItem(item);
+				this.indentLevel++;
+				break;
+			case "endAlgorithm":
+				this.indentLevel--;
+				item = this.createItem(event.properties.completed ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.patterns + " patterns found over " + event.properties.time + "ms");
+				this.displayItem(item);
+				break;
+			case "steerOnPrefix":
+				item = this.createItem("Steering on prefix", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Looking for patterns starting with '" + event.properties.patternString + "'");
+				this.displayItem(item);
+				break;
+			case "steerOnUser":
+				item = this.createItem("Steering on user", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Looking for patterns present in the trace of user '" + event.properties.name + "'");
+				this.displayItem(item);
+				break;
+			case "steerOnTime":
+				item = this.createItem("Steering on time", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Looking for patterns present between " + formatDate(new Date(event.properties.start)) + " and " + formatDate(new Date(event.properties.end)));
+				this.displayItem(item);
+				break;
+			default:
+				console.log("Trying to display an unknown action in the history: "+event);
+		}
 	}
 }
 
