@@ -422,8 +422,6 @@ var acceptNewPatterns = true;
 
 // Whether information about the dataset is displayed (false) or not (true)
 var datasetInfoIsDefault = true;
-// Whether actions are displayed in the history (false) or not (true)
-var historyDisplayIsDefault = true;
 
 /**
  * The time period covered by the overview's brush.
@@ -537,6 +535,9 @@ var tooltipCloseTimeout;
 /*				?????				 */
 /*************************************/
 
+// The history of actions during the analysis
+var activityHistory = new ActivityHistory("historyList");
+
 // The axis for the number of patterns bars in the algorithm extended view
 var algorithmExtendedBarAxis = d3.scaleLinear().rangeRound([0, 200]);
 
@@ -604,7 +605,7 @@ function resetDataset() {
 	resetPatterns();
 	requestAlgorithmReStart();
 
-	addToHistory("Reset the dataset");
+	activityHistory.resetDataset();
 }
 
 /**
@@ -1344,7 +1345,6 @@ function setupTool() {
 	d3.select("#tooltip").on("mouseenter", enterTooltip);
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
-	resetHistory();	// Reset the history display
 }
 
 var patternsPerSecondChart;
@@ -1828,54 +1828,6 @@ function setupEventBinDimensions() {
 	eventBins.halfMonth.data.reduce(reduceAdd, reduceRemove, reduceInitial);
 	eventBins.month.data.reduce(reduceAdd, reduceRemove, reduceInitial);
 	eventBins.year.data.reduce(reduceAdd, reduceRemove, reduceInitial);
-}
-
-/*************************************/
-/*				Logging				 */
-/*************************************/
-
-/**
- * Adds an action to the displayed history
- * @param {string} action - The message to be added to the history
- * @param {...string} details - More information about the action
- */
-function addToHistory(action, ...details) {
-	let history = d3.select("#historyList");
-	if (historyDisplayIsDefault) {
-		history.text("");
-		historyDisplayIsDefault = false;
-	}
-	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
-	let formatTime = d3.timeFormat("%H:%M:%S");
-	let now = formatTime(new Date());
-	let item = history.insert("div",":first-child")
-		.classed("historyItem", true);
-	let title = item.append("p")
-		.classed("historyTitle", true)
-		.text(action);
-	if (details.length > 0) {
-		let content = item.append("div")
-			.classed("historyContent hidden", true);
-		item.append("p")
-			.text("Show details")
-			.classed("clickable clickableText smallText historyShowMore", true)
-			.on("click", function() {
-				if (content.classed("hidden")) {
-					this.textContent = "Hide details";
-					content.classed("hidden", false);
-				} else {
-					this.textContent = "Show details";
-					content.classed("hidden", true);
-				}
-			});
-		details.forEach( (detail) => {
-			content.append("p")
-				.text(detail);
-		});
-	}
-	item.append("p")
-		.classed("historyTimestamp", true)
-		.text(now.toString());
 }
 
 /*************************************/
@@ -2547,7 +2499,7 @@ function receiveEvents(events) {
 		console.log("Dimensions created at "+new Date());
 		rawData = null;
 		console.log("raw data removed");
-		addToHistory("Dataset "+datasetInfo.name+" received");
+		activityHistory.receiveDataset(datasetInfo.name);
 		buildUserSessions();
 		computeMaxEventAtOneTime();
 		computeUsersPerEventType();
@@ -4097,7 +4049,7 @@ function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
 	eventTypeInformations[typeInfo.name].code = eCode;
 
 	updateEventTypesInformations();
-	addToHistory("Event type created: "+newEvents[0].type, "From the occurrences of '"+typeInfo.name.replace("-"," ")+"'");
+	activityHistory.createEventType(newEvents[0].type, typeInfo.name.replace("-"," "));
 }
 
 /**
@@ -4124,7 +4076,7 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	updateEventTypesInformations();
-	addToHistory(removedEvents.length + " event types removed", removedEvents.join(", "));
+	activityHistory.removeEventTypes(removedEvents);
 }
 
 /**
@@ -4149,7 +4101,7 @@ function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	updateEventTypesInformations();
-	addToHistory(removedUsers.length + " users removed", removedUsers.join(", "));
+	activityHistory.removeUsers(removedUsers);
 }
 
 /**
@@ -4263,20 +4215,6 @@ function resetDatasetInfo() {
 	infoDiv.textContent = "No dataset selected, select a dataset to display more information";
 	
 	datasetInfoIsDefault = true;
-}
-
-/**
- * Resets the display of the history of actions
- * 
- * @deprecated Make sure that it is enough, maybe children should be removed
- * 
- * TODO check the deprecation
- */
-function resetHistory() {
-	let historyDiv = document.getElementById("historyList");
-	historyDiv.textContent = "No history to display";
-	
-	historyDisplayIsDefault = true;
 }
 
 /**
@@ -5356,11 +5294,7 @@ function handleAlgorithmStartSignal(msg) {
 	startAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.start();
 
-	let detailSupport = "Min. support: " + algoMinSupport; 
-	let detailGap = "Gap: " + algoMinGap + " - " + algoMaxGap;
-	let detailDuration = "Max. duration: " + algoMaxDuration + "ms";
-	let detailSize = "Max. size: " + algoMaxSize;
-	addToHistory("Algorithm started", "Parameters:", detailSupport, detailGap, detailDuration, detailSize);
+	activityHistory.startAlgorithm(algoMinSupport, algoMinGap, algoMaxGap, algoMaxDuration, algoMaxSize);
 }
 
 /**
@@ -5373,9 +5307,7 @@ function handleAlgorithmEndSignal(msg) {
 	algorithmState.stop();
 	updateAlgorithmStateDisplay();
 	
-	let details = algorithmState.getTotalPatternNumber() + " patterns found over ";
-	details += algorithmState.getTotalElapsedTime() + "ms"
-	addToHistory("Algorithm ended", details);
+	activityHistory.endAlgorithm(algorithmState.getTotalPatternNumber(), algorithmState.getTotalElapsedTime())
 }
 
 /**
@@ -7328,6 +7260,173 @@ function CandidatesCheckedPerSecondGraph(elemId) {
 	}
 }
 
+/**
+ * Creates an history of actions
+ * @param {string} elemId The id of the parent node for the history's display
+ */
+function ActivityHistory(elemId) {
+	this.parent = d3.select("#"+elemId);
+	this.events = [];
+	this.timeFormat = d3.timeFormat("%H:%M:%S");
+
+	// Item management
+
+	this.createItem = function(title, date) {
+		let item = d3.select(document.createElement("div"))
+			.classed("historyItem", true);
+		item.append("p")
+			.classed("historyTitle", true)
+			.text(title);
+		item.append("p")
+			.classed("historyTimestamp", true)
+			.text(date.toString());
+		return item;
+	}
+
+	this.createContent = function(item) {
+		let content = item.append("div")
+			.classed("historyContent hidden", true);
+		item.append("p")
+			.text("Show details")
+			.classed("clickable clickableText smallText historyShowMore", true)
+			.on("click", function() {
+				if (content.classed("hidden")) {
+					this.textContent = "Hide details";
+					content.classed("hidden", false);
+				} else {
+					this.textContent = "Show details";
+					content.classed("hidden", true);
+				}
+			});
+		return content;
+	}
+
+	this.displayItem = function(item) {
+		let parentNode = this.parent.node();
+		parentNode.insertBefore(item.node(), parentNode.firstChild);
+	}
+
+	// Entry points
+
+	this.resetDataset = function() {
+		let now = new Date();
+		this.events.push({
+			action: "resetDataset",
+			time: now,
+			properties: {}
+		});
+		let item = this.createItem("Reset the dataset", this.timeFormat(now));
+		this.displayItem(item);
+	}
+
+	this.receiveDataset = function(datasetName) {
+		let now = new Date();
+		this.events.push({
+			action: "receiveDataset",
+			time: now,
+			properties: {
+				name: datasetName
+			}
+		});
+		let item = this.createItem("Dataset "+datasetName+" received", this.timeFormat(now));
+		this.displayItem(item);
+	}
+
+	this.createEventType = function(typeName, parent) {
+		let now = new Date();
+		this.events.push({
+			action: "createEventType",
+			time: now,
+			properties: {
+				name: typeName,
+				parent: parent
+			}
+		});
+		let item = this.createItem("Event type created: "+typeName, this.timeFormat(now));
+		let content = this.createContent(item);
+		content.append("p")
+			.text("From the occurrences of '"+parent+"'");
+		this.displayItem(item);
+	}
+
+	this.removeEventTypes = function(typeNames) {
+		let now = new Date();
+		this.events.push({
+			action: "removeEventTypes",
+			time: now,
+			properties: {
+				names: typeNames
+			}
+		});
+		let item = this.createItem(typeNames.length + " event types removed", this.timeFormat(now));
+		let content = this.createContent(item);
+		content.append("p")
+			.text(typeNames.join(", "));
+		this.displayItem(item);
+	}
+
+	this.removeUsers = function(userNames) {
+		let now = new Date();
+		this.events.push({
+			action: "removeUsers",
+			time: now,
+			properties: {
+				names: userNames
+			}
+		});
+		let item = this.createItem(userNames.length + " users removed", this.timeFormat(now));
+		let content = this.createContent(item);
+		content.append("p")
+			.text(userNames.join(", "));
+		this.displayItem(item);
+	}
+
+	this.startAlgorithm = function(support, minGap, maxGap, duration, size) {
+		let now = new Date();
+		this.events.push({
+			action: "startAlgorithm",
+			time: now,
+			properties: {
+				support: support,
+				minGap: minGap,
+				maxGap: maxGap,
+				duration: duration,
+				size: size
+			}
+		});
+		let item = this.createItem("Algorithm started",this.timeFormat(now));
+		let content = this.createContent(item);
+		content.append("p")
+			.text("Parameters:");
+		content.append("p")
+			.text("Min. support: " + support);
+		content.append("p")
+			.text("Gap: " + minGap + " - " + maxGap);
+		content.append("p")
+			.text("Max. duration: " + duration + "ms");
+		content.append("p")
+			.text("Max. size: " + size);
+		this.displayItem(item);
+	}
+
+	this.endAlgorithm = function(patternsFound, timeElapsed, hasCompleted=true) {
+		let now = new Date();
+		this.events.push({
+			action: "endAlgorithm",
+			time: now,
+			properties: {
+				patterns: patternsFound,
+				time: timeElapsed,
+				completed: hasCompleted
+			}
+		});
+		let item = this.createItem(hasCompleted ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(now));
+		let content = this.createContent(item);
+		content.append("p")
+			.text(patternsFound + " patterns found over " + timeElapsed + "ms");
+		this.displayItem(item);
+	}
+}
 
 
 
