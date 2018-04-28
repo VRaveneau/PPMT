@@ -2296,6 +2296,7 @@ function requestUserList(datasetName) {
  */
 function requestSteeringOnPatternPrefix(patternId) {
 	console.log('requesting steering on patternId '+patternId+' as prefix');
+	activityHistory.steerOnPrefix(patternId);
 	let action = {
 			action: "steerOnPattern",
 			object: "start",
@@ -2310,6 +2311,7 @@ function requestSteeringOnPatternPrefix(patternId) {
  */
 function requestSteeringOnUser(userId) {
 	console.log('requesting steering on user '+userId);
+	activityHistory.steerOnUser(userId);
 	let action = {
 			action: "steerOnUser",
 			userId: userId
@@ -2324,6 +2326,7 @@ function requestSteeringOnUser(userId) {
  */
 function requestSteeringOnTime(start, end) {
 	console.log('requesting steering on time between '+start+' and '+end);
+	activityHistory.steerOnTime(start, end);
 	// Numbers are sent as strings to prevent an error when their value is read
 	// by the server
 	let action = {
@@ -7310,38 +7313,41 @@ function ActivityHistory(elemId) {
 
 	this.resetDataset = function() {
 		let now = new Date();
-		this.events.push({
+		let event = {
 			action: "resetDataset",
 			time: now,
 			properties: {}
-		});
+		};
+		this.events.push(event);
 		let item = this.createItem("Reset the dataset", this.timeFormat(now));
 		this.displayItem(item);
 	}
 
 	this.receiveDataset = function(datasetName) {
 		let now = new Date();
-		this.events.push({
+		let event = {
 			action: "receiveDataset",
 			time: now,
 			properties: {
 				name: datasetName
 			}
-		});
+		};
+		this.events.push(event);
 		let item = this.createItem("Dataset "+datasetName+" received", this.timeFormat(now));
 		this.displayItem(item);
 	}
 
 	this.createEventType = function(typeName, parent) {
 		let now = new Date();
-		this.events.push({
+		let event = {
 			action: "createEventType",
 			time: now,
 			properties: {
 				name: typeName,
 				parent: parent
 			}
-		});
+		};
+		this.events.push(event);
 		let item = this.createItem("Event type created: "+typeName, this.timeFormat(now));
 		let content = this.createContent(item);
 		content.append("p")
@@ -7351,13 +7357,14 @@ function ActivityHistory(elemId) {
 
 	this.removeEventTypes = function(typeNames) {
 		let now = new Date();
-		this.events.push({
+		let event = {
 			action: "removeEventTypes",
 			time: now,
 			properties: {
 				names: typeNames
 			}
-		});
+		};
+		this.events.push(event);
 		let item = this.createItem(typeNames.length + " event types removed", this.timeFormat(now));
 		let content = this.createContent(item);
 		content.append("p")
@@ -7367,13 +7374,14 @@ function ActivityHistory(elemId) {
 
 	this.removeUsers = function(userNames) {
 		let now = new Date();
-		this.events.push({
+		let event = {
 			action: "removeUsers",
 			time: now,
 			properties: {
 				names: userNames
 			}
-		});
+		};
+		this.events.push(event);
 		let item = this.createItem(userNames.length + " users removed", this.timeFormat(now));
 		let content = this.createContent(item);
 		content.append("p")
@@ -7383,7 +7391,7 @@ function ActivityHistory(elemId) {
 
 	this.startAlgorithm = function(support, minGap, maxGap, duration, size) {
 		let now = new Date();
-		this.events.push({
+		let event = {
 			action: "startAlgorithm",
 			time: now,
 			properties: {
@@ -7393,7 +7401,8 @@ function ActivityHistory(elemId) {
 				duration: duration,
 				size: size
 			}
-		});
+		};
+		this.events.push(event);
 		let item = this.createItem("Algorithm started",this.timeFormat(now));
 		let content = this.createContent(item);
 		content.append("p")
@@ -7411,7 +7420,7 @@ function ActivityHistory(elemId) {
 
 	this.endAlgorithm = function(patternsFound, timeElapsed, hasCompleted=true) {
 		let now = new Date();
-		this.events.push({
+		let event = {
 			action: "endAlgorithm",
 			time: now,
 			properties: {
@@ -7419,11 +7428,66 @@ function ActivityHistory(elemId) {
 				time: timeElapsed,
 				completed: hasCompleted
 			}
-		});
+		};
+		this.events.push(event);
 		let item = this.createItem(hasCompleted ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(now));
 		let content = this.createContent(item);
 		content.append("p")
 			.text(patternsFound + " patterns found over " + timeElapsed + "ms");
+		this.displayItem(item);
+	}
+
+	this.steerOnPrefix = function(patternId) {
+		let now = new Date();
+		let event = {
+			action: "steerOnPrefix",
+			time: now,
+			properties: {
+				patternId: patternId,
+				patternString: patternsInformation[patternId][0]
+			}
+		};
+		this.events.push(event);
+		let item = this.createItem("Steering on prefix", this.timeFormat(now));
+		let content = this.createContent(item);
+		content.append("p")
+			.text("Looking for patterns starting with '" + event.properties.patternString + "'");
+		this.displayItem(item);
+	}
+
+	this.steerOnUser = function(userId) {
+		let now = new Date();
+		let event = {
+			action: "steerOnUser",
+			time: now,
+			properties: {
+				userId: userId,
+				name: userInformations[userId].name
+			}
+		};
+		this.events.push(event);
+		let item = this.createItem("Steering on user", this.timeFormat(now));
+		let content = this.createContent(item);
+		content.append("p")
+			.text("Looking for patterns present in the trace of user '" + event.properties.name + "'");
+		this.displayItem(item);
+	}
+
+	this.steerOnTime = function(start, end) {
+		let now = new Date();
+		let event = {
+			action: "steerOnTime",
+			time: now,
+			properties: {
+				start: start,
+				end: end
+			}
+		};
+		this.events.push(event);
+		let item = this.createItem("Steering on time", this.timeFormat(now));
+		let content = this.createContent(item);
+		content.append("p")
+			.text("Looking for patterns present between " + formatDate(new Date(start)) + " and " + formatDate(new Date(end)));
 		this.displayItem(item);
 	}
 }
