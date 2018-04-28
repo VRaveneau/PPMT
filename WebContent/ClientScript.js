@@ -4250,7 +4250,6 @@ function askConfirmationToRemoveUsers(...userNames) {
 function updatePatternCountDisplay() {
 	d3.select("#patternNumberSpan").text(numberOfPattern);
 	d3.select("#displayedPatternNumberSpan").text(patternIdList.length + filteredOutPatterns.length);
-	d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 	d3.select("#updatePatternListButton span").text(availablePatterns.length);
 	// TODO dynamically update the number of patterns matching the filter
 	d3.select("#filteredInPatternNumberSpan").text(patternIdList.length);
@@ -4690,9 +4689,6 @@ function setHighlights() {
 				console.log("click on "+patternId);
 				createPatternListDisplay();
 				setHighlights();
-				
-				// Update the number of selected patterns display
-				d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 			});
 		for (let k=0; k < pSize; k++) {
 			row.append("span")
@@ -5664,9 +5660,6 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 			console.log("click on "+pId);
 			createPatternListDisplay();
 			
-			// Update the number of selected patterns display
-			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
-			
 			d3.select("#resetPatternSelectionButton")
 				.classed("hidden", selectedPatternIds.length == 0);
 
@@ -6363,9 +6356,6 @@ function displaySessionTooltip(data) {
 					//d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
-					
-					// Update the number of selected patterns display
-					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 				});
 			let firstCell = ttTableRow.append("td");
 			for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
@@ -6541,8 +6531,6 @@ function unselectAllPatterns() {
 	timeline.displayData(); // TODO only redraw the pattern occurrences
 	//timeline.drawUsersPatterns(); // TODO uncomment when the above line's TODO will be done
 	
-	// Update the number of selected patterns display
-	d3.select("#selectedPatternNumberSpan").text('0');
 	d3.select("#resetPatternSelectionButton")
 				.classed("hidden", selectedPatternIds.length == 0);
 	setHighlights();
@@ -7671,7 +7659,6 @@ var Timeline = function(elemId, options) {
 								if (index >= 0) {
 									selectedPatternIds.splice(index, 1);
 									createPatternListDisplay();
-									d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 									self.displayData(); // TODO Only redraw the pattern occurrences
 								}
 		        			});
