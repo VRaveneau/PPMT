@@ -348,6 +348,8 @@ var patternsInformation = {};
 var patternIdList = [];
 // The list of ids for all the filtered out patterns
 var filteredOutPatterns = [];
+// The list of patterns waiting to be integrated into the list
+var availablePatterns = [];
 // Known metrics on the patterns
 var patternMetrics = {"sizeDistribution":{}};
 
@@ -405,6 +407,10 @@ var maxPatternSize = 0;
 /*************************************/
 /*			State elements			 */
 /*************************************/
+
+// Whether the new patterns are directly integrated in the list or not
+var patternLiveUpdate = true;
+
 //
 var patternsLoaded = false;
 // Whether debug mode is active or not
@@ -807,6 +813,23 @@ function switchPatternAcceptance() {
 		d3.select("#debugHelpAcceptNewPatterns .kbTxt")
 			.text("Ignore new patterns");
 		acceptNewPatterns = true;
+	}
+}
+
+/**
+ * Toggles the live updating of the pattern list when new patterns arrive
+ */
+function toggleLiveUpdate() {
+	if (patternLiveUpdate) {
+		patternLiveUpdate = false;
+		document.getElementById("liveUpdateButton").textContent = "Start live update";
+		d3.select("#liveUpdateIndicator").classed("active", false);
+		d3.select("#updatePatternListButton").classed("hidden", false);
+	} else {
+		patternLiveUpdate = true;
+		document.getElementById("liveUpdateButton").textContent = "Stop live update";
+		d3.select("#liveUpdateIndicator").classed("active", true);
+		d3.select("#updatePatternListButton").classed("hidden", true);
 	}
 }
 
@@ -2668,6 +2691,15 @@ function receiveEventTypes(message) {
 /************************************/
 
 /**
+ * Integrates available patterns into the pattern list
+ */
+function updatePatternList() {
+	patternIdList = _.concat(patternIdList, availablePatterns);
+	availablePatterns = [];
+	filterPatterns();
+}
+
+/**
  * Restore the dataset in the state it was when sent by the server
  */
 function restoreInitialData() {
@@ -2738,6 +2770,8 @@ function filterPatterns() {
 	patternIdList = _.concat(patternIdList, toFilterIn);
 	filteredOutPatterns = _.concat(filteredOutPatterns, toFilterOut);
 
+	sortPatterns();
+	updatePatternCountDisplay();
 	// Updates the pattern list
 	createPatternListDisplay();
 }
@@ -3588,6 +3622,28 @@ function sortSelectedPatternsBySupport(decreasing=false) {
 }
 
 /**
+ * Sorts the pattern list by the currently defined sort order
+ */
+function sortPatterns() {
+	let parts = lastPatternSort.split("_");
+	switch(parts[0]) {
+		case "nbUsers":
+			sortPatternsByNbUsers(parts[1] == "down");
+			break;
+		case "name":
+			sortPatternsByName(parts[1] == "down");
+			break;
+		case "size":
+			sortPatternsBySize(parts[1] == "down");
+			break;
+		case "support":
+			sortPatternsBySupport(parts[1] == "down");
+			break;
+		default:
+	}
+}
+
+/**
  * Sorts the pattern list according to their name
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
@@ -3883,28 +3939,31 @@ function addPatternToList(message) {
 		.filter(function(d,i) {
 			return d.length > 0;
 		}).join(" ");
-	// Don't take this pattern into consideration if it doesn"t pass the filter
-	if (!supportSlider.hasValueSelected(pSupport) ||
-		!sizeSlider.hasValueSelected(pSize) ||
-		!pString.includes(properPatternSearchInput)) {
-			filteredOutPatterns.push(pId);
-			updatePatternCountDisplay();
-			return;
-	}
-
-	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
 	
-	if (correctPositionInList == -1) {// append at the end of the list
-		patternIdList.push(pId);
-		document.getElementById("patternTableBody")
-			.appendChild(createPatternRow(pId));
-	} else { // append at the right position in the list
-		patternIdList.splice(correctPositionInList, 0, pId);
-		let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
-		//console.log("First unselectedId: "+firstUnselectedId);
-		let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
-		
-		firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
+	if (!patternLiveUpdate) {
+		availablePatterns.push(pId);
+	} else {
+		// Don't take this pattern into consideration if it doesn"t pass the filter
+		if (!supportSlider.hasValueSelected(pSupport) ||
+			!sizeSlider.hasValueSelected(pSize) ||
+			!pString.includes(properPatternSearchInput)) {
+				filteredOutPatterns.push(pId);
+		} else {
+			let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
+			
+			if (correctPositionInList == -1) {// append at the end of the list
+				patternIdList.push(pId);
+				document.getElementById("patternTableBody")
+					.appendChild(createPatternRow(pId));
+			} else { // append at the right position in the list
+				patternIdList.splice(correctPositionInList, 0, pId);
+				let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
+				//console.log("First unselectedId: "+firstUnselectedId);
+				let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
+				
+				firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
+			}
+		}
 	}
 
 	updatePatternCountDisplay();
@@ -3940,6 +3999,7 @@ function resetPatterns() {
 	numberOfPattern = 0;
 	patternsInformation = {};
 	patternIdList = [];
+	availablePatterns = [];
 	filteredOutPatterns = [];
 	patternOccurrences = {};
 	selectedPatternIds = [];
@@ -4189,7 +4249,9 @@ function askConfirmationToRemoveUsers(...userNames) {
  */
 function updatePatternCountDisplay() {
 	d3.select("#patternNumberSpan").text(numberOfPattern);
+	d3.select("#displayedPatternNumberSpan").text(patternIdList.length + filteredOutPatterns.length);
 	d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+	d3.select("#updatePatternListButton span").text(availablePatterns.length);
 	// TODO dynamically update the number of patterns matching the filter
 	d3.select("#filteredInPatternNumberSpan").text(patternIdList.length);
 }

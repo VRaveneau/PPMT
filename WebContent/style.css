@@ -165,6 +165,7 @@ tbody > tr:hover {
 
 .section {
 	/*margin: 5px;*/
+	position: relative;
 	background-color: white;
 	border-radius: 5px;
 	
@@ -447,6 +448,20 @@ body {
 	  This may be a MacOS exclusive issue.
 	*/
 	-webkit-font-smoothing: antialiased;
+}
+
+.foldingText {
+	font-weight: normal;
+	border-bottom: 1px dotted black;
+	cursor: help;
+}
+
+.additionalText {
+	display: none;
+}
+
+.foldingText:hover .additionalText {
+	display: inline;
 }
 
 .sortIndicator svg {
@@ -1096,6 +1111,28 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	background-color: lightgray;
 }
 
+#liveUpdateIndicator {
+	content: '';
+	min-width: 15px;
+	min-height: 15px;
+
+	border-radius: 50%;
+	background-color: red;
+
+	float: left;
+	margin-right: 5px;
+}
+
+#liveUpdateIndicator.active {
+	background-color: green;
+	animation: flicker 1s infinite alternate;
+}
+
+@keyframes flicker {
+	from {background-color: green;}
+	to {background-color: lightgreen;}
+}
+
 #patternArea {
 	grid-column: center-end / main-end;
 	grid-row: selectedPatterns-end / gutter-bottom;
@@ -1636,7 +1673,7 @@ table {
 
 #extendedAlgorithmParametersArea {
 	grid-column: currentParameters-start / currentParameters-end;
-	grid-row: main-top / table-top:
+	grid-row: main-top / table-top;
 }
 
 #extendedAlgorithmParametersArea button {

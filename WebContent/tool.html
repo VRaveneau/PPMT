@@ -312,8 +312,12 @@
 				</div>
 
 				<div id="patternArea" class="section">
-				
-					<div class="title">Patterns (<span id="filteredInPatternNumberSpan">0</span>/<span id="patternNumberSpan">0</span>)</div>
+					<div class="title">Patterns (<span class="foldingText normalText"><span id="filteredInPatternNumberSpan">0</span><span class="additionalText"> passing the filters</span></span> / <span class="foldingText normalText"><span id="displayedPatternNumberSpan">0</span><span class="additionalText"> in the list</span></span> / <span class="foldingText normalText"><span id="patternNumberSpan">0</span><span class="additionalText"> discovered by the algorithm</span></span>)</div>
+					<div id="patternAcceptanceControls" class="param">
+						<div id="liveUpdateIndicator" class="active"></div>
+						<button id="liveUpdateButton" onclick="toggleLiveUpdate();" class="clickable">Stop live update</button>
+						<button id="updatePatternListButton" onclick="updatePatternList();" class="hidden clickable">Display <span>0</span> available patterns</button>
+					</div>
 					<div id="patternListArea" class="body">
 						<div id="Algorithm" class="subsection">
 							<div class="body">
