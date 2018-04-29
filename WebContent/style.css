@@ -83,6 +83,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	grid-template-rows:
 		[filters-start] min-content 
 		[filters-end patternList-start] 1fr [patternList-end];
+	overflow: hidden;
 }
 
 #selectedPatternTable {
@@ -326,7 +327,6 @@ tbody > tr:hover {
     border-top: 1px solid grey;
     overflow: auto;
 	/*flex: 1;*/
-	padding-top: 5px;
 
 	display: grid;
 }
@@ -895,15 +895,11 @@ body {
 	background-position: -40px -40px;
 }
 
-thead {
-	background-color: white;
+thead th {
 	position: -webkit-sticky;
 	position: sticky;
-	top: -1px;
-}
-/* Deal with the event panel, where a button is above the table */
-#Events thead {
-	top: -7px;
+	background-color: white;
+	top: 0px;
 }
 
 /* Display the sorting arrows permanently in sortable tables */
@@ -1398,6 +1394,7 @@ table {
 #List {
 	grid-row: patternList-start / patternList-end;
 	/*max-height: 90%;*/
+	overflow: auto;
 }
 
 #List body {
