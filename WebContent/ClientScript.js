@@ -216,9 +216,6 @@ var sizeModifySlider = null;
 // Slider controling the modification of the gap parameter of the algorithm
 var gapModifySlider = null;
 
-// Svg component displaying the activity indicator
-var runningTaskIndicatorSvg = d3.select("#top").select("svg").select("circle");
-
 // Minimum time span (in s) to use the 'year' distribution scale
 var distributionYearThreshold = 60*60*24*365*3;	// 3 years
 // Minimum time span (in s) to use the 'month' distribution scale
@@ -396,9 +393,6 @@ var eventTypes = [];
  */
 var eventTypeInformations = {};
 
-// Number of tasks managed by the activity indicator currently occurring
-var runningTaskIndicatorNumber = 0;
-
 // Maximum pattern support
 var maxPatternSupport = 0;
 // Maximum pattern size
@@ -486,10 +480,8 @@ var algorithmStartTime = -1;
 // Delay (in ms) between the server and the client
 var startDelayFromServer = 0;
 
-// Interval used to animate the activity indicator
-var runningTaskIndicator;
-// Whether the activity indicator is active or not
-var runningTaskIndicatorState = false;
+// Interval used to ping the server to avoid a timeout
+var serverPingInterval;
 
 // Whether the extended algorithm view is shown or not
 var useExtendedAlgorithmView = false;
@@ -1160,44 +1152,6 @@ function findFirstFilteredUnselectedId(startIdx) {
 			return -1;
 	}
 	return newIdx;
-}
-
-/**
- * Adds a task to the activity indicator, starting it if it wasn't already
- * 
- * @deprecated Not in use currently due to the bad impact on performances
- */
-function startRunningTaskIndicator() {
-	if (runningTaskIndicatorState == false) {
-		runningTaskIndicator = setInterval(function() {
-			// TODO display an indication that something is running
-			if (runningTaskIndicatorSvg.style("fill") == "rgb(0, 204, 0)")
-				runningTaskIndicatorSvg.style("fill","rgb(0, 179, 0)");
-			else
-				runningTaskIndicatorSvg.style("fill","rgb(0, 204, 0)");
-		}, 200);
-		runningTaskIndicatorState = true;
-	}
-	runningTaskIndicatorNumber++;
-	console.log("RunningTasks increase to "+runningTaskIndicatorNumber);
-}
-
-/**
- * Removes a task from the activity indicator, stoping it if it was the last one
- * 
- * @deprecated Not in use currently due to the bad impact on performances
- */
-function stopRunningTaskIndicator() {
-	if (runningTaskIndicatorState == true) {
-		runningTaskIndicatorNumber--;
-		console.log("RunningTasks decrease to "+runningTaskIndicatorNumber);
-		if (runningTaskIndicatorNumber == 0) {
-			clearInterval(runningTaskIndicator);
-			runningTaskIndicatorSvg.style("fill","grey");
-			runningTaskIndicatorState = false;
-			console.log("Running task indicator stopped");
-		}
-	}
 }
 
 /**
@@ -1987,7 +1941,7 @@ function processOpen(message) {
 		.text(formatDate(new Date()));
 
 	// Ping the server every 10 minutes to keep the connexion alive
-	runningTaskIndicator = setInterval(function() {
+	serverPingInterval = setInterval(function() {
 		console.log("pinging server");
 		let action = {
 				action: "ping"
@@ -8512,7 +8466,6 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.displayData = function() {
-		//startRunningTaskIndicator();
 		//console.log("----DisplayData----");
 		// check if we need to adapt the semantic zoom
 		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
@@ -8593,7 +8546,6 @@ var Timeline = function(elemId, options) {
 		self.drawUsersPatterns();
 		
 		//self.drawUsers();
-		//stopRunningTaskIndicator();
 	};
 	
 	self.zoomClick = function() {
