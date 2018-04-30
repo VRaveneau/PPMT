@@ -1536,9 +1536,9 @@ table {
 /*		pattern sizes graph		*/
 /********************************/
 
-#patternSizesSvg .bar {
+/*#patternSizesSvg .bar {
   fill: rgb(119, 119, 119);
-}
+}*/
 
 #patternSizesSvg text.bar {
 	fill: black;
@@ -1557,6 +1557,24 @@ table {
 
 #patternSizesSvg .axis--x.axis path {
   display: none;
+}
+
+.bar[status='complete'] {
+	fill: green;
+}
+
+.bar[status='started'] {
+	fill: orange;
+}
+
+.bar[status='active'] {
+	fill: dodgerblue;
+	animation: pulseFill 1s infinite alternate;
+}
+
+@keyframes pulseFill {
+	from {fill: dodgerblue;}
+	to {fill: rgb(78, 166, 253);}
 }
 
 /****************************************************/

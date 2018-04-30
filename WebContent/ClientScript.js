@@ -5371,6 +5371,7 @@ function handleNewLevelSignal(level) {
 	
 	algorithmState.stopLevel();
 	algorithmState.startLevel(level);
+	drawPatternSizesChart();
 }
 
 /**
@@ -5379,6 +5380,7 @@ function handleNewLevelSignal(level) {
  */
 function handleLevelCompleteSignal(level) {
 	algorithmState.setLevelComplete(level);
+	drawPatternSizesChart();
 }
 
 /**
@@ -5432,13 +5434,19 @@ function drawPatternSizesChart() {
 		.style('fill-opacity', 1e-6)
 		.remove();
 	
+	let barHeight = Math.min(25, patternSizesChart.y.bandwidth());
+	let bandwidthOffset = (patternSizesChart.y.bandwidth() - barHeight) / 2;
+
 	bars.enter().append("rect")
-		.attr("class", "bar")
+		.classed("bar", true)
+		.attr("status", d => algorithmState.getLevel(d).status)
 		.attr("x", patternSizesChart.x(0))
-		.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]));
+		.attr("y", function(d) { return patternSizesChart.y(d) + bandwidthOffset; })
+		.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]))
+		.attr("height", barHeight);
 	
 	texts.enter().append("text")
-		.attr("class", "bar")
+		.classed("bar", true)
 		.attr("text-anchor", "start")
 		.attr("alignment-baseline", "middle")
 		.attr("y", function(d) {
@@ -5449,8 +5457,9 @@ function drawPatternSizesChart() {
 		
 	// the "UPDATE" set:
 	bars.transition().duration(0)
-		.attr("y", function(d) { return patternSizesChart.y(d); })
-		.attr("height", patternSizesChart.y.bandwidth())
+		.attr("status", d => algorithmState.getLevel(d).status)
+		.attr("y", function(d) { return patternSizesChart.y(d) + bandwidthOffset; })
+		.attr("height", barHeight)
 		.attr("x", patternSizesChart.x(0))
 		.attr("width", function(d) {
 			return patternSizesChart.x(patternMetrics.sizeDistribution[d]);
@@ -7036,6 +7045,10 @@ function AlgorithmState() {
 		}
 		if (this.currentLevel && this.currentLevel.size == level)
 			this.stopLevel();
+	}
+
+	this.getCurrentLevel = function() {
+		return this.currentLevel;
 	}
 
 	this.getLevel = function(patternSize) {
