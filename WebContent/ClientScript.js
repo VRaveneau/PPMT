@@ -6581,20 +6581,6 @@ function FilterSlider(elemId, onupdate) {
 		.attr("x2",self.axis(self.currentHandleMaxValue))
 		.attr("stroke", "lightblue");
 	
-	self.currentMin = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMinValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
-	self.currentMax = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMaxValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
 	self.handle1 = self.slider.insert("circle", ".track-overlay")
 		.attr("class","handleSlider")
 		.attr("r",5)
@@ -6635,16 +6621,6 @@ function FilterSlider(elemId, onupdate) {
 		self.currentMinValue = min;
 		self.currentMaxValue = max;
 		self.handle1.attr("cx",self.axis(self.current))
-	};
-	
-	self.moveCurrentMinTo = function(value) {
-		if (value >= self.currentMinValue)
-			self.currentMin.attr("x",self.axis(Math.round(value)));
-	};
-	
-	self.moveCurrentMaxTo = function(value) {
-		if (value <= self.currentMaxValue)
-			self.currentMax.attr("x",self.axis(Math.round(value)));
 	};
 	
 	self.moveHandle1To = function(value) {
@@ -6717,8 +6693,6 @@ function FilterSlider(elemId, onupdate) {
 			.attr("x2",self.axis.range()[1]);
 		self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
 			.attr("x2",self.axis(self.currentHandleMaxValue));
-		self.currentMin.attr("x",self.axis(self.currentMinValue));
-		self.currentMax.attr("x",self.axis(self.currentMaxValue));
 		self.handle1.attr("cx",self.axis(self.currentHandleMinValue));
 		self.handle2.attr("cx",self.axis(self.currentHandleMaxValue));
 		self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
@@ -6791,20 +6765,6 @@ function ModifySlider(elemId, options) {
 		.attr("x",self.axis)
 		.attr("text-anchor","middle")
 		.text(function(d) { return d; });
-		
-	self.currentMin = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMinValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-		
-	self.currentMax = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMaxValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
 		
 	self.blueLine = options.brushNumber == 1 ? null :
 		self.slider.append("line")
