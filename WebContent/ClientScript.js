@@ -815,12 +815,15 @@ function switchPatternAcceptance() {
 function toggleLiveUpdate() {
 	if (patternLiveUpdate) {
 		patternLiveUpdate = false;
-		document.getElementById("liveUpdateButton").textContent = "Start live update";
+		document.getElementById("liveUpdateButton").textContent = "Resume live update";
 		d3.select("#liveUpdateIndicator").classed("active", false);
 		d3.select("#updatePatternListButton").classed("hidden", false);
 	} else {
+		// Complete the list with available patterns
+		updatePatternList();
+		
 		patternLiveUpdate = true;
-		document.getElementById("liveUpdateButton").textContent = "Stop live update";
+		document.getElementById("liveUpdateButton").textContent = "Pause live update";
 		d3.select("#liveUpdateIndicator").classed("active", true);
 		d3.select("#updatePatternListButton").classed("hidden", true);
 	}
