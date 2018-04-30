@@ -4711,7 +4711,7 @@ function createEventTypesListDisplay() {
 		}
 
 		// Add the context actions
-		let contextActions = eventRow.append("div")
+		let contextActions = eventRow.append("td").append("div")
 			.classed("contextActions", true);
 		let removeAction = contextActions.append("div");
 		removeAction.append("button")
@@ -4918,7 +4918,7 @@ function createUserListDisplay() {
 		}
 		
 		// Add the context actions
-		let contextActions = userRow.append("div")
+		let contextActions = userRow.append("td").append("div")
 			.classed("contextActions", true);
 		let removeAction = contextActions.append("div");
 		removeAction.append("button")
@@ -5590,7 +5590,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.text(pSize);
 	
 	// Add the context actions
-	let contextActions = row.append("div")
+	let contextActions = row.append("td").append("div")
 		.classed("contextActions", true);
 	contextActions.append("button")
 		.classed("clickable", true)
