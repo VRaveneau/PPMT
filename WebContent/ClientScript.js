@@ -589,12 +589,27 @@ function updateCurrentTimeFilter(start, end) {
 		endDate.getFullYear();
 	
 	let startTimeString = (startDate.getHours() < 10 ? "0" : "")+startDate.getHours() + ":" +
-		(startDate.getMinutes() < 10 ? "0" : "")+startDate.getMinutes() + ":" +
-		(startDate.getSeconds() < 10 ? "0" : "")+startDate.getSeconds();
+		(startDate.getMinutes() < 10 ? "0" : "")+startDate.getMinutes();
 	let endTimeString = (endDate.getHours() < 10 ? "0" : "")+endDate.getHours() + ":" +
-		(endDate.getMinutes() < 10 ? "0" : "")+endDate.getMinutes() + ":" +
-		(endDate.getSeconds() < 10 ? "0" : "")+endDate.getSeconds();
+		(endDate.getMinutes() < 10 ? "0" : "")+endDate.getMinutes();
 	
+	let duration = end - start;
+	let elapsedDays = Math.floor(duration/(24*60*60*1000));
+	duration = duration%(24*60*60000);
+	let elapsedHours = Math.floor(duration/(60*60*1000));
+	duration = duration%(60*60000);
+	let elapsedMinutes = Math.floor(duration/60000);
+	let durationString = "";
+
+	if (elapsedDays > 0) {
+		durationString += elapsedDays+"days ";
+	}
+	durationString += elapsedHours+"h ";
+	if (elapsedMinutes > 0) {
+		durationString += elapsedMinutes+"min";
+	}
+
+
 	document.querySelector("#focusStart .date")
 		.textContent = startDateString;
 	document.querySelector("#focusStart .time")
@@ -604,6 +619,8 @@ function updateCurrentTimeFilter(start, end) {
 		.textContent = endDateString;
 	document.querySelector("#focusEnd .time")
 		.textContent = endTimeString;
+	document.querySelector("#focusEnd .duration")
+		.textContent = durationString;
 }
 
 /**
