@@ -18,7 +18,7 @@
 				
 				<div id="debugHelp">
 					<div><span class="kbShort">H/?</span> : <span class="kbTxt">Exit debug mode</span></div>
-					<div><span class="kbShort">S</span> : <span class="kbTxt">Ignore further patterns</span></div>
+					<div id="debugHelpAcceptNewPatterns"><span class="kbShort">S</span> : <span class="kbTxt">Ignore new patterns</span></div>
 					<div id="debugHelpPointerTarget"><span class="kbShort">G</span> : <span class="kbTxt">Show pointer target</span></div>
 					<div><span class="kbShort">M</span> : <span class="kbTxt">Profile dataset memory</span></div>
 					<div id="filler">&nbsp;</div> <!-- Only here to have the background display properly -->
@@ -69,11 +69,6 @@
 						</div>
 						
 						<div id="Events" class="tabContent hidden">
-							<!--<div class="left-aligned">
-								Show descriptions:
-								<input type="checkbox" class="clickable" id="showEventTypeDescriptionInput" checked onchange="switchShowEventTypeDescription();">
-							</div>-->
-						
 							<table id="eventTable">
 								<thead>
 									<tr class="clickable">
@@ -140,10 +135,6 @@
 				
 				<div id="top" class="section">
 					<div class="body">
-						<!-- Activity indicator, disabled for now
-						<svg class="leftAligned no-margin-top no-margin-bottom" width="14.4" height="14.4">
-							<circle cx="7.2" cy="7.2" r="5" stroke="black" stroke-width="1" fill="grey"/>
-						</svg> -->
 						<div id="eventTypeHighlight">
 							<span class="highlightsValue">0</span> highlighted event types <span class="highlightsResetOption clickable hidden" onclick="clearEventTypeSelection();">(<span class="clickableText">reset</span>)</span>
 							<div id="detailedEventTypeHighlight" class="detailedHighlight"></div>
@@ -163,7 +154,7 @@
 					<div id="timeline-view">
 						<div id="timeline">
 							<div class="subsection">
-								<div class="title">Overview <button id="temporalSteeringButton" class="clickable" onclick="steerOnDisplayedTime();">Steer on focus</button></div>
+								<div class="title">Overview &mdash; <span class="smallText normalText">Focus on &nbsp;<span id="focusStart">--</span>&nbsp; to &nbsp;<span id="focusEnd">--</span></span> <button id="temporalSteeringButton" class="clickable" onclick="steerOnDisplayedTime();">Steer on focus</button></div>
 								<div id="tl_overview" class="body"></div>
 							</div>
 							<!-- <div class="subsection">
@@ -293,7 +284,7 @@
 
 				<div id="selectedPatternsArea" class="section">
 					<div class="title">
-						Selected patterns (<span id="selectedPatternNumberSpan">0</span>/<span id="selectablePatternSpan">0</span>) <span id="resetPatternSelectionButton" class="clickable hidden" onclick="unselectAllPatterns();">(<span class="clickableText">reset</span>)</span>
+						Selected patterns (<span id="selectablePatternSpan">0</span> max.) <span id="resetPatternSelectionButton" class="clickable hidden" onclick="unselectAllPatterns();">(<span class="clickableText">reset</span>)</span>
 					</div>
 					<div class="body hidden">
 						<table id="selectedPatternTable">
@@ -312,8 +303,12 @@
 				</div>
 
 				<div id="patternArea" class="section">
-				
-					<div class="title">All patterns (<span id="highlightedPatternNumberSpan">0</span>/<span id="patternNumberSpan">0</span>)</div>
+					<div class="title">Patterns (<span class="foldingText normalText"><span id="filteredInPatternNumberSpan">0</span><span class="additionalText"> passing the filters</span></span> / <span class="foldingText normalText"><span id="displayedPatternNumberSpan">0</span><span class="additionalText"> in the list</span></span> / <span class="foldingText normalText"><span id="patternNumberSpan">0</span><span class="additionalText"> discovered by the algorithm</span></span>)</div>
+					<div id="patternAcceptanceControls" class="param">
+						<div id="liveUpdateIndicator" class="active"></div>
+						<button id="liveUpdateButton" onclick="toggleLiveUpdate();" class="clickable">Stop live update</button>
+						<button id="updatePatternListButton" onclick="updatePatternList();" class="hidden clickable">Display <span>0</span> available patterns</button>
+					</div>
 					<div id="patternListArea" class="body">
 						<div id="Algorithm" class="subsection">
 							<div class="body">

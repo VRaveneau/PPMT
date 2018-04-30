@@ -83,6 +83,7 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 	grid-template-rows:
 		[filters-start] min-content 
 		[filters-end patternList-start] 1fr [patternList-end];
+	overflow: hidden;
 }
 
 #selectedPatternTable {
@@ -165,6 +166,7 @@ tbody > tr:hover {
 
 .section {
 	/*margin: 5px;*/
+	position: relative;
 	background-color: white;
 	border-radius: 5px;
 	
@@ -325,7 +327,6 @@ tbody > tr:hover {
     border-top: 1px solid grey;
     overflow: auto;
 	/*flex: 1;*/
-	padding-top: 5px;
 
 	display: grid;
 }
@@ -437,12 +438,30 @@ body {
 	font-weight: normal;
 }
 
+.normalText {
+	font-variant: normal;
+}
+
 .bold {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
 	  This may be a MacOS exclusive issue.
 	*/
 	-webkit-font-smoothing: antialiased;
+}
+
+.foldingText {
+	font-weight: normal;
+	border-bottom: 1px dotted black;
+	cursor: help;
+}
+
+.additionalText {
+	display: none;
+}
+
+.foldingText:hover .additionalText {
+	display: inline;
 }
 
 .sortIndicator svg {
@@ -876,15 +895,11 @@ body {
 	background-position: -40px -40px;
 }
 
-thead {
-	background-color: white;
+thead th {
 	position: -webkit-sticky;
 	position: sticky;
-	top: -1px;
-}
-/* Deal with the event panel, where a button is above the table */
-#Events thead {
-	top: -7px;
+	background-color: white;
+	top: 0px;
 }
 
 /* Display the sorting arrows permanently in sortable tables */
@@ -1090,6 +1105,28 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 #algorithmInfo:hover {
 	background-color: lightgray;
+}
+
+#liveUpdateIndicator {
+	content: '';
+	min-width: 15px;
+	min-height: 15px;
+
+	border-radius: 50%;
+	background-color: red;
+
+	float: left;
+	margin-right: 5px;
+}
+
+#liveUpdateIndicator.active {
+	background-color: green;
+	animation: flicker 1s infinite alternate;
+}
+
+@keyframes flicker {
+	from {background-color: green;}
+	to {background-color: lightgreen;}
 }
 
 #patternArea {
@@ -1357,6 +1394,7 @@ table {
 #List {
 	grid-row: patternList-start / patternList-end;
 	/*max-height: 90%;*/
+	overflow: auto;
 }
 
 #List body {
@@ -1374,7 +1412,7 @@ table {
 }
 
 #Algorithm .body {
-	overflow: auto;
+	overflow: visible;
 	display: grid;
 	grid-template-columns: min-content 1fr min-content;
 	grid-template-rows: repeat(3, minmax(min-content, 1fr));
@@ -1632,7 +1670,7 @@ table {
 
 #extendedAlgorithmParametersArea {
 	grid-column: currentParameters-start / currentParameters-end;
-	grid-row: main-top / table-top:
+	grid-row: main-top / table-top;
 }
 
 #extendedAlgorithmParametersArea button {

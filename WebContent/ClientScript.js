@@ -216,9 +216,6 @@ var sizeModifySlider = null;
 // Slider controling the modification of the gap parameter of the algorithm
 var gapModifySlider = null;
 
-// Svg component displaying the activity indicator
-var runningTaskIndicatorSvg = d3.select("#top").select("svg").select("circle");
-
 // Minimum time span (in s) to use the 'year' distribution scale
 var distributionYearThreshold = 60*60*24*365*3;	// 3 years
 // Minimum time span (in s) to use the 'month' distribution scale
@@ -348,6 +345,8 @@ var patternsInformation = {};
 var patternIdList = [];
 // The list of ids for all the filtered out patterns
 var filteredOutPatterns = [];
+// The list of patterns waiting to be integrated into the list
+var availablePatterns = [];
 // Known metrics on the patterns
 var patternMetrics = {"sizeDistribution":{}};
 
@@ -394,9 +393,6 @@ var eventTypes = [];
  */
 var eventTypeInformations = {};
 
-// Number of tasks managed by the activity indicator currently occurring
-var runningTaskIndicatorNumber = 0;
-
 // Maximum pattern support
 var maxPatternSupport = 0;
 // Maximum pattern size
@@ -405,6 +401,10 @@ var maxPatternSize = 0;
 /*************************************/
 /*			State elements			 */
 /*************************************/
+
+// Whether the new patterns are directly integrated in the list or not
+var patternLiveUpdate = true;
+
 //
 var patternsLoaded = false;
 // Whether debug mode is active or not
@@ -412,12 +412,10 @@ var debugMode = false;
 // Whether the pointer target is visible or not in the focus view
 var showPointerTarget = false;
 // Whether future patterns will be processed or not
-var updateUI = true;
+var acceptNewPatterns = true;
 
 // Whether information about the dataset is displayed (false) or not (true)
 var datasetInfoIsDefault = true;
-// Whether actions are displayed in the history (false) or not (true)
-var historyDisplayIsDefault = true;
 
 /**
  * The time period covered by the overview's brush.
@@ -482,10 +480,8 @@ var algorithmStartTime = -1;
 // Delay (in ms) between the server and the client
 var startDelayFromServer = 0;
 
-// Interval used to animate the activity indicator
-var runningTaskIndicator;
-// Whether the activity indicator is active or not
-var runningTaskIndicatorState = false;
+// Interval used to ping the server to avoid a timeout
+var serverPingInterval;
 
 // Whether the extended algorithm view is shown or not
 var useExtendedAlgorithmView = false;
@@ -531,6 +527,9 @@ var tooltipCloseTimeout;
 /*				?????				 */
 /*************************************/
 
+// The history of actions during the analysis
+var activityHistory = new ActivityHistory("historyList");
+
 // The axis for the number of patterns bars in the algorithm extended view
 var algorithmExtendedBarAxis = d3.scaleLinear().rangeRound([0, 200]);
 
@@ -572,6 +571,21 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 
 /**
+ * Updates the value of the current time focus
+ * @param {number} start The start of the intervale
+ * @param {number} end The end of the intervale
+ */
+function updateCurrentTimeFilter(start, end) {
+	currentTimeFilter = [start, end];
+	
+	document.getElementById("focusStart")
+		.textContent = formatDate(new Date(start));
+	
+	document.getElementById("focusEnd")
+		.textContent = formatDate(new Date(end));
+}
+
+/**
  * Resets the dataset to its unmodified state
  */
 function resetDataset() {
@@ -583,7 +597,7 @@ function resetDataset() {
 	resetPatterns();
 	requestAlgorithmReStart();
 
-	addToHistory("Reset the dataset");
+	activityHistory.resetDataset();
 }
 
 /**
@@ -711,7 +725,7 @@ function handleKeyPress() {
 		case "s":
 		case "S":
 			if (debugMode) {
-				stopUIUpdate();
+				switchPatternAcceptance();
 			}
 			break;
 		case "g":
@@ -779,11 +793,37 @@ function switchPointerTarget() {
 }
 
 /**
- * Stops handling incomming patterns
+ * Switches between accepting and rejecting incomming patterns
  */
-function stopUIUpdate() {
-	console.log("Pattern reception now ignored");
-	updateUI = false;
+function switchPatternAcceptance() {
+	if (acceptNewPatterns) {
+		console.log("New patterns will be rejected");
+		d3.select("#debugHelpAcceptNewPatterns .kbTxt")
+			.text("Accept new patterns");
+		acceptNewPatterns = false;
+	} else {
+		console.log("New patterns will be accepted");
+		d3.select("#debugHelpAcceptNewPatterns .kbTxt")
+			.text("Ignore new patterns");
+		acceptNewPatterns = true;
+	}
+}
+
+/**
+ * Toggles the live updating of the pattern list when new patterns arrive
+ */
+function toggleLiveUpdate() {
+	if (patternLiveUpdate) {
+		patternLiveUpdate = false;
+		document.getElementById("liveUpdateButton").textContent = "Start live update";
+		d3.select("#liveUpdateIndicator").classed("active", false);
+		d3.select("#updatePatternListButton").classed("hidden", false);
+	} else {
+		patternLiveUpdate = true;
+		document.getElementById("liveUpdateButton").textContent = "Stop live update";
+		d3.select("#liveUpdateIndicator").classed("active", true);
+		d3.select("#updatePatternListButton").classed("hidden", true);
+	}
 }
 
 /**
@@ -1115,44 +1155,6 @@ function findFirstFilteredUnselectedId(startIdx) {
 }
 
 /**
- * Adds a task to the activity indicator, starting it if it wasn't already
- * 
- * @deprecated Not in use currently due to the bad impact on performances
- */
-function startRunningTaskIndicator() {
-	if (runningTaskIndicatorState == false) {
-		runningTaskIndicator = setInterval(function() {
-			// TODO display an indication that something is running
-			if (runningTaskIndicatorSvg.style("fill") == "rgb(0, 204, 0)")
-				runningTaskIndicatorSvg.style("fill","rgb(0, 179, 0)");
-			else
-				runningTaskIndicatorSvg.style("fill","rgb(0, 204, 0)");
-		}, 200);
-		runningTaskIndicatorState = true;
-	}
-	runningTaskIndicatorNumber++;
-	console.log("RunningTasks increase to "+runningTaskIndicatorNumber);
-}
-
-/**
- * Removes a task from the activity indicator, stoping it if it was the last one
- * 
- * @deprecated Not in use currently due to the bad impact on performances
- */
-function stopRunningTaskIndicator() {
-	if (runningTaskIndicatorState == true) {
-		runningTaskIndicatorNumber--;
-		console.log("RunningTasks decrease to "+runningTaskIndicatorNumber);
-		if (runningTaskIndicatorNumber == 0) {
-			clearInterval(runningTaskIndicator);
-			runningTaskIndicatorSvg.style("fill","grey");
-			runningTaskIndicatorState = false;
-			console.log("Running task indicator stopped");
-		}
-	}
-}
-
-/**
  * Returns a color specific color contained in a list of distinct colors
  * If the list has less items in it than the presetList, the preset list is used
  * otherwise, the color is computed
@@ -1297,7 +1299,6 @@ function setupTool() {
 	d3.select("#tooltip").on("mouseenter", enterTooltip);
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
-	resetHistory();	// Reset the history display
 }
 
 var patternsPerSecondChart;
@@ -1784,54 +1785,6 @@ function setupEventBinDimensions() {
 }
 
 /*************************************/
-/*				Logging				 */
-/*************************************/
-
-/**
- * Adds an action to the displayed history
- * @param {string} action - The message to be added to the history
- * @param {...string} details - More information about the action
- */
-function addToHistory(action, ...details) {
-	let history = d3.select("#historyList");
-	if (historyDisplayIsDefault) {
-		history.text("");
-		historyDisplayIsDefault = false;
-	}
-	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
-	let formatTime = d3.timeFormat("%H:%M:%S");
-	let now = formatTime(new Date());
-	let item = history.insert("div",":first-child")
-		.classed("historyItem", true);
-	let title = item.append("p")
-		.classed("historyTitle", true)
-		.text(action);
-	if (details.length > 0) {
-		let content = item.append("div")
-			.classed("historyContent hidden", true);
-		item.append("p")
-			.text("Show details")
-			.classed("clickable clickableText smallText historyShowMore", true)
-			.on("click", function() {
-				if (content.classed("hidden")) {
-					this.textContent = "Hide details";
-					content.classed("hidden", false);
-				} else {
-					this.textContent = "Show details";
-					content.classed("hidden", true);
-				}
-			});
-		details.forEach( (detail) => {
-			content.append("p")
-				.text(detail);
-		});
-	}
-	item.append("p")
-		.classed("historyTimestamp", true)
-		.text(now.toString());
-}
-
-/*************************************/
 /*				Algorithm			 */
 /*************************************/
 
@@ -1897,6 +1850,10 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 		", maxSize: "+maxSize+", minGap: "+minGap+", maxGap: "+maxGap+
 		", maxDuration: "+maxDuration+", datasetName: "+datasetName+", delay: "+delay);
 	
+	// Make sure that the patterns will be accepted
+	if (!acceptNewPatterns)
+		switchPatternAcceptance();
+
 	let action = {
 		action: "run",
 		object: "algorithm",
@@ -1984,7 +1941,7 @@ function processOpen(message) {
 		.text(formatDate(new Date()));
 
 	// Ping the server every 10 minutes to keep the connexion alive
-	runningTaskIndicator = setInterval(function() {
+	serverPingInterval = setInterval(function() {
 		console.log("pinging server");
 		let action = {
 				action: "ping"
@@ -2101,7 +2058,7 @@ function processMessage(message/*Compressed*/) {
 	}
 	if (msg.action === "info") {
 		if (msg.object === "newPattern") {
-			if (updateUI) {
+			if (acceptNewPatterns) {
 				addPatternToList(msg);
 				drawPatternSizesChart();
 				algorithmState.addPattern();
@@ -2293,6 +2250,7 @@ function requestUserList(datasetName) {
  */
 function requestSteeringOnPatternPrefix(patternId) {
 	console.log('requesting steering on patternId '+patternId+' as prefix');
+	activityHistory.steerOnPrefix(patternId);
 	let action = {
 			action: "steerOnPattern",
 			object: "start",
@@ -2307,6 +2265,7 @@ function requestSteeringOnPatternPrefix(patternId) {
  */
 function requestSteeringOnUser(userId) {
 	console.log('requesting steering on user '+userId);
+	activityHistory.steerOnUser(userId);
 	let action = {
 			action: "steerOnUser",
 			userId: userId
@@ -2321,6 +2280,7 @@ function requestSteeringOnUser(userId) {
  */
 function requestSteeringOnTime(start, end) {
 	console.log('requesting steering on time between '+start+' and '+end);
+	activityHistory.steerOnTime(start, end);
 	// Numbers are sent as strings to prevent an error when their value is read
 	// by the server
 	let action = {
@@ -2496,13 +2456,13 @@ function receiveEvents(events) {
 		console.log("Dimensions created at "+new Date());
 		rawData = null;
 		console.log("raw data removed");
-		addToHistory("Dataset "+datasetInfo.name+" received");
+		activityHistory.receiveDataset(datasetInfo.name);
 		buildUserSessions();
 		computeMaxEventAtOneTime();
 		computeUsersPerEventType();
 		createEventTypesListDisplay();
 		timeline.displayData();
-		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
+		updateCurrentTimeFilter(...timeline.xFocus.domain().map( x => x.getTime() ));
 		dataDimensions.time.filterRange(currentTimeFilter);
 		startInitialMining();
 		disableCentralOverlay();
@@ -2640,6 +2600,15 @@ function receiveEventTypes(message) {
 /************************************/
 
 /**
+ * Integrates available patterns into the pattern list
+ */
+function updatePatternList() {
+	patternIdList = _.concat(patternIdList, availablePatterns);
+	availablePatterns = [];
+	filterPatterns();
+}
+
+/**
  * Restore the dataset in the state it was when sent by the server
  */
 function restoreInitialData() {
@@ -2710,6 +2679,8 @@ function filterPatterns() {
 	patternIdList = _.concat(patternIdList, toFilterIn);
 	filteredOutPatterns = _.concat(filteredOutPatterns, toFilterOut);
 
+	sortPatterns();
+	updatePatternCountDisplay();
 	// Updates the pattern list
 	createPatternListDisplay();
 }
@@ -3560,6 +3531,28 @@ function sortSelectedPatternsBySupport(decreasing=false) {
 }
 
 /**
+ * Sorts the pattern list by the currently defined sort order
+ */
+function sortPatterns() {
+	let parts = lastPatternSort.split("_");
+	switch(parts[0]) {
+		case "nbUsers":
+			sortPatternsByNbUsers(parts[1] == "down");
+			break;
+		case "name":
+			sortPatternsByName(parts[1] == "down");
+			break;
+		case "size":
+			sortPatternsBySize(parts[1] == "down");
+			break;
+		case "support":
+			sortPatternsBySupport(parts[1] == "down");
+			break;
+		default:
+	}
+}
+
+/**
  * Sorts the pattern list according to their name
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
@@ -3850,36 +3843,39 @@ function addPatternToList(message) {
 	
 	// Update the relevant metrics
 	patternMetrics["sizeDistribution"][pSize]++;
-	
-	// Update the number of patterns display
-	d3.select("#patternNumberSpan").text(numberOfPattern);
 
 	let properPatternSearchInput = currentPatternSearchInput.split(" ")
 		.filter(function(d,i) {
 			return d.length > 0;
 		}).join(" ");
-	// Don't take this pattern into consideration if it doesn"t pass the filter
-	if (!supportSlider.hasValueSelected(pSupport) ||
-		!sizeSlider.hasValueSelected(pSize) ||
-		!pString.includes(properPatternSearchInput)) {
-			filteredOutPatterns.push(pId);
-			return;
+	
+	if (!patternLiveUpdate) {
+		availablePatterns.push(pId);
+	} else {
+		// Don't take this pattern into consideration if it doesn"t pass the filter
+		if (!supportSlider.hasValueSelected(pSupport) ||
+			!sizeSlider.hasValueSelected(pSize) ||
+			!pString.includes(properPatternSearchInput)) {
+				filteredOutPatterns.push(pId);
+		} else {
+			let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
+			
+			if (correctPositionInList == -1) {// append at the end of the list
+				patternIdList.push(pId);
+				document.getElementById("patternTableBody")
+					.appendChild(createPatternRow(pId));
+			} else { // append at the right position in the list
+				patternIdList.splice(correctPositionInList, 0, pId);
+				let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
+				//console.log("First unselectedId: "+firstUnselectedId);
+				let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
+				
+				firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
+			}
+		}
 	}
 
-	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
-	
-	if (correctPositionInList == -1) {// append at the end of the list
-		patternIdList.push(pId);
-		document.getElementById("patternTableBody")
-			.appendChild(createPatternRow(pId));
-	} else { // append at the right position in the list
-		patternIdList.splice(correctPositionInList, 0, pId);
-		let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
-		//console.log("First unselectedId: "+firstUnselectedId);
-		let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
-		
-		firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
-	}
+	updatePatternCountDisplay();
 }
 
 /**
@@ -3912,6 +3908,7 @@ function resetPatterns() {
 	numberOfPattern = 0;
 	patternsInformation = {};
 	patternIdList = [];
+	availablePatterns = [];
 	filteredOutPatterns = [];
 	patternOccurrences = {};
 	selectedPatternIds = [];
@@ -4009,7 +4006,7 @@ function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
 	eventTypeInformations[typeInfo.name].code = eCode;
 
 	updateEventTypesInformations();
-	addToHistory("Event type created: "+newEvents[0].type, "From the occurrences of '"+typeInfo.name.replace("-"," ")+"'");
+	activityHistory.createEventType(newEvents[0].type, typeInfo.name.replace("-"," "));
 }
 
 /**
@@ -4036,7 +4033,7 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	updateEventTypesInformations();
-	addToHistory(removedEvents.length + " event types removed", removedEvents.join(", "));
+	activityHistory.removeEventTypes(removedEvents);
 }
 
 /**
@@ -4061,7 +4058,7 @@ function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
 	updateEventTypesInformations();
-	addToHistory(removedUsers.length + " users removed", removedUsers.join(", "));
+	activityHistory.removeUsers(removedUsers);
 }
 
 /**
@@ -4161,9 +4158,10 @@ function askConfirmationToRemoveUsers(...userNames) {
  */
 function updatePatternCountDisplay() {
 	d3.select("#patternNumberSpan").text(numberOfPattern);
-	d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+	d3.select("#displayedPatternNumberSpan").text(patternIdList.length + filteredOutPatterns.length);
+	d3.select("#updatePatternListButton span").text(availablePatterns.length);
 	// TODO dynamically update the number of patterns matching the filter
-	d3.select("#highlightedPatternNumberSpan").text("0");
+	d3.select("#filteredInPatternNumberSpan").text(patternIdList.length);
 }
 
 /**
@@ -4174,20 +4172,6 @@ function resetDatasetInfo() {
 	infoDiv.textContent = "No dataset selected, select a dataset to display more information";
 	
 	datasetInfoIsDefault = true;
-}
-
-/**
- * Resets the display of the history of actions
- * 
- * @deprecated Make sure that it is enough, maybe children should be removed
- * 
- * TODO check the deprecation
- */
-function resetHistory() {
-	let historyDiv = document.getElementById("historyList");
-	historyDiv.textContent = "No history to display";
-	
-	historyDisplayIsDefault = true;
 }
 
 /**
@@ -4600,9 +4584,6 @@ function setHighlights() {
 				console.log("click on "+patternId);
 				createPatternListDisplay();
 				setHighlights();
-				
-				// Update the number of selected patterns display
-				d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 			});
 		for (let k=0; k < pSize; k++) {
 			row.append("span")
@@ -5270,11 +5251,7 @@ function handleAlgorithmStartSignal(msg) {
 	startAlgorithmRuntime(dateUTC.getTime());
 	algorithmState.start();
 
-	let detailSupport = "Min. support: " + algoMinSupport; 
-	let detailGap = "Gap: " + algoMinGap + " - " + algoMaxGap;
-	let detailDuration = "Max. duration: " + algoMaxDuration + "ms";
-	let detailSize = "Max. size: " + algoMaxSize;
-	addToHistory("Algorithm started", "Parameters:", detailSupport, detailGap, detailDuration, detailSize);
+	activityHistory.startAlgorithm(algoMinSupport, algoMinGap, algoMaxGap, algoMaxDuration, algoMaxSize);
 }
 
 /**
@@ -5287,9 +5264,7 @@ function handleAlgorithmEndSignal(msg) {
 	algorithmState.stop();
 	updateAlgorithmStateDisplay();
 	
-	let details = algorithmState.getTotalPatternNumber() + " patterns found over ";
-	details += algorithmState.getTotalElapsedTime() + "ms"
-	addToHistory("Algorithm ended", details);
+	activityHistory.endAlgorithm(algorithmState.getTotalPatternNumber(), algorithmState.getTotalElapsedTime())
 }
 
 /**
@@ -5534,7 +5509,7 @@ function createPatternListDisplay() {
 	});
 	d3.select("#selectedPatternsArea .body").classed("hidden", selectedPatternIds.length == 0);
 	
-	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
+	d3.select("#filteredInPatternNumberSpan").text(filteredPatterns);
 }
 
 /**
@@ -5573,9 +5548,6 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 			//d3.event.stopPropagation();
 			console.log("click on "+pId);
 			createPatternListDisplay();
-			
-			// Update the number of selected patterns display
-			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 			
 			d3.select("#resetPatternSelectionButton")
 				.classed("hidden", selectedPatternIds.length == 0);
@@ -6273,9 +6245,6 @@ function displaySessionTooltip(data) {
 					//d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
-					
-					// Update the number of selected patterns display
-					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 				});
 			let firstCell = ttTableRow.append("td");
 			for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
@@ -6451,8 +6420,6 @@ function unselectAllPatterns() {
 	timeline.displayData(); // TODO only redraw the pattern occurrences
 	//timeline.drawUsersPatterns(); // TODO uncomment when the above line's TODO will be done
 	
-	// Update the number of selected patterns display
-	d3.select("#selectedPatternNumberSpan").text('0');
 	d3.select("#resetPatternSelectionButton")
 				.classed("hidden", selectedPatternIds.length == 0);
 	setHighlights();
@@ -7250,6 +7217,267 @@ function CandidatesCheckedPerSecondGraph(elemId) {
 	}
 }
 
+/**
+ * Creates an history of actions
+ * @param {string} elemId The id of the parent node for the history's display
+ */
+function ActivityHistory(elemId) {
+	this.parent = d3.select("#"+elemId);
+	this.events = [];
+	this.timeFormat = d3.timeFormat("%H:%M:%S");
+	this.indentLevel = 0;
+
+	// Item management
+
+	this.createItem = function(title, date) {
+		let item = d3.select(document.createElement("div"))
+			.classed("historyItem", true)
+			.style("margin-left", `${this.indentLevel * 10}px`);
+		item.append("p")
+			.classed("historyTitle", true)
+			.text(title);
+		item.append("p")
+			.classed("historyTimestamp", true)
+			.text(date.toString());
+		return item;
+	}
+
+	this.createContent = function(item) {
+		let content = item.append("div")
+			.classed("historyContent hidden", true);
+		item.append("p")
+			.text("Show details")
+			.classed("clickable clickableText smallText historyShowMore", true)
+			.on("click", function() {
+				if (content.classed("hidden")) {
+					this.textContent = "Hide details";
+					content.classed("hidden", false);
+				} else {
+					this.textContent = "Show details";
+					content.classed("hidden", true);
+				}
+			});
+		return content;
+	}
+
+	this.displayItem = function(item) {
+		let parentNode = this.parent.node();
+		parentNode.insertBefore(item.node(), parentNode.firstChild);
+	}
+
+	// Entry points
+
+	this.resetDataset = function() {
+		let event = {
+			action: "resetDataset",
+			time: new Date(),
+			properties: {}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.receiveDataset = function(datasetName) {
+		let event = {
+			action: "receiveDataset",
+			time: new Date(),
+			properties: {
+				name: datasetName
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.createEventType = function(typeName, parent) {
+		let event = {
+			action: "createEventType",
+			time: new Date(),
+			properties: {
+				name: typeName,
+				parent: parent
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.removeEventTypes = function(typeNames) {
+		let event = {
+			action: "removeEventTypes",
+			time: new Date(),
+			properties: {
+				names: typeNames
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.removeUsers = function(userNames) {
+		let event = {
+			action: "removeUsers",
+			time: new Date(),
+			properties: {
+				names: userNames
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.startAlgorithm = function(support, minGap, maxGap, duration, size) {
+		let event = {
+			action: "startAlgorithm",
+			time: new Date(),
+			properties: {
+				support: support,
+				minGap: minGap,
+				maxGap: maxGap,
+				duration: duration,
+				size: size
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.endAlgorithm = function(patternsFound, timeElapsed, hasCompleted=true) {
+		let event = {
+			action: "endAlgorithm",
+			time: new Date(),
+			properties: {
+				patterns: patternsFound,
+				time: timeElapsed,
+				completed: hasCompleted
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.steerOnPrefix = function(patternId) {
+		let event = {
+			action: "steerOnPrefix",
+			time: new Date(),
+			properties: {
+				patternId: patternId,
+				patternString: patternsInformation[patternId][0]
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.steerOnUser = function(userId) {
+		let event = {
+			action: "steerOnUser",
+			time: new Date(),
+			properties: {
+				userId: userId,
+				name: userInformations[userId].name
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.steerOnTime = function(start, end) {
+		let event = {
+			action: "steerOnTime",
+			time: new Date(),
+			properties: {
+				start: start,
+				end: end
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.drawEvent = function(event) {
+		let item, content;
+
+		switch(event.action) {
+			case "resetDataset":
+				item = this.createItem("Reset the dataset", this.timeFormat(event.time));
+				this.displayItem(item);
+				break;
+			case "receiveDataset":
+				item = this.createItem("Dataset "+event.properties.name+" received", this.timeFormat(event.time));
+				this.displayItem(item);
+				break;
+			case "createEventType":
+				item = this.createItem("Event type created: "+event.properties.name, this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("From the occurrences of '"+event.properties.parent+"'");
+				this.displayItem(item);
+				break;
+			case "removeEventTypes":
+				item = this.createItem(event.properties.names.length + " event types removed", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.names.join(", "));
+				this.displayItem(item);
+				break;
+			case "removeUsers":
+				item = this.createItem(event.properties.names.length + " users removed", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.names.join(", "));
+				this.displayItem(item);
+				break;
+			case "startAlgorithm":
+				item = this.createItem("Algorithm started",this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Parameters:");
+				content.append("p")
+					.text("Min. support: " + event.properties.support);
+				content.append("p")
+					.text("Gap: " + event.properties.minGap + " - " + event.properties.maxGap);
+				content.append("p")
+					.text("Max. duration: " + event.properties.duration + "ms");
+				content.append("p")
+					.text("Max. size: " + event.properties.size);
+				this.displayItem(item);
+				this.indentLevel++;
+				break;
+			case "endAlgorithm":
+				this.indentLevel--;
+				item = this.createItem(event.properties.completed ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.patterns + " patterns found over " + event.properties.time + "ms");
+				this.displayItem(item);
+				break;
+			case "steerOnPrefix":
+				item = this.createItem("Steering on prefix", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Looking for patterns starting with '" + event.properties.patternString + "'");
+				this.displayItem(item);
+				break;
+			case "steerOnUser":
+				item = this.createItem("Steering on user", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Looking for patterns present in the trace of user '" + event.properties.name + "'");
+				this.displayItem(item);
+				break;
+			case "steerOnTime":
+				item = this.createItem("Steering on time", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Looking for patterns present between " + formatDate(new Date(event.properties.start)) + " and " + formatDate(new Date(event.properties.end)));
+				this.displayItem(item);
+				break;
+			default:
+				console.log("Trying to display an unknown action in the history: "+event);
+		}
+	}
+}
 
 
 
@@ -7284,7 +7512,7 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisUsers);
 		
 		if (dataDimensions.time) {
-			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			updateCurrentTimeFilter(self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1);
 			dataDimensions.time.filterRange(currentTimeFilter);
 		}
 		/*self.focus.selectAll(".dot")
@@ -7315,7 +7543,7 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisUsers);
 
 		if (dataDimensions.time) {
-			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			updateCurrentTimeFilter(self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1);
 			dataDimensions.time.filterRange(currentTimeFilter);
 		}
 		/*self.focus.selectAll(".dot")
@@ -7581,7 +7809,6 @@ var Timeline = function(elemId, options) {
 								if (index >= 0) {
 									selectedPatternIds.splice(index, 1);
 									createPatternListDisplay();
-									d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 									self.displayData(); // TODO Only redraw the pattern occurrences
 								}
 		        			});
@@ -8171,7 +8398,7 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisUsers);
 		
 		if (dataDimensions.time) {
-			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			updateCurrentTimeFilter(self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1);
 			dataDimensions.time.filterRange(currentTimeFilter);
 		}
 		
@@ -8239,7 +8466,6 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.displayData = function() {
-		//startRunningTaskIndicator();
 		//console.log("----DisplayData----");
 		// check if we need to adapt the semantic zoom
 		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
@@ -8320,7 +8546,6 @@ var Timeline = function(elemId, options) {
 		self.drawUsersPatterns();
 		
 		//self.drawUsers();
-		//stopRunningTaskIndicator();
 	};
 	
 	self.zoomClick = function() {
