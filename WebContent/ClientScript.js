@@ -7432,7 +7432,8 @@ function ActivityHistory(elemId) {
 				this.displayItem(item);
 				break;
 			case "startAlgorithm":
-				item = this.createItem("Algorithm started",this.timeFormat(event.time));
+				item = this.createItem("Algorithm started",this.timeFormat(event.time))
+					.classed("emphasizedItem", true);
 				content = this.createContent(item);
 				content.append("p")
 					.text("Parameters:");
@@ -7449,7 +7450,8 @@ function ActivityHistory(elemId) {
 				break;
 			case "endAlgorithm":
 				this.indentLevel--;
-				item = this.createItem(event.properties.completed ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(event.time));
+				item = this.createItem(event.properties.completed ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(event.time))
+					.classed("emphasizedItem", true);
 				content = this.createContent(item);
 				content.append("p")
 					.text(event.properties.patterns + " patterns found over " + event.properties.time + "ms");

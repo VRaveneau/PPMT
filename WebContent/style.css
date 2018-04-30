@@ -708,6 +708,15 @@ body {
 	margin-top: 5px;
 }
 
+.emphasizedItem {
+	border-width: 2px;
+	border-color: black;
+}
+
+.emphasizedItem .historyTitle {
+	font-weight: bold;
+}
+
 .historyTitle {
 	grid-row: title-top / title-bottom;
 	grid-column: title-start / title-end;
