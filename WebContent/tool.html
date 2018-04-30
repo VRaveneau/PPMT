@@ -77,6 +77,7 @@
 										<th id="eventsOccurrencesColumn" onclick="clickOnEventTypeSupportHeader()" value="support">Support<span class="sortIndicator"></span></th>
 										<th onclick="clickOnEventTypeNbUsersHeader()" value="nbUsers">Nb&nbsp;users<span class="sortIndicator"></span></th>
 										<th onclick="clickOnEventTypeCategoryHeader()" value="category">Category<span class="sortIndicator"></span></th>
+										<th class="contextActionsHeader"></th>
 									</tr>
 								</thead>
 								<tbody id="eventTableBody">
@@ -107,6 +108,7 @@
 											<th onclick="clickOnUserNbSessionsHeader()" value="nbSessions">Nb&nbsp;sessions<span class="sortIndicator"></span></th>
 											<th onclick="clickOnUserStartHeader()" value="start">Start<span class="sortIndicator"></span></th>
 											<th onclick="clickOnUserEndHeader()" value="end">End<span class="sortIndicator"></span></th>
+											<th class="contextActionsHeader"></th>
 										</tr>
 									</thead>
 									<tbody id="userTableBody">
@@ -154,7 +156,7 @@
 					<div id="timeline-view">
 						<div id="timeline">
 							<div class="subsection">
-								<div class="title">Overview &mdash; <span class="smallText normalText">Focus on &nbsp;<span id="focusStart">--</span>&nbsp; to &nbsp;<span id="focusEnd">--</span></span> <button id="temporalSteeringButton" class="clickable" onclick="steerOnDisplayedTime();">Steer on focus</button></div>
+								<div class="title">Overview &mdash; <span class="smallText normalText">Focus: &nbsp;<span id="focusStart"><span class="date">-</span> <span class="time">-</span></span> &rarr; <span id="focusEnd"><span class="date">-</span> <span class="time">-</span> (<span class="duration">-</span>)</span></span> <button id="temporalSteeringButton" class="clickable" onclick="steerOnDisplayedTime();">Steer on focus</button></div>
 								<div id="tl_overview" class="body"></div>
 							</div>
 							<!-- <div class="subsection">
@@ -294,6 +296,7 @@
 									<th onclick="clickOnSelectedPatternSupportHeader()" value="support">Support<span class="sortIndicator"></span></th>
 									<th onclick="clickOnSelectedPatternNbUsersHeader()" value="nbUsers">Nb&nbsp;users<span class="sortIndicator"></span></th>
 									<th onclick="clickOnSelectedPatternSizeHeader()" value="size">Size<span class="sortIndicator"></span></th>
+									<th class="contextActionsHeader"></th>
 								</tr>
 							</thead>
 							<tbody id="selectedPatternTableBody">
@@ -303,7 +306,7 @@
 				</div>
 
 				<div id="patternArea" class="section">
-					<div class="title">Patterns (<span class="foldingText normalText"><span id="filteredInPatternNumberSpan">0</span><span class="additionalText"> passing the filters</span></span> / <span class="foldingText normalText"><span id="displayedPatternNumberSpan">0</span><span class="additionalText"> in the list</span></span> / <span class="foldingText normalText"><span id="patternNumberSpan">0</span><span class="additionalText"> discovered by the algorithm</span></span>)</div>
+					<div class="title">Patterns (<span class="foldingText normalText"><span id="filteredInPatternNumberSpan">0</span><span class="additionalText smallText"> passing the filters</span></span> / <span class="foldingText normalText"><span id="displayedPatternNumberSpan">0</span><span class="additionalText smallText"> in the list</span></span> / <span class="foldingText normalText"><span id="patternNumberSpan">0</span><span class="additionalText smallText"> discovered by the algorithm</span></span>)</div>
 					<div id="patternAcceptanceControls" class="param">
 						<div id="liveUpdateIndicator" class="active"></div>
 						<button id="liveUpdateButton" onclick="toggleLiveUpdate();" class="clickable">Stop live update</button>
@@ -346,6 +349,7 @@
 											<th onclick="clickOnPatternSupportHeader()" value="support">Support<span class="sortIndicator"></span></th>
 											<th onclick="clickOnPatternNbUsersHeader()" value="nbUsers">Nb&nbsp;users<span class="sortIndicator"></span></th>
 											<th onclick="clickOnPatternSizeHeader()" value="size">Size<span class="sortIndicator"></span></th>
+											<th class="contextActionsHeader"></th>
 										</tr>
 									</thead>
 									<tbody id="patternTableBody">
@@ -370,92 +374,97 @@
 						<div id="modalCloseArea" class="section clickable">
 							X
 						</div>
-						<div id="algorithmExtended" class="section hidden">
-							<div id="extendedAlgorithmParametersArea" class="section">
-								<div class="title">Current parameters</div>
-								<div class="body">
-									<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
-									<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
-									<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
-									<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
-									<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
+						<div id="algorithmExtended" class="hidden">
+							
+							<div id="currentAlgorithmState" class="section">
+								<div id="currentAlgorithmStateSubtitle">Current algorithm state</div>
+								
+								<div id="extendedAlgorithmParametersArea" class="section">
+									<div class="title">Current parameters</div>
+									<div class="body">
+										<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
+										<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
+										<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
+										<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
+										<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
+									</div>
 								</div>
-							</div>
-							
-							<div id="extendedAlgorithmStrategyArea" class="section">
-								<div class="title">Current strategy</div>
-								<div class="body">Not Running</div>
-							</div>
-							
-							<div id="algorithmSpeedArea" class="section">
-								<!--<div class="title">Speed</div>-->
-								<div class="body">
-									<div class="subsection">
-										<div class="title">Patterns per second</div>
-										<div class="body" id="patternsPerSecond">
+								
+								<div id="extendedAlgorithmStrategyArea" class="section">
+									<div class="title">Current strategy</div>
+									<div class="body">Not Running</div>
+								</div>
+								
+								<div id="algorithmSpeedArea" class="section">
+									<!--<div class="title">Speed</div>-->
+									<div class="body">
+										<div class="subsection">
+											<div class="title">Patterns per second</div>
+											<div class="body" id="patternsPerSecond">
+											</div>
+										</div>
+										<div class="subsection">
+											<div class="title">Candidates checked per second</div>
+											<div class="body" id="candidatesCheckedPerSecond">
+											</div>
 										</div>
 									</div>
-									<div class="subsection">
-										<div class="title">Candidates checked per second</div>
-										<div class="body" id="candidatesCheckedPerSecond">
-										</div>
+								</div>
+	
+								<div id="patternSizeTableArea" class="section">
+									<div class="body">
+										<table id="patternSizeTable">
+											<thead>
+												<tr>
+													<th>Size</th>
+													<th>Status</th>
+													<th>Patterns found</th>
+													<th>Candidates checked</th>
+													<th>Progression</th>
+													<th>Elapsed time</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr id="patternSizeTableTotal">
+													<td>TOTAL</td>
+													<td>Not started</td>
+													<td>0</td>
+													<td>0</td>
+													<td>---</td>
+													<td>0s</td>
+												</tr>
+											</tbody>
+											<tbody id="patternSizeTableContent">
+											</tbody>
+										</table>
 									</div>
 								</div>
 							</div>
 							
-							<div id="algorithmParametersChange" class="section">
-								<div class="title">Change parameters</div>
-								<div class="body">
-									<p>minSupport</p>
-									<div id="minSupportChangeSlider">
+							<div id="changeAlgorithmParameters" class="section">
+								<div id="changeParametersSubtitle">Change parameters</div>
 	
+								<div id="algorithmParametersChange" class="section">
+									<div class="body">
+										<p>minSupport</p>
+										<div id="minSupportChangeSlider">
+		
+										</div>
+										<p>gap</p>
+										<div id="gapChangeSlider">
+		
+										</div>
+										<p>maxDuration</p>
+										<div id="maxDurationChangeSlider">
+		
+										</div>
+										<p>maxSize</p>
+										<div id="maxSizeChangeSlider">
+		
+										</div>
+										<button onclick="askConfirmationToChangeAlgorithmParameters();"; class="clickable largeText">Restart</button>
 									</div>
-									<p>gap</p>
-									<div id="gapChangeSlider">
-	
-									</div>
-									<p>maxDuration</p>
-									<div id="maxDurationChangeSlider">
-	
-									</div>
-									<p>maxSize</p>
-									<div id="maxSizeChangeSlider">
-	
-									</div>
-									<button onclick="askConfirmationToChangeAlgorithmParameters();"; class="clickable">Restart with these parameters</button>
 								</div>
-							</div>
-
-							<div id="patternSizeTableArea" class="section">
-								<div class="body">
-									<table id="patternSizeTable">
-										<thead>
-											<tr>
-												<th>Size</th>
-												<th>Status</th>
-												<th>Patterns found</th>
-												<th>Candidates checked</th>
-												<th>Progression</th>
-												<th>Elapsed time</th>
-											</tr>
-										</thead>
-										<tbody>
-											<tr id="patternSizeTableTotal">
-												<td>TOTAL</td>
-												<td>Not started</td>
-												<td>0</td>
-												<td>0</td>
-												<td>---</td>
-												<td>0s</td>
-											</tr>
-										</tbody>
-										<tbody id="patternSizeTableContent">
-										</tbody>
-									</table>
-								</div>
-							</div>
-							<div id="extendedPatternSizesChart">
-
 							</div>
 						</div>
 						<div id="actionConfirmation" class="section hidden">

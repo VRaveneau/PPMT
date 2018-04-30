@@ -578,11 +578,49 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 function updateCurrentTimeFilter(start, end) {
 	currentTimeFilter = [start, end];
 	
-	document.getElementById("focusStart")
-		.textContent = formatDate(new Date(start));
+	let startDate = new Date(start);
+	let endDate = new Date(end);
+
+	let startDateString = monthsNames[startDate.getMonth()].substr(0,3)+". " +
+		startDate.getDate() + ", " +
+		startDate.getFullYear();
+	let endDateString = monthsNames[endDate.getMonth()].substr(0,3)+". " +
+		endDate.getDate() + ", " +
+		endDate.getFullYear();
 	
-	document.getElementById("focusEnd")
-		.textContent = formatDate(new Date(end));
+	let startTimeString = (startDate.getHours() < 10 ? "0" : "")+startDate.getHours() + ":" +
+		(startDate.getMinutes() < 10 ? "0" : "")+startDate.getMinutes();
+	let endTimeString = (endDate.getHours() < 10 ? "0" : "")+endDate.getHours() + ":" +
+		(endDate.getMinutes() < 10 ? "0" : "")+endDate.getMinutes();
+	
+	let duration = end - start;
+	let elapsedDays = Math.floor(duration/(24*60*60*1000));
+	duration = duration%(24*60*60000);
+	let elapsedHours = Math.floor(duration/(60*60*1000));
+	duration = duration%(60*60000);
+	let elapsedMinutes = Math.floor(duration/60000);
+	let durationString = "";
+
+	if (elapsedDays > 0) {
+		durationString += elapsedDays+"days ";
+	}
+	durationString += elapsedHours+"h ";
+	if (elapsedMinutes > 0) {
+		durationString += elapsedMinutes+"min";
+	}
+
+
+	document.querySelector("#focusStart .date")
+		.textContent = startDateString;
+	document.querySelector("#focusStart .time")
+		.textContent = startTimeString;
+	
+	document.querySelector("#focusEnd .date")
+		.textContent = endDateString;
+	document.querySelector("#focusEnd .time")
+		.textContent = endTimeString;
+	document.querySelector("#focusEnd .duration")
+		.textContent = durationString;
 }
 
 /**
@@ -815,12 +853,15 @@ function switchPatternAcceptance() {
 function toggleLiveUpdate() {
 	if (patternLiveUpdate) {
 		patternLiveUpdate = false;
-		document.getElementById("liveUpdateButton").textContent = "Start live update";
+		document.getElementById("liveUpdateButton").textContent = "Resume live update";
 		d3.select("#liveUpdateIndicator").classed("active", false);
 		d3.select("#updatePatternListButton").classed("hidden", false);
 	} else {
+		// Complete the list with available patterns
+		updatePatternList();
+		
 		patternLiveUpdate = true;
-		document.getElementById("liveUpdateButton").textContent = "Stop live update";
+		document.getElementById("liveUpdateButton").textContent = "Pause live update";
 		d3.select("#liveUpdateIndicator").classed("active", true);
 		d3.select("#updatePatternListButton").classed("hidden", true);
 	}
@@ -931,45 +972,60 @@ function hsvToRgb(h, s, v) {
  * If the date is given as a string, assumes the format from Agavue :
  * Sun Mar 31 01:32:10 CET 2013
  * @param {string|Date} date The date to format
+ * @param {boolean} short Whether to use the short or long name of months
  */
-function formatDate(date) {
+function formatDate(date, short = false) {
 	if (typeof date == "string") {
 		let parts = date.split(" ");
 		if (parts.length != 6)
 			return date;
-		let month = "";
-		switch(parts[1]) {
-			case "Jan":
-				return " January "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Feb":
-				return " February "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Mar":
-				return " March "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Apr":
-				return " April "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "May":
-				return " May "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Jun":
-				return " June "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Jul":
-				return " July "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Aug":
-				return " August "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Sep":
-				return " September "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Oct":
-				return " October "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Nov":
-				return " November "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Dec":
-				return " December "+parts[2]+", "+parts[5]+", "+parts[3];
-			default:
-				return parts[1]+" "+parts[2]+", "+parts[5]+", "+parts[3];
+		let month = parts[1];
+		if (!short) {
+			switch(month) {
+				case "Jan":
+					month = " January";
+					break;
+				case "Feb":
+					month = " February";
+					break;
+				case "Mar":
+					month = " March";
+					break;
+				case "Apr":
+					month = " April";
+					break;
+				case "May":
+					month = " May";
+					break;
+				case "Jun":
+					month = " June";
+					break;
+				case "Jul":
+					month = " July";
+					break;
+				case "Aug":
+					month = " August";
+					break;
+				case "Sep":
+					month = " September";
+					break;
+				case "Oct":
+					month = " October";
+					break;
+				case "Nov":
+					month = " November";
+					break;
+				case "Dec":
+					month = " December";
+					break;
+				default:
+			}
 		}
+		return month+" "+parts[2]+", "+parts[5]+", "+parts[3];
 	} else {
 		let parts = [
 			"",
-			monthsNames[date.getMonth()],
+			short ? monthsNames[date.getMonth()].substr(0,3)+"." : monthsNames[date.getMonth()],
 			date.getDate()+",",
 			date.getFullYear()+",",
 			(date.getHours() < 10 ? "0" : "")+date.getHours()+":"+
@@ -4711,7 +4767,7 @@ function createEventTypesListDisplay() {
 		}
 
 		// Add the context actions
-		let contextActions = eventRow.append("div")
+		let contextActions = eventRow.append("td").append("div")
 			.classed("contextActions", true);
 		let removeAction = contextActions.append("div");
 		removeAction.append("button")
@@ -4918,7 +4974,7 @@ function createUserListDisplay() {
 		}
 		
 		// Add the context actions
-		let contextActions = userRow.append("div")
+		let contextActions = userRow.append("td").append("div")
 			.classed("contextActions", true);
 		let removeAction = contextActions.append("div");
 		removeAction.append("button")
@@ -5315,6 +5371,7 @@ function handleNewLevelSignal(level) {
 	
 	algorithmState.stopLevel();
 	algorithmState.startLevel(level);
+	drawPatternSizesChart();
 }
 
 /**
@@ -5323,6 +5380,7 @@ function handleNewLevelSignal(level) {
  */
 function handleLevelCompleteSignal(level) {
 	algorithmState.setLevelComplete(level);
+	drawPatternSizesChart();
 }
 
 /**
@@ -5376,13 +5434,19 @@ function drawPatternSizesChart() {
 		.style('fill-opacity', 1e-6)
 		.remove();
 	
+	let barHeight = Math.min(25, patternSizesChart.y.bandwidth());
+	let bandwidthOffset = (patternSizesChart.y.bandwidth() - barHeight) / 2;
+
 	bars.enter().append("rect")
-		.attr("class", "bar")
+		.classed("bar", true)
+		.attr("status", d => algorithmState.getLevel(d).status)
 		.attr("x", patternSizesChart.x(0))
-		.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]));
+		.attr("y", function(d) { return patternSizesChart.y(d) + bandwidthOffset; })
+		.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]))
+		.attr("height", barHeight);
 	
 	texts.enter().append("text")
-		.attr("class", "bar")
+		.classed("bar", true)
 		.attr("text-anchor", "start")
 		.attr("alignment-baseline", "middle")
 		.attr("y", function(d) {
@@ -5393,8 +5457,9 @@ function drawPatternSizesChart() {
 		
 	// the "UPDATE" set:
 	bars.transition().duration(0)
-		.attr("y", function(d) { return patternSizesChart.y(d); })
-		.attr("height", patternSizesChart.y.bandwidth())
+		.attr("status", d => algorithmState.getLevel(d).status)
+		.attr("y", function(d) { return patternSizesChart.y(d) + bandwidthOffset; })
+		.attr("height", barHeight)
 		.attr("x", patternSizesChart.x(0))
 		.attr("width", function(d) {
 			return patternSizesChart.x(patternMetrics.sizeDistribution[d]);
@@ -5590,7 +5655,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.text(pSize);
 	
 	// Add the context actions
-	let contextActions = row.append("div")
+	let contextActions = row.append("td").append("div")
 		.classed("contextActions", true);
 	contextActions.append("button")
 		.classed("clickable", true)
@@ -5911,19 +5976,13 @@ function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
 		d3.select("#algorithmExtended").classed("hidden", false);
-		d3.select("#modalTitle").text("Current algorithm state");
+		d3.select("#modalTitle").text("Information about the algorithm");
 		d3.select("#modalBackground").classed("hidden", false);
-		/*// Move the graph into the extended view
-		document.getElementById("extendedPatternSizesChart")
-			.appendChild(d3.select("#patternSizesSvg").node());*/
 		
 	} else { // Show the shrinked view
 		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#modalTitle").text("");
 		d3.select("#algorithmExtended").classed("hidden", true);
-		/*// Move the graph out of the extended view
-		document.getElementById("patternSizesChart")
-			.appendChild(d3.select("#patternSizesSvg").node());*/
 	}
 }
 
@@ -6516,20 +6575,6 @@ function FilterSlider(elemId, onupdate) {
 		.attr("x2",self.axis(self.currentHandleMaxValue))
 		.attr("stroke", "lightblue");
 	
-	self.currentMin = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMinValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
-	self.currentMax = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMaxValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
 	self.handle1 = self.slider.insert("circle", ".track-overlay")
 		.attr("class","handleSlider")
 		.attr("r",5)
@@ -6570,16 +6615,6 @@ function FilterSlider(elemId, onupdate) {
 		self.currentMinValue = min;
 		self.currentMaxValue = max;
 		self.handle1.attr("cx",self.axis(self.current))
-	};
-	
-	self.moveCurrentMinTo = function(value) {
-		if (value >= self.currentMinValue)
-			self.currentMin.attr("x",self.axis(Math.round(value)));
-	};
-	
-	self.moveCurrentMaxTo = function(value) {
-		if (value <= self.currentMaxValue)
-			self.currentMax.attr("x",self.axis(Math.round(value)));
 	};
 	
 	self.moveHandle1To = function(value) {
@@ -6652,8 +6687,6 @@ function FilterSlider(elemId, onupdate) {
 			.attr("x2",self.axis.range()[1]);
 		self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
 			.attr("x2",self.axis(self.currentHandleMaxValue));
-		self.currentMin.attr("x",self.axis(self.currentMinValue));
-		self.currentMax.attr("x",self.axis(self.currentMaxValue));
 		self.handle1.attr("cx",self.axis(self.currentHandleMinValue));
 		self.handle2.attr("cx",self.axis(self.currentHandleMaxValue));
 		self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
@@ -6726,20 +6759,6 @@ function ModifySlider(elemId, options) {
 		.attr("x",self.axis)
 		.attr("text-anchor","middle")
 		.text(function(d) { return d; });
-		
-	self.currentMin = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMinValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-		
-	self.currentMax = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMaxValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
 		
 	self.blueLine = options.brushNumber == 1 ? null :
 		self.slider.append("line")
@@ -6980,6 +6999,10 @@ function AlgorithmState() {
 		}
 		if (this.currentLevel && this.currentLevel.size == level)
 			this.stopLevel();
+	}
+
+	this.getCurrentLevel = function() {
+		return this.currentLevel;
 	}
 
 	this.getLevel = function(patternSize) {
@@ -7429,7 +7452,8 @@ function ActivityHistory(elemId) {
 				this.displayItem(item);
 				break;
 			case "startAlgorithm":
-				item = this.createItem("Algorithm started",this.timeFormat(event.time));
+				item = this.createItem("Algorithm started",this.timeFormat(event.time))
+					.classed("emphasizedItem", true);
 				content = this.createContent(item);
 				content.append("p")
 					.text("Parameters:");
@@ -7446,7 +7470,8 @@ function ActivityHistory(elemId) {
 				break;
 			case "endAlgorithm":
 				this.indentLevel--;
-				item = this.createItem(event.properties.completed ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(event.time));
+				item = this.createItem(event.properties.completed ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(event.time))
+					.classed("emphasizedItem", true);
 				content = this.createContent(item);
 				content.append("p")
 					.text(event.properties.patterns + " patterns found over " + event.properties.time + "ms");

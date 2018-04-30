@@ -105,20 +105,35 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 .contextActions {
 	position: absolute;
 	visibility: hidden;
-	right: 2px;
+	height: 100%;
+	top: 0%;
+	right: 0px;
+	z-index: 1;
+	width: max-content;
 	overflow: visible;
+	display: grid;
+	grid-template-rows: 1fr [content-start] max-content [content-end] 1fr;
+	grid-auto-flow: column;
 }
 
-tr:hover > .contextActions {
+td {
+	position: relative;
+}
+
+tr:hover .contextActions {
 	visibility: visible;
+}
+
+.contextActions > * {
+	grid-row: content-start / content-end;
+	position: relative;
 }
 
 .contextActions button {
 	width: 20px;
 	height: 20px;
-	margin: 0px 0px 0px 2px;
 	padding: 0px;
-	border: 0px;
+	margin-right: 4px;
 	box-sizing: border-box;
 }
 
@@ -134,7 +149,7 @@ tr:hover > .contextActions {
 	font-weight: normal;
 }
 
-.contextActions div:hover > .extendedContextAction {
+.contextActions:hover .extendedContextAction {
 	visibility: visible;
 }
 
@@ -339,6 +354,10 @@ thead {
 	-webkit-font-smoothing: antialiased;
 }
 
+.contextActionsHeader {
+	width: 0px;
+}
+
 html {
 	height: 100%;
 }
@@ -408,6 +427,15 @@ body {
 	float: right;
 }
 
+.date {
+
+}
+
+.time {
+	color: slategrey;
+	font-size: 90%;
+}
+
 .button {
     display: inline;
     color: #fff;
@@ -440,6 +468,10 @@ body {
 
 .normalText {
 	font-variant: normal;
+}
+
+.largeText {
+	font-size: large;
 }
 
 .bold {
@@ -689,6 +721,15 @@ body {
 	margin-top: 5px;
 }
 
+.emphasizedItem {
+	border-width: 2px;
+	border-color: black;
+}
+
+.emphasizedItem .historyTitle {
+	font-weight: bold;
+}
+
 .historyTitle {
 	grid-row: title-top / title-bottom;
 	grid-column: title-start / title-end;
@@ -835,64 +876,88 @@ body {
 /*		Context action icons		*/
 /************************************/
 
-.icon-remove {
+.icon-remove::before {
+	content: '';
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	top: 5px;
+	left: 5px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
 	background-position:  0px 0px;
 	background-size: 300%;
 }
 
-.icon-remove:hover {
+.icon-remove:hover::before {
 	background-position: -20px 0px;
 }
 
-.icon-remove:active {
+.icon-remove:active::before {
 	background-position: -40px 0px;
 }
 
-.icon-toEventType {
+.icon-toEventType::before {
+	content: '';
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	top: 4px;
+	left: 4px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
-	background-position: 0px -60px;
+	background-position: 0px -30px;
 	background-size: 300%;
 }
 
-.icon-toEventType:hover {
-	background-position: -20px -60px;
+.icon-toEventType:hover::before {
+	background-position: -20px -30px;
 }
 
-.icon-toEventType:active {
-	background-position: -40px -60px;
+.icon-toEventType:active::before {
+	background-position: -40px -30px;
 }
 
-.icon-steering {
+.icon-steering::before {
+	content: '';
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	top: 4px;
+	left: 4px;
+	background-image: url("./img/icons_context_actions.png");
+	background-repeat: no-repeat;
+	background-position: 0px -10px;
+	background-size: 300%;
+}
+
+.icon-steering:hover::before {
+	background-position: -20px -10px;
+}
+
+.icon-steering:active::before {
+	background-position: -40px -10px;
+}
+
+.icon-selectUsers::before {
+	content: '';
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	top: 4px;
+	left: 4px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
 	background-position: 0px -20px;
 	background-size: 300%;
 }
 
-.icon-steering:hover {
+.icon-selectUsers:hover::before {
 	background-position: -20px -20px;
 }
 
-.icon-steering:active {
+.icon-selectUsers:active::before {
 	background-position: -40px -20px;
-}
-
-.icon-selectUsers {
-	background-image: url("./img/icons_context_actions.png");
-	background-repeat: no-repeat;
-	background-position: 0px -40px;
-	background-size: 300%;
-}
-
-.icon-selectUsers:hover {
-	background-position: -20px -40px;
-}
-
-.icon-selectUsers:active {
-	background-position: -40px -40px;
 }
 
 thead th {
@@ -900,6 +965,7 @@ thead th {
 	position: sticky;
 	background-color: white;
 	top: 0px;
+	z-index: 2;
 }
 
 /* Display the sorting arrows permanently in sortable tables */
@@ -1474,9 +1540,9 @@ table {
 /*		pattern sizes graph		*/
 /********************************/
 
-#patternSizesSvg .bar {
+/*#patternSizesSvg .bar {
   fill: rgb(119, 119, 119);
-}
+}*/
 
 #patternSizesSvg text.bar {
 	fill: black;
@@ -1495,6 +1561,24 @@ table {
 
 #patternSizesSvg .axis--x.axis path {
   display: none;
+}
+
+.bar[status='complete'] {
+	fill: green;
+}
+
+.bar[status='started'] {
+	fill: orange;
+}
+
+.bar[status='active'] {
+	fill: dodgerblue;
+	animation: pulseFill 1s infinite alternate;
+}
+
+@keyframes pulseFill {
+	from {fill: dodgerblue;}
+	to {fill: rgb(78, 166, 253);}
 }
 
 /****************************************************/
@@ -1598,30 +1682,39 @@ table {
 
 #algorithmExtended:not(.hidden) {
 	grid-column: modal-left / modal-right;
+	display: grid;
+	grid-gap: 5px;
+	grid-template-columns:
+		[currentState-start] 1fr
+		[currentState-end changeParameters-start] minmax(300px, max-content)
+		[changeParameters-end];
+	grid-template-rows: 1fr;
+}
+
+#currentAlgorithmState {
+	grid-column: currentState-start / currentState-end;
     display: grid;
 	grid-template-columns:
 		[currentParameters-start] 1fr
 		[currentParameters-end total-start] 1fr
 		[total-end speed-start] max-content
-		[speed-end changeParameters-start] 2fr
-		[changeParameters-end];
+		[speed-end];
 	grid-template-rows: 
-		[main-top] min-content
+		[subtitle-top] min-content
+		[subtitle-bottom main-top] min-content
 		[table-top] 1fr
 		[table-bottom main-bottom];
-/*
-		[patternSizeTable-start] 6fr
-		[patternSizeTable-end patternSizeChart-start] 2fr
-		[patternSizeChart-end sidebar-start] 2fr [sidebar-end];*/
+}
+
+#currentAlgorithmStateSubtitle {
+	grid-row: subtitle-top / subtitle-bottom;
+	grid-column: currentParameters-start / speed-end;
+	text-align: center;
+	font-size: large;
 }
 
 #patternSizeTableArea {
 	grid-column: currentParameters-start / changeParameters-start;
-	grid-row: table-top / table-bottom;
-}
-
-#extendedPatternSizesChart {
-	grid-column: speed-start / changeParameters-start;
 	grid-row: table-top / table-bottom;
 }
 
@@ -1691,8 +1784,24 @@ table {
 /* 	Algorithm parameter change 	*/
 /********************************/
 
-#algorithmParametersChange {
+#changeAlgorithmParameters {
 	grid-column: changeParameters-start / changeParameters-end;
+	padding: 0px;
+	display: grid;
+	grid-template-columns: 1fr;
+	grid-template-rows: 
+		[subtitle-top] min-content
+		[subtitle-bottom main-top] 1fr
+		[main-bottom];
+}
+
+#changeParametersSubtitle {
+	grid-row: subtitle-top / subtitle-bottom;
+	text-align: center;
+	font-size: large;
+}
+
+#algorithmParametersChange {
 	grid-row: main-top / main-bottom;
 	padding: 0px;
 }
@@ -2060,13 +2169,13 @@ tr:hover .eventTypeDescription {
 .track {
   stroke: black;
   stroke-opacity: 0.3;
-  stroke-width: 5px;
+  stroke-width: 2px;
   stroke-linecap: round;
 }
 
 .bluetrack {
-  stroke: lightblue;
-  stroke-width: 5px;
+  stroke: #04B7FB;
+  stroke-width: 3px;
   stroke-linecap: round;
 }
 
