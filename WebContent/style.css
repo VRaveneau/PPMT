@@ -427,6 +427,15 @@ body {
 	float: right;
 }
 
+.date {
+
+}
+
+.time {
+	color: slategrey;
+	font-size: 90%;
+}
+
 .button {
     display: inline;
     color: #fff;

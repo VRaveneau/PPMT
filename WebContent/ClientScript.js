@@ -578,11 +578,32 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 function updateCurrentTimeFilter(start, end) {
 	currentTimeFilter = [start, end];
 	
-	document.getElementById("focusStart")
-		.textContent = formatDate(new Date(start));
+	let startDate = new Date(start);
+	let endDate = new Date(end);
+
+	let startDateString = monthsNames[startDate.getMonth()].substr(0,3)+". " +
+		startDate.getDate() + ", " +
+		startDate.getFullYear();
+	let endDateString = monthsNames[endDate.getMonth()].substr(0,3)+". " +
+		endDate.getDate() + ", " +
+		endDate.getFullYear();
 	
-	document.getElementById("focusEnd")
-		.textContent = formatDate(new Date(end));
+	let startTimeString = (startDate.getHours() < 10 ? "0" : "")+startDate.getHours() + ":" +
+		(startDate.getMinutes() < 10 ? "0" : "")+startDate.getMinutes() + ":" +
+		(startDate.getSeconds() < 10 ? "0" : "")+startDate.getSeconds();
+	let endTimeString = (endDate.getHours() < 10 ? "0" : "")+endDate.getHours() + ":" +
+		(endDate.getMinutes() < 10 ? "0" : "")+endDate.getMinutes() + ":" +
+		(endDate.getSeconds() < 10 ? "0" : "")+endDate.getSeconds();
+	
+	document.querySelector("#focusStart .date")
+		.textContent = startDateString;
+	document.querySelector("#focusStart .time")
+		.textContent = startTimeString;
+	
+	document.querySelector("#focusEnd .date")
+		.textContent = endDateString;
+	document.querySelector("#focusEnd .time")
+		.textContent = endTimeString;
 }
 
 /**
@@ -934,45 +955,60 @@ function hsvToRgb(h, s, v) {
  * If the date is given as a string, assumes the format from Agavue :
  * Sun Mar 31 01:32:10 CET 2013
  * @param {string|Date} date The date to format
+ * @param {boolean} short Whether to use the short or long name of months
  */
-function formatDate(date) {
+function formatDate(date, short = false) {
 	if (typeof date == "string") {
 		let parts = date.split(" ");
 		if (parts.length != 6)
 			return date;
-		let month = "";
-		switch(parts[1]) {
-			case "Jan":
-				return " January "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Feb":
-				return " February "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Mar":
-				return " March "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Apr":
-				return " April "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "May":
-				return " May "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Jun":
-				return " June "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Jul":
-				return " July "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Aug":
-				return " August "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Sep":
-				return " September "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Oct":
-				return " October "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Nov":
-				return " November "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Dec":
-				return " December "+parts[2]+", "+parts[5]+", "+parts[3];
-			default:
-				return parts[1]+" "+parts[2]+", "+parts[5]+", "+parts[3];
+		let month = parts[1];
+		if (!short) {
+			switch(month) {
+				case "Jan":
+					month = " January";
+					break;
+				case "Feb":
+					month = " February";
+					break;
+				case "Mar":
+					month = " March";
+					break;
+				case "Apr":
+					month = " April";
+					break;
+				case "May":
+					month = " May";
+					break;
+				case "Jun":
+					month = " June";
+					break;
+				case "Jul":
+					month = " July";
+					break;
+				case "Aug":
+					month = " August";
+					break;
+				case "Sep":
+					month = " September";
+					break;
+				case "Oct":
+					month = " October";
+					break;
+				case "Nov":
+					month = " November";
+					break;
+				case "Dec":
+					month = " December";
+					break;
+				default:
+			}
 		}
+		return month+" "+parts[2]+", "+parts[5]+", "+parts[3];
 	} else {
 		let parts = [
 			"",
-			monthsNames[date.getMonth()],
+			short ? monthsNames[date.getMonth()].substr(0,3)+"." : monthsNames[date.getMonth()],
 			date.getDate()+",",
 			date.getFullYear()+",",
 			(date.getHours() < 10 ? "0" : "")+date.getHours()+":"+
