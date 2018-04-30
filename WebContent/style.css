@@ -2140,13 +2140,13 @@ tr:hover .eventTypeDescription {
 .track {
   stroke: black;
   stroke-opacity: 0.3;
-  stroke-width: 5px;
+  stroke-width: 2px;
   stroke-linecap: round;
 }
 
 .bluetrack {
-  stroke: lightblue;
-  stroke-width: 5px;
+  stroke: #04B7FB;
+  stroke-width: 3px;
   stroke-linecap: round;
 }
 
