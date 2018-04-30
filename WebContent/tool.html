@@ -374,92 +374,97 @@
 						<div id="modalCloseArea" class="section clickable">
 							X
 						</div>
-						<div id="algorithmExtended" class="section hidden">
-							<div id="extendedAlgorithmParametersArea" class="section">
-								<div class="title">Current parameters</div>
-								<div class="body">
-									<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
-									<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
-									<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
-									<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
-									<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
+						<div id="algorithmExtended" class="hidden">
+							
+							<div id="currentAlgorithmState" class="section">
+								<div id="currentAlgorithmStateSubtitle">Current algorithm state</div>
+								
+								<div id="extendedAlgorithmParametersArea" class="section">
+									<div class="title">Current parameters</div>
+									<div class="body">
+										<p class="algoParameterRecap">Min. support: <span id="currentSupportExtended">??</span></p>
+										<p class="algoParameterRecap">Gap interval: <span id="currentGapExtended">??</span></p>
+										<p class="algoParameterRecap">Max. duration: <span id="currentMaxDurationExtended">??</span></p>
+										<p class="algoParameterRecap">Max. size: <span id="currentSizeExtended">??</span></p>
+										<p class="algoParameterRecap hidden">Window size: <span id="currentWindowExtended">??</span></p>
+									</div>
 								</div>
-							</div>
-							
-							<div id="extendedAlgorithmStrategyArea" class="section">
-								<div class="title">Current strategy</div>
-								<div class="body">Not Running</div>
-							</div>
-							
-							<div id="algorithmSpeedArea" class="section">
-								<!--<div class="title">Speed</div>-->
-								<div class="body">
-									<div class="subsection">
-										<div class="title">Patterns per second</div>
-										<div class="body" id="patternsPerSecond">
+								
+								<div id="extendedAlgorithmStrategyArea" class="section">
+									<div class="title">Current strategy</div>
+									<div class="body">Not Running</div>
+								</div>
+								
+								<div id="algorithmSpeedArea" class="section">
+									<!--<div class="title">Speed</div>-->
+									<div class="body">
+										<div class="subsection">
+											<div class="title">Patterns per second</div>
+											<div class="body" id="patternsPerSecond">
+											</div>
+										</div>
+										<div class="subsection">
+											<div class="title">Candidates checked per second</div>
+											<div class="body" id="candidatesCheckedPerSecond">
+											</div>
 										</div>
 									</div>
-									<div class="subsection">
-										<div class="title">Candidates checked per second</div>
-										<div class="body" id="candidatesCheckedPerSecond">
-										</div>
+								</div>
+	
+								<div id="patternSizeTableArea" class="section">
+									<div class="body">
+										<table id="patternSizeTable">
+											<thead>
+												<tr>
+													<th>Size</th>
+													<th>Status</th>
+													<th>Patterns found</th>
+													<th>Candidates checked</th>
+													<th>Progression</th>
+													<th>Elapsed time</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr id="patternSizeTableTotal">
+													<td>TOTAL</td>
+													<td>Not started</td>
+													<td>0</td>
+													<td>0</td>
+													<td>---</td>
+													<td>0s</td>
+												</tr>
+											</tbody>
+											<tbody id="patternSizeTableContent">
+											</tbody>
+										</table>
 									</div>
 								</div>
 							</div>
 							
-							<div id="algorithmParametersChange" class="section">
-								<div class="title">Restart with different parameters</div>
-								<div class="body">
-									<p>minSupport</p>
-									<div id="minSupportChangeSlider">
+							<div id="changeAlgorithmParameters" class="section">
+								<div id="changeParametersSubtitle">Change parameters</div>
 	
+								<div id="algorithmParametersChange" class="section">
+									<div class="body">
+										<p>minSupport</p>
+										<div id="minSupportChangeSlider">
+		
+										</div>
+										<p>gap</p>
+										<div id="gapChangeSlider">
+		
+										</div>
+										<p>maxDuration</p>
+										<div id="maxDurationChangeSlider">
+		
+										</div>
+										<p>maxSize</p>
+										<div id="maxSizeChangeSlider">
+		
+										</div>
+										<button onclick="askConfirmationToChangeAlgorithmParameters();"; class="clickable largeText">Restart</button>
 									</div>
-									<p>gap</p>
-									<div id="gapChangeSlider">
-	
-									</div>
-									<p>maxDuration</p>
-									<div id="maxDurationChangeSlider">
-	
-									</div>
-									<p>maxSize</p>
-									<div id="maxSizeChangeSlider">
-	
-									</div>
-									<button onclick="askConfirmationToChangeAlgorithmParameters();"; class="clickable">Restart with these parameters</button>
 								</div>
-							</div>
-
-							<div id="patternSizeTableArea" class="section">
-								<div class="body">
-									<table id="patternSizeTable">
-										<thead>
-											<tr>
-												<th>Size</th>
-												<th>Status</th>
-												<th>Patterns found</th>
-												<th>Candidates checked</th>
-												<th>Progression</th>
-												<th>Elapsed time</th>
-											</tr>
-										</thead>
-										<tbody>
-											<tr id="patternSizeTableTotal">
-												<td>TOTAL</td>
-												<td>Not started</td>
-												<td>0</td>
-												<td>0</td>
-												<td>---</td>
-												<td>0s</td>
-											</tr>
-										</tbody>
-										<tbody id="patternSizeTableContent">
-										</tbody>
-									</table>
-								</div>
-							</div>
-							<div id="extendedPatternSizesChart">
-
 							</div>
 						</div>
 						<div id="actionConfirmation" class="section hidden">

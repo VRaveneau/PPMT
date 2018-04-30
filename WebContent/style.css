@@ -470,6 +470,10 @@ body {
 	font-variant: normal;
 }
 
+.largeText {
+	font-size: large;
+}
+
 .bold {
 	font-weight: bold;
 	/* Make the text look bold when using Chrome.
@@ -1678,30 +1682,39 @@ table {
 
 #algorithmExtended:not(.hidden) {
 	grid-column: modal-left / modal-right;
+	display: grid;
+	grid-gap: 5px;
+	grid-template-columns:
+		[currentState-start] 1fr
+		[currentState-end changeParameters-start] minmax(300px, max-content)
+		[changeParameters-end];
+	grid-template-rows: 1fr;
+}
+
+#currentAlgorithmState {
+	grid-column: currentState-start / currentState-end;
     display: grid;
 	grid-template-columns:
 		[currentParameters-start] 1fr
 		[currentParameters-end total-start] 1fr
 		[total-end speed-start] max-content
-		[speed-end changeParameters-start] 2fr
-		[changeParameters-end];
+		[speed-end];
 	grid-template-rows: 
-		[main-top] min-content
+		[subtitle-top] min-content
+		[subtitle-bottom main-top] min-content
 		[table-top] 1fr
 		[table-bottom main-bottom];
-/*
-		[patternSizeTable-start] 6fr
-		[patternSizeTable-end patternSizeChart-start] 2fr
-		[patternSizeChart-end sidebar-start] 2fr [sidebar-end];*/
+}
+
+#currentAlgorithmStateSubtitle {
+	grid-row: subtitle-top / subtitle-bottom;
+	grid-column: currentParameters-start / speed-end;
+	text-align: center;
+	font-size: large;
 }
 
 #patternSizeTableArea {
 	grid-column: currentParameters-start / changeParameters-start;
-	grid-row: table-top / table-bottom;
-}
-
-#extendedPatternSizesChart {
-	grid-column: speed-start / changeParameters-start;
 	grid-row: table-top / table-bottom;
 }
 
@@ -1771,8 +1784,24 @@ table {
 /* 	Algorithm parameter change 	*/
 /********************************/
 
-#algorithmParametersChange {
+#changeAlgorithmParameters {
 	grid-column: changeParameters-start / changeParameters-end;
+	padding: 0px;
+	display: grid;
+	grid-template-columns: 1fr;
+	grid-template-rows: 
+		[subtitle-top] min-content
+		[subtitle-bottom main-top] 1fr
+		[main-bottom];
+}
+
+#changeParametersSubtitle {
+	grid-row: subtitle-top / subtitle-bottom;
+	text-align: center;
+	font-size: large;
+}
+
+#algorithmParametersChange {
 	grid-row: main-top / main-bottom;
 	padding: 0px;
 }

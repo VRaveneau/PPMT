@@ -5976,19 +5976,13 @@ function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
 		d3.select("#algorithmExtended").classed("hidden", false);
-		d3.select("#modalTitle").text("Current algorithm state");
+		d3.select("#modalTitle").text("Information about the algorithm");
 		d3.select("#modalBackground").classed("hidden", false);
-		/*// Move the graph into the extended view
-		document.getElementById("extendedPatternSizesChart")
-			.appendChild(d3.select("#patternSizesSvg").node());*/
 		
 	} else { // Show the shrinked view
 		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#modalTitle").text("");
 		d3.select("#algorithmExtended").classed("hidden", true);
-		/*// Move the graph out of the extended view
-		document.getElementById("patternSizesChart")
-			.appendChild(d3.select("#patternSizesSvg").node());*/
 	}
 }
 
