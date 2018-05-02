@@ -6753,7 +6753,7 @@ function ModifySlider(elemId, options) {
 		.attr("width", Math.floor(self.parentWidth).toString())
 		.attr("height","50");
 	
-	self.margin = {right: 10, left: 10};
+	self.margin = {right: 30, left: 10};
 	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
 	self.height = +self.svg.attr("height");	
 	
@@ -6775,6 +6775,19 @@ function ModifySlider(elemId, options) {
 		.attr("x1",self.axis.range()[0])
 		.attr("x2",self.axis.range()[1])
 		.attr("stroke", "black");
+	
+	let arrowPathData = [
+		{x: self.axis.range()[1]+1, y: 0},
+		{x: self.margin.right/2, y: 0},
+		{x: -self.margin.right/4, y: -5},
+		{x: 0, y: 10},
+		{x: self.margin.right/4, y: -5}
+	];
+
+	self.arrow = self.slider.append("path")
+		.attr("class", "trackArrow")
+		.attr("d", `M${arrowPathData[0].x} ${arrowPathData[0].y} l${arrowPathData[1].x} ${arrowPathData[1].y} l${arrowPathData[2].x} ${arrowPathData[2].y} m${arrowPathData[3].x} ${arrowPathData[3].y} l${arrowPathData[4].x} ${arrowPathData[4].y}`)
+		.attr("stroke", "red");
 		
 	self.ticks = self.slider.insert("g",".track-overlay")
 		.attr("class","ticks")

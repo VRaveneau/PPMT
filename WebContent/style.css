@@ -2200,6 +2200,13 @@ tr:hover .eventTypeDescription {
   stroke-linecap: round;
 }
 
+.trackArrow {
+	stroke: black;
+	fill: none;
+	stroke-opacity: 0.3;
+	stroke-width: 2px;
+}
+
 .bluetrack {
   stroke: #04B7FB;
   stroke-width: 3px;
