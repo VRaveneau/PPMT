@@ -1963,6 +1963,7 @@ function requestAlgorithmReStart() {
 	createUserListDisplay();
 	//createEventTypesListDisplay();
 	timeline.displayData();
+	updateRestartButtonStyle();
 	
 	requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
 		algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName);
@@ -4128,6 +4129,23 @@ function resetDataFilters() {
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+/**
+ * Updates the style of the "restart" button, depending on the modifying sliders' values
+ */
+function updateRestartButtonStyle() {
+	if (supportModifySlider.getValues()[0] != algoMinSupport ||
+		durationModifySlider.getValues()[0] != algoMaxDuration ||
+		sizeModifySlider.getValues()[0] != algoMaxSize ||
+		gapModifySlider.getValues()[0] != algoMinGap ||
+		gapModifySlider.getValues()[1] != algoMaxGap) {
+		document.getElementById("restartButton")
+			.disabled = false;
+	} else {
+		document.getElementById("restartButton")
+			.disabled = true;
+	}
+}
 
 /**
  * Opens a modal window to confirm or cancel the change of parameters for the algorithm
@@ -6822,11 +6840,13 @@ function ModifySlider(elemId, options) {
 		.attr("r",5)
 		.attr("cx",self.axis(value))
 		.call(d3.drag()
-		.on("start.interrupt", function() { self.slider.interrupt(); })
-		.on("start drag", function() {
-			var roundedPos = Math.round(self.axis.invert(d3.event.x));
-			self.moveHandleTo(obj, roundedPos);
-		}));
+			.on("start.interrupt", function() { self.slider.interrupt(); })
+			.on("start drag", function() {
+				var roundedPos = Math.round(self.axis.invert(d3.event.x));
+				self.moveHandleTo(obj, roundedPos);
+			})
+			.on("end", updateRestartButtonStyle)
+		);
 
 		let tooltip = self.slider.insert("text", ".track-overlay")
 		.attr("class","handleSliderText")
