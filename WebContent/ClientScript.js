@@ -1937,7 +1937,6 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	// Update the display of the current parameters in the Execution tab
 	d3.select("#currentSupport").text(minSupport+" occs.");
 	d3.select("#currentGap").text(minGap+"-"+maxGap+" events");
-	d3.select("#currentWindow").text(windowSize);
 	d3.select("#currentSize").text(maxSize+" events");
 	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
 
@@ -1964,6 +1963,7 @@ function requestAlgorithmReStart() {
 	createUserListDisplay();
 	//createEventTypesListDisplay();
 	timeline.displayData();
+	updateRestartButtonStyle();
 	
 	requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
 		algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName);
@@ -4131,6 +4131,23 @@ function resetDataFilters() {
 /************************************/
 
 /**
+ * Updates the style of the "restart" button, depending on the modifying sliders' values
+ */
+function updateRestartButtonStyle() {
+	if (supportModifySlider.getValues()[0] != algoMinSupport ||
+		durationModifySlider.getValues()[0] != algoMaxDuration ||
+		sizeModifySlider.getValues()[0] != algoMaxSize ||
+		gapModifySlider.getValues()[0] != algoMinGap ||
+		gapModifySlider.getValues()[1] != algoMaxGap) {
+		document.getElementById("restartButton")
+			.disabled = false;
+	} else {
+		document.getElementById("restartButton")
+			.disabled = true;
+	}
+}
+
+/**
  * Opens a modal window to confirm or cancel the change of parameters for the algorithm
  */
 function askConfirmationToChangeAlgorithmParameters() {
@@ -4214,6 +4231,8 @@ function askConfirmationToRemoveUsers(...userNames) {
  */
 function updatePatternCountDisplay() {
 	d3.select("#patternNumberSpan").text(numberOfPattern);
+	document.getElementById("totalPatternFound")
+		.textContent = algorithmState.getTotalPatternNumber();
 	d3.select("#displayedPatternNumberSpan").text(patternIdList.length + filteredOutPatterns.length);
 	d3.select("#updatePatternListButton span").text(availablePatterns.length);
 	// TODO dynamically update the number of patterns matching the filter
@@ -5134,9 +5153,6 @@ function stopAlgorithmRuntime(time) {
 		// Reset the startTime
 		algorithmStartTime = -1;
 	}
-	
-	d3.select("#currentAlgorithmWork")
-		.text("(ended)");
 }
 
 /**
@@ -5293,9 +5309,37 @@ function updateAlgorithmStateDisplay() {
 	}
 	
 	// Update the reduced view
-	// Update the display of the runtime
-	d3.select("#runtime")
-		.text(formatElapsedTimeToString(elapsedTime));
+	document.getElementById("totalElapsedTime")
+		.textContent = formatElapsedTimeToString(algorithmState.getTotalElapsedTime(), true);
+	document.getElementById("totalPatternFound")
+		.textContent = algorithmState.getTotalPatternNumber();
+
+	let focusTxt = "Not running";
+	let activityClass = "complete";
+	let activityTxt = "Completed";
+	if (algorithmState.isRunning()) {
+		activityTxt = "Working on size "+algorithmState.getCurrentLevel().size;
+		activityClass = "running";
+		if (algorithmState.isUnderSteering()) {
+			focusTxt = "Steering on ";
+			activityClass = "steering";
+			if (algorithmState.getSteeringTarget()) {
+				focusTxt += algorithmState.getSteeringTarget();
+				if (algorithmState.getSteeringValue())
+					focusTxt += " "+algorithmState.getSteeringValue();
+			} else {
+				focusTxt += "something";
+			}
+		} else {
+			focusTxt = "Default strategy";
+		}
+	}
+	
+	let activity = document.getElementById("algorithmActivity");
+	activity.textContent = activityTxt;
+	activity.className = activityClass;
+	document.getElementById("algorithmFocus")
+		.textContent = focusTxt;
 }
 
 /**
@@ -5345,8 +5389,9 @@ function handleLoadingSignal() {
 		default:
 			dots = "";
 		}
-		d3.select("#currentAlgorithmWork")
-			.text("(loading data"+dots+")");
+		let activity = document.getElementById("algorithmActivity");
+		activity.textContent = "Loading data"+dots;
+		activity.className = "";
 		}, 1000);
 }
 
@@ -5356,8 +5401,8 @@ function handleLoadingSignal() {
 function handleLoadedSignal() {
 	clearInterval(loadingAlgorithmDataAnimation);
 	loadingAlgorithmDataAnimationState = 1;
-	d3.select("#currentAlgorithmWork")
-		.text("(Data loaded)");
+	document.getElementById("algorithmActivity")
+		.textContent = "Starting";
 	console.log("Dataset loaded on server");
 }
 
@@ -5366,12 +5411,10 @@ function handleLoadedSignal() {
  * @param {number} level The pattern size
  */
 function handleNewLevelSignal(level) {
-	d3.select("#currentAlgorithmWork")
-		.text("(working on size "+level+")");
-	
 	algorithmState.stopLevel();
 	algorithmState.startLevel(level);
 	drawPatternSizesChart();
+	updateAlgorithmStateDisplay();
 }
 
 /**
@@ -5488,6 +5531,7 @@ function handleSteeringStartSignal(type, value) {
  * Clears the display of the algorithm's steering after it has ended
  */
 function handleSteeringStopSignal() {
+	activityHistory.stopSteering();
 	d3.select("#focus").text("");
 	algorithmState.stopSteering();
 }
@@ -5668,7 +5712,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 	contextActions.append("button")
 		.classed("clickable", true)
 		.classed("icon-steering", true)
-		.attr("title", "Steer algorithm")
+		.attr("title", "Steer algorithm on this pattern")
 		.on("click", function() {
 			d3.event.stopPropagation();
 			requestSteeringOnPatternPrefix(pId);
@@ -5976,7 +6020,7 @@ function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
 		d3.select("#algorithmExtended").classed("hidden", false);
-		d3.select("#modalTitle").text("Information about the algorithm");
+		d3.select("#modalTitle").text("Information about the pattern mining algorithm");
 		d3.select("#modalBackground").classed("hidden", false);
 		
 	} else { // Show the shrinked view
@@ -6727,7 +6771,7 @@ function ModifySlider(elemId, options) {
 		.attr("width", Math.floor(self.parentWidth).toString())
 		.attr("height","50");
 	
-	self.margin = {right: 10, left: 10};
+	self.margin = {right: 30, left: 10};
 	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
 	self.height = +self.svg.attr("height");	
 	
@@ -6749,6 +6793,19 @@ function ModifySlider(elemId, options) {
 		.attr("x1",self.axis.range()[0])
 		.attr("x2",self.axis.range()[1])
 		.attr("stroke", "black");
+	
+	let arrowPathData = [
+		{x: self.axis.range()[1]+1, y: 0},
+		{x: self.margin.right/2, y: 0},
+		{x: -self.margin.right/4, y: -5},
+		{x: 0, y: 10},
+		{x: self.margin.right/4, y: -5}
+	];
+
+	self.arrow = self.slider.append("path")
+		.attr("class", "trackArrow")
+		.attr("d", `M${arrowPathData[0].x} ${arrowPathData[0].y} l${arrowPathData[1].x} ${arrowPathData[1].y} l${arrowPathData[2].x} ${arrowPathData[2].y} m${arrowPathData[3].x} ${arrowPathData[3].y} l${arrowPathData[4].x} ${arrowPathData[4].y}`)
+		.attr("stroke", "red");
 		
 	self.ticks = self.slider.insert("g",".track-overlay")
 		.attr("class","ticks")
@@ -6783,11 +6840,13 @@ function ModifySlider(elemId, options) {
 		.attr("r",5)
 		.attr("cx",self.axis(value))
 		.call(d3.drag()
-		.on("start.interrupt", function() { self.slider.interrupt(); })
-		.on("start drag", function() {
-			var roundedPos = Math.round(self.axis.invert(d3.event.x));
-			self.moveHandleTo(obj, roundedPos);
-		}));
+			.on("start.interrupt", function() { self.slider.interrupt(); })
+			.on("start drag", function() {
+				var roundedPos = Math.round(self.axis.invert(d3.event.x));
+				self.moveHandleTo(obj, roundedPos);
+			})
+			.on("end", updateRestartButtonStyle)
+		);
 
 		let tooltip = self.slider.insert("text", ".track-overlay")
 		.attr("class","handleSliderText")
@@ -6819,9 +6878,7 @@ function ModifySlider(elemId, options) {
 	}
 
 	self.moveHandleTo = function(handleObject, value) {
-		if (value < self.currentMinValue) {
-			self.decreaseMin(handleObject);
-		} else if (value >= self.currentMinValue && value <= self.currentMaxValue) {
+		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
 			handleObject.value = value;
 			handleObject.handle.attr("cx",self.axis(Math.round(value)));
 			handleObject.tooltip.attr("x", self.axis(handleObject.value))
@@ -6837,18 +6894,13 @@ function ModifySlider(elemId, options) {
 						return prev;
 					}, []))));
 			}
-		} else { // Touching the max value, we increase it by 1
+		} else if (value > self.currentMaxValue) { // Touching the max value, we increase it by 1
 			self.increaseMax(handleObject);
 		}
 	};
 
 	self.increaseMax = _.throttle( function(handleObject) {
 		handleObject.value++;
-		self.updateValues(self.handles.map( (h) => h.value ));
-	}, 100);
-
-	self.decreaseMin = _.throttle( function(handleObject) {
-		handleObject.value--;
 		self.updateValues(self.handles.map( (h) => h.value ));
 	}, 100);
 
@@ -7418,6 +7470,16 @@ function ActivityHistory(elemId) {
 		this.drawEvent(event);
 	}
 
+	this.stopSteering = function() {
+		let event = {
+			action: "stopSteering",
+			time: new Date(),
+			properties: {}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
 	this.drawEvent = function(event) {
 		let item, content;
 
@@ -7496,6 +7558,10 @@ function ActivityHistory(elemId) {
 				content = this.createContent(item);
 				content.append("p")
 					.text("Looking for patterns present between " + formatDate(new Date(event.properties.start)) + " and " + formatDate(new Date(event.properties.end)));
+				this.displayItem(item);
+				break;
+			case "stopSteering":
+				item = this.createItem("Steering end", this.timeFormat(event.time));
 				this.displayItem(item);
 				break;
 			default:
