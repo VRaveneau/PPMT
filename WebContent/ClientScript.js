@@ -5513,6 +5513,7 @@ function handleSteeringStartSignal(type, value) {
  * Clears the display of the algorithm's steering after it has ended
  */
 function handleSteeringStopSignal() {
+	activityHistory.stopSteering();
 	d3.select("#focus").text("");
 	algorithmState.stopSteering();
 }
@@ -7443,6 +7444,16 @@ function ActivityHistory(elemId) {
 		this.drawEvent(event);
 	}
 
+	this.stopSteering = function() {
+		let event = {
+			action: "stopSteering",
+			time: new Date(),
+			properties: {}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
 	this.drawEvent = function(event) {
 		let item, content;
 
@@ -7521,6 +7532,10 @@ function ActivityHistory(elemId) {
 				content = this.createContent(item);
 				content.append("p")
 					.text("Looking for patterns present between " + formatDate(new Date(event.properties.start)) + " and " + formatDate(new Date(event.properties.end)));
+				this.displayItem(item);
+				break;
+			case "stopSteering":
+				item = this.createItem("Steering end", this.timeFormat(event.time));
 				this.displayItem(item);
 				break;
 			default:
