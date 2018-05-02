@@ -1162,11 +1162,10 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 #algorithmInfo .body {
 	display: grid;
-	grid-template-columns: 4fr 6fr;
+	grid-template-columns: 1fr 1fr;
     grid-gap: 5px;
 	grid-template-areas:
-		"parameters graph"
-		"showMore showMore";
+		"parameters graph";
 }
 
 #algorithmInfo:hover {
@@ -1501,8 +1500,41 @@ table {
 
 #algorithmParameters {
 	grid-area: parameters;
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns:
+		[name-start] max-content [name-end value-start] 1fr [value-end];
+}
+
+#algorithmParameters div:nth-child(2n+4) {
+	text-align: right;
+}
+
+#algorithmActivity {
+	grid-column: span 2;
+	font-size: large;
+	text-align: center;
+}
+
+.running {
+	color: dodgerblue;;
+}
+
+.steering {
+	color: orange;
+}
+
+.complete {
+	color: green;
+}
+
+#algorithmFocus {
+	grid-column: span 2;
+	text-align: center;
+	margin-bottom: 20px;
+}
+
+#totalElapsedTime {
+	margin-bottom: 20px;
 }
 
 #patternSizesChart {
@@ -1529,11 +1561,6 @@ table {
 	  This may be a MacOS exclusive issue.
 	*/
 	-webkit-font-smoothing: antialiased;
-}
-
-.algoParameterRecap span{
-	margin: 0px;
-	font-weight: normal;
 }
 
 /********************************/

@@ -1937,7 +1937,6 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	// Update the display of the current parameters in the Execution tab
 	d3.select("#currentSupport").text(minSupport+" occs.");
 	d3.select("#currentGap").text(minGap+"-"+maxGap+" events");
-	d3.select("#currentWindow").text(windowSize);
 	d3.select("#currentSize").text(maxSize+" events");
 	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
 
@@ -4214,6 +4213,8 @@ function askConfirmationToRemoveUsers(...userNames) {
  */
 function updatePatternCountDisplay() {
 	d3.select("#patternNumberSpan").text(numberOfPattern);
+	document.getElementById("totalPatternFound")
+		.textContent = algorithmState.getTotalPatternNumber();
 	d3.select("#displayedPatternNumberSpan").text(patternIdList.length + filteredOutPatterns.length);
 	d3.select("#updatePatternListButton span").text(availablePatterns.length);
 	// TODO dynamically update the number of patterns matching the filter
@@ -5134,9 +5135,6 @@ function stopAlgorithmRuntime(time) {
 		// Reset the startTime
 		algorithmStartTime = -1;
 	}
-	
-	d3.select("#currentAlgorithmWork")
-		.text("(ended)");
 }
 
 /**
@@ -5293,9 +5291,37 @@ function updateAlgorithmStateDisplay() {
 	}
 	
 	// Update the reduced view
-	// Update the display of the runtime
-	d3.select("#runtime")
-		.text(formatElapsedTimeToString(elapsedTime));
+	document.getElementById("totalElapsedTime")
+		.textContent = formatElapsedTimeToString(algorithmState.getTotalElapsedTime(), true);
+	document.getElementById("totalPatternFound")
+		.textContent = algorithmState.getTotalPatternNumber();
+
+	let focusTxt = "Not running";
+	let activityClass = "complete";
+	let activityTxt = "Completed";
+	if (algorithmState.isRunning()) {
+		activityTxt = "Working on size "+algorithmState.getCurrentLevel().size;
+		activityClass = "running";
+		if (algorithmState.isUnderSteering()) {
+			focusTxt = "Steering on ";
+			activityClass = "steering";
+			if (algorithmState.getSteeringTarget()) {
+				focusTxt += algorithmState.getSteeringTarget();
+				if (algorithmState.getSteeringValue())
+					focusTxt += " "+algorithmState.getSteeringValue();
+			} else {
+				focusTxt += "something";
+			}
+		} else {
+			focusTxt = "Default strategy";
+		}
+	}
+	
+	let activity = document.getElementById("algorithmActivity");
+	activity.textContent = activityTxt;
+	activity.className = activityClass;
+	document.getElementById("algorithmFocus")
+		.textContent = focusTxt;
 }
 
 /**
@@ -5345,8 +5371,9 @@ function handleLoadingSignal() {
 		default:
 			dots = "";
 		}
-		d3.select("#currentAlgorithmWork")
-			.text("(loading data"+dots+")");
+		let activity = document.getElementById("algorithmActivity");
+		activity.textContent = "Loading data"+dots;
+		activity.className = "";
 		}, 1000);
 }
 
@@ -5356,8 +5383,8 @@ function handleLoadingSignal() {
 function handleLoadedSignal() {
 	clearInterval(loadingAlgorithmDataAnimation);
 	loadingAlgorithmDataAnimationState = 1;
-	d3.select("#currentAlgorithmWork")
-		.text("(Data loaded)");
+	document.getElementById("algorithmActivity")
+		.textContent = "Starting";
 	console.log("Dataset loaded on server");
 }
 
@@ -5366,12 +5393,10 @@ function handleLoadedSignal() {
  * @param {number} level The pattern size
  */
 function handleNewLevelSignal(level) {
-	d3.select("#currentAlgorithmWork")
-		.text("(working on size "+level+")");
-	
 	algorithmState.stopLevel();
 	algorithmState.startLevel(level);
 	drawPatternSizesChart();
+	updateAlgorithmStateDisplay();
 }
 
 /**
