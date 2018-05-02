@@ -5694,7 +5694,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 	contextActions.append("button")
 		.classed("clickable", true)
 		.classed("icon-steering", true)
-		.attr("title", "Steer algorithm")
+		.attr("title", "Steer algorithm on this pattern")
 		.on("click", function() {
 			d3.event.stopPropagation();
 			requestSteeringOnPatternPrefix(pId);
@@ -6002,7 +6002,7 @@ function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
 		d3.select("#algorithmExtended").classed("hidden", false);
-		d3.select("#modalTitle").text("Information about the algorithm");
+		d3.select("#modalTitle").text("Information about the pattern mining algorithm");
 		d3.select("#modalBackground").classed("hidden", false);
 		
 	} else { // Show the shrinked view
