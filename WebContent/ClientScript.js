@@ -3626,7 +3626,8 @@ function sortPatterns() {
 }
 
 /**
- * Sorts the pattern list according to their name
+ * Sorts the pattern list according to their name. If several patterns have the
+ * same name, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsByName(decreasing=false) {
@@ -3639,7 +3640,7 @@ function sortPatternsByName(decreasing=false) {
 		else if (nameA > nameB)
 			return 1;
 		else
-			return 0;
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3651,7 +3652,8 @@ function sortPatternsByName(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their number of users
+ * Sorts the pattern list according to their number of users. If several
+ * patterns have the same number of users, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsByNbUsers(decreasing=false) {
@@ -3664,7 +3666,7 @@ function sortPatternsByNbUsers(decreasing=false) {
 		else if (nbUsersA > nbUsersB)
 			return 1;
 		else
-			return 0;
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3676,15 +3678,20 @@ function sortPatternsByNbUsers(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their size
+ * Sorts the pattern list according to their size. If several patterns have the
+ * same size, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsBySize(decreasing=false) {
 	patternIdList.sort(function(a, b) {
-		var sizeA = patternsInformation[a][1];
-		var sizeB = patternsInformation[b][1];
+		let sizeA = patternsInformation[a][1];
+		let sizeB = patternsInformation[b][1];
+		let diff = sizeA - sizeB;
 		
-		return sizeA - sizeB;
+		if (diff != 0)
+			return diff;
+		else
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3696,15 +3703,20 @@ function sortPatternsBySize(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their support
+ * Sorts the pattern list according to their support. If several patterns have
+ * the same support, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsBySupport(decreasing=false) {
 	patternIdList.sort(function(a, b) {
-		var supportA = patternsInformation[a][2];
-		var supportB = patternsInformation[b][2];
+		let supportA = patternsInformation[a][2];
+		let supportB = patternsInformation[b][2];
+		let diff = supportA - supportB;
 		
-		return supportA - supportB;
+		if (diff != 0)
+			return diff;
+		else
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
