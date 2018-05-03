@@ -5236,7 +5236,8 @@ function updateAlgorithmStateDisplay() {
 			patternCount.selectAll(".bar")
 			  	.data([lvlData.patternCount])
 				.transition().duration(0)
-				.attr("width", (d) => algorithmExtendedBarAxis(d));
+					.attr("status", lvlData.status)
+					.attr("width", (d) => algorithmExtendedBarAxis(d));
 			row.select(".patternSizeCandidates")
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.select(".patternSizeProgression")
@@ -5264,6 +5265,7 @@ function updateAlgorithmStateDisplay() {
 				.enter()
 			  .append("rect")
 				  .attr("class", "bar")
+				  .attr("status", lvlData.status)
 				  .attr("x", 0)
 				  .attr("y", 0 )
 				  .attr("height", 15)
