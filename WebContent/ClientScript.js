@@ -5790,6 +5790,13 @@ function focusOnTimePeriod(startTime, endTime) {
 }
 
 /**
+ * Puts the focus on the whole dataset
+ */
+function resetFocus() {
+	focusOnTimePeriod(...timeline.xContext.domain().map( d => d.getTime() ));
+}
+
+/**
  * Moves the overview brush so that a specific bin size is used. If possible,
  * the brush extends both ends to keep the current middle point unchanged.
  */
