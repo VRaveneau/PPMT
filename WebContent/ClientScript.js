@@ -7620,6 +7620,17 @@ function ActivityHistory(elemId) {
 				console.log("Trying to display an unknown action in the history: "+event);
 		}
 	}
+
+	this.resetHistory = function() {
+		this.events = [];
+		this.indentLevel = 0;
+	}
+
+	this.redrawHistory = function() {
+		this.parent.html("");
+		this.indentLevel = 0;
+		this.events.forEach( event => this.drawEvent(event) );
+	}
 }
 
 
