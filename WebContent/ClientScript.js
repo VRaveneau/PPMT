@@ -4617,9 +4617,11 @@ function setHighlights() {
 	else
 		d3.select("#userHighlight .highlightsResetOption").classed("hidden", true);
 	let detailed = d3.select("#detailedUserHighlight");
-	detailed.html("");
+	let detailedSubtitle = detailed.select(".subtitle");
+	let detailedContent = detailed.select(".content");
+	detailedContent.html("");
 	highlightedUsers.forEach(function(usr) {
-		detailed.append("div")
+		detailedContent.append("div")
 			.classed("clickable", true)
 			.classed("highlightButton", true)
 			.text(usr)
@@ -4629,6 +4631,7 @@ function setHighlights() {
 				timeline.displayData();
 			});
 	});
+	detailedSubtitle.classed("hidden", highlightedUsers.length == 0);
 
 	// event type highlights
 	d3.select("#eventTypeHighlight .highlightsValue")
@@ -4638,9 +4641,11 @@ function setHighlights() {
 	else
 		d3.select("#eventTypeHighlight .highlightsResetOption").classed("hidden", true);
 	detailed = d3.select("#detailedEventTypeHighlight");
-	detailed.html("");
+	detailedSubtitle = detailed.select(".subtitle");
+	detailedContent = detailed.select(".content");
+	detailedContent.html("");
 	highlightedEventTypes.forEach(function(type) {
-		detailed.append("div")
+		detailedContent.append("div")
 			.classed("clickable", true)
 			.classed("highlightButton", true)
 			.style("color", colorList[type][0].toString())
@@ -4654,6 +4659,7 @@ function setHighlights() {
 			.style("color", "black")
 			.text("\u00A0"+type);
 	});
+	detailedSubtitle.classed("hidden", highlightedEventTypes.length == 0);
 
 	// pattern highlights
 	d3.select("#patternHighlight .highlightsValue")
@@ -4663,13 +4669,15 @@ function setHighlights() {
 	else
 		d3.select("#patternHighlight .highlightsResetOption").classed("hidden", true);
 	detailed = d3.select("#detailedPatternHighlight");
-	detailed.html("");
+	detailedSubtitle = detailed.select(".subtitle");
+	detailedContent = detailed.select(".content");
+	detailedContent.html("");
 	selectedPatternIds.forEach(function(patternId) {
 		let pSize = patternsInformation[patternId][1];
 		let pString = patternsInformation[patternId][0];
 		let pItems = patternsInformation[patternId][3];
 
-		let row = detailed.append("div")
+		let row = detailedContent.append("div")
 			.classed("clickable",true)
 			.on("click", function() {
 				let index = selectedPatternIds.indexOf(patternId);
@@ -4690,6 +4698,7 @@ function setHighlights() {
 			.text(" "+pString)
 			.attr("patternId",patternId);
 	});
+	detailedSubtitle.classed("hidden", selectedPatternIds.length == 0);
 }
 
 /**

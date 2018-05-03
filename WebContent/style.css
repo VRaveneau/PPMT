@@ -1249,13 +1249,18 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	visibility: hidden;
 	top: 100%;
 	z-index: 10;
-
 	border: 1px solid black;
 	border-radius: 5px;
 	width: 100%;
-
 	background-color: white;
-	
+}
+
+.detailedHighlight .subtitle {
+	color: grey;
+	font-size: 90%;
+}
+
+.detailedHighlight .content {
 	display: flex;
     flex-wrap: wrap;
 	justify-content: space-evenly;
