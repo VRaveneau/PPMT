@@ -1975,6 +1975,7 @@ tr:hover .eventTypeDescription {
 #Users {
 	max-height: 100%;
 	overflow: hidden;
+	grid-template-rows: min-content 1fr;
 }
 
 #userTableArea {
