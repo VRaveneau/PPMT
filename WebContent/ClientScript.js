@@ -3944,7 +3944,9 @@ function addPatternToList(message) {
 		// Don't take this pattern into consideration if it doesn"t pass the filter
 		if (!supportSlider.hasValueSelected(pSupport) ||
 			!sizeSlider.hasValueSelected(pSize) ||
-			!pString.includes(properPatternSearchInput)) {
+			!pString.includes(properPatternSearchInput ||
+			(!algorithmState.isUnderSteering() && showOnlyLastSteering)
+			)) {
 				filteredOutPatterns.push(pId);
 		} else {
 			let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
