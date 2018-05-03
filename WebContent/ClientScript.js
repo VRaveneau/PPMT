@@ -345,6 +345,8 @@ var patternsInformation = {};
 var patternIdList = [];
 // The list of ids for all the filtered out patterns
 var filteredOutPatterns = [];
+// The list of ids for all patterns found in the last steering
+var lastSteeringPatterns = [];
 // The list of patterns waiting to be integrated into the list
 var availablePatterns = [];
 // Known metrics on the patterns
@@ -401,6 +403,9 @@ var maxPatternSize = 0;
 /*************************************/
 /*			State elements			 */
 /*************************************/
+
+// Whether to consider all the patterns or only the ones found in the last steering
+var showOnlyLastSteering = false;
 
 // Whether the new patterns are directly integrated in the list or not
 var patternLiveUpdate = true;
@@ -2656,6 +2661,14 @@ function receiveEventTypes(message) {
 /************************************/
 
 /**
+ * Toggles between showing all patterns or only the ones found in the last steering
+ */
+function toggleShowOnlyLastSteering() {
+	showOnlyLastSteering = !showOnlyLastSteering;
+	filterPatterns();
+}
+
+/**
  * Integrates available patterns into the pattern list
  */
 function updatePatternList() {
@@ -2709,7 +2722,9 @@ function computeUsersPerEventType() {
 }
 
 /**
- * Filters the patterns according to all sliders
+ * Filters the patterns according to all possible filters. Currently, this means:
+ * - the sliders for support and size
+ * - the 'only show patterns found in the last steering' option
  * 
  * A debounced version is available in debouncedFilterPatterns 
  */
@@ -2722,14 +2737,16 @@ function filterPatterns() {
 			let size = patternsInformation[pId][1];
 			let supportInvalid = support < rangeSupport[0] || support > rangeSupport[1];
 			let sizeInvalid = size < rangeSize[0] || size > rangeSize[1];
-			return supportInvalid || sizeInvalid;
+			let lastSteeringInvalid = showOnlyLastSteering ? !lastSteeringPatterns.includes(pId) : false;
+			return supportInvalid || sizeInvalid || lastSteeringInvalid;
 		});
 	let toFilterIn = _.remove(filteredOutPatterns, function(pId) {
 			let support = patternsInformation[pId][2];
 			let size = patternsInformation[pId][1];
 			let supportValid = support >= rangeSupport[0] && support <= rangeSupport[1];
 			let sizeValid = size >= rangeSize[0] && size <= rangeSize[1];
-			return supportValid && sizeValid;
+			let lastSteeringValid = showOnlyLastSteering ? lastSteeringPatterns.includes(pId) : true;
+			return supportValid && sizeValid && lastSteeringValid;
 		});
 
 	patternIdList = _.concat(patternIdList, toFilterIn);
@@ -3609,7 +3626,8 @@ function sortPatterns() {
 }
 
 /**
- * Sorts the pattern list according to their name
+ * Sorts the pattern list according to their name. If several patterns have the
+ * same name, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsByName(decreasing=false) {
@@ -3622,7 +3640,7 @@ function sortPatternsByName(decreasing=false) {
 		else if (nameA > nameB)
 			return 1;
 		else
-			return 0;
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3634,7 +3652,8 @@ function sortPatternsByName(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their number of users
+ * Sorts the pattern list according to their number of users. If several
+ * patterns have the same number of users, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsByNbUsers(decreasing=false) {
@@ -3647,7 +3666,7 @@ function sortPatternsByNbUsers(decreasing=false) {
 		else if (nbUsersA > nbUsersB)
 			return 1;
 		else
-			return 0;
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3659,15 +3678,20 @@ function sortPatternsByNbUsers(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their size
+ * Sorts the pattern list according to their size. If several patterns have the
+ * same size, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsBySize(decreasing=false) {
 	patternIdList.sort(function(a, b) {
-		var sizeA = patternsInformation[a][1];
-		var sizeB = patternsInformation[b][1];
+		let sizeA = patternsInformation[a][1];
+		let sizeB = patternsInformation[b][1];
+		let diff = sizeA - sizeB;
 		
-		return sizeA - sizeB;
+		if (diff != 0)
+			return diff;
+		else
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3679,15 +3703,20 @@ function sortPatternsBySize(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their support
+ * Sorts the pattern list according to their support. If several patterns have
+ * the same support, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsBySupport(decreasing=false) {
 	patternIdList.sort(function(a, b) {
-		var supportA = patternsInformation[a][2];
-		var supportB = patternsInformation[b][2];
+		let supportA = patternsInformation[a][2];
+		let supportB = patternsInformation[b][2];
+		let diff = supportA - supportB;
 		
-		return supportA - supportB;
+		if (diff != 0)
+			return diff;
+		else
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3905,6 +3934,10 @@ function addPatternToList(message) {
 			return d.length > 0;
 		}).join(" ");
 	
+	if (algorithmState.isUnderSteering()) {
+		lastSteeringPatterns.push(pId);
+	}
+
 	if (!patternLiveUpdate) {
 		availablePatterns.push(pId);
 	} else {
@@ -4596,9 +4629,11 @@ function setHighlights() {
 	else
 		d3.select("#userHighlight .highlightsResetOption").classed("hidden", true);
 	let detailed = d3.select("#detailedUserHighlight");
-	detailed.html("");
+	let detailedSubtitle = detailed.select(".subtitle");
+	let detailedContent = detailed.select(".content");
+	detailedContent.html("");
 	highlightedUsers.forEach(function(usr) {
-		detailed.append("div")
+		detailedContent.append("div")
 			.classed("clickable", true)
 			.classed("highlightButton", true)
 			.text(usr)
@@ -4608,6 +4643,7 @@ function setHighlights() {
 				timeline.displayData();
 			});
 	});
+	detailedSubtitle.classed("hidden", highlightedUsers.length == 0);
 
 	// event type highlights
 	d3.select("#eventTypeHighlight .highlightsValue")
@@ -4617,9 +4653,11 @@ function setHighlights() {
 	else
 		d3.select("#eventTypeHighlight .highlightsResetOption").classed("hidden", true);
 	detailed = d3.select("#detailedEventTypeHighlight");
-	detailed.html("");
+	detailedSubtitle = detailed.select(".subtitle");
+	detailedContent = detailed.select(".content");
+	detailedContent.html("");
 	highlightedEventTypes.forEach(function(type) {
-		detailed.append("div")
+		detailedContent.append("div")
 			.classed("clickable", true)
 			.classed("highlightButton", true)
 			.style("color", colorList[type][0].toString())
@@ -4633,6 +4671,7 @@ function setHighlights() {
 			.style("color", "black")
 			.text("\u00A0"+type);
 	});
+	detailedSubtitle.classed("hidden", highlightedEventTypes.length == 0);
 
 	// pattern highlights
 	d3.select("#patternHighlight .highlightsValue")
@@ -4642,13 +4681,15 @@ function setHighlights() {
 	else
 		d3.select("#patternHighlight .highlightsResetOption").classed("hidden", true);
 	detailed = d3.select("#detailedPatternHighlight");
-	detailed.html("");
+	detailedSubtitle = detailed.select(".subtitle");
+	detailedContent = detailed.select(".content");
+	detailedContent.html("");
 	selectedPatternIds.forEach(function(patternId) {
 		let pSize = patternsInformation[patternId][1];
 		let pString = patternsInformation[patternId][0];
 		let pItems = patternsInformation[patternId][3];
 
-		let row = detailed.append("div")
+		let row = detailedContent.append("div")
 			.classed("clickable",true)
 			.on("click", function() {
 				let index = selectedPatternIds.indexOf(patternId);
@@ -4669,6 +4710,7 @@ function setHighlights() {
 			.text(" "+pString)
 			.attr("patternId",patternId);
 	});
+	detailedSubtitle.classed("hidden", selectedPatternIds.length == 0);
 }
 
 /**
@@ -5525,6 +5567,7 @@ function drawPatternSizesChart() {
 function handleSteeringStartSignal(type, value) {
 	d3.select("#focus").text(type+" starting with: "+value);
 	algorithmState.startSteering(type, value);
+	lastSteeringPatterns = [];
 }
 
 /**
@@ -5765,6 +5808,13 @@ function focusOnTimePeriod(startTime, endTime) {
 
 	timeline.gBrush.call(timeline.brush.move, 
 		[timeline.xContext(start), timeline.xContext(end)]);
+}
+
+/**
+ * Puts the focus on the whole dataset
+ */
+function resetFocus() {
+	focusOnTimePeriod(...timeline.xContext.domain().map( d => d.getTime() ));
 }
 
 /**
