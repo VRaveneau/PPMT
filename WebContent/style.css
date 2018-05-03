@@ -1518,7 +1518,7 @@ table {
 		[name-start] max-content [name-end value-start] 1fr [value-end];
 }
 
-#algorithmParameters div:nth-child(2n+4) {
+#algorithmParameters div:nth-child(2n+5) {
 	text-align: right;
 }
 
@@ -1543,11 +1543,17 @@ table {
 #algorithmFocus {
 	grid-column: span 2;
 	text-align: center;
+	margin-bottom: 10px;
+}
+
+#algorithmResults {
+	grid-column: span 2;
+	text-align: center;
 	margin-bottom: 20px;
 }
 
-#totalElapsedTime {
-	margin-bottom: 20px;
+#totalPatternFound,#totalElapsedTime {
+	font-size: large;
 }
 
 #patternSizesChart {
