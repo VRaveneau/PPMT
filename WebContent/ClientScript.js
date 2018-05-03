@@ -345,6 +345,8 @@ var patternsInformation = {};
 var patternIdList = [];
 // The list of ids for all the filtered out patterns
 var filteredOutPatterns = [];
+// The list of ids for all patterns found in the last steering
+var lastSteeringPatterns = [];
 // The list of patterns waiting to be integrated into the list
 var availablePatterns = [];
 // Known metrics on the patterns
@@ -401,6 +403,9 @@ var maxPatternSize = 0;
 /*************************************/
 /*			State elements			 */
 /*************************************/
+
+// Whether to consider all the patterns or only the ones found in the last steering
+var showOnlyLastSteering = false;
 
 // Whether the new patterns are directly integrated in the list or not
 var patternLiveUpdate = true;
@@ -2656,6 +2661,14 @@ function receiveEventTypes(message) {
 /************************************/
 
 /**
+ * Toggles between showing all patterns or only the ones found in the last steering
+ */
+function toggleShowOnlyLastSteering() {
+	showOnlyLastSteering = !showOnlyLastSteering;
+	filterPatterns();
+}
+
+/**
  * Integrates available patterns into the pattern list
  */
 function updatePatternList() {
@@ -2709,7 +2722,9 @@ function computeUsersPerEventType() {
 }
 
 /**
- * Filters the patterns according to all sliders
+ * Filters the patterns according to all possible filters. Currently, this means:
+ * - the sliders for support and size
+ * - the 'only show patterns found in the last steering' option
  * 
  * A debounced version is available in debouncedFilterPatterns 
  */
@@ -2722,14 +2737,16 @@ function filterPatterns() {
 			let size = patternsInformation[pId][1];
 			let supportInvalid = support < rangeSupport[0] || support > rangeSupport[1];
 			let sizeInvalid = size < rangeSize[0] || size > rangeSize[1];
-			return supportInvalid || sizeInvalid;
+			let lastSteeringInvalid = showOnlyLastSteering ? !lastSteeringPatterns.includes(pId) : false;
+			return supportInvalid || sizeInvalid || lastSteeringInvalid;
 		});
 	let toFilterIn = _.remove(filteredOutPatterns, function(pId) {
 			let support = patternsInformation[pId][2];
 			let size = patternsInformation[pId][1];
 			let supportValid = support >= rangeSupport[0] && support <= rangeSupport[1];
 			let sizeValid = size >= rangeSize[0] && size <= rangeSize[1];
-			return supportValid && sizeValid;
+			let lastSteeringValid = showOnlyLastSteering ? lastSteeringPatterns.includes(pId) : true;
+			return supportValid && sizeValid && lastSteeringValid;
 		});
 
 	patternIdList = _.concat(patternIdList, toFilterIn);
@@ -3905,6 +3922,10 @@ function addPatternToList(message) {
 			return d.length > 0;
 		}).join(" ");
 	
+	if (algorithmState.isUnderSteering()) {
+		lastSteeringPatterns.push(pId);
+	}
+
 	if (!patternLiveUpdate) {
 		availablePatterns.push(pId);
 	} else {
@@ -5525,6 +5546,7 @@ function drawPatternSizesChart() {
 function handleSteeringStartSignal(type, value) {
 	d3.select("#focus").text(type+" starting with: "+value);
 	algorithmState.startSteering(type, value);
+	lastSteeringPatterns = [];
 }
 
 /**

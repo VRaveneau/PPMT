@@ -1484,8 +1484,21 @@ table {
 	grid-template-areas: 
 		". slider-support ."
 		". slider-size ."
-		". searchField .";
+		". searchField ."
+		". . .";
 	align-items: center;
+}
+
+#showOnlyLastSteeringTxt {
+	grid-column: 1 / -2;
+	grid-row: 4 / 5;
+}
+
+#showOnlyLastSteeringInput {
+	justify-self: right;
+	grid-column: 2 / -2;
+	grid-row: 4 / 5;
+	margin-right: 20px;
 }
 
 #Execution {
