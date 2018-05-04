@@ -2665,6 +2665,13 @@ function receiveEventTypes(message) {
  */
 function toggleShowOnlyLastSteering() {
 	showOnlyLastSteering = !showOnlyLastSteering;
+	if (showOnlyLastSteering) {
+		document.getElementById("showOnlyLastSteeringButton")
+			.textContent = "All patterns";
+	} else {
+		document.getElementById("showOnlyLastSteeringButton")
+			.textContent = "Patterns from last steering";
+	}
 	filterPatterns();
 }
 

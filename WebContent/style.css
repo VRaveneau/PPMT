@@ -1174,14 +1174,15 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 #liveUpdateIndicator {
 	content: '';
-	min-width: 15px;
-	min-height: 15px;
+	min-width: 30px;
+	min-height: 30px;
+	align-self: center;
 
 	border-radius: 50%;
 	background-color: red;
 
-	float: left;
-	margin-right: 5px;
+	grid-row: 1 / -1;
+	grid-column: indicator-start / indicator-end;
 }
 
 #liveUpdateIndicator.active {
@@ -1410,6 +1411,36 @@ table {
 /********************************/
 /* 			Algorithm tabs 		*/
 /********************************/
+
+#patternArea .param {
+	display: grid;
+	grid-template-columns:
+		[indicator-start] min-content
+		[indicator-end liveUpdate-start] max-content
+		[liveUpdate-end] 1fr
+		[lastSteering-start] max-content
+		[lastSteering-end];
+	grid-template-rows:
+		min-content
+		min-content;
+	grid-column-gap: 5px;
+	grid-row-gap: 2px;
+}
+
+#liveUpdateButton {
+	grid-row: 1 / 2;
+	grid-column: liveUpdate-start / liveUpdate-end;
+}
+
+#updatePatternListButton {
+	grid-row: 2 / -1;
+	grid-column: liveUpdate-start / liveUpdate-end;
+}
+
+#showOnlyLastSteeringButton {
+	grid-row: 1 / -1;
+	grid-column: lastSteering-start / lastSteering-end;
+}
 
 #patternPagesIndicator {
 	display: flex;
