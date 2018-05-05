@@ -9352,6 +9352,7 @@ var Timeline = function(elemId, options) {
 			data.push(mouseUser);
 			
 			let theSession = null;
+			self.hoveredSession = null;
 			
 			// try to find the session if there is one under (the pixel is not white)
 			let pixelColors = self.canvasUsersContext.getImageData(coords[0], coords[1],1,1).data;
