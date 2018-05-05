@@ -1590,6 +1590,7 @@ table {
 
 #totalPatternFound,#totalElapsedTime {
 	font-size: large;
+	white-space: nowrap;
 }
 
 #patternSizesChart {
