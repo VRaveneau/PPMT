@@ -3857,14 +3857,18 @@ function selectUsersBasedOnPatternSelection() {
 
 /**
  * Adds all the users presenting a pattern to the user selection if they don't
- * already belong to it
+ * already belong to it. If all the users are already selected, deselect them
+ * instead
  * @param {number} patternId The id of the pattern
  */
-function selectUsersHavingPattern(patternId) {
-	patternsInformation[patternId][4].forEach( function(e,j) {
-		if (!highlightedUsers.includes(e))
-			highlightUserRow(e);
-	});
+function updateUserSelectionFromPattern(patternId) {
+	let usersNotSelected = _.difference(patternsInformation[patternId][4], highlightedUsers);
+
+	if (usersNotSelected.length == 0) {
+		patternsInformation[patternId][4].forEach(highlightUserRow);
+	} else {
+		usersNotSelected.forEach(highlightUserRow);
+	}
 	
 	setHighlights();
 	refreshUserPatterns();
@@ -5761,7 +5765,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.attr("title", "Highlight users having this pattern")
 		.on("click", function() {
 			d3.event.stopPropagation();
-			selectUsersHavingPattern(pId);
+			updateUserSelectionFromPattern(pId);
 		});
 	contextActions.append("button")
 		.classed("clickable", true)
