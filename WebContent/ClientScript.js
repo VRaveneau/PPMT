@@ -5534,15 +5534,15 @@ function drawPatternSizesChart() {
 		.style('fill-opacity', 1e-6)
 		.remove();
 	
-	let barHeight = Math.min(25, patternSizesChart.y.bandwidth());
+	let barHeight = Math.min(25, Math.round(patternSizesChart.y.bandwidth()));
 	let bandwidthOffset = (patternSizesChart.y.bandwidth() - barHeight) / 2;
 
 	bars.enter().append("rect")
 		.classed("bar", true)
 		.attr("status", d => algorithmState.getLevel(d).status)
 		.attr("x", patternSizesChart.x(0))
-		.attr("y", function(d) { return patternSizesChart.y(d) + bandwidthOffset; })
-		.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]))
+		.attr("y", d => Math.round(patternSizesChart.y(d) + bandwidthOffset))
+		.attr("width", d => Math.round(patternSizesChart.x(patternMetrics.sizeDistribution[d])))
 		.attr("height", barHeight);
 	
 	texts.enter().append("text")
@@ -5558,12 +5558,10 @@ function drawPatternSizesChart() {
 	// the "UPDATE" set:
 	bars.transition().duration(0)
 		.attr("status", d => algorithmState.getLevel(d).status)
-		.attr("y", function(d) { return patternSizesChart.y(d) + bandwidthOffset; })
+		.attr("y", d => Math.round(patternSizesChart.y(d) + bandwidthOffset))
 		.attr("height", barHeight)
 		.attr("x", patternSizesChart.x(0))
-		.attr("width", function(d) {
-			return patternSizesChart.x(patternMetrics.sizeDistribution[d]);
-		});
+		.attr("width", d => Math.round(patternSizesChart.x(patternMetrics.sizeDistribution[d])));
 	
 	texts.transition()
 		.duration(0)
@@ -8119,18 +8117,18 @@ var Timeline = function(elemId, options) {
 				self.canvasContext.beginPath();
 				let binStart = bins.getStart(bin.value.aDateInside);
 				let binEnd = bins.getEnd(bin.value.aDateInside);
-				let x = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart));
-				let x2 = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd));
+				let x = Math.round(self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart)));
+				let x2 = Math.round(self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd)));
 				
-				y = self.yFocus(maxHeight-bin.value.eventCount);
-				binHeight = self.yFocus(bin.value.eventCount);
+				y = Math.round(self.yFocus(maxHeight-bin.value.eventCount));
+				binHeight = Math.round(self.yFocus(bin.value.eventCount));
 				self.canvasContext.fillStyle = "#a6a7a8";
 				self.canvasContext.fillRect(x, binHeight, x2-x, y);
-				self.canvasContext.lineWidth = 0.25;
+				/*self.canvasContext.lineWidth = 0.25;
 				self.canvasContext.strokeStyle = "black";
-				self.canvasContext.stroke();
+				self.canvasContext.stroke();*/
 				//  self.canvasContext.fillRect(x, binHeight, x2-x, y);
-				self.canvasContext.closePath();
+				//self.canvasContext.closePath();
 				
 				// Attributing a color to data link for the hidden canvas
 				var color = [];
@@ -8249,11 +8247,11 @@ var Timeline = function(elemId, options) {
 					
 					self.canvasContext.fillStyle = color.toString();
 					self.canvasContext.fillRect(x, binHeight, x2-x, y);
-					self.canvasContext.lineWidth = 0.25;
+					/*self.canvasContext.lineWidth = 0.25;
 					self.canvasContext.strokeStyle = "black";
-					self.canvasContext.stroke();
+					self.canvasContext.stroke();*/
 					//  self.canvasContext.fillRect(x, binHeight, x2-x, y);
-					self.canvasContext.closePath();
+					//self.canvasContext.closePath();
 					
 					// Attributing a color to data link for the hidden canvas
 					let hiddenColor = [];
@@ -8396,11 +8394,11 @@ var Timeline = function(elemId, options) {
 			self.canvasOverviewContext.beginPath();
 			let binStartTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getStart(bin.value.aDateInside));
 			let binEndTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getEnd(bin.value.aDateInside));
-		    let x = self.xContext(binStartTime);
-			let x2 = self.xContext(binEndTime);
-			let y = self.yContext(maxBin-bin.value.eventCount);
+		    let x = Math.round(self.xContext(binStartTime));
+			let x2 = Math.round(self.xContext(binEndTime));
+			let y = Math.round(self.yContext(maxBin-bin.value.eventCount));
 			
-			binHeight = self.yContext(bin.value.eventCount);
+			binHeight = Math.round(self.yContext(bin.value.eventCount));
 
 			// Draw the full bin outside of the brush
 			if (binEndTime < brushStartTime || binStartTime > brushEndTime) {
@@ -8414,7 +8412,7 @@ var Timeline = function(elemId, options) {
 			} else
 			// The brush start is over the bin
 			if (binStartTime < brushStartTime && binEndTime < brushEndTime) {
-				let xBrushStart = self.xContext(brushStartTime);
+				let xBrushStart = Math.round(self.xContext(brushStartTime));
 				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
 				self.canvasOverviewContext.fillRect(x, binHeight, xBrushStart-x, y);
 				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
@@ -8422,17 +8420,17 @@ var Timeline = function(elemId, options) {
 			} else
 			// The brush end is over the bin
 			if (binStartTime > brushStartTime && binEndTime > brushEndTime) {
-				let xBrushEnd = self.xContext(brushEndTime);
+				let xBrushEnd = Math.round(self.xContext(brushEndTime));
 				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
 				self.canvasOverviewContext.fillRect(x, binHeight, xBrushEnd-x, y);
 				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
 				self.canvasOverviewContext.fillRect(xBrushEnd, binHeight, x2-xBrushEnd, y);
 			} else {// The bin is over the brush
-				let xBrushStart = self.xContext(brushStartTime);
+				let xBrushStart = Math.round(self.xContext(brushStartTime));
 				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
 				self.canvasOverviewContext.fillRect(x, binHeight, xBrushStart-x, y);
 
-				let xBrushEnd = self.xContext(brushEndTime);
+				let xBrushEnd = Math.round(self.xContext(brushEndTime));
 				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
 				self.canvasOverviewContext.fillRect(xBrushStart, binHeight, xBrushEnd-xBrushStart, y);
 
