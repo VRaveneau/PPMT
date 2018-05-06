@@ -554,12 +554,6 @@ var itemShapes = {};
 var debouncedFilterUserList = _.debounce(filterUserList, 500);
 
 /**
- * A debounced version of filterPatternsBySyntax
- * @type {function}
- */
-var debouncedFilterPatternsBySyntax = _.debounce(filterPatternsBySyntax, 500);
-
-/**
  * A debounced version of filterPatterns
  * @type {function}
  */
@@ -1428,7 +1422,7 @@ function setupUserSearchField() {
 					suggestionDiv.html("");
 					relatedUsers.forEach(function(d,i) {
 						suggestionDiv.append("p")
-							.classed("selected", i==currentUserSearchSuggestionIdx)
+							.classed("selectedSuggestion", i==currentUserSearchSuggestionIdx)
 							.text(d);
 					});
 				} else {
@@ -1442,7 +1436,7 @@ function setupUserSearchField() {
 			if (currentUserSearchSuggestionIdx > 0) {
 				currentUserSearchSuggestionIdx--;
 				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
+					d3.select(this).classed("selectedSuggestion", i==currentUserSearchSuggestionIdx);
 				});
 			}
 			break;
@@ -1450,7 +1444,7 @@ function setupUserSearchField() {
 			if (currentUserSearchSuggestionIdx < relatedUsers.length - 1) {
 				currentUserSearchSuggestionIdx++;
 				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
+					d3.select(this).classed("selectedSuggestion", i==currentUserSearchSuggestionIdx);
 				});
 			}
 			break;
@@ -1486,7 +1480,10 @@ function setupAlgorithmSearchField() {
 			suggestionDiv.style("display", "none");
 	});
 	
-	searchField.on("input", debouncedFilterPatternsBySyntax);
+	searchField.on("input", function() {
+		updatePatternSearchSuggestion();
+		debouncedFilterPatterns();
+	});
 	searchField.on("keydown", function() {
 		let keyName = d3.event.key;
 		// Don't trigger if the user keeps the key down
@@ -1499,35 +1496,7 @@ function setupAlgorithmSearchField() {
 			break;
 		case "Enter":
 			if (currentPatternSearchSuggestionIdx >= 0) {
-				let baseLength = currentPatternSearchInput.length -
-								currentPatternSearchFragment.length;
-				let baseValue = currentPatternSearchInput.substr(0, baseLength);
-				currentPatternSearchInput = baseValue +
-						relatedEventTypes[currentPatternSearchSuggestionIdx];
-				currentPatternSearchFragment = relatedEventTypes[currentPatternSearchSuggestionIdx];
-				searchField.property("value", currentPatternSearchInput);
-				// Updates the suggestion list
-				relatedEventTypes = eventTypes.filter(function(d, i) {
-					return d.includes(currentPatternSearchFragment);
-				});
-				relatedEventTypes.sort();
-
-				if (relatedEventTypes.length > 0) {
-					currentPatternSearchSuggestionIdx = 0;
-					suggestionDiv.html("");
-					relatedEventTypes.forEach(function(d,i) {
-						suggestionDiv.append("p")
-							.classed("selected", i==currentPatternSearchSuggestionIdx)
-							.text(baseValue + d);
-					});
-				} else {
-					currentPatternSearchSuggestionIdx = -1;
-					suggestionDiv.html("");
-				}
-				// Hide the suggestion list
-				suggestionDiv.style("display", "none");
-
-				createPatternListDisplay();
+				selectPatternSearchSuggestion(currentPatternSearchSuggestionIdx);
 			}
 			break;
 		case "ArrowUp":
@@ -1537,7 +1506,7 @@ function setupAlgorithmSearchField() {
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx--;
 				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
+					d3.select(this).classed("selectedSuggestion", i==currentPatternSearchSuggestionIdx);
 				});
 			}
 			break;
@@ -1548,7 +1517,7 @@ function setupAlgorithmSearchField() {
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx++;
 				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
+					d3.select(this).classed("selectedSuggestion", i==currentPatternSearchSuggestionIdx);
 				});
 			}
 			break;
@@ -2732,28 +2701,34 @@ function computeUsersPerEventType() {
  * Filters the patterns according to all possible filters. Currently, this means:
  * - the sliders for support and size
  * - the 'only show patterns found in the last steering' option
+ * - the subsyntax in the search field
  * 
  * A debounced version is available in debouncedFilterPatterns 
  */
 function filterPatterns() {
 	let rangeSupport = supportSlider.getSelectedRange();
 	let rangeSize = sizeSlider.getSelectedRange();
+	let nameSyntax = "" + currentPatternSearchInput;
 
 	let toFilterOut = _.remove(patternIdList, function(pId) {
 			let support = patternsInformation[pId][2];
 			let size = patternsInformation[pId][1];
+			let name = patternsInformation[pId][0];
 			let supportInvalid = support < rangeSupport[0] || support > rangeSupport[1];
 			let sizeInvalid = size < rangeSize[0] || size > rangeSize[1];
 			let lastSteeringInvalid = showOnlyLastSteering ? !lastSteeringPatterns.includes(pId) : false;
-			return supportInvalid || sizeInvalid || lastSteeringInvalid;
+			let syntaxInvalid = !name.includes(nameSyntax);
+			return supportInvalid || sizeInvalid || lastSteeringInvalid || syntaxInvalid;
 		});
 	let toFilterIn = _.remove(filteredOutPatterns, function(pId) {
 			let support = patternsInformation[pId][2];
 			let size = patternsInformation[pId][1];
+			let name = patternsInformation[pId][0];
 			let supportValid = support >= rangeSupport[0] && support <= rangeSupport[1];
 			let sizeValid = size >= rangeSize[0] && size <= rangeSize[1];
 			let lastSteeringValid = showOnlyLastSteering ? lastSteeringPatterns.includes(pId) : true;
-			return supportValid && sizeValid && lastSteeringValid;
+			let syntaxValid = name.includes(nameSyntax);
+			return supportValid && sizeValid && lastSteeringValid && syntaxValid;
 		});
 
 	patternIdList = _.concat(patternIdList, toFilterIn);
@@ -2805,77 +2780,20 @@ function filterPatternsBySize(range) {
 
 /**
  * Updates the list of patterns depending on the value in the pattern search field.
- * A debounced version of this function is stored in debouncedFilterPatternsBySyntax.
+ * @param {string} syntax The syntax in the pattern search field
  */
-function filterPatternsBySyntax() {
-	let searchField = d3.select("#patternListArea input.searchField");
-	let suggestionDiv = d3.select("#patternListArea .suggestionDiv");
+function filterPatternsBySyntax(syntax) {
+	let toFilterOut = _.remove(patternIdList, function(pId) {
+		let name = patternsInformation[pId][0];
+		return !name.includes(syntax);
+	});
+	let toFilterIn = _.remove(filteredOutPatterns, function(pId) {
+		let name = patternsInformation[pId][0];
+		return name.includes(syntax);
+	});
 
-	suggestionDiv.style("display", "block");
-	let currentValue = searchField.property("value");
-	currentPatternSearchInput = currentValue;
-	currentPatternSearchFragment = currentValue.split(" ").pop();
-	
-	if(currentPatternSearchFragment.length > 0) {
-		let baseLength = currentPatternSearchInput.length -
-							currentPatternSearchFragment.length;
-		let baseValue = currentPatternSearchInput.substr(0, baseLength);
-		relatedEventTypes = eventTypes.filter(function(d, i) {
-			return d.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
-		});
-		relatedEventTypes.sort();
-		
-		if (relatedEventTypes.length > 0) {
-			currentPatternSearchSuggestionIdx = 0;
-			suggestionDiv.html("");
-			relatedEventTypes.forEach(function(d,i) {
-				suggestionDiv.append("p")
-					.classed("selected", i==currentPatternSearchSuggestionIdx)
-					.classed("clickable", true)
-					.text(baseValue + d)
-					.on("click", function() {
-						let baseLength = currentPatternSearchInput.length - 
-										currentPatternSearchFragment.length;
-						let baseValue = currentPatternSearchInput.substr(0, baseLength);
-						currentPatternSearchInput = baseValue + relatedEventTypes[i];
-						currentPatternSearchFragment = relatedEventTypes[i];
-						searchField.property("value", currentPatternSearchInput);
-						// Updates the suggestion list
-						relatedEventTypes = eventTypes.filter(function(e, j) {
-							return e.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
-						});
-						relatedEventTypes.sort();
-
-						if (relatedEventTypes.length > 0) {
-							currentPatternSearchSuggestionIdx = 0;
-							suggestionDiv.html("");
-							relatedEventTypes.forEach(function(e,j) {
-								suggestionDiv.append("p")
-									.classed("selected", j==currentPatternSearchSuggestionIdx)
-									.text(baseValue + e);
-							});
-						} else {
-							currentPatternSearchSuggestionIdx = -1;
-							suggestionDiv.html("");
-						}
-						
-						createPatternListDisplay();
-						suggestionDiv.style("display", "none");
-					});
-			});
-		} else {
-			currentPatternSearchSuggestionIdx = -1;
-			suggestionDiv.html("");
-		}
-	} else {
-		currentPatternSearchInput = "";
-		currentPatternSearchSuggestionIdx = -1;
-		currentPatternSearchFragment = "";
-		relatedEventTypes = [];
-		suggestionDiv.html("");
-	}
-	
-	createPatternListDisplay();
+	patternIdList = _.concat(patternIdList, toFilterIn);
+	filteredOutPatterns = _.concat(filteredOutPatterns, toFilterOut);
 }
 
 /**
@@ -4175,6 +4093,84 @@ function resetDataFilters() {
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+/**
+ * Updates the suggestions of event types to complete the input of the pattern
+ * search field
+ */
+function updatePatternSearchSuggestion() {
+	let searchField = d3.select("#patternListArea input.searchField");
+	let suggestionDiv = d3.select("#patternListArea .suggestionDiv");
+
+	let currentValue = searchField.property("value");
+	currentPatternSearchInput = currentValue.trim();
+	let inputParts = currentPatternSearchInput.split(" ").filter( d => d.length > 0);
+	currentPatternSearchFragment = inputParts.pop();
+	
+	if(currentPatternSearchFragment && currentPatternSearchFragment.length > 0) {
+		let baseLength = currentPatternSearchInput.length -
+							currentPatternSearchFragment.length;
+		let baseValue = currentPatternSearchInput.substr(0, baseLength);
+		relatedEventTypes = eventTypes.filter(function(d, i) {
+			return d.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
+		});
+		relatedEventTypes.sort();
+		
+		if (relatedEventTypes.length > 0) {
+			let fragment = document.createDocumentFragment();
+			currentPatternSearchSuggestionIdx = 0;
+			relatedEventTypes.forEach(function(d,i) {
+				let child = document.createElement("p");
+				child.className = "clickable";
+				if (i==currentPatternSearchSuggestionIdx)
+					child.classList.add("selectedSuggestion");
+				child.textContent = baseValue + d;
+				child.setAttribute("value", baseValue + relatedEventTypes[i]);
+				child.addEventListener("click", selectPatternSearchSuggestion);
+				fragment.appendChild(child);
+			});
+			suggestionDiv.html(null);
+			suggestionDiv.node().appendChild(fragment);
+		} else {
+			currentPatternSearchSuggestionIdx = -1;
+			suggestionDiv.html(null);
+		}
+	} else {
+		currentPatternSearchInput = "";
+		currentPatternSearchSuggestionIdx = -1;
+		currentPatternSearchFragment = "";
+		relatedEventTypes = [];
+		suggestionDiv.html(null);
+	}
+	suggestionDiv.style("display", "block");
+}
+
+/**
+ * Selects a suggestion in the pattern search field suggestion list and updates
+ * the field's input and pattern list accordingly.
+ * 
+ * @param {number|HTMLElement} selectedSuggestion The selected suggestion, either
+ * the element or its index in the suggestion list
+ */
+function selectPatternSearchSuggestion(selectedSuggestion) {
+	let suggestionDiv = d3.select("#patternListArea .suggestionDiv");
+	let suggestion;
+	if (typeof selectedSuggestion == "number")
+		suggestion = suggestionDiv.node().childNodes[selectedSuggestion].getAttribute("value");
+	else
+		suggestion = this.getAttribute("value");
+	let searchField = d3.select("#patternListArea input.searchField");
+
+	currentPatternSearchInput = suggestion;
+	searchField.property("value", suggestion);
+
+	currentPatternSearchSuggestionIdx = -1;
+	suggestionDiv.style("display", "none");
+	suggestionDiv.html(null);
+
+	debouncedFilterPatterns.cancel();
+	filterPatterns();
+}
 
 /**
  * Updates the style of the "restart" button, depending on the modifying sliders' values
@@ -5930,7 +5926,7 @@ function filterUserList() {
 			suggestionDiv.html("");
 			relatedUsers.forEach(function(d,i) {
 				suggestionDiv.append("p")
-					.classed("selected", i==currentUserSearchSuggestionIdx)
+					.classed("selectedSuggestion", i==currentUserSearchSuggestionIdx)
 					.classed("clickable", true)
 					.text(d)
 					.on("click", function() {
@@ -5946,7 +5942,7 @@ function filterUserList() {
 							suggestionDiv.html("");
 							relatedUsers.forEach(function(e,j) {
 								suggestionDiv.append("p")
-									.classed("selected", j==currentUserSearchSuggestionIdx)
+									.classed("selectedSuggestion", j==currentUserSearchSuggestionIdx)
 									.text(e);
 							});
 						} else {

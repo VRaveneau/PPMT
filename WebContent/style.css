@@ -1401,11 +1401,8 @@ table {
 	padding-left: 5px;
 }
 
-.suggestionDiv p.selected {
-	margin-top: 0px;
-	margin-bottom: 0px;
+.selectedSuggestion {
 	background-color: #04B7FB;
-	color: black;
 }
 
 /********************************/
