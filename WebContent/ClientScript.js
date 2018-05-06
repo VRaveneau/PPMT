@@ -4799,7 +4799,7 @@ function createEventTypesListDisplay() {
 		let extendedRemoveActions = removeAction.append("div")
 			.classed("extendedContextAction", true);
 		extendedRemoveActions.append("p")
-			.text("Remove one")
+			.text(`Remove ${eType} (${eventTypeInformations[eType].nbOccs} events)`)
 			.on("click", function() {
 				d3.event.stopPropagation();
 				askConfirmationToRemoveEventTypes(eType);
@@ -5007,7 +5007,7 @@ function createUserListDisplay() {
 		let extendedRemoveActions = removeAction.append("div")
 			.classed("extendedContextAction", true);
 		extendedRemoveActions.append("p")
-			.text("Remove one")
+			.text(`Remove '${user}' (${userInformations[user].nbEvents} events)`)
 			.on("click", function() {
 				d3.event.stopPropagation();
 				askConfirmationToRemoveUsers(user);
