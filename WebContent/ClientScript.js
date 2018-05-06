@@ -1157,56 +1157,7 @@ function findNewPatternIndex(patternInfos) {
 			return patternsInformation[elt][2] > patternInfos[2];
 		});
 	}
-}
-
-/**
- * Finds the first pattern id in the list of patterns that doesn't belong to a
- * selected pattern, starting at a given index
- * 
- * @param {number} startIdx The first index to be checked
- * @returns {number} The new index in patternIdList
- * or -1 if no index is suitable
- * 
- * @deprecated Probably never used, maybe replaced by 
- * findFirstFilteredUnselectedId ?
- * 
- * TODO check if it can be deleted
- */
-function findFirstUnselectedId(startIdx) {
-	let newIdx = startIdx;
-	if (newIdx > patternIdList.length)
-		return -1;
-	while(selectedPatternIds.indexOf(patternIdList[newIdx]) != -1) {
-		newIdx++;
-		if (newIdx > patternIdList.length)
-			return -1;
-	}
-	return newIdx;
-}
-
-/**
- * Finds the first pattern id in the list of patterns that doesn't belong to a
- * selected pattern and is accepted by the current filter, starting at a given index
- * 
- * @param {number} startIdx The first index to be checked
- * @returns {number} The new index in patternIdList
- * or -1 if no index is suitable
- * */
-function findFirstFilteredUnselectedId(startIdx) {
-	let newIdx = startIdx;
-	let properPatternSearchInput = currentPatternSearchInput.split(" ")
-		.filter(function(d,i) {
-			return d.length > 0;
-		}).join(" ");
-	if (newIdx > patternIdList.length)
-		return -1;
-	while(selectedPatternIds.indexOf(patternIdList[newIdx]) != -1 &&
-		 patternInformations[patternIdList[newIdx]][0].includes(properPatternSearchInput)) {
-		newIdx++;
-		if (newIdx > patternIdList.length)
-			return -1;
-	}
-	return newIdx;
+	return 0;
 }
 
 /**
@@ -3859,9 +3810,7 @@ function addPatternToList(message) {
 	patternMetrics["sizeDistribution"][pSize]++;
 
 	let properPatternSearchInput = currentPatternSearchInput.split(" ")
-		.filter(function(d,i) {
-			return d.length > 0;
-		}).join(" ");
+		.filter( d => d.length > 0 ).join(" ");
 	
 	if (algorithmState.isUnderSteering()) {
 		lastSteeringPatterns.push(pId);
@@ -3873,22 +3822,20 @@ function addPatternToList(message) {
 		// Don't take this pattern into consideration if it doesn"t pass the filter
 		if (!supportSlider.hasValueSelected(pSupport) ||
 			!sizeSlider.hasValueSelected(pSize) ||
-			!pString.includes(properPatternSearchInput ||
-			(!algorithmState.isUnderSteering() && showOnlyLastSteering)
-			)) {
+			!pString.includes(properPatternSearchInput) ||
+			(!algorithmState.isUnderSteering() && showOnlyLastSteering)) {
 				filteredOutPatterns.push(pId);
 		} else {
 			let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
-			
 			if (correctPositionInList == -1) {// append at the end of the list
 				patternIdList.push(pId);
 				document.getElementById("patternTableBody")
 					.appendChild(createPatternRow(pId));
 			} else { // append at the right position in the list
 				patternIdList.splice(correctPositionInList, 0, pId);
-				let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
+				let nextIdInList = patternIdList[correctPositionInList + 1];
 				//console.log("First unselectedId: "+firstUnselectedId);
-				let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
+				let firstUnselectedNode = document.getElementById("pattern"+nextIdInList);
 				
 				firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
 			}
