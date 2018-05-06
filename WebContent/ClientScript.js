@@ -3877,6 +3877,7 @@ function resetPatterns() {
 	patternIdList = [];
 	availablePatterns = [];
 	filteredOutPatterns = [];
+	lastSteeringPatterns = [];
 	patternOccurrences = {};
 	selectedPatternIds = [];
 	// TODO Deal with the potential other pattern metrics in patternMetrics

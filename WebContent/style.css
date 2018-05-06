@@ -105,14 +105,19 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 .contextActions {
 	position: absolute;
 	visibility: hidden;
-	height: 100%;
-	top: 0%;
+	/*height: 100%;*/
+	padding: 2px 6px;
+	border-radius: 10px;
+	/*top: 0%;*/
+	top: calc(50% - 11px - 2px);
 	right: 0px;
 	z-index: 1;
 	width: max-content;
 	overflow: visible;
 	display: grid;
-	grid-template-rows: 1fr [content-start] max-content [content-end] 1fr;
+	column-gap: 4px;
+	background-color: rgb(203, 203, 203);
+	grid-template-rows: [content-start] max-content [content-end];
 	grid-auto-flow: column;
 }
 
@@ -130,11 +135,19 @@ tr:hover .contextActions {
 }
 
 .contextActions button {
-	width: 20px;
-	height: 20px;
+	width: 24px;
+	height: 24px;
 	padding: 0px;
-	margin-right: 4px;
+	/*margin-right: 4px;*/
 	box-sizing: border-box;
+}
+
+.contextActions button:hover {
+	background-color: rgb(203, 203, 203);
+}
+
+.contextActions button:active {
+	background-color: rgb(124, 124, 124);
 }
 
 .extendedContextAction {
@@ -879,10 +892,10 @@ body {
 .icon-remove::before {
 	content: '';
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	top: 5px;
-	left: 5px;
+	width: 22px;
+	height: 22px;
+	top: 1px;
+	left: 1px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
 	background-position:  0px 0px;
@@ -890,74 +903,74 @@ body {
 }
 
 .icon-remove:hover::before {
-	background-position: -20px 0px;
+	background-position: -22px 0px;
 }
 
 .icon-remove:active::before {
-	background-position: -40px 0px;
+	background-position: -44px 0px;
 }
 
 .icon-toEventType::before {
 	content: '';
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	top: 4px;
-	left: 4px;
+	width: 22px;
+	height: 22px;
+	top: 0px;
+	left: 0px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
-	background-position: 0px -30px;
+	background-position: 0px -66px;
 	background-size: 300%;
 }
 
 .icon-toEventType:hover::before {
-	background-position: -20px -30px;
+	background-position: -22px -66px;
 }
 
 .icon-toEventType:active::before {
-	background-position: -40px -30px;
+	background-position: -44px -66px;
 }
 
 .icon-steering::before {
 	content: '';
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	top: 4px;
-	left: 4px;
+	width: 22px;
+	height: 22px;
+	top: 0px;
+	left: 0px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
-	background-position: 0px -10px;
+	background-position: 0px -22px;
 	background-size: 300%;
 }
 
 .icon-steering:hover::before {
-	background-position: -20px -10px;
+	background-position: -22px -22px;
 }
 
 .icon-steering:active::before {
-	background-position: -40px -10px;
+	background-position: -44px -22px;
 }
 
 .icon-selectUsers::before {
 	content: '';
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	top: 4px;
-	left: 4px;
+	width: 22px;
+	height: 22px;
+	top: 0px;
+	left: 0px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
-	background-position: 0px -20px;
+	background-position: 0px -44px;
 	background-size: 300%;
 }
 
 .icon-selectUsers:hover::before {
-	background-position: -20px -20px;
+	background-position: -22px -44px;
 }
 
 .icon-selectUsers:active::before {
-	background-position: -40px -20px;
+	background-position: -44px -44px;
 }
 
 thead th {
