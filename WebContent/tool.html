@@ -222,14 +222,15 @@
 							<div class="subsection">
 								<div class="title">Exploration per user</div>
 								<div id="tl_usersControl" class="param">
-								<span>Show 
+									<div>Show&nbsp;</div>
 									<span id="showUserSessionsSwitch" class="switchArea">
-										<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button><button type="button" value="some" onclick="showUserSessions('some');">Some users</button>
+										<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button>
+										<button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button>
+										<button type="button" value="some" onclick="showUserSessions('some');">Some users</button>
 									</span>
-								</span>
-								<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput" class="fakeBrowserSlider"></span>
-								<span id="drawIndividualEvents" class="hidden">Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
-								<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" class="clickable" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
+									<span id="shownUserSessionsControl" class="hidden">&nbsp;Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput" class="fakeBrowserSlider"></span>
+									<span id="drawIndividualEvents" class="hidden">&nbsp;Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
+									<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" class="clickable" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
 								</div>
 								<div id="tl_users" class="body"></div>
 							</div>
@@ -304,7 +305,12 @@
 						<div id="showOnlyLastSteeringOption">
 							Patterns:&nbsp;
 							<span class="switchArea">
-								<button type="button" id="showAllPatternsButton" class="selectedOption" onclick="toggleShowOnlyLastSteering();">All</button><button type="button" id="showOnlyLastSteeringButton" onclick="toggleShowOnlyLastSteering();">From last steering (<span>0</span>)</button>
+								<button type="button" id="showAllPatternsButton" class="selectedOption" onclick="toggleShowOnlyLastSteering();">All</button>
+								<button type="button" id="showOnlyLastSteeringButton" onclick="toggleShowOnlyLastSteering();">From last steering (<span>0</span>)
+									<div id="lastSteeringDetails">
+										No steering yet
+									</div>
+								</button>
 							</span>
 							<!--<button id="showOnlyLastSteeringButton" onclick="toggleShowOnlyLastSteering();" class="clickable">Patterns from last steering</button>-->
 						</div>

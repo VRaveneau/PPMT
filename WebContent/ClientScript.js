@@ -3822,6 +3822,7 @@ function addPatternToList(message) {
 	
 	if (algorithmState.isUnderSteering()) {
 		lastSteeringPatterns.push(pId);
+		updateLasteSteeringDetails();
 	}
 
 	if (!patternLiveUpdate) {
@@ -3898,6 +3899,7 @@ function resetPatterns() {
 	createPatternListDisplay();
 	updatePatternCountDisplay();
 	setHighlights();
+	resetLastSteeringDetails();
 	// TODO Keep the initial sessions ?
 	buildUserSessions();
 	refreshUserPatterns();
@@ -4049,6 +4051,58 @@ function resetDataFilters() {
 /************************************/
 /*			HCI manipulation		*/
 /************************************/
+
+/**
+ * Setup the details about the last steering.
+ * @param {string} type The type of steering
+ * @param {string} value The target of the steering
+ */
+function setupLastSteeringDetails(type, value) {
+	let fragment = document.createDocumentFragment();
+	let typeDiv = document.createElement("div");
+	let targetDiv = document.createElement("div");
+	switch(type) {
+		case "time":
+			typeDiv.textContent = "Steering on time";
+			targetDiv.textContent = `Limits: ${value}`;
+			break;
+		case "pattern":
+			typeDiv.textContent = "Steering on pattern";
+			targetDiv.textContent = `Prefix: ${value}`;
+			break;
+		case "user":
+			typeDiv.textContent = "Steering on user";
+			targetDiv.textContent = `User: ${value}`;
+			break;
+		default:
+	}
+	let patternNumberDiv = document.createElement("div");
+	patternNumberDiv.className = "patternNumber";
+	patternNumberDiv.textContent = `${lastSteeringPatterns.length} patterns found`
+	fragment.appendChild(typeDiv);
+	fragment.appendChild(targetDiv);
+	fragment.appendChild(patternNumberDiv);
+
+	let details = document.getElementById("lastSteeringDetails");
+	details.textContent = "";
+	details.appendChild(fragment);
+}
+
+/**
+ * Updates the display of the last steering details
+ */
+function updateLasteSteeringDetails() {
+	document.querySelector("#lastSteeringDetails .patternNumber")
+		.textContent = `${lastSteeringPatterns.length} patterns found`;
+}
+
+/**
+ * Resets the last steering details
+ */
+function resetLastSteeringDetails() {
+	document.getElementById("lastSteeringDetails")
+		.textContent = "No steering yet";
+}
 
 /**
  * Updates the suggestions of event types to complete the input of the pattern
@@ -5567,6 +5621,7 @@ function handleSteeringStartSignal(type, value) {
 	d3.select("#focus").text(type+" starting with: "+value);
 	algorithmState.startSteering(type, value);
 	lastSteeringPatterns = [];
+	setupLastSteeringDetails(type, value);
 	updatePatternCountDisplay(); // To reset the number of patterns from the last steering
 }
 
