@@ -4053,6 +4053,20 @@ function resetDataFilters() {
 /************************************/
 
 /**
+ * Enables the toggle of the pattern list's live update 
+ */
+function enableLiveUpdateControl() {
+	document.getElementById("liveUpdateButton").disabled = false;
+}
+
+/**
+ * Disables the toggle of the pattern list's live update 
+ */
+function disableLiveUpdateControl() {
+	document.getElementById("liveUpdateButton").disabled = true;
+}
+
+/**
  * Setup the details about the last steering.
  * @param {string} type The type of steering
  * @param {string} value The target of the steering
@@ -5446,6 +5460,9 @@ function updateAlgorithmStateDisplay() {
 function handleAlgorithmStartSignal(msg) {
 	let dateUTC = new Date(msg.time);
 	startAlgorithmRuntime(dateUTC.getTime());
+	enableLiveUpdateControl();
+	if (patternLiveUpdate)
+		d3.select("#liveUpdateIndicator").classed("active", true);
 	algorithmState.start();
 
 	activityHistory.startAlgorithm(algoMinSupport, algoMinGap, algoMaxGap, algoMaxDuration, algoMaxSize);
@@ -5458,6 +5475,9 @@ function handleAlgorithmStartSignal(msg) {
 function handleAlgorithmEndSignal(msg) {
 	let dateUTC = new Date(msg.time);
 	stopAlgorithmRuntime(dateUTC.getTime());
+	disableLiveUpdateControl();
+	if (patternLiveUpdate)
+		d3.select("#liveUpdateIndicator").classed("active", false);
 	algorithmState.stop();
 	updateAlgorithmStateDisplay();
 	

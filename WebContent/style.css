@@ -12,6 +12,10 @@
 http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 */
 
+*:disabled {
+	color: grey;
+}
+
 #debugHelp {
 	display: none;
 	flex-direction: column;
@@ -441,10 +445,6 @@ body {
 	float: right;
 }
 
-.date {
-
-}
-
 .time {
 	color: slategrey;
 	font-size: 90%;
@@ -465,6 +465,10 @@ body {
 
 .clickable {
 	cursor: pointer;
+}
+
+.clickable:disabled {
+	cursor: not-allowed;
 }
 
 .clickableText {
