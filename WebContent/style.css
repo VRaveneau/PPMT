@@ -1006,37 +1006,37 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	padding: 0px;
 }
 
-.switchArea * {
+.switchArea > * {
 	margin: 0px;
 	border: 0px;
 	border: 1px solid black;
 	cursor: pointer;
 }
 
-.switchArea *:not(:first-child) {
+.switchArea > *:not(:first-child) {
 	border: 0px;
 	border: 1px solid black;
 	border-left: 0px;
 }
 
-.switchArea *:first-child {
+.switchArea > *:first-child {
 	border-radius: 5px 0px 0px 5px;
 }
 
-.switchArea *:last-child {
+.switchArea > *:last-child {
 	border-radius: 0px 5px 5px 0px;
 }
 
-.switchArea .selectedOption {
+.switchArea > .selectedOption {
 	background-color: #006992;
 	color: white;
 }
 
-.switchArea :not(.selectedOption) {
+.switchArea > :not(.selectedOption) {
 	background-color: white;
 }
 
-.switchArea :not(.selectedOption):hover {
+.switchArea > :not(.selectedOption):hover {
 	background-color: lightgrey;
 }
 
@@ -1462,10 +1462,18 @@ table {
 	grid-column: liveUpdate-start / liveUpdate-end;
 }
 
-#showOnlyLastSteeringButton {
+#showOnlyLastSteeringOption {
 	grid-row: 1 / -1;
 	grid-column: lastSteering-start / lastSteering-end;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
 }
+
+/*#showOnlyLastSteeringOption > * {
+	align-self: center;
+}*/
 
 #patternPagesIndicator {
 	display: flex;

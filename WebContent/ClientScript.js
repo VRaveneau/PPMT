@@ -2591,10 +2591,14 @@ function toggleShowOnlyLastSteering() {
 	showOnlyLastSteering = !showOnlyLastSteering;
 	if (showOnlyLastSteering) {
 		document.getElementById("showOnlyLastSteeringButton")
-			.textContent = "All patterns";
+			.classList.add("selectedOption");
+		document.getElementById("showAllPatternsButton")
+			.classList.remove("selectedOption");
 	} else {
 		document.getElementById("showOnlyLastSteeringButton")
-			.textContent = "Patterns from last steering";
+			.classList.remove("selectedOption");
+		document.getElementById("showAllPatternsButton")
+			.classList.add("selectedOption");
 	}
 	filterPatterns();
 }
@@ -4261,6 +4265,8 @@ function updatePatternCountDisplay() {
 		.textContent = algorithmState.getTotalPatternNumber();
 	d3.select("#displayedPatternNumberSpan").text(patternIdList.length + filteredOutPatterns.length);
 	d3.select("#updatePatternListButton span").text(availablePatterns.length);
+	document.querySelector("#showOnlyLastSteeringButton span")
+		.textContent = lastSteeringPatterns.length;
 	// TODO dynamically update the number of patterns matching the filter
 	d3.select("#filteredInPatternNumberSpan").text(patternIdList.length);
 }
@@ -5561,6 +5567,7 @@ function handleSteeringStartSignal(type, value) {
 	d3.select("#focus").text(type+" starting with: "+value);
 	algorithmState.startSteering(type, value);
 	lastSteeringPatterns = [];
+	updatePatternCountDisplay(); // To reset the number of patterns from the last steering
 }
 
 /**

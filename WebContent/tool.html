@@ -224,7 +224,8 @@
 								<div id="tl_usersControl" class="param">
 								<span>Show 
 									<span id="showUserSessionsSwitch" class="switchArea">
-										<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button><button type="button" value="some" onclick="showUserSessions('some');">Some users</button></span>
+										<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button><button type="button" value="some" onclick="showUserSessions('some');">Some users</button>
+									</span>
 								</span>
 								<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput" class="fakeBrowserSlider"></span>
 								<span id="drawIndividualEvents" class="hidden">Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
@@ -300,7 +301,13 @@
 						<div id="liveUpdateIndicator" class="active"></div>
 						<button id="liveUpdateButton" onclick="toggleLiveUpdate();" class="clickable">Stop live update</button>
 						<button id="updatePatternListButton" onclick="updatePatternList();" class="invisible clickable">Add <span>0</span> available patterns</button>
-						<button id="showOnlyLastSteeringButton" onclick="toggleShowOnlyLastSteering();" class="clickable">Patterns from last steering</button>
+						<div id="showOnlyLastSteeringOption">
+							Patterns:&nbsp;
+							<span class="switchArea">
+								<button type="button" id="showAllPatternsButton" class="selectedOption" onclick="toggleShowOnlyLastSteering();">All</button><button type="button" id="showOnlyLastSteeringButton" onclick="toggleShowOnlyLastSteering();">From last steering (<span>0</span>)</button>
+							</span>
+							<!--<button id="showOnlyLastSteeringButton" onclick="toggleShowOnlyLastSteering();" class="clickable">Patterns from last steering</button>-->
+						</div>
 					</div>
 					<div id="patternListArea" class="body">
 						<div id="Algorithm" class="subsection">
