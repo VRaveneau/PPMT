@@ -994,6 +994,15 @@ public class Dataset {
 		
 		removeEvents(eventsToDelete);
 		modifs.setRemovedIds(eventIdToDelete);
+		
+		// Remove occurrences if requested in the options
+		JsonArray typesToRemove = options.getJsonArray("removeOccurrences"); 
+		if (typesToRemove.size() > 0) {
+			TraceModification mods = removeEventTypes(typesToRemove, session);
+			modifs.addRemovedIds(mods.getRemovedIds());
+		}
+		
+		System.out.println("Options applied");
 
 		System.out.println("Event type creation done");
 		
