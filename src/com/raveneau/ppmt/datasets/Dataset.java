@@ -339,6 +339,18 @@ public class Dataset {
 		nextEventTypeCode++;
 	}
 	
+	private void addEventType(String eventType, String description) {
+		addEventType(eventType);
+		
+		if (description.trim().length() == 0) {
+			description = "???";
+		} else {
+			description = description.trim();
+		}
+		
+		parameters.addEventDescription(eventType, description);
+	}
+	
 	/**
 	 * Creates a new event and returns it
 	 * @param evtType
@@ -585,10 +597,7 @@ public class Dataset {
 			if (desc.containsKey(eventsReadable.get(i))) {
 				infos.put("description", desc.get(eventsReadable.get(i)).replaceAll("\"", ""));
 			} else {
-				if (eventsReadable.get(i).split("-").length > 1)
-					infos.put("description", "Created from "+eventsReadable.get(i).replace("-", " "));
-				else
-					infos.put("description", "???");
+				infos.put("description", "???");
 			}
 			//	The event type category
 			Map<String, List<String>> categories = parameters.getEventByCategories();
@@ -968,7 +977,8 @@ public class Dataset {
 				newEventType+=item;
 			}
 		}
-		addEventType(newEventType);
+		String description = options.getString("description");
+		addEventType(newEventType, description);
 		
 		for (Occurrence occ : occs) {
 			int[] evtIds = occ.getEventIds();

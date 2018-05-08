@@ -4154,6 +4154,8 @@ function askConfirmationToCreateEventType(patternId) {
 
 	let newName = patternsInformation[patternId][0].replace(" ", "-");
 	document.getElementById("newEventTypeNameInput").value = newName;
+	let description = `Created from '${patternsInformation[patternId][0]}'`;
+	document.getElementById("newEventTypeDescriptionInput").value = description;
 
 
 	d3.selectAll(".eventCreationOption").remove();
@@ -4161,8 +4163,8 @@ function askConfirmationToCreateEventType(patternId) {
 	let body = d3.select("#createEventTypeConfirmation .contentBody");
 	patternsInformation[patternId][3].forEach( type => {
 		body.append("div")
-			.classed("eventCreationOption", true)
-			.text(`Remove all occurrences of ${type}:`);
+			.classed("eventCreationOption textRight", true)
+			.text(type);
 		body.append("input")
 			.attr("type", "checkbox")
 			.classed("eventCreationOption clickable", true)
@@ -4172,6 +4174,7 @@ function askConfirmationToCreateEventType(patternId) {
 	d3.select("#createEventTypeConfirmation .confirmationConfirm")
 		.on("click", function() {
 			let name = document.getElementById("newEventTypeNameInput").value;
+			let description = document.getElementById("newEventTypeDescriptionInput").value;
 			let typesToRemove = [];
 			document.querySelectorAll(".eventCreationOption[type='checkbox']").forEach( d => {
 				if (d.checked)
@@ -4179,7 +4182,8 @@ function askConfirmationToCreateEventType(patternId) {
 			});
 
 			let options = {
-				removeOccurrences: typesToRemove
+				removeOccurrences: typesToRemove,
+				description: description
 			};
 			requestEventTypeCreationFromPattern(patternId, name, options);
 			closeModal();

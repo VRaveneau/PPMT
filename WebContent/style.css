@@ -986,6 +986,10 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
     content: " \25B4\25BE" 
 }
 
+.fullSpan {
+	grid-column: 1 / -1;
+}
+
 .hidden {
 	display: none;	
 }
@@ -1222,9 +1226,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	font-size: 15px;
 }
 
-.leftAligned {
-	float: left;
-	margin-right: 10px;
+.textLeft {
+	text-align: left;
+}
+
+.textRight {
+	text-align: right;
 }
 
 .lastItem {
