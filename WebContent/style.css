@@ -1950,7 +1950,9 @@ table {
 		[content-end] 20px
 		[main-end];
 	grid-template-rows:
-		[main-start] 10px 
+		[main-start] 10px
+		[warning-start] max-content 
+		[warning-end] 10px
 		[content-header-start] max-content 
 		[content-header-end] 10px
 		[content-body-start] max-content
@@ -1958,6 +1960,13 @@ table {
 		[buttons-start] 20px
 		[buttons-end] 10px
 		[main-end];
+}
+
+.confirmationWarning {
+	grid-column: main;
+	grid-row: warning;
+	text-align: center;
+	color: red;
 }
 
 .contentHeader {

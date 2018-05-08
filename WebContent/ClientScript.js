@@ -6085,30 +6085,45 @@ function closeModal() {
 	d3.selectAll(".actionConfirmation").classed("hidden", true);
 }
 
+/**
+ * Shows the modal window in 'action confirmation' mode
+ */
 function showConfirmationModal() {
 	d3.select("#modalBackground").classed("hidden", false);
 	//d3.select("#modalTitle").text("Action confirmation");
 	d3.select("#algorithmExtended").classed("hidden", true);
 }
 
+/**
+ * Shows the modal window for confirming the removal of an event type
+ */
 function showEventTypeRemovalConfirmation() {
 	showConfirmationModal();
 	d3.select("#removeEventTypeConfirmation").classed("hidden", false);
 	d3.select("#removeEventTypeConfirmation .confirmationCancel").node().focus();
 }
 
+/**
+ * Shows the modal window for confirming the removal of a user
+ */
 function showUserRemovalConfirmation() {
 	showConfirmationModal();
 	d3.select("#removeUserConfirmation").classed("hidden", false);
 	d3.select("#removeUserConfirmation .confirmationCancel").node().focus();
 }
 
+/**
+ * Shows the modal window for confirming the modification of parameters
+ */
 function showParameterChangeConfirmation() {
 	showConfirmationModal();
 	d3.select("#changeParametersConfirmation").classed("hidden", false);
 	d3.select("#changeParametersConfirmation .confirmationCancel").node().focus();
 }
 
+/**
+ * Shows the modal window for confirming the creation of an event type
+ */
 function showEventTypeCreationConfirmation() {
 	showConfirmationModal();
 	d3.select("#createEventTypeConfirmation").classed("hidden", false);
