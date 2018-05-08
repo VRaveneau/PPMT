@@ -458,11 +458,38 @@
 								</div>
 							</div>
 						</div>
-						<div id="actionConfirmation" class="section hidden">
-							<div id="contentHeader"></div>
-							<div id="contentBody"></div>
-							<button id="confirmationCancel" onclick="closeModal();" class="clickable">Cancel</button>
-							<button id="confirmationConfirm" class="clickable">Confirm</button>
+						<div id="removeEventTypeConfirmation" class="actionConfirmation section hidden">
+							<div class="contentHeader">
+								Confirm the removal of all events of the following types :
+							</div>
+							<div class="contentBody"></div>
+							<button class="confirmationCancel clickable" onclick="closeModal();">Cancel</button>
+							<button class="confirmationConfirm clickable">Confirm</button>
+						</div>
+						<div id="removeUserConfirmation" class="actionConfirmation section hidden">
+							<div class="contentHeader">
+								Confirm the removal of all events of the following users :
+							</div>
+							<div class="contentBody"></div>
+							<button class="confirmationCancel clickable" onclick="closeModal();">Cancel</button>
+							<button class="confirmationConfirm clickable">Confirm</button>
+						</div>
+						<div id="changeParametersConfirmation" class="actionConfirmation section hidden">
+							<div class="contentHeader">
+								Do you confirm the following changes :
+							</div>
+							<div class="contentBody"></div>
+							<button class="confirmationCancel clickable" onclick="toggleExtendedAlgorithmView();">Cancel</button>
+							<button class="confirmationConfirm clickable">Confirm</button>
+						</div>
+						<div id="createEventTypeConfirmation" class="actionConfirmation section hidden">
+							<div class="contentHeader">Pattern used: <span id="newEventTypePattern"></span></div>
+							<div class="contentBody">
+								<div>Name of the new type:</div>
+								<input id="newEventTypeNameInput" type="text">
+							</div>
+							<button class="confirmationCancel clickable" onclick="closeModal();">Cancel</button>
+							<button class="confirmationConfirm clickable">Confirm</button>
 						</div>
 					</div>
 				</div>

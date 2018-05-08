@@ -950,7 +950,7 @@ public class Dataset {
 		patternManagers.remove(session);
 	}
 	
-	public TraceModification createEventTypeFromPattern(int patternId, Session session) {
+	public TraceModification createEventTypeFromPattern(int patternId, String newName, JsonObject options, Session session) {
 		System.out.println("Event type creation started");
 		List<Integer> eventIdToDelete = new ArrayList<>();
 		List<Event> eventsToDelete = new ArrayList<>();
@@ -959,11 +959,14 @@ public class Dataset {
 		Pattern p = pm.getPattern(patternId);
 		List<Occurrence> occs = p.getOccurrences();
 		
-		String newEventType = "";
-		for(String item : p.getReadableItems()) {
-			if (newEventType.length() > 0)
-				newEventType += "-";
-			newEventType+=item;
+		String newEventType = newName.trim();
+		// Construct a name from the events if the given one is empty
+		if (newEventType.length() == 0) {
+			for(String item : p.getReadableItems()) {
+				if (newEventType.length() > 0)
+					newEventType += "-";
+				newEventType+=item;
+			}
 		}
 		addEventType(newEventType);
 		

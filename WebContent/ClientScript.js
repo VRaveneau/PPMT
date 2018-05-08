@@ -2275,16 +2275,20 @@ function requestSteeringOnTime(start, end) {
 /**
  * Requests an alteration of the dataset by creating a new event type from
  * a pattern
- * @param {number} patternId - Id of the pattern
- * @param {string} eventType - The name of the new event type - Not yet implemented
+ * @param {number} patternId Id of the pattern
+ * @param {string} eventTypeName The name of the new event type
+ * @param {{removeOccurrences: [string]}} options Options for the type creation
+ * @param {[string]} options.removeOccurrences Name of event types to remove after the creation
  */
-function requestEventTypeCreationFromPattern(patternId) {
+function requestEventTypeCreationFromPattern(patternId, eventTypeName, options) {
 	console.log('requesting the creation of event type '+
 		' from pattern '+ patternId);
 	let action = {
 			action: "alterDataset",
 			alteration: "createEventTypeFromPattern",
-			patternId: patternId
+			patternId: patternId,
+			typeName: eventTypeName,
+			options: options
 	};
 	sendToServer(action);
 }
@@ -3974,7 +3978,7 @@ function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
 	eventTypeInformations[typeInfo.name].code = eCode;
 
 	updateEventTypesInformations();
-	activityHistory.createEventType(newEvents[0].type, typeInfo.name.replace("-"," "));
+	activityHistory.createEventType(newEvents[0].type, typeInfo.parent);
 }
 
 /**
@@ -4138,26 +4142,66 @@ function updateRestartButtonStyle() {
 }
 
 /**
+ * Opens a modal window to confirm or cancel the creation of an event type from a pattern
+ * @param {number} patternId The id of the pattern used
+ */
+function askConfirmationToCreateEventType(patternId) {
+	showEventTypeCreationConfirmation();
+	d3.select("#modalTitle")
+		.text("Confirm the creation of event type");
+
+	document.getElementById("newEventTypePattern").textContent = patternsInformation[patternId][0];
+
+	let newName = patternsInformation[patternId][0].replace(" ", "-");
+	document.getElementById("newEventTypeNameInput").value = newName;
+
+
+	d3.selectAll(".eventCreationOption").remove();
+
+	let body = d3.select("#createEventTypeConfirmation .contentBody");
+	patternsInformation[patternId][3].forEach( type => {
+		body.append("div")
+			.classed("eventCreationOption", true)
+			.text(`Remove all occurrences of ${type}:`);
+		body.append("input")
+			.attr("type", "checkbox")
+			.classed("eventCreationOption clickable", true)
+			.attr("value", type);
+	});
+
+	d3.select("#createEventTypeConfirmation .confirmationConfirm")
+		.on("click", function() {
+			let name = document.getElementById("newEventTypeNameInput").value;
+			let typesToRemove = [];
+			document.querySelectorAll(".eventCreationOption[type='checkbox']").forEach( d => {
+				if (d.checked)
+					typesToRemove.push(d.value);
+			});
+
+			let options = {
+				removeOccurrences: typesToRemove
+			};
+			requestEventTypeCreationFromPattern(patternId, name, options);
+			closeModal();
+		});
+}
+
+/**
  * Opens a modal window to confirm or cancel the change of parameters for the algorithm
  */
 function askConfirmationToChangeAlgorithmParameters() {
-	showConfirmationModal();
+	useExtendedAlgorithmView = false;
+	showParameterChangeConfirmation();
 	d3.select("#modalTitle")
 		.text("Confirm the parameters change");
-	d3.select("#actionConfirmation #contentHeader")
-		.text("Do you confirm the following changes :");
-	d3.select("#actionConfirmation #contentBody")
+	d3.select("#changeParametersConfirmation .contentBody")
 		.text("param changes ...");
 		// Add a warning that it will relaunch the process
-	d3.select("#confirmationConfirm")
+	d3.select("#changeParametersConfirmation .confirmationConfirm")
 		.on("click", function() {
 			changeAlgorithmParameters();
 			requestAlgorithmReStart();
 			closeModal();
-		});
-	d3.select("#confirmationCancel")
-		.on("click", function() {
-			toggleExtendedAlgorithmView();
 		});
 }
 
@@ -4166,24 +4210,18 @@ function askConfirmationToChangeAlgorithmParameters() {
  * @param {...string} eventTypeNames The name of event types whose removal must be confirmed
  */
 function askConfirmationToRemoveEventTypes(...eventTypeNames) {
-	showConfirmationModal();
+	showEventTypeRemovalConfirmation();
 	d3.select("#modalTitle")
 		.text("Confirm event type removal");
-	d3.select("#actionConfirmation #contentHeader")
-		.text("Confirm the removal of all events of the following types :");
-	let contentArea = d3.select("#actionConfirmation #contentBody")
+	let contentArea = d3.select("#removeEventTypeConfirmation .contentBody")
 		.text("");
 	eventTypeNames.forEach( (typeName) => {
 		contentArea.append("div")
 			.text(typeName);
 	});
-	d3.select("#confirmationConfirm")
+	d3.select("#removeEventTypeConfirmation .confirmationConfirm")
 		.on("click", function() {
 			requestEventTypesRemoval(eventTypeNames);
-			closeModal();
-		});
-	d3.select("#confirmationCancel")
-		.on("click", function() {
 			closeModal();
 		});
 }
@@ -4193,24 +4231,18 @@ function askConfirmationToRemoveEventTypes(...eventTypeNames) {
  * @param {...string} userNames The name of users whose removal must be confirmed
  */
 function askConfirmationToRemoveUsers(...userNames) {
-	showConfirmationModal();
+	showUserRemovalConfirmation();
 	d3.select("#modalTitle")
 		.text("Confirm user removal");
-	d3.select("#actionConfirmation #contentHeader")
-		.text("Confirm the removal of all events of the following users :");
-	let contentArea = d3.select("#actionConfirmation #contentBody")
+	let contentArea = d3.select("#removeUserConfirmation .contentBody")
 		.text("");
 	userNames.forEach( (userName) => {
 		contentArea.append("div")
 			.text(userName);
 	});
-	d3.select("#confirmationConfirm")
+	d3.select("#removeUserConfirmation .confirmationConfirm")
 		.on("click", function() {
 			requestUsersRemoval(userNames);
-			closeModal();
-		});
-	d3.select("#confirmationCancel")
-		.on("click", function() {
 			closeModal();
 		});
 }
@@ -5723,7 +5755,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.attr("title", "Convert to event type")
 		.on("click", function() {
 			d3.event.stopPropagation();
-			requestEventTypeCreationFromPattern(pId);
+			askConfirmationToCreateEventType(pId);
 		});
 	
 	return row;
@@ -6027,6 +6059,7 @@ function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
 		d3.select("#algorithmExtended").classed("hidden", false);
+		d3.select("#changeParametersConfirmation").classed("hidden", true);
 		d3.select("#modalTitle").text("Information about the pattern mining algorithm");
 		d3.select("#modalBackground").classed("hidden", false);
 		
@@ -6045,15 +6078,37 @@ function closeModal() {
 		toggleExtendedAlgorithmView();
 	d3.select("#modalBackground").classed("hidden", true);
 	d3.select("#modalTitle").text("");
-	d3.select("#actionConfirmation").classed("hidden", true);
+	d3.selectAll(".actionConfirmation").classed("hidden", true);
 }
 
 function showConfirmationModal() {
 	d3.select("#modalBackground").classed("hidden", false);
-	d3.select("#modalTitle").text("Action confirmation");
+	//d3.select("#modalTitle").text("Action confirmation");
 	d3.select("#algorithmExtended").classed("hidden", true);
-	d3.select("#actionConfirmation").classed("hidden", false);
-	document.getElementById("confirmationCancel").focus();
+}
+
+function showEventTypeRemovalConfirmation() {
+	showConfirmationModal();
+	d3.select("#removeEventTypeConfirmation").classed("hidden", false);
+	d3.select("#removeEventTypeConfirmation .confirmationCancel").node().focus();
+}
+
+function showUserRemovalConfirmation() {
+	showConfirmationModal();
+	d3.select("#removeUserConfirmation").classed("hidden", false);
+	d3.select("#removeUserConfirmation .confirmationCancel").node().focus();
+}
+
+function showParameterChangeConfirmation() {
+	showConfirmationModal();
+	d3.select("#changeParametersConfirmation").classed("hidden", false);
+	d3.select("#changeParametersConfirmation .confirmationCancel").node().focus();
+}
+
+function showEventTypeCreationConfirmation() {
+	showConfirmationModal();
+	d3.select("#createEventTypeConfirmation").classed("hidden", false);
+	d3.select("#createEventTypeConfirmation .confirmationCancel").node().focus();
 }
 
 /************************************/

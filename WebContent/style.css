@@ -1920,8 +1920,9 @@ table {
 /* 	Action confirmation modal 	*/
 /********************************/
 
-#actionConfirmation {
+.actionConfirmation {
 	grid-column: modal-left / modal-right;
+	grid-row: content-top / modal-bottom;
 	padding: 0px;
 	flex-direction: column;
 	justify-content: space-around;
@@ -1930,14 +1931,16 @@ table {
 	align-self: center;
 }
 
-#actionConfirmation:not(.hidden) {
+.actionConfirmation:not(.hidden) {
 	display: grid;
 	grid-template-columns:
-		[main-start] 1fr
-		[cancel-start] 1fr
+		[main-start] 20px
+		[content-start] 1fr
+		[cancel-start] 120px
 		[cancel-end] 1fr
-		[confirm-start] 1fr
+		[confirm-start] 120px
 		[confirm-end] 1fr
+		[content-end] 20px
 		[main-end];
 	grid-template-rows:
 		[main-start] 10px 
@@ -1950,27 +1953,35 @@ table {
 		[main-end];
 }
 
-#contentHeader {
+.contentHeader {
 	grid-column: main;
 	grid-row: content-header;
 	text-align: center;
 }
 
-#contentBody {
-	grid-column: cancel-start / confirm-end;
+.contentBody {
+	grid-column: content-start / content-end;
 	grid-row: content-body;
 	text-align: center;
 }
 
-#confirmationCancel {
+.confirmationCancel {
 	grid-column: cancel;
 	grid-row: buttons;
 }
 
-#confirmationConfirm {
+.confirmationConfirm {
 	grid-column: confirm;
 	grid-row: buttons;
 }
+
+#createEventTypeConfirmation .contentBody {
+	display: grid;
+	grid-template-columns:
+		max-content minmax(max-content, 1fr);
+	grid-gap: 10px;
+}
+
 /*
 #actionConfirmation div {
 	display: flex;
