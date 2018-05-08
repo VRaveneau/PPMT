@@ -990,6 +990,14 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	grid-column: 1 / -1;
 }
 
+.invisible {
+	opacity: 0;
+}
+
+.visible {
+	opacity: 1;
+}
+
 .hidden {
 	display: none;	
 }
@@ -1191,12 +1199,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 #liveUpdateIndicator {
 	content: '';
-	min-width: 30px;
-	min-height: 30px;
+	min-width: 25px;
+	min-height: 25px;
 	align-self: center;
 
 	border-radius: 50%;
-	background-color: red;
+	background-color: grey;
 
 	grid-row: 1 / -1;
 	grid-column: indicator-start / indicator-end;

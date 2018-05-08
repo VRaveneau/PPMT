@@ -854,7 +854,7 @@ function toggleLiveUpdate() {
 		patternLiveUpdate = false;
 		document.getElementById("liveUpdateButton").textContent = "Resume live update";
 		d3.select("#liveUpdateIndicator").classed("active", false);
-		d3.select("#updatePatternListButton").classed("hidden", false);
+		d3.select("#updatePatternListButton").classed("invisible", false);
 	} else {
 		// Complete the list with available patterns
 		updatePatternList();
@@ -862,7 +862,7 @@ function toggleLiveUpdate() {
 		patternLiveUpdate = true;
 		document.getElementById("liveUpdateButton").textContent = "Pause live update";
 		d3.select("#liveUpdateIndicator").classed("active", true);
-		d3.select("#updatePatternListButton").classed("hidden", true);
+		d3.select("#updatePatternListButton").classed("invisible", true);
 	}
 }
 
