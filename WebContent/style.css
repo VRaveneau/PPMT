@@ -2350,6 +2350,16 @@ tr:hover .eventTypeDescription {
 	stroke-width: 2px;
 }
 
+.sliderArea {
+	fill: black;
+	fill-opacity: 0.3;
+}
+
+.sliderBlueArea {
+	fill: #04B7FB;
+	fill-opacity: 1;
+}
+
 .bluetrack {
   stroke: #04B7FB;
   stroke-width: 2px;

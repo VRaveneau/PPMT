@@ -350,7 +350,10 @@ var lastSteeringPatterns = [];
 // The list of patterns waiting to be integrated into the list
 var availablePatterns = [];
 // Known metrics on the patterns
-var patternMetrics = {"sizeDistribution":{}};
+var patternMetrics = {
+	"sizeDistribution": {},
+	"supportDistribution": {}
+};
 
 // The occurrences for each pattern
 var patternOccurrences = {};
@@ -1538,7 +1541,7 @@ function setupAlgorithmSliders() {
  */
 function setupAlgorithmSupportSlider() {
 	// Using the custom made slider
-	supportSlider = new FilterSlider("sliderSupport", debouncedFilterPatterns);
+	supportSlider = new FilterSlider("sliderSupport", debouncedFilterPatterns, "supportDistribution");
 	
 	// Using noUiSlider
 	/*supportSlider = document.getElementById("sliderSupport");
@@ -1604,7 +1607,7 @@ function setupAlgorithmWindowSizeSlider() {
  * Setup the slider controling the 'max size' parameter of the algorithm
  */
 function setupAlgorithmMaximumSizeSlider() {
-	sizeSlider = new FilterSlider("sliderSize", debouncedFilterPatterns);
+	sizeSlider = new FilterSlider("sliderSize", debouncedFilterPatterns, "sizeDistribution");
 	
 	/*sizeSlider = document.getElementById("sliderSize");
 	noUiSlider.create(sizeSlider, {
@@ -3816,6 +3819,14 @@ function addPatternToList(message) {
 	
 	// Update the relevant metrics
 	patternMetrics["sizeDistribution"][pSize]++;
+	if (patternMetrics["supportDistribution"][pSupport]) {
+		patternMetrics["supportDistribution"][pSupport]++;
+	} else {
+		patternMetrics["supportDistribution"][pSupport] = 1;
+	}
+
+	supportSlider.draw();
+	sizeSlider.draw();
 
 	let properPatternSearchInput = currentPatternSearchInput.split(" ")
 		.filter( d => d.length > 0 ).join(" ");
@@ -3891,6 +3902,7 @@ function resetPatterns() {
 	selectedPatternIds = [];
 	// TODO Deal with the potential other pattern metrics in patternMetrics
 	patternMetrics.sizeDistribution = {};
+	patternMetrics.supportDistribution = {};
 	patternsPerSecondChart.reset();
 	candidatesCheckedPerSecondChart.reset();
 	resetMaxPatternSupport();
@@ -6736,8 +6748,9 @@ function PatternSizesChart() {
  * @constructor
  * @param {string} elemId Id of the HTML node where the slider will be created
  * @param {function} onupdate Callback used when one of the brushes' value changes
+ * @param {string} metricName Field of patternMetrics whe the data is located
  */
-function FilterSlider(elemId, onupdate) {
+function FilterSlider(elemId, onupdate, metricName) {
 	let self = this;
 	self.parentNodeId = elemId;
 	self.parentNode = d3.select("#"+self.parentNodeId);
@@ -6760,59 +6773,90 @@ function FilterSlider(elemId, onupdate) {
 	self.currentHandleMaxValue = self.currentMaxValue;
 	
 	self.onupdate = (onupdate ? onupdate : function(f){return;});
+	self.metricName = metricName;
+	self.areaData = [];
 
-	self.axis = d3.scaleLinear()
+	self.axisX = d3.scaleLinear()
 		.domain(self.domain)
 		.range([0,self.width])
 		.clamp(true);
+	self.axisY = d3.scaleLinear()
+		.domain([0, 10])
+		.range([self.height/2, 0]);
 	
 	self.slider = self.svg.append("g")
 		.attr("class","slider")
 		.attr("transform","translate("+self.margin.left+","+ self.height / 2 +")");
 	
+	self.area = d3.area()
+		.curve(d3.curveStep)
+		.x( d => self.axisX(d.key) )
+		.y0(self.axisY(0))
+		.y1( d => self.axisY(d.value) );
+
 	self.line = self.slider.append("line")
 		.attr("class","track")
-		.attr("x1",self.axis.range()[0])
-		.attr("x2",self.axis.range()[1])
+		.attr("x1",self.axisX.range()[0])
+		.attr("x2",self.axisX.range()[1])
 		.attr("stroke", "black");
 	
+	self.areaG = self.slider.append("path")
+		.attr("class", "sliderArea")
+		.attr("transform", `translate(0,${-(self.height/2 + 1)})`);
+
+	self.clipPath = self.slider.append("defs")
+		.append("clipPath")
+		.attr("id", `selection-clip-${self.parentNodeId}`)
+		.append("rect")
+		.attr("x", self.axisX(self.currentHandleMinValue - 0.5))
+		.attr("y", 0)
+		.attr("height", self.height/2 + 1)
+		.attr("width", self.axisX(self.currentHandleMaxValue + 0.5) - self.axisX(self.currentHandleMinValue - 0.5));
+		//.attr("transform", `translate(0,${-(self.height/2 + 1)})`);
+	
+	self.blueAreaG = self.slider.append("g")
+		.attr("clip-path", `url(#selection-clip-${self.parentNodeId})`)
+		.attr("transform", `translate(0,${-(self.height/2 + 1)})`)
+		.append("path")
+		.attr("class", "sliderBlueArea");
+
 	self.blueLine = self.slider.append("line")
 		.attr("class","bluetrack")
-		.attr("x1",self.axis(self.currentHandleMinValue))
-		.attr("x2",self.axis(self.currentHandleMaxValue))
+		.attr("x1",self.axisX(self.currentHandleMinValue))
+		.attr("x2",self.axisX(self.currentHandleMaxValue))
 		.attr("stroke", "lightblue");
 	
 	self.handle1 = self.slider.insert("circle", ".track-overlay")
 		.attr("class","handleSlider")
 		.attr("r",5)
-		.attr("cx",self.axis(self.currentMinValue))
+		.attr("cx",self.axisX(self.currentMinValue))
 		.call(d3.drag()
 				.on("start.interrupt", function() { self.slider.interrupt(); })
 				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
+					var roundedPos = Math.round(self.axisX.invert(d3.event.x));
 					self.moveHandle1To(roundedPos);
 					}));
 	
 	self.handle2 = self.slider.insert("circle", ".track-overlay")
 		.attr("class","handleSlider")
 		.attr("r",5)
-		.attr("cx",self.axis(self.currentMaxValue))
+		.attr("cx",self.axisX(self.currentMaxValue))
 		.call(d3.drag()
 				.on("start.interrupt", function() { self.slider.interrupt(); })
 				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
+					var roundedPos = Math.round(self.axisX.invert(d3.event.x));
 					self.moveHandle2To(roundedPos);
 					}));
 
 	self.tooltipMin = self.slider.insert("text", ".track-overlay")
 		.attr("class","handleSliderText")
-		.attr("x", self.axis(self.currentHandleMinValue))
+		.attr("x", self.axisX(self.currentHandleMinValue))
 		.attr("text-anchor","middle")
 		.attr("transform", "translate(0,-"+10+")")
 		.text(self.currentHandleMinValue);
 	self.tooltipMax = self.slider.insert("text", ".track-overlay")
 		.attr("class","handleSliderText")
-		.attr("x", self.axis(self.currentHandleMaxValue))
+		.attr("x", self.axisX(self.currentHandleMaxValue))
 		.attr("text-anchor","middle")
 		.attr("transform", "translate(0,-"+10+")")
 		.text(self.currentHandleMaxValue);
@@ -6821,22 +6865,25 @@ function FilterSlider(elemId, onupdate) {
 	self.updateCurrentValues = function(min, max) {
 		self.currentMinValue = min;
 		self.currentMaxValue = max;
-		self.handle1.attr("cx",self.axis(self.current))
+		self.handle1.attr("cx",self.axisX(self.current))
 	};
 	
 	self.moveHandle1To = function(value) {
 		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle1.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle2.attr("cx"));	
+			self.handle1.attr("cx",self.axisX(Math.round(value)));
+			var otherValue = self.axisX.invert(self.handle2.attr("cx"));	
 			self.currentHandleMinValue = Math.min(value, otherValue);
 			self.currentHandleMaxValue = Math.max(value, otherValue);
 	
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-			self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
+			self.blueLine.attr("x1",self.axisX(self.currentHandleMinValue))
+				.attr("x2",self.axisX(self.currentHandleMaxValue));
+			self.tooltipMin.attr("x", self.axisX(self.currentHandleMinValue))
 				.text(Math.round(self.currentHandleMinValue));
-			self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
+			self.tooltipMax.attr("x", self.axisX(self.currentHandleMaxValue))
 				.text(Math.round(self.currentHandleMaxValue));
+
+			self.clipPath.attr("x", self.axisX(self.currentHandleMinValue - 0.5))
+				.attr("width", self.axisX(self.currentHandleMaxValue + 0.5) - self.axisX(self.currentHandleMinValue - 0.5));
 		}
 		
 		self.onupdate();
@@ -6847,22 +6894,56 @@ function FilterSlider(elemId, onupdate) {
 	
 	self.moveHandle2To = function(value) {
 		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle2.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
+			self.handle2.attr("cx",self.axisX(Math.round(value)));
+			var otherValue = self.axisX.invert(self.handle1.attr("cx"));	
 			self.currentHandleMinValue = Math.min(value, otherValue);
 			self.currentHandleMaxValue = Math.max(value, otherValue);
 	
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-			self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
+			self.blueLine.attr("x1",self.axisX(self.currentHandleMinValue))
+				.attr("x2",self.axisX(self.currentHandleMaxValue));
+			self.tooltipMin.attr("x", self.axisX(self.currentHandleMinValue))
 				.text(Math.round(self.currentHandleMinValue));
-			self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
+			self.tooltipMax.attr("x", self.axisX(self.currentHandleMaxValue))
 				.text(Math.round(self.currentHandleMaxValue));
+				
+			self.clipPath.attr("x", self.axisX(self.currentHandleMinValue - 0.5))
+				.attr("width", self.axisX(self.currentHandleMaxValue + 0.5) - self.axisX(self.currentHandleMinValue - 0.5));
 		}
 		
 		self.onupdate();
 		/*self.blueLine.attr("x1",)
 			.attr("x2",self.axis(Math.round(value)));*/
+	};
+
+	self.draw = function() {
+		self.axisY.domain([0, d3.max(Object.values(patternMetrics[self.metricName]))]);
+		self.areaData = Object.entries(patternMetrics[self.metricName])
+			.map( d => ({key: parseInt(d[0]), value: d[1]}) );
+		// Add important values such as min and max, and maybe 0s between ?
+		let toAdd = [];
+		let actualData = Object.keys(patternMetrics[self.metricName])
+			.map( d => parseInt(d) );
+		self.areaData.forEach( d => {
+			let keyVal = parseInt(d.key);
+			if (!actualData.includes(keyVal-1)) {
+				toAdd.push({key: keyVal-1, value: 0});
+			}
+			if (!actualData.includes(keyVal+1)) {
+				toAdd.push({key: keyVal+1, value: 0});
+			}
+		});
+		self.areaData = _.concat(self.areaData, toAdd);
+		self.areaData = _.sortBy(self.areaData, ['key']);
+
+		self.clipPath.attr("x", self.axisX(self.currentHandleMinValue - 0.5))
+			.attr("width", self.axisX(self.currentHandleMaxValue + 0.5) - self.axisX(self.currentHandleMinValue - 0.5));
+
+		self.slider.select(".sliderArea")
+			.datum(self.areaData)
+			.attr("d", self.area);
+		self.slider.select(".sliderBlueArea")
+			.datum(self.areaData)
+			.attr("d", self.area);
 	};
 
 	self.getSelectedRange = function() {
@@ -6889,16 +6970,16 @@ function FilterSlider(elemId, onupdate) {
 			self.currentHandleMaxValue = self.currentMaxValue;
 		else
 			self.currentHandleMaxValue = Math.max(self.currentMinValue, self.currentHandleMaxValue);
-		self.axis.domain(self.domain);
-		self.line.attr("x1",self.axis.range()[0])
-			.attr("x2",self.axis.range()[1]);
-		self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-			.attr("x2",self.axis(self.currentHandleMaxValue));
-		self.handle1.attr("cx",self.axis(self.currentHandleMinValue));
-		self.handle2.attr("cx",self.axis(self.currentHandleMaxValue));
-		self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
+		self.axisX.domain(self.domain);
+		self.line.attr("x1",self.axisX.range()[0])
+			.attr("x2",self.axisX.range()[1]);
+		self.blueLine.attr("x1",self.axisX(self.currentHandleMinValue))
+			.attr("x2",self.axisX(self.currentHandleMaxValue));
+		self.handle1.attr("cx",self.axisX(self.currentHandleMinValue));
+		self.handle2.attr("cx",self.axisX(self.currentHandleMaxValue));
+		self.tooltipMin.attr("x", self.axisX(self.currentHandleMinValue))
 			.text(self.currentHandleMinValue);
-		self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
+		self.tooltipMax.attr("x", self.axisX(self.currentHandleMaxValue))
 			.text(self.currentHandleMaxValue);
 		
 		self.onupdate();
