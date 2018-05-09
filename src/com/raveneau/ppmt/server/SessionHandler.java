@@ -180,7 +180,19 @@ public class SessionHandler {
 				.add("object", "dataset")
 				.add("dataset", datasetName)
 				.add("answer", answer);
+		
+		if ("valid".equals(answer)) {
+			loadDataset(session, datasetName);
+			dataMessage.add("datasetToken", generateDatasetToken(session));
+		}
 		clientHandlers.get(session).sendMessage(dataMessage.build());
+	}
+	
+	private String generateDatasetToken(Session session) {
+		Dataset ds = clientHandlers.get(session).getDataset();
+		String token = String.valueOf(session.hashCode());
+		datasetManager.addDatasetToken(ds, token);
+		return token;
 	}
 	
 	public void profileDatasetSize(Session session) {
