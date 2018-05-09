@@ -2,7 +2,10 @@ package com.raveneau.ppmt.datasets;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import javax.websocket.Session;
 
 import com.raveneau.ppmt.events.Event;
@@ -15,6 +18,7 @@ public class DatasetManager {
 	private List<String> datasetNames = null;
 	private String datasetFolderPath = Messages.getString("DatasetManager.datasetFolderPath"); //$NON-NLS-1$
 	private File datasetFolder = null;
+	private Map<String, Dataset> sessionTokens = new HashMap<>();
 
 	private DatasetManager() {
 		this.datasets = new ArrayList<>();
@@ -116,6 +120,21 @@ public class DatasetManager {
 	
 	public String getDatasetName(String datasetName) {
 		return getDataset(datasetName).getName();
+	}
+	
+	public Dataset getDatasetFromToken(String token) {
+		Dataset result = sessionTokens.get(token);
+		System.out.println("Dataset: "+result.getFirstEvent());
+		return result;
+	}
+	
+	public void addDatasetToken(Dataset ds, String token) {
+		sessionTokens.put(token, ds);
+		System.out.println("Token "+token+" for ds "+ds.getFirstEvent());
+	}
+	
+	public void removeToken(String token) {
+		sessionTokens.remove(token);
 	}
 	
 	public List<Dataset> getDatasetList() {

@@ -9,14 +9,35 @@
 	</session-config>
 	
 	<servlet>
-		<servlet-name>Servlet</servlet-name>
-		<servlet-class>com.raveneau.ppmt.server.Servlet</servlet-class>
+		<servlet-name>DatasetListProvider</servlet-name>
+		<servlet-class>com.raveneau.ppmt.server.DatasetListProvider</servlet-class>
+		
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	
+	<servlet>
+		<servlet-name>DatasetProvider</servlet-name>
+		<servlet-class>com.raveneau.ppmt.server.DatasetProvider</servlet-class>
 		
 		<load-on-startup>1</load-on-startup>
 	</servlet>
 	
 	<servlet-mapping>
-		<servlet-name>Servlet</servlet-name>
+		<servlet-name>DatasetListProvider</servlet-name>
 		<url-pattern>/datasetProvider</url-pattern>
 	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>DatasetProvider</servlet-name>
+		<url-pattern>/dataProvider</url-pattern>
+	</servlet-mapping>
+	
+	<filter>
+	  <filter-name>GzipFilter</filter-name>
+	  <filter-class>com.raveneau.ppmt.server.GZipServletFilter</filter-class>
+	</filter>
+	
+	<filter-mapping>
+	  <filter-name>GzipFilter</filter-name>
+	  <url-pattern>/dataProvider</url-pattern>
+	</filter-mapping>
 </web-app>

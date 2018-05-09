@@ -997,6 +997,7 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 .invisible {
 	opacity: 0;
+	cursor: default;
 }
 
 .visible {

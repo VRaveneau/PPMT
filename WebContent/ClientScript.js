@@ -2338,7 +2338,7 @@ function requestUsersRemoval(userNames) {
 function handleDatasetValidation(msg) {
 	if (msg.answer === "valid") {
 		// Ask for the selected dataset
-		selectDataset(msg.dataset);
+		selectDataset(msg.dataset, msg.datasetToken);
 	} else {
 		// If the dataset is not available, go to the dataset selection
 		location.href = "/ppmt";
@@ -6675,17 +6675,29 @@ function updateTooltip() {
 /**
  * Selects the given dataset to be used in the tool
  * @param {string} datasetName - Name of the dataset
+ * @param {string} datasetToken - Token to request the dataset
  */
-function selectDataset(datasetName) {
+function selectDataset(datasetName, datasetToken) {
 	currentDatasetName = datasetName;
 	
-	requestDatasetLoad(datasetName);
+	if (!pageParameters.gzip)
+		requestDatasetLoad(datasetName);
 	
 	requestDatasetInfo(datasetName);
 	requestEventTypes(datasetName);
 	requestUserList(datasetName);
 	enableCentralOverlay("The dataset is loading...");
-	requestDataset(datasetName);
+	
+	if (!pageParameters.gzip)
+		requestDataset(datasetName);
+	else {
+		let servletAdress = config.servletAdress.replace("dataset", "data");
+		fetch(`${servletAdress}?session=${datasetToken}`)
+			.then( response => response.json() )
+			.then( json => {
+				receiveEvents(json);
+			});
+	}
 }
 
 /**
