@@ -512,8 +512,9 @@ public class ClientHandler {
 		System.out.println("Profile sent");
 	}
 	
-	public void createEventTypeFromPattern(int patternId) {
-		TraceModification modifs = dataset.createEventTypeFromPattern(patternId, session);
+	public void createEventTypeFromPattern(int patternId, String newName, JsonObject options) {
+		String parentName = dataset.getPatternManager(session).getPattern(patternId).readableItemsToString();
+		TraceModification modifs = dataset.createEventTypeFromPattern(patternId, newName, options, session);
 		
 		// Stop the algorithm
 		algorithmHandler.stopMining();
@@ -546,6 +547,7 @@ public class ClientHandler {
 				.add("name", evtType)
 				.add("description", et.get(evtType).get("description"))
 				.add("category", et.get(evtType).get("category"))
+				.add("parent", parentName)
 				.build();
 		
 		dataMessage.add("typeInfo", typeInfo);

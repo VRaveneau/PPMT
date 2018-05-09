@@ -339,6 +339,18 @@ public class Dataset {
 		nextEventTypeCode++;
 	}
 	
+	private void addEventType(String eventType, String description) {
+		addEventType(eventType);
+		
+		if (description.trim().length() == 0) {
+			description = "???";
+		} else {
+			description = description.trim();
+		}
+		
+		parameters.addEventDescription(eventType, description);
+	}
+	
 	/**
 	 * Creates a new event and returns it
 	 * @param evtType
@@ -585,10 +597,7 @@ public class Dataset {
 			if (desc.containsKey(eventsReadable.get(i))) {
 				infos.put("description", desc.get(eventsReadable.get(i)).replaceAll("\"", ""));
 			} else {
-				if (eventsReadable.get(i).split("-").length > 1)
-					infos.put("description", "Created from "+eventsReadable.get(i).replace("-", " "));
-				else
-					infos.put("description", "???");
+				infos.put("description", "???");
 			}
 			//	The event type category
 			Map<String, List<String>> categories = parameters.getEventByCategories();
@@ -950,7 +959,7 @@ public class Dataset {
 		patternManagers.remove(session);
 	}
 	
-	public TraceModification createEventTypeFromPattern(int patternId, Session session) {
+	public TraceModification createEventTypeFromPattern(int patternId, String newName, JsonObject options, Session session) {
 		System.out.println("Event type creation started");
 		List<Integer> eventIdToDelete = new ArrayList<>();
 		List<Event> eventsToDelete = new ArrayList<>();
@@ -959,13 +968,17 @@ public class Dataset {
 		Pattern p = pm.getPattern(patternId);
 		List<Occurrence> occs = p.getOccurrences();
 		
-		String newEventType = "";
-		for(String item : p.getReadableItems()) {
-			if (newEventType.length() > 0)
-				newEventType += "-";
-			newEventType+=item;
+		String newEventType = newName.trim();
+		// Construct a name from the events if the given one is empty
+		if (newEventType.length() == 0) {
+			for(String item : p.getReadableItems()) {
+				if (newEventType.length() > 0)
+					newEventType += "-";
+				newEventType+=item;
+			}
 		}
-		addEventType(newEventType);
+		String description = options.getString("description");
+		addEventType(newEventType, description);
 		
 		for (Occurrence occ : occs) {
 			int[] evtIds = occ.getEventIds();
@@ -991,6 +1004,15 @@ public class Dataset {
 		
 		removeEvents(eventsToDelete);
 		modifs.setRemovedIds(eventIdToDelete);
+		
+		// Remove occurrences if requested in the options
+		JsonArray typesToRemove = options.getJsonArray("removeOccurrences"); 
+		if (typesToRemove.size() > 0) {
+			TraceModification mods = removeEventTypes(typesToRemove, session);
+			modifs.addRemovedIds(mods.getRemovedIds());
+		}
+		
+		System.out.println("Options applied");
 
 		System.out.println("Event type creation done");
 		

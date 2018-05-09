@@ -187,8 +187,8 @@ public class SessionHandler {
 		clientHandlers.get(session).profileDatasetSize();
 	}
 	
-	public void createEventTypeFromPattern(int patternId, Session session) {
-		clientHandlers.get(session).createEventTypeFromPattern(patternId);
+	public void createEventTypeFromPattern(int patternId, String newName, JsonObject options, Session session) {
+		clientHandlers.get(session).createEventTypeFromPattern(patternId, newName, options);
 	}
 	
 	public void removeEventTypes(JsonArray eventNames, Session session) {

@@ -129,7 +129,10 @@ public class ServerEndpointPPMT {
 				sessionHandler.sessionAltersDataset(session);
 				switch(jsonMessage.getString("alteration")) {
 					case "createEventTypeFromPattern" :
-						sessionHandler.createEventTypeFromPattern(jsonMessage.getInt("patternId"), session);
+						int patternId = jsonMessage.getInt("patternId");
+						String newName = jsonMessage.getString("typeName");
+						JsonObject options = jsonMessage.getJsonObject("options");
+						sessionHandler.createEventTypeFromPattern(patternId, newName, options, session);
 						break;
 					case "removeEventTypes" :
 						sessionHandler.removeEventTypes(jsonMessage.getJsonArray("eventNames"), session);

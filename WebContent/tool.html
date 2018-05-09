@@ -222,13 +222,15 @@
 							<div class="subsection">
 								<div class="title">Exploration per user</div>
 								<div id="tl_usersControl" class="param">
-								<span>Show 
+									<div>Show&nbsp;</div>
 									<span id="showUserSessionsSwitch" class="switchArea">
-										<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button><button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button><button type="button" value="some" onclick="showUserSessions('some');">Some users</button></span>
-								</span>
-								<span id="shownUserSessionsControl" class="hidden">Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput" class="fakeBrowserSlider"></span>
-								<span id="drawIndividualEvents" class="hidden">Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
-								<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" class="clickable" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
+										<button type="button" value="all" class="selectedOption" onclick="showUserSessions('all');">All users</button>
+										<button type="button" value="selected" id="showSelectedUserSessionsButton" onclick="showUserSessions('selected');">Selected users (0)</button>
+										<button type="button" value="some" onclick="showUserSessions('some');">Some users</button>
+									</span>
+									<span id="shownUserSessionsControl" class="hidden">&nbsp;Users shown: <span id="nbUserShownValue">&nbsp;</span><input type="range" id="nbUserShownInput" class="fakeBrowserSlider"></span>
+									<span id="drawIndividualEvents" class="hidden">&nbsp;Show events: <input type="checkbox" class="clickable" id="drawIndividualEventsInput" onchange="changeDrawIndividualEventsOnSessions();"></span>
+									<span id="showOnlyHighlightedInSessions" class="hidden">Only show highlighted events: <input type="checkbox" class="clickable" id="showOnlyHighlightedInSessionsInput" onchange="refreshUserPatterns();"></span>
 								</div>
 								<div id="tl_users" class="body"></div>
 							</div>
@@ -296,10 +298,22 @@
 
 				<div id="patternArea" class="section">
 					<div class="title">Patterns (<span class="foldingText normalText"><span id="filteredInPatternNumberSpan">0</span><span class="additionalText smallText"> passing the filters</span></span> / <span class="foldingText normalText"><span id="displayedPatternNumberSpan">0</span><span class="additionalText smallText"> in the list</span></span> / <span class="foldingText normalText"><span id="patternNumberSpan">0</span><span class="additionalText smallText"> discovered by the algorithm</span></span>)</div>
-					<div id="patternAcceptanceControls" class="param">
-						<div id="liveUpdateIndicator" class="active"></div>
-						<button id="liveUpdateButton" onclick="toggleLiveUpdate();" class="clickable">Stop live update</button>
-						<button id="updatePatternListButton" onclick="updatePatternList();" class="hidden clickable">Display <span>0</span> available patterns</button>
+					<div class="param">
+						<div id="liveUpdateIndicator"></div>
+						<button id="liveUpdateButton" onclick="toggleLiveUpdate();" class="clickable" disabled>Stop live update</button>
+						<button id="updatePatternListButton" onclick="updatePatternList();" class="invisible clickable">Add <span>0</span> available patterns</button>
+						<div id="showOnlyLastSteeringOption">
+							Patterns:&nbsp;
+							<span class="switchArea">
+								<button type="button" id="showAllPatternsButton" class="selectedOption" onclick="toggleShowOnlyLastSteering();">All</button>
+								<button type="button" id="showOnlyLastSteeringButton" onclick="toggleShowOnlyLastSteering();">From last steering (<span>0</span>)
+									<div id="lastSteeringDetails">
+										No steering yet
+									</div>
+								</button>
+							</span>
+							<!--<button id="showOnlyLastSteeringButton" onclick="toggleShowOnlyLastSteering();" class="clickable">Patterns from last steering</button>-->
+						</div>
 					</div>
 					<div id="patternListArea" class="body">
 						<div id="Algorithm" class="subsection">
@@ -327,8 +341,6 @@
 									</form>
 								</div>
 								<div class="helper"></div>
-								<div id="showOnlyLastSteeringTxt">Only show patterns found in the last steering:</div>
-								<div id="showOnlyLastSteeringInput"><input type="checkbox" name="showOnlyLastSteering" class="clickable" value="showOnlyLastSteering" onchange="toggleShowOnlyLastSteering();"/></div>
 							</div>
 						</div>
 
@@ -459,11 +471,53 @@
 								</div>
 							</div>
 						</div>
-						<div id="actionConfirmation" class="section hidden">
-							<div id="contentHeader"></div>
-							<div id="contentBody"></div>
-							<button id="confirmationCancel" onclick="closeModal();" class="clickable">Cancel</button>
-							<button id="confirmationConfirm" class="clickable">Confirm</button>
+						<div id="removeEventTypeConfirmation" class="actionConfirmation section hidden">
+							<div class="confirmationWarning">
+								!!! Confirming will restart the pattern mining !!!
+							</div>
+							<div class="contentHeader">
+								Confirm the removal of all events of the following types :
+							</div>
+							<div class="contentBody"></div>
+							<button class="confirmationCancel clickable" onclick="closeModal();">Cancel</button>
+							<button class="confirmationConfirm clickable">Confirm</button>
+						</div>
+						<div id="removeUserConfirmation" class="actionConfirmation section hidden">
+							<div class="confirmationWarning">
+								!!! Confirming will restart the pattern mining !!!
+							</div>
+							<div class="contentHeader">
+								Confirm the removal of all events of the following users :
+							</div>
+							<div class="contentBody"></div>
+							<button class="confirmationCancel clickable" onclick="closeModal();">Cancel</button>
+							<button class="confirmationConfirm clickable">Confirm</button>
+						</div>
+						<div id="changeParametersConfirmation" class="actionConfirmation section hidden">
+							<div class="confirmationWarning">
+								!!! Confirming will restart the pattern mining !!!
+							</div>
+							<div class="contentHeader">
+								Do you confirm the following changes :
+							</div>
+							<div class="contentBody"></div>
+							<button class="confirmationCancel clickable" onclick="toggleExtendedAlgorithmView();">Cancel</button>
+							<button class="confirmationConfirm clickable">Confirm</button>
+						</div>
+						<div id="createEventTypeConfirmation" class="actionConfirmation section hidden">
+							<div class="confirmationWarning">
+								!!! Confirming will restart the pattern mining !!!
+							</div>
+							<div class="contentHeader">Pattern used: <span id="newEventTypePattern"></span></div>
+							<div class="contentBody">
+								<div class="textLeft">Name of the new type:</div>
+								<input id="newEventTypeNameInput" type="text">
+								<div class="textLeft">Description of the new type:</div>
+								<input id="newEventTypeDescriptionInput" type="text">
+								<div class="fullSpan textLeft">Remove all occurrences of:</div>
+							</div>
+							<button class="confirmationCancel clickable" onclick="closeModal();">Cancel</button>
+							<button class="confirmationConfirm clickable">Confirm</button>
 						</div>
 					</div>
 				</div>

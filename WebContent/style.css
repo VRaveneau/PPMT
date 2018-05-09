@@ -12,6 +12,10 @@
 http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 */
 
+*:disabled {
+	color: grey;
+}
+
 #debugHelp {
 	display: none;
 	flex-direction: column;
@@ -105,14 +109,19 @@ http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 .contextActions {
 	position: absolute;
 	visibility: hidden;
-	height: 100%;
-	top: 0%;
+	/*height: 100%;*/
+	padding: 2px 6px;
+	border-radius: 10px;
+	/*top: 0%;*/
+	top: calc(50% - 11px - 2px);
 	right: 0px;
 	z-index: 1;
 	width: max-content;
 	overflow: visible;
 	display: grid;
-	grid-template-rows: 1fr [content-start] max-content [content-end] 1fr;
+	column-gap: 4px;
+	background-color: rgb(203, 203, 203);
+	grid-template-rows: [content-start] max-content [content-end];
 	grid-auto-flow: column;
 }
 
@@ -130,11 +139,19 @@ tr:hover .contextActions {
 }
 
 .contextActions button {
-	width: 20px;
-	height: 20px;
+	width: 24px;
+	height: 24px;
 	padding: 0px;
-	margin-right: 4px;
+	/*margin-right: 4px;*/
 	box-sizing: border-box;
+}
+
+.contextActions button:hover {
+	background-color: rgb(203, 203, 203);
+}
+
+.contextActions button:active {
+	background-color: rgb(124, 124, 124);
 }
 
 .extendedContextAction {
@@ -282,6 +299,7 @@ tbody > tr:hover {
 	position: relative;
 	margin-bottom: 10px;
 	padding: 0px 5px;
+	display: flex;
 }
 
 .subsection > .body {
@@ -427,10 +445,6 @@ body {
 	float: right;
 }
 
-.date {
-
-}
-
 .time {
 	color: slategrey;
 	font-size: 90%;
@@ -451,6 +465,10 @@ body {
 
 .clickable {
 	cursor: pointer;
+}
+
+.clickable:disabled {
+	cursor: not-allowed;
 }
 
 .clickableText {
@@ -879,10 +897,10 @@ body {
 .icon-remove::before {
 	content: '';
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	top: 5px;
-	left: 5px;
+	width: 22px;
+	height: 22px;
+	top: 1px;
+	left: 1px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
 	background-position:  0px 0px;
@@ -890,74 +908,74 @@ body {
 }
 
 .icon-remove:hover::before {
-	background-position: -20px 0px;
+	background-position: -22px 0px;
 }
 
 .icon-remove:active::before {
-	background-position: -40px 0px;
+	background-position: -44px 0px;
 }
 
 .icon-toEventType::before {
 	content: '';
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	top: 4px;
-	left: 4px;
+	width: 22px;
+	height: 22px;
+	top: 0px;
+	left: 0px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
-	background-position: 0px -30px;
+	background-position: 0px -66px;
 	background-size: 300%;
 }
 
 .icon-toEventType:hover::before {
-	background-position: -20px -30px;
+	background-position: -22px -66px;
 }
 
 .icon-toEventType:active::before {
-	background-position: -40px -30px;
+	background-position: -44px -66px;
 }
 
 .icon-steering::before {
 	content: '';
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	top: 4px;
-	left: 4px;
+	width: 22px;
+	height: 22px;
+	top: 0px;
+	left: 0px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
-	background-position: 0px -10px;
+	background-position: 0px -22px;
 	background-size: 300%;
 }
 
 .icon-steering:hover::before {
-	background-position: -20px -10px;
+	background-position: -22px -22px;
 }
 
 .icon-steering:active::before {
-	background-position: -40px -10px;
+	background-position: -44px -22px;
 }
 
 .icon-selectUsers::before {
 	content: '';
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	top: 4px;
-	left: 4px;
+	width: 22px;
+	height: 22px;
+	top: 0px;
+	left: 0px;
 	background-image: url("./img/icons_context_actions.png");
 	background-repeat: no-repeat;
-	background-position: 0px -20px;
+	background-position: 0px -44px;
 	background-size: 300%;
 }
 
 .icon-selectUsers:hover::before {
-	background-position: -20px -20px;
+	background-position: -22px -44px;
 }
 
 .icon-selectUsers:active::before {
-	background-position: -40px -20px;
+	background-position: -44px -44px;
 }
 
 thead th {
@@ -973,45 +991,58 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
     content: " \25B4\25BE" 
 }
 
+.fullSpan {
+	grid-column: 1 / -1;
+}
+
+.invisible {
+	opacity: 0;
+}
+
+.visible {
+	opacity: 1;
+}
+
 .hidden {
 	display: none;	
 }
 
 .switchArea {
 	padding: 0px;
+	display: flex;
 }
 
-.switchArea * {
+.switchArea > * {
 	margin: 0px;
 	border: 0px;
 	border: 1px solid black;
 	cursor: pointer;
 }
 
-.switchArea *:not(:first-child) {
+.switchArea > *:not(:first-child) {
 	border: 0px;
 	border: 1px solid black;
 	border-left: 0px;
 }
 
-.switchArea *:first-child {
+.switchArea > *:first-child {
 	border-radius: 5px 0px 0px 5px;
 }
 
-.switchArea *:last-child {
+.switchArea > *:last-child {
 	border-radius: 0px 5px 5px 0px;
 }
 
-.switchArea .selectedOption {
+.switchArea > .selectedOption {
 	background-color: #006992;
 	color: white;
 }
 
-.switchArea :not(.selectedOption) {
+.switchArea > :not(.selectedOption) {
 	background-color: white;
 }
 
-.switchArea :not(.selectedOption):hover {
+.switchArea > :not(.selectedOption):hover {
 	background-color: lightgrey;
 }
 
@@ -1174,14 +1205,15 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 #liveUpdateIndicator {
 	content: '';
-	min-width: 15px;
-	min-height: 15px;
+	min-width: 25px;
+	min-height: 25px;
+	align-self: center;
 
 	border-radius: 50%;
-	background-color: red;
+	background-color: grey;
 
-	float: left;
-	margin-right: 5px;
+	grid-row: 1 / -1;
+	grid-column: indicator-start / indicator-end;
 }
 
 #liveUpdateIndicator.active {
@@ -1208,9 +1240,12 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 	font-size: 15px;
 }
 
-.leftAligned {
-	float: left;
-	margin-right: 10px;
+.textLeft {
+	text-align: left;
+}
+
+.textRight {
+	text-align: right;
 }
 
 .lastItem {
@@ -1400,16 +1435,82 @@ table {
 	padding-left: 5px;
 }
 
-.suggestionDiv p.selected {
-	margin-top: 0px;
-	margin-bottom: 0px;
+.selectedSuggestion {
 	background-color: #04B7FB;
-	color: black;
 }
 
 /********************************/
 /* 			Algorithm tabs 		*/
 /********************************/
+
+#patternArea .param {
+	display: grid;
+	grid-template-columns:
+		[indicator-start] min-content
+		[indicator-end liveUpdate-start] max-content
+		[liveUpdate-end] 1fr
+		[lastSteering-start] max-content
+		[lastSteering-end];
+	grid-template-rows:
+		min-content
+		min-content;
+	grid-column-gap: 5px;
+	grid-row-gap: 2px;
+}
+
+#liveUpdateButton {
+	grid-row: 1 / 2;
+	grid-column: liveUpdate-start / liveUpdate-end;
+}
+
+#updatePatternListButton {
+	grid-row: 2 / -1;
+	grid-column: liveUpdate-start / liveUpdate-end;
+}
+
+#showOnlyLastSteeringOption {
+	grid-row: 1 / -1;
+	grid-column: lastSteering-start / lastSteering-end;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+#showOnlyLastSteeringButton {
+	position: relative;
+}
+
+#showOnlyLastSteeringButton:hover #lastSteeringDetails {
+	display: grid;
+}
+
+#lastSteeringDetails {
+	position: absolute;
+	display: none;
+	bottom: calc(100% + 5px);
+	right: 0%;
+    background-color: white;
+	color: black;
+	border: 1px solid black;
+	border-radius: 5px;
+	padding: 3px;
+	white-space: nowrap;
+}
+
+#lastSteeringDetails::before {
+	content: "";
+	width: 5px;
+	height: 5px;
+	position: absolute;
+	bottom: -4px;
+	right: calc(50% - 3px);
+    border-top: solid 1px black;
+	border-left: solid 1px black;
+	background-color: white;
+    -webkit-transform: rotate(45deg);
+    transform: rotate(-135deg);
+}
 
 #patternPagesIndicator {
 	display: flex;
@@ -1559,6 +1660,7 @@ table {
 
 #totalPatternFound,#totalElapsedTime {
 	font-size: large;
+	white-space: nowrap;
 }
 
 #patternSizesChart {
@@ -1638,10 +1740,6 @@ table {
 
 #patternSizeTableContent svg {
 	float: right;
-}
-
-#patternSizeTableContent tr .bar {
-	fill: rgb(119, 119, 119);
 }
 
 /********************************/
@@ -1882,8 +1980,9 @@ table {
 /* 	Action confirmation modal 	*/
 /********************************/
 
-#actionConfirmation {
+.actionConfirmation {
 	grid-column: modal-left / modal-right;
+	grid-row: content-top / modal-bottom;
 	padding: 0px;
 	flex-direction: column;
 	justify-content: space-around;
@@ -1892,17 +1991,21 @@ table {
 	align-self: center;
 }
 
-#actionConfirmation:not(.hidden) {
+.actionConfirmation:not(.hidden) {
 	display: grid;
 	grid-template-columns:
-		[main-start] 1fr
-		[cancel-start] 1fr
+		[main-start] 20px
+		[content-start] 1fr
+		[cancel-start] 120px
 		[cancel-end] 1fr
-		[confirm-start] 1fr
+		[confirm-start] 120px
 		[confirm-end] 1fr
+		[content-end] 20px
 		[main-end];
 	grid-template-rows:
-		[main-start] 10px 
+		[main-start] 10px
+		[warning-start] max-content 
+		[warning-end] 10px
 		[content-header-start] max-content 
 		[content-header-end] 10px
 		[content-body-start] max-content
@@ -1912,27 +2015,42 @@ table {
 		[main-end];
 }
 
-#contentHeader {
+.confirmationWarning {
+	grid-column: main;
+	grid-row: warning;
+	text-align: center;
+	color: red;
+}
+
+.contentHeader {
 	grid-column: main;
 	grid-row: content-header;
 	text-align: center;
 }
 
-#contentBody {
-	grid-column: cancel-start / confirm-end;
+.contentBody {
+	grid-column: content-start / content-end;
 	grid-row: content-body;
 	text-align: center;
 }
 
-#confirmationCancel {
+.confirmationCancel {
 	grid-column: cancel;
 	grid-row: buttons;
 }
 
-#confirmationConfirm {
+.confirmationConfirm {
 	grid-column: confirm;
 	grid-row: buttons;
 }
+
+#createEventTypeConfirmation .contentBody {
+	display: grid;
+	grid-template-columns:
+		max-content minmax(max-content, 1fr);
+	grid-gap: 10px;
+}
+
 /*
 #actionConfirmation div {
 	display: flex;
@@ -1979,6 +2097,7 @@ tr:hover .eventTypeDescription {
 #Users {
 	max-height: 100%;
 	overflow: hidden;
+	grid-template-rows: min-content 1fr;
 }
 
 #userTableArea {
@@ -2231,9 +2350,19 @@ tr:hover .eventTypeDescription {
 	stroke-width: 2px;
 }
 
+.sliderArea {
+	fill: black;
+	fill-opacity: 0.3;
+}
+
+.sliderBlueArea {
+	fill: #04B7FB;
+	fill-opacity: 1;
+}
+
 .bluetrack {
   stroke: #04B7FB;
-  stroke-width: 3px;
+  stroke-width: 2px;
   stroke-linecap: round;
 }
 
