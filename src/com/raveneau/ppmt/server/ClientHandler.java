@@ -206,6 +206,10 @@ public class ClientHandler {
 		
 		sendToSession(session, dataMessage.build());
 	}
+	
+	public void resetDataset() {
+		//provideEventTypes();
+	}
 
 	public void provideEventTypes() {
 		JsonObjectBuilder dataMessage = null;
@@ -508,14 +512,17 @@ public class ClientHandler {
 		System.out.println("Profile sent");
 	}
 	
-	public void createEventTypeFromPattern(int patternId) {
-		TraceModification modifs = dataset.createEventTypeFromPattern(patternId, session);
+	public void createEventTypeFromPattern(int patternId, String newName, JsonObject options) {
+		String parentName = dataset.getPatternManager(session).getPattern(patternId).readableItemsToString();
+		TraceModification modifs = dataset.createEventTypeFromPattern(patternId, newName, options, session);
 		
 		// Stop the algorithm
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
+		
+		Map<String,Map<String,String>> et = dataset.getEventTypeInfo();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
@@ -533,7 +540,18 @@ public class ClientHandler {
 			newEvents.add(e.toJsonObject());
 		}
 		dataMessage.add("newEvents", newEvents.build());
-				
+		
+		String evtType = modifs.getNewEvents().get(0).getType();
+		
+		JsonObject typeInfo = provider.createObjectBuilder()
+				.add("name", evtType)
+				.add("description", et.get(evtType).get("description"))
+				.add("category", et.get(evtType).get("category"))
+				.add("parent", parentName)
+				.build();
+		
+		dataMessage.add("typeInfo", typeInfo);
+		
 		// Send this message
 		sendToSession(session, dataMessage.build());
 		
@@ -549,7 +567,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
@@ -578,7 +596,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();

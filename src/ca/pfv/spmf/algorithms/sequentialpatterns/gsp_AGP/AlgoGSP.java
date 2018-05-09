@@ -319,7 +319,8 @@ public class AlgoGSP {
 	            } else {
 	            	// if a steering is still occurring
 	            	// Update the stored indexation map and frequent set with the discovered patterns
-	            	this.lastIndexationMapCompleted = new HashMap<Item, Set<Pattern>>(indexationMap);
+	            	// -> no
+	            	//this.lastIndexationMapCompleted = new HashMap<Item, Set<Pattern>>(indexationMap);
 	            	// ... do nothing ? 
 	            	System.out.println("AlgoGSP : go to level "+(k+1)+", steering at level "+(this.lastLevelCompleted+1));
 	            }

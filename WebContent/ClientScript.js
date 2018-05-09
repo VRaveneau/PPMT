@@ -216,9 +216,6 @@ var sizeModifySlider = null;
 // Slider controling the modification of the gap parameter of the algorithm
 var gapModifySlider = null;
 
-// Svg component displaying the activity indicator
-var runningTaskIndicatorSvg = d3.select("#top").select("svg").select("circle");
-
 // Minimum time span (in s) to use the 'year' distribution scale
 var distributionYearThreshold = 60*60*24*365*3;	// 3 years
 // Minimum time span (in s) to use the 'month' distribution scale
@@ -260,6 +257,15 @@ var currentDatasetName = "";
  * TODO detail the structure
  */
 var datasetInfo = {};
+
+// The value for the EventTypeInformations variable for an unmodified dataset
+var defaultEventTypeInformations = [];
+// The value for the EventTypes variable for an unmodified dataset
+var defaultEventTypes = [];
+// The value for the ColorList variable for an unmodified dataset
+var defaultColorList = [];
+// The value for the ItemShapes variable for an unmodified dataset
+var defaultItemShapes = [];
 
 // The categories of event types
 var eventTypeCategories = [];
@@ -326,6 +332,11 @@ var eventBins = {
 // name - nbEvents - duration - start - end
 var userInformations = {};
 
+// Events removed from the dataset
+var removedEventsList = [];
+// Ids of event added to the dataset
+var addedEventIdsList = [];
+
 // Number of extracted patterns
 var numberOfPattern = 0;
 // Information about the patterns
@@ -334,8 +345,15 @@ var patternsInformation = {};
 var patternIdList = [];
 // The list of ids for all the filtered out patterns
 var filteredOutPatterns = [];
+// The list of ids for all patterns found in the last steering
+var lastSteeringPatterns = [];
+// The list of patterns waiting to be integrated into the list
+var availablePatterns = [];
 // Known metrics on the patterns
-var patternMetrics = {"sizeDistribution":{}};
+var patternMetrics = {
+	"sizeDistribution": {},
+	"supportDistribution": {}
+};
 
 // The occurrences for each pattern
 var patternOccurrences = {};
@@ -380,9 +398,6 @@ var eventTypes = [];
  */
 var eventTypeInformations = {};
 
-// Number of tasks managed by the activity indicator currently occurring
-var runningTaskIndicatorNumber = 0;
-
 // Maximum pattern support
 var maxPatternSupport = 0;
 // Maximum pattern size
@@ -391,6 +406,13 @@ var maxPatternSize = 0;
 /*************************************/
 /*			State elements			 */
 /*************************************/
+
+// Whether to consider all the patterns or only the ones found in the last steering
+var showOnlyLastSteering = false;
+
+// Whether the new patterns are directly integrated in the list or not
+var patternLiveUpdate = true;
+
 //
 var patternsLoaded = false;
 // Whether debug mode is active or not
@@ -398,12 +420,10 @@ var debugMode = false;
 // Whether the pointer target is visible or not in the focus view
 var showPointerTarget = false;
 // Whether future patterns will be processed or not
-var updateUI = true;
+var acceptNewPatterns = true;
 
 // Whether information about the dataset is displayed (false) or not (true)
 var datasetInfoIsDefault = true;
-// Whether actions are displayed in the history (false) or not (true)
-var historyDisplayIsDefault = true;
 
 /**
  * The time period covered by the overview's brush.
@@ -468,10 +488,8 @@ var algorithmStartTime = -1;
 // Delay (in ms) between the server and the client
 var startDelayFromServer = 0;
 
-// Interval used to animate the activity indicator
-var runningTaskIndicator;
-// Whether the activity indicator is active or not
-var runningTaskIndicatorState = false;
+// Interval used to ping the server to avoid a timeout
+var serverPingInterval;
 
 // Whether the extended algorithm view is shown or not
 var useExtendedAlgorithmView = false;
@@ -517,6 +535,9 @@ var tooltipCloseTimeout;
 /*				?????				 */
 /*************************************/
 
+// The history of actions during the analysis
+var activityHistory = new ActivityHistory("historyList");
+
 // The axis for the number of patterns bars in the algorithm extended view
 var algorithmExtendedBarAxis = d3.scaleLinear().rangeRound([0, 200]);
 
@@ -536,12 +557,6 @@ var itemShapes = {};
 var debouncedFilterUserList = _.debounce(filterUserList, 500);
 
 /**
- * A debounced version of filterPatternsBySyntax
- * @type {function}
- */
-var debouncedFilterPatternsBySyntax = _.debounce(filterPatternsBySyntax, 500);
-
-/**
  * A debounced version of filterPatterns
  * @type {function}
  */
@@ -556,6 +571,81 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 /*				Utility				 */
 /*************************************/
+
+/**
+ * Updates the value of the current time focus
+ * @param {number} start The start of the intervale
+ * @param {number} end The end of the intervale
+ */
+function updateCurrentTimeFilter(start, end) {
+	currentTimeFilter = [start, end];
+	
+	let startDate = new Date(start);
+	let endDate = new Date(end);
+
+	let startDateString = monthsNames[startDate.getMonth()].substr(0,3)+". " +
+		startDate.getDate() + ", " +
+		startDate.getFullYear();
+	let endDateString = monthsNames[endDate.getMonth()].substr(0,3)+". " +
+		endDate.getDate() + ", " +
+		endDate.getFullYear();
+	
+	let startTimeString = (startDate.getHours() < 10 ? "0" : "")+startDate.getHours() + ":" +
+		(startDate.getMinutes() < 10 ? "0" : "")+startDate.getMinutes();
+	let endTimeString = (endDate.getHours() < 10 ? "0" : "")+endDate.getHours() + ":" +
+		(endDate.getMinutes() < 10 ? "0" : "")+endDate.getMinutes();
+	
+	let duration = end - start;
+	let elapsedDays = Math.floor(duration/(24*60*60*1000));
+	duration = duration%(24*60*60000);
+	let elapsedHours = Math.floor(duration/(60*60*1000));
+	duration = duration%(60*60000);
+	let elapsedMinutes = Math.floor(duration/60000);
+	let durationString = "";
+
+	if (elapsedDays > 0) {
+		durationString += elapsedDays+"days ";
+	}
+	durationString += elapsedHours+"h ";
+	if (elapsedMinutes > 0) {
+		durationString += elapsedMinutes+"min";
+	}
+
+
+	document.querySelector("#focusStart .date")
+		.textContent = startDateString;
+	document.querySelector("#focusStart .time")
+		.textContent = startTimeString;
+	
+	document.querySelector("#focusEnd .date")
+		.textContent = endDateString;
+	document.querySelector("#focusEnd .time")
+		.textContent = endTimeString;
+	document.querySelector("#focusEnd .duration")
+		.textContent = durationString;
+}
+
+/**
+ * Resets the dataset to its unmodified state
+ */
+function resetDataset() {
+	d3.select("#resetDatasetButton")
+		.classed("hidden", true);
+	
+	requestDatasetReset();
+	restoreInitialData();
+	resetPatterns();
+	requestAlgorithmReStart();
+
+	activityHistory.resetDataset();
+}
+
+/**
+ * Requests a steering on the time period under the overview brush
+ */
+function steerOnDisplayedTime() {
+	requestSteeringOnTime(...currentTimeFilter);
+}
 
 /**
  * Keeps refreshing the algorithm state display each frame while it is running
@@ -675,7 +765,7 @@ function handleKeyPress() {
 		case "s":
 		case "S":
 			if (debugMode) {
-				stopUIUpdate();
+				switchPatternAcceptance();
 			}
 			break;
 		case "g":
@@ -743,11 +833,40 @@ function switchPointerTarget() {
 }
 
 /**
- * Stops handling incomming patterns
+ * Switches between accepting and rejecting incomming patterns
  */
-function stopUIUpdate() {
-	console.log("Pattern reception now ignored");
-	updateUI = false;
+function switchPatternAcceptance() {
+	if (acceptNewPatterns) {
+		console.log("New patterns will be rejected");
+		d3.select("#debugHelpAcceptNewPatterns .kbTxt")
+			.text("Accept new patterns");
+		acceptNewPatterns = false;
+	} else {
+		console.log("New patterns will be accepted");
+		d3.select("#debugHelpAcceptNewPatterns .kbTxt")
+			.text("Ignore new patterns");
+		acceptNewPatterns = true;
+	}
+}
+
+/**
+ * Toggles the live updating of the pattern list when new patterns arrive
+ */
+function toggleLiveUpdate() {
+	if (patternLiveUpdate) {
+		patternLiveUpdate = false;
+		document.getElementById("liveUpdateButton").textContent = "Resume live update";
+		d3.select("#liveUpdateIndicator").classed("active", false);
+		d3.select("#updatePatternListButton").classed("invisible", false);
+	} else {
+		// Complete the list with available patterns
+		updatePatternList();
+		
+		patternLiveUpdate = true;
+		document.getElementById("liveUpdateButton").textContent = "Pause live update";
+		d3.select("#liveUpdateIndicator").classed("active", true);
+		d3.select("#updatePatternListButton").classed("invisible", true);
+	}
 }
 
 /**
@@ -855,45 +974,60 @@ function hsvToRgb(h, s, v) {
  * If the date is given as a string, assumes the format from Agavue :
  * Sun Mar 31 01:32:10 CET 2013
  * @param {string|Date} date The date to format
+ * @param {boolean} short Whether to use the short or long name of months
  */
-function formatDate(date) {
+function formatDate(date, short = false) {
 	if (typeof date == "string") {
 		let parts = date.split(" ");
 		if (parts.length != 6)
 			return date;
-		let month = "";
-		switch(parts[1]) {
-			case "Jan":
-				return " January "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Feb":
-				return " February "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Mar":
-				return " March "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Apr":
-				return " April "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "May":
-				return " May "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Jun":
-				return " June "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Jul":
-				return " July "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Aug":
-				return " August "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Sep":
-				return " September "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Oct":
-				return " October "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Nov":
-				return " November "+parts[2]+", "+parts[5]+", "+parts[3];
-			case "Dec":
-				return " December "+parts[2]+", "+parts[5]+", "+parts[3];
-			default:
-				return parts[1]+" "+parts[2]+", "+parts[5]+", "+parts[3];
+		let month = parts[1];
+		if (!short) {
+			switch(month) {
+				case "Jan":
+					month = " January";
+					break;
+				case "Feb":
+					month = " February";
+					break;
+				case "Mar":
+					month = " March";
+					break;
+				case "Apr":
+					month = " April";
+					break;
+				case "May":
+					month = " May";
+					break;
+				case "Jun":
+					month = " June";
+					break;
+				case "Jul":
+					month = " July";
+					break;
+				case "Aug":
+					month = " August";
+					break;
+				case "Sep":
+					month = " September";
+					break;
+				case "Oct":
+					month = " October";
+					break;
+				case "Nov":
+					month = " November";
+					break;
+				case "Dec":
+					month = " December";
+					break;
+				default:
+			}
 		}
+		return month+" "+parts[2]+", "+parts[5]+", "+parts[3];
 	} else {
 		let parts = [
 			"",
-			monthsNames[date.getMonth()],
+			short ? monthsNames[date.getMonth()].substr(0,3)+"." : monthsNames[date.getMonth()],
 			date.getDate()+",",
 			date.getFullYear()+",",
 			(date.getHours() < 10 ? "0" : "")+date.getHours()+":"+
@@ -1026,94 +1160,7 @@ function findNewPatternIndex(patternInfos) {
 			return patternsInformation[elt][2] > patternInfos[2];
 		});
 	}
-}
-
-/**
- * Finds the first pattern id in the list of patterns that doesn't belong to a
- * selected pattern, starting at a given index
- * 
- * @param {number} startIdx The first index to be checked
- * @returns {number} The new index in patternIdList
- * or -1 if no index is suitable
- * 
- * @deprecated Probably never used, maybe replaced by 
- * findFirstFilteredUnselectedId ?
- * 
- * TODO check if it can be deleted
- */
-function findFirstUnselectedId(startIdx) {
-	let newIdx = startIdx;
-	if (newIdx > patternIdList.length)
-		return -1;
-	while(selectedPatternIds.indexOf(patternIdList[newIdx]) != -1) {
-		newIdx++;
-		if (newIdx > patternIdList.length)
-			return -1;
-	}
-	return newIdx;
-}
-
-/**
- * Finds the first pattern id in the list of patterns that doesn't belong to a
- * selected pattern and is accepted by the current filter, starting at a given index
- * 
- * @param {number} startIdx The first index to be checked
- * @returns {number} The new index in patternIdList
- * or -1 if no index is suitable
- * */
-function findFirstFilteredUnselectedId(startIdx) {
-	let newIdx = startIdx;
-	let properPatternSearchInput = currentPatternSearchInput.split(" ")
-		.filter(function(d,i) {
-			return d.length > 0;
-		}).join(" ");
-	if (newIdx > patternIdList.length)
-		return -1;
-	while(selectedPatternIds.indexOf(patternIdList[newIdx]) != -1 &&
-		 patternInformations[patternIdList[newIdx]][0].includes(properPatternSearchInput)) {
-		newIdx++;
-		if (newIdx > patternIdList.length)
-			return -1;
-	}
-	return newIdx;
-}
-
-/**
- * Adds a task to the activity indicator, starting it if it wasn't already
- * 
- * @deprecated Not in use currently due to the bad impact on performances
- */
-function startRunningTaskIndicator() {
-	if (runningTaskIndicatorState == false) {
-		runningTaskIndicator = setInterval(function() {
-			// TODO display an indication that something is running
-			if (runningTaskIndicatorSvg.style("fill") == "rgb(0, 204, 0)")
-				runningTaskIndicatorSvg.style("fill","rgb(0, 179, 0)");
-			else
-				runningTaskIndicatorSvg.style("fill","rgb(0, 204, 0)");
-		}, 200);
-		runningTaskIndicatorState = true;
-	}
-	runningTaskIndicatorNumber++;
-	console.log("RunningTasks increase to "+runningTaskIndicatorNumber);
-}
-
-/**
- * Removes a task from the activity indicator, stoping it if it was the last one
- * 
- * @deprecated Not in use currently due to the bad impact on performances
- */
-function stopRunningTaskIndicator() {
-	if (runningTaskIndicatorState == true) {
-		runningTaskIndicatorNumber--;
-		console.log("RunningTasks decrease to "+runningTaskIndicatorNumber);
-		if (runningTaskIndicatorNumber == 0) {
-			clearInterval(runningTaskIndicator);
-			runningTaskIndicatorSvg.style("fill","grey");
-			runningTaskIndicatorState = false;
-			console.log("Running task indicator stopped");
-		}
-	}
+	return 0;
 }
 
 /**
@@ -1261,7 +1308,6 @@ function setupTool() {
 	d3.select("#tooltip").on("mouseenter", enterTooltip);
 	
 	resetDatasetInfo();	// Set the display of information on the dataset
-	resetHistory();	// Reset the history display
 }
 
 var patternsPerSecondChart;
@@ -1330,7 +1376,7 @@ function setupUserSearchField() {
 					suggestionDiv.html("");
 					relatedUsers.forEach(function(d,i) {
 						suggestionDiv.append("p")
-							.classed("selected", i==currentUserSearchSuggestionIdx)
+							.classed("selectedSuggestion", i==currentUserSearchSuggestionIdx)
 							.text(d);
 					});
 				} else {
@@ -1344,7 +1390,7 @@ function setupUserSearchField() {
 			if (currentUserSearchSuggestionIdx > 0) {
 				currentUserSearchSuggestionIdx--;
 				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
+					d3.select(this).classed("selectedSuggestion", i==currentUserSearchSuggestionIdx);
 				});
 			}
 			break;
@@ -1352,7 +1398,7 @@ function setupUserSearchField() {
 			if (currentUserSearchSuggestionIdx < relatedUsers.length - 1) {
 				currentUserSearchSuggestionIdx++;
 				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentUserSearchSuggestionIdx);
+					d3.select(this).classed("selectedSuggestion", i==currentUserSearchSuggestionIdx);
 				});
 			}
 			break;
@@ -1388,7 +1434,10 @@ function setupAlgorithmSearchField() {
 			suggestionDiv.style("display", "none");
 	});
 	
-	searchField.on("input", debouncedFilterPatternsBySyntax);
+	searchField.on("input", function() {
+		updatePatternSearchSuggestion();
+		debouncedFilterPatterns();
+	});
 	searchField.on("keydown", function() {
 		let keyName = d3.event.key;
 		// Don't trigger if the user keeps the key down
@@ -1401,35 +1450,7 @@ function setupAlgorithmSearchField() {
 			break;
 		case "Enter":
 			if (currentPatternSearchSuggestionIdx >= 0) {
-				let baseLength = currentPatternSearchInput.length -
-								currentPatternSearchFragment.length;
-				let baseValue = currentPatternSearchInput.substr(0, baseLength);
-				currentPatternSearchInput = baseValue +
-						relatedEventTypes[currentPatternSearchSuggestionIdx];
-				currentPatternSearchFragment = relatedEventTypes[currentPatternSearchSuggestionIdx];
-				searchField.property("value", currentPatternSearchInput);
-				// Updates the suggestion list
-				relatedEventTypes = eventTypes.filter(function(d, i) {
-					return d.includes(currentPatternSearchFragment);
-				});
-				relatedEventTypes.sort();
-
-				if (relatedEventTypes.length > 0) {
-					currentPatternSearchSuggestionIdx = 0;
-					suggestionDiv.html("");
-					relatedEventTypes.forEach(function(d,i) {
-						suggestionDiv.append("p")
-							.classed("selected", i==currentPatternSearchSuggestionIdx)
-							.text(baseValue + d);
-					});
-				} else {
-					currentPatternSearchSuggestionIdx = -1;
-					suggestionDiv.html("");
-				}
-				// Hide the suggestion list
-				suggestionDiv.style("display", "none");
-
-				createPatternListDisplay();
+				selectPatternSearchSuggestion(currentPatternSearchSuggestionIdx);
 			}
 			break;
 		case "ArrowUp":
@@ -1439,7 +1460,7 @@ function setupAlgorithmSearchField() {
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx--;
 				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
+					d3.select(this).classed("selectedSuggestion", i==currentPatternSearchSuggestionIdx);
 				});
 			}
 			break;
@@ -1450,7 +1471,7 @@ function setupAlgorithmSearchField() {
 				let baseValue = currentPatternSearchInput.substr(0, baseLength);
 				currentPatternSearchSuggestionIdx++;
 				suggestionDiv.selectAll("p").each(function(d,i) {
-					d3.select(this).classed("selected", i==currentPatternSearchSuggestionIdx);
+					d3.select(this).classed("selectedSuggestion", i==currentPatternSearchSuggestionIdx);
 				});
 			}
 			break;
@@ -1520,7 +1541,7 @@ function setupAlgorithmSliders() {
  */
 function setupAlgorithmSupportSlider() {
 	// Using the custom made slider
-	supportSlider = new FilterSlider("sliderSupport", debouncedFilterPatterns);
+	supportSlider = new FilterSlider("sliderSupport", debouncedFilterPatterns, "supportDistribution");
 	
 	// Using noUiSlider
 	/*supportSlider = document.getElementById("sliderSupport");
@@ -1586,7 +1607,7 @@ function setupAlgorithmWindowSizeSlider() {
  * Setup the slider controling the 'max size' parameter of the algorithm
  */
 function setupAlgorithmMaximumSizeSlider() {
-	sizeSlider = new FilterSlider("sliderSize", debouncedFilterPatterns);
+	sizeSlider = new FilterSlider("sliderSize", debouncedFilterPatterns, "sizeDistribution");
 	
 	/*sizeSlider = document.getElementById("sliderSize");
 	noUiSlider.create(sizeSlider, {
@@ -1748,54 +1769,6 @@ function setupEventBinDimensions() {
 }
 
 /*************************************/
-/*				Logging				 */
-/*************************************/
-
-/**
- * Adds an action to the displayed history
- * @param {string} action - The message to be added to the history
- * @param {...string} details - More information about the action
- */
-function addToHistory(action, ...details) {
-	let history = d3.select("#historyList");
-	if (historyDisplayIsDefault) {
-		history.text("");
-		historyDisplayIsDefault = false;
-	}
-	//var formatTime = d3.timeFormat("%b %d, %Y, %H:%M:%S");
-	let formatTime = d3.timeFormat("%H:%M:%S");
-	let now = formatTime(new Date());
-	let item = history.insert("div",":first-child")
-		.classed("historyItem", true);
-	let title = item.append("p")
-		.classed("historyTitle", true)
-		.text(action);
-	if (details.length > 0) {
-		let content = item.append("div")
-			.classed("historyContent hidden", true);
-		item.append("p")
-			.text("Show details")
-			.classed("clickable clickableText smallText historyShowMore", true)
-			.on("click", function() {
-				if (content.classed("hidden")) {
-					this.textContent = "Hide details";
-					content.classed("hidden", false);
-				} else {
-					this.textContent = "Show details";
-					content.classed("hidden", true);
-				}
-			});
-		details.forEach( (detail) => {
-			content.append("p")
-				.text(detail);
-		});
-	}
-	item.append("p")
-		.classed("historyTimestamp", true)
-		.text(now.toString());
-}
-
-/*************************************/
 /*				Algorithm			 */
 /*************************************/
 
@@ -1861,6 +1834,10 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 		", maxSize: "+maxSize+", minGap: "+minGap+", maxGap: "+maxGap+
 		", maxDuration: "+maxDuration+", datasetName: "+datasetName+", delay: "+delay);
 	
+	// Make sure that the patterns will be accepted
+	if (!acceptNewPatterns)
+		switchPatternAcceptance();
+
 	let action = {
 		action: "run",
 		object: "algorithm",
@@ -1888,7 +1865,6 @@ function requestAlgorithmStart(minSupport, windowSize, maxSize, minGap, maxGap,
 	// Update the display of the current parameters in the Execution tab
 	d3.select("#currentSupport").text(minSupport+" occs.");
 	d3.select("#currentGap").text(minGap+"-"+maxGap+" events");
-	d3.select("#currentWindow").text(windowSize);
 	d3.select("#currentSize").text(maxSize+" events");
 	d3.select("#currentMaxDuration").text(maxDuration/1000+"s");
 
@@ -1915,6 +1891,7 @@ function requestAlgorithmReStart() {
 	createUserListDisplay();
 	//createEventTypesListDisplay();
 	timeline.displayData();
+	updateRestartButtonStyle();
 	
 	requestAlgorithmStart(algoMinSupport, algoWindowSize, algoMaxSize,
 		algoMinGap, algoMaxGap, algoMaxDuration, currentDatasetName);
@@ -1948,7 +1925,7 @@ function processOpen(message) {
 		.text(formatDate(new Date()));
 
 	// Ping the server every 10 minutes to keep the connexion alive
-	runningTaskIndicator = setInterval(function() {
+	serverPingInterval = setInterval(function() {
 		console.log("pinging server");
 		let action = {
 				action: "ping"
@@ -2065,7 +2042,7 @@ function processMessage(message/*Compressed*/) {
 	}
 	if (msg.action === "info") {
 		if (msg.object === "newPattern") {
-			if (updateUI) {
+			if (acceptNewPatterns) {
 				addPatternToList(msg);
 				drawPatternSizesChart();
 				algorithmState.addPattern();
@@ -2098,8 +2075,12 @@ function processMessage(message/*Compressed*/) {
 		receiveDatasetList(msg);
 	}
 	if (msg.action === "dataAlteration") {
+		// Show the reset button
+		d3.select("#resetDatasetButton")
+			.classed("hidden", false);
+		
 		if (msg.type === "eventTypeCreated") {
-			updateDatasetForNewEventType(msg.newEvents, msg.removedIds);
+			updateDatasetForNewEventType(msg.newEvents, msg.removedIds, msg.typeInfo);
 		}
 		if (msg.type === "eventTypeRemoved") {
 			updateDatasetForRemovedEventTypes(msg.removedIds, msg.removedEvents);
@@ -2196,6 +2177,17 @@ function requestDatasetInfo(datasetName) {
 }
 
 /**
+ * Requests a reset of the dataset to its initial state
+ */
+function requestDatasetReset() {
+	let action = {
+		action: "request",
+		object: "datasetReset"
+	};
+	sendToServer(action);
+}
+
+/**
  * Requests the occurrences of a given pattern in a given dataset
  * @param {number} patternId - The id of the pattern
  * @param {string} datasetName - The name of the dataset
@@ -2242,6 +2234,7 @@ function requestUserList(datasetName) {
  */
 function requestSteeringOnPatternPrefix(patternId) {
 	console.log('requesting steering on patternId '+patternId+' as prefix');
+	activityHistory.steerOnPrefix(patternId);
 	let action = {
 			action: "steerOnPattern",
 			object: "start",
@@ -2256,6 +2249,7 @@ function requestSteeringOnPatternPrefix(patternId) {
  */
 function requestSteeringOnUser(userId) {
 	console.log('requesting steering on user '+userId);
+	activityHistory.steerOnUser(userId);
 	let action = {
 			action: "steerOnUser",
 			userId: userId
@@ -2270,6 +2264,7 @@ function requestSteeringOnUser(userId) {
  */
 function requestSteeringOnTime(start, end) {
 	console.log('requesting steering on time between '+start+' and '+end);
+	activityHistory.steerOnTime(start, end);
 	// Numbers are sent as strings to prevent an error when their value is read
 	// by the server
 	let action = {
@@ -2283,16 +2278,20 @@ function requestSteeringOnTime(start, end) {
 /**
  * Requests an alteration of the dataset by creating a new event type from
  * a pattern
- * @param {number} patternId - Id of the pattern
- * @param {string} eventType - The name of the new event type - Not yet implemented
+ * @param {number} patternId Id of the pattern
+ * @param {string} eventTypeName The name of the new event type
+ * @param {{removeOccurrences: [string]}} options Options for the type creation
+ * @param {[string]} options.removeOccurrences Name of event types to remove after the creation
  */
-function requestEventTypeCreationFromPattern(patternId) {
+function requestEventTypeCreationFromPattern(patternId, eventTypeName, options) {
 	console.log('requesting the creation of event type '+
 		' from pattern '+ patternId);
 	let action = {
 			action: "alterDataset",
 			alteration: "createEventTypeFromPattern",
-			patternId: patternId
+			patternId: patternId,
+			typeName: eventTypeName,
+			options: options
 	};
 	sendToServer(action);
 }
@@ -2445,13 +2444,13 @@ function receiveEvents(events) {
 		console.log("Dimensions created at "+new Date());
 		rawData = null;
 		console.log("raw data removed");
-		addToHistory("Dataset "+datasetInfo.name+" received");
+		activityHistory.receiveDataset(datasetInfo.name);
 		buildUserSessions();
 		computeMaxEventAtOneTime();
 		computeUsersPerEventType();
 		createEventTypesListDisplay();
 		timeline.displayData();
-		currentTimeFilter = timeline.xFocus.domain().map( (x) => x.getTime() );
+		updateCurrentTimeFilter(...timeline.xFocus.domain().map( x => x.getTime() ));
 		dataDimensions.time.filterRange(currentTimeFilter);
 		startInitialMining();
 		disableCentralOverlay();
@@ -2575,6 +2574,11 @@ function receiveEventTypes(message) {
 		};
 	});
 	
+	defaultEventTypeInformations = eventTypeInformations;
+	defaultEventTypes = eventTypes;
+	defaultColorList = colorList;
+	defaultItemShapes = itemShapes;
+
 	sortEventTypes();
 	createEventTypesListDisplay();
 }
@@ -2582,6 +2586,63 @@ function receiveEventTypes(message) {
 /************************************/
 /*		Data manipulation			*/
 /************************************/
+
+/**
+ * Toggles between showing all patterns or only the ones found in the last steering
+ */
+function toggleShowOnlyLastSteering() {
+	showOnlyLastSteering = !showOnlyLastSteering;
+	if (showOnlyLastSteering) {
+		document.getElementById("showOnlyLastSteeringButton")
+			.classList.add("selectedOption");
+		document.getElementById("showAllPatternsButton")
+			.classList.remove("selectedOption");
+	} else {
+		document.getElementById("showOnlyLastSteeringButton")
+			.classList.remove("selectedOption");
+		document.getElementById("showAllPatternsButton")
+			.classList.add("selectedOption");
+	}
+	filterPatterns();
+}
+
+/**
+ * Integrates available patterns into the pattern list
+ */
+function updatePatternList() {
+	patternIdList = _.concat(patternIdList, availablePatterns);
+	availablePatterns = [];
+	filterPatterns();
+}
+
+/**
+ * Restore the dataset in the state it was when sent by the server
+ */
+function restoreInitialData() {
+	resetDataFilters();
+
+	dataset.remove( (d,i) => addedEventIdsList.includes(d.id) );
+	addedEventIdsLis = [];
+
+	dataset.add(removedEventsList);
+	removedEventsList = [];
+
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
+
+	eventTypeInformations = defaultEventTypeInformations;
+	eventTypes = defaultEventTypes;
+	colorList = defaultColorList;
+	itemShapes = defaultItemShapes;
+
+	highlightedUsers = [];
+	highlightedEventTypes = [];
+
+	updateUserInformations();
+	updateEventTypesInformations();
+	updateDatasetInfo(true);
+	setHighlights();
+}
 
 /**
  * Computes the number of users for each event type
@@ -2599,32 +2660,44 @@ function computeUsersPerEventType() {
 }
 
 /**
- * Filters the patterns according to all sliders
+ * Filters the patterns according to all possible filters. Currently, this means:
+ * - the sliders for support and size
+ * - the 'only show patterns found in the last steering' option
+ * - the subsyntax in the search field
  * 
  * A debounced version is available in debouncedFilterPatterns 
  */
 function filterPatterns() {
 	let rangeSupport = supportSlider.getSelectedRange();
 	let rangeSize = sizeSlider.getSelectedRange();
+	let nameSyntax = "" + currentPatternSearchInput;
 
 	let toFilterOut = _.remove(patternIdList, function(pId) {
 			let support = patternsInformation[pId][2];
 			let size = patternsInformation[pId][1];
+			let name = patternsInformation[pId][0];
 			let supportInvalid = support < rangeSupport[0] || support > rangeSupport[1];
 			let sizeInvalid = size < rangeSize[0] || size > rangeSize[1];
-			return supportInvalid || sizeInvalid;
+			let lastSteeringInvalid = showOnlyLastSteering ? !lastSteeringPatterns.includes(pId) : false;
+			let syntaxInvalid = !name.includes(nameSyntax);
+			return supportInvalid || sizeInvalid || lastSteeringInvalid || syntaxInvalid;
 		});
 	let toFilterIn = _.remove(filteredOutPatterns, function(pId) {
 			let support = patternsInformation[pId][2];
 			let size = patternsInformation[pId][1];
+			let name = patternsInformation[pId][0];
 			let supportValid = support >= rangeSupport[0] && support <= rangeSupport[1];
 			let sizeValid = size >= rangeSize[0] && size <= rangeSize[1];
-			return supportValid && sizeValid;
+			let lastSteeringValid = showOnlyLastSteering ? lastSteeringPatterns.includes(pId) : true;
+			let syntaxValid = name.includes(nameSyntax);
+			return supportValid && sizeValid && lastSteeringValid && syntaxValid;
 		});
 
 	patternIdList = _.concat(patternIdList, toFilterIn);
 	filteredOutPatterns = _.concat(filteredOutPatterns, toFilterOut);
 
+	sortPatterns();
+	updatePatternCountDisplay();
 	// Updates the pattern list
 	createPatternListDisplay();
 }
@@ -2669,77 +2742,20 @@ function filterPatternsBySize(range) {
 
 /**
  * Updates the list of patterns depending on the value in the pattern search field.
- * A debounced version of this function is stored in debouncedFilterPatternsBySyntax.
+ * @param {string} syntax The syntax in the pattern search field
  */
-function filterPatternsBySyntax() {
-	let searchField = d3.select("#patternListArea input.searchField");
-	let suggestionDiv = d3.select("#patternListArea .suggestionDiv");
+function filterPatternsBySyntax(syntax) {
+	let toFilterOut = _.remove(patternIdList, function(pId) {
+		let name = patternsInformation[pId][0];
+		return !name.includes(syntax);
+	});
+	let toFilterIn = _.remove(filteredOutPatterns, function(pId) {
+		let name = patternsInformation[pId][0];
+		return name.includes(syntax);
+	});
 
-	suggestionDiv.style("display", "block");
-	let currentValue = searchField.property("value");
-	currentPatternSearchInput = currentValue;
-	currentPatternSearchFragment = currentValue.split(" ").pop();
-	
-	if(currentPatternSearchFragment.length > 0) {
-		let baseLength = currentPatternSearchInput.length -
-							currentPatternSearchFragment.length;
-		let baseValue = currentPatternSearchInput.substr(0, baseLength);
-		relatedEventTypes = eventTypes.filter(function(d, i) {
-			return d.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
-		});
-		relatedEventTypes.sort();
-		
-		if (relatedEventTypes.length > 0) {
-			currentPatternSearchSuggestionIdx = 0;
-			suggestionDiv.html("");
-			relatedEventTypes.forEach(function(d,i) {
-				suggestionDiv.append("p")
-					.classed("selected", i==currentPatternSearchSuggestionIdx)
-					.classed("clickable", true)
-					.text(baseValue + d)
-					.on("click", function() {
-						let baseLength = currentPatternSearchInput.length - 
-										currentPatternSearchFragment.length;
-						let baseValue = currentPatternSearchInput.substr(0, baseLength);
-						currentPatternSearchInput = baseValue + relatedEventTypes[i];
-						currentPatternSearchFragment = relatedEventTypes[i];
-						searchField.property("value", currentPatternSearchInput);
-						// Updates the suggestion list
-						relatedEventTypes = eventTypes.filter(function(e, j) {
-							return e.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
-						});
-						relatedEventTypes.sort();
-
-						if (relatedEventTypes.length > 0) {
-							currentPatternSearchSuggestionIdx = 0;
-							suggestionDiv.html("");
-							relatedEventTypes.forEach(function(e,j) {
-								suggestionDiv.append("p")
-									.classed("selected", j==currentPatternSearchSuggestionIdx)
-									.text(baseValue + e);
-							});
-						} else {
-							currentPatternSearchSuggestionIdx = -1;
-							suggestionDiv.html("");
-						}
-						
-						createPatternListDisplay();
-						suggestionDiv.style("display", "none");
-					});
-			});
-		} else {
-			currentPatternSearchSuggestionIdx = -1;
-			suggestionDiv.html("");
-		}
-	} else {
-		currentPatternSearchInput = "";
-		currentPatternSearchSuggestionIdx = -1;
-		currentPatternSearchFragment = "";
-		relatedEventTypes = [];
-		suggestionDiv.html("");
-	}
-	
-	createPatternListDisplay();
+	patternIdList = _.concat(patternIdList, toFilterIn);
+	filteredOutPatterns = _.concat(filteredOutPatterns, toFilterOut);
 }
 
 /**
@@ -2803,6 +2819,42 @@ function updateUserInformations() {
 
 	userList = Object.keys(userInformations);
 	sortUsers();
+}
+
+/**
+ * Updates the information on each event type from the data
+ */
+function updateEventTypesInformations() {
+	dataDimensions.time.filterAll();
+	let oldInfo = eventTypeInformations;
+	eventTypeInformations = {};
+	eventTypesByCategory = {};
+	eventTypeCategories = [];
+
+	dataDimensions.type.group().dispose().all().forEach( function(type) {
+		let category = oldInfo[type.key].category;
+
+		eventTypeInformations[type.key] = {};
+		eventTypeInformations[type.key].category = category;
+		eventTypeInformations[type.key].description = oldInfo[type.key].description;
+		eventTypeInformations[type.key].nbOccs = type.value;
+		eventTypeInformations[type.key].code = oldInfo[type.key].code;
+		eventTypeInformations[type.key].nbUsers = oldInfo[type.key].nbUsers;
+
+		if (eventTypeCategories.includes(category) == false) {
+			eventTypesByCategory[category] = [];
+			eventTypeCategories.push(category);
+		}
+		eventTypesByCategory[category].push(type.key);
+	});
+
+	eventTypes = Object.keys(eventTypeInformations);
+	computeUsersPerEventType();
+	sortEventTypes();
+	createEventTypesListDisplay();
+
+	// Reapply the time filter
+	dataDimensions.time.filterRange(currentTimeFilter);
 }
 
 /**
@@ -3439,7 +3491,30 @@ function sortSelectedPatternsBySupport(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their name
+ * Sorts the pattern list by the currently defined sort order
+ */
+function sortPatterns() {
+	let parts = lastPatternSort.split("_");
+	switch(parts[0]) {
+		case "nbUsers":
+			sortPatternsByNbUsers(parts[1] == "down");
+			break;
+		case "name":
+			sortPatternsByName(parts[1] == "down");
+			break;
+		case "size":
+			sortPatternsBySize(parts[1] == "down");
+			break;
+		case "support":
+			sortPatternsBySupport(parts[1] == "down");
+			break;
+		default:
+	}
+}
+
+/**
+ * Sorts the pattern list according to their name. If several patterns have the
+ * same name, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsByName(decreasing=false) {
@@ -3452,7 +3527,7 @@ function sortPatternsByName(decreasing=false) {
 		else if (nameA > nameB)
 			return 1;
 		else
-			return 0;
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3464,7 +3539,8 @@ function sortPatternsByName(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their number of users
+ * Sorts the pattern list according to their number of users. If several
+ * patterns have the same number of users, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsByNbUsers(decreasing=false) {
@@ -3477,7 +3553,7 @@ function sortPatternsByNbUsers(decreasing=false) {
 		else if (nbUsersA > nbUsersB)
 			return 1;
 		else
-			return 0;
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3489,15 +3565,20 @@ function sortPatternsByNbUsers(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their size
+ * Sorts the pattern list according to their size. If several patterns have the
+ * same size, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsBySize(decreasing=false) {
 	patternIdList.sort(function(a, b) {
-		var sizeA = patternsInformation[a][1];
-		var sizeB = patternsInformation[b][1];
+		let sizeA = patternsInformation[a][1];
+		let sizeB = patternsInformation[b][1];
+		let diff = sizeA - sizeB;
 		
-		return sizeA - sizeB;
+		if (diff != 0)
+			return diff;
+		else
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3509,15 +3590,20 @@ function sortPatternsBySize(decreasing=false) {
 }
 
 /**
- * Sorts the pattern list according to their support
+ * Sorts the pattern list according to their support. If several patterns have
+ * the same support, they are sorted according to their id.
  * @param {boolean} decreasing - Whether or not to sort in descending order
  */
 function sortPatternsBySupport(decreasing=false) {
 	patternIdList.sort(function(a, b) {
-		var supportA = patternsInformation[a][2];
-		var supportB = patternsInformation[b][2];
+		let supportA = patternsInformation[a][2];
+		let supportB = patternsInformation[b][2];
+		let diff = supportA - supportB;
 		
-		return supportA - supportB;
+		if (diff != 0)
+			return diff;
+		else
+			return (a < b) ? -1 : 1;
 	});
 	
 	if (decreasing == true) {
@@ -3651,14 +3737,18 @@ function selectUsersBasedOnPatternSelection() {
 
 /**
  * Adds all the users presenting a pattern to the user selection if they don't
- * already belong to it
+ * already belong to it. If all the users are already selected, deselect them
+ * instead
  * @param {number} patternId The id of the pattern
  */
-function selectUsersHavingPattern(patternId) {
-	patternsInformation[patternId][4].forEach( function(e,j) {
-		if (!highlightedUsers.includes(e))
-			highlightUserRow(e);
-	});
+function updateUserSelectionFromPattern(patternId) {
+	let usersNotSelected = _.difference(patternsInformation[patternId][4], highlightedUsers);
+
+	if (usersNotSelected.length == 0) {
+		patternsInformation[patternId][4].forEach(highlightUserRow);
+	} else {
+		usersNotSelected.forEach(highlightUserRow);
+	}
 	
 	setHighlights();
 	refreshUserPatterns();
@@ -3729,36 +3819,50 @@ function addPatternToList(message) {
 	
 	// Update the relevant metrics
 	patternMetrics["sizeDistribution"][pSize]++;
-	
-	// Update the number of patterns display
-	d3.select("#patternNumberSpan").text(numberOfPattern);
+	if (patternMetrics["supportDistribution"][pSupport]) {
+		patternMetrics["supportDistribution"][pSupport]++;
+	} else {
+		patternMetrics["supportDistribution"][pSupport] = 1;
+	}
+
+	supportSlider.draw();
+	sizeSlider.draw();
 
 	let properPatternSearchInput = currentPatternSearchInput.split(" ")
-		.filter(function(d,i) {
-			return d.length > 0;
-		}).join(" ");
-	// Don't take this pattern into consideration if it doesn"t pass the filter
-	if (!supportSlider.hasValueSelected(pSupport) ||
-		!sizeSlider.hasValueSelected(pSize) ||
-		!pString.includes(properPatternSearchInput)) {
-			filteredOutPatterns.push(pId);
-			return;
+		.filter( d => d.length > 0 ).join(" ");
+	
+	if (algorithmState.isUnderSteering()) {
+		lastSteeringPatterns.push(pId);
+		updateLasteSteeringDetails();
 	}
 
-	let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
-	
-	if (correctPositionInList == -1) {// append at the end of the list
-		patternIdList.push(pId);
-		document.getElementById("patternTableBody")
-			.appendChild(createPatternRow(pId));
-	} else { // append at the right position in the list
-		patternIdList.splice(correctPositionInList, 0, pId);
-		let firstUnselectedId = findFirstFilteredUnselectedId(correctPositionInList + 1);
-		//console.log("First unselectedId: "+firstUnselectedId);
-		let firstUnselectedNode = document.getElementById("pattern"+patternIdList[firstUnselectedId]);
-		
-		firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
+	if (!patternLiveUpdate) {
+		availablePatterns.push(pId);
+	} else {
+		// Don't take this pattern into consideration if it doesn"t pass the filter
+		if (!supportSlider.hasValueSelected(pSupport) ||
+			!sizeSlider.hasValueSelected(pSize) ||
+			!pString.includes(properPatternSearchInput) ||
+			(!algorithmState.isUnderSteering() && showOnlyLastSteering)) {
+				filteredOutPatterns.push(pId);
+		} else {
+			let correctPositionInList = findNewPatternIndex(patternsInformation[pId]);
+			if (correctPositionInList == -1) {// append at the end of the list
+				patternIdList.push(pId);
+				document.getElementById("patternTableBody")
+					.appendChild(createPatternRow(pId));
+			} else { // append at the right position in the list
+				patternIdList.splice(correctPositionInList, 0, pId);
+				let nextIdInList = patternIdList[correctPositionInList + 1];
+				//console.log("First unselectedId: "+firstUnselectedId);
+				let firstUnselectedNode = document.getElementById("pattern"+nextIdInList);
+				
+				firstUnselectedNode.parentNode.insertBefore(createPatternRow(pId), firstUnselectedNode);
+			}
+		}
 	}
+
+	updatePatternCountDisplay();
 }
 
 /**
@@ -3791,11 +3895,14 @@ function resetPatterns() {
 	numberOfPattern = 0;
 	patternsInformation = {};
 	patternIdList = [];
+	availablePatterns = [];
 	filteredOutPatterns = [];
+	lastSteeringPatterns = [];
 	patternOccurrences = {};
 	selectedPatternIds = [];
 	// TODO Deal with the potential other pattern metrics in patternMetrics
 	patternMetrics.sizeDistribution = {};
+	patternMetrics.supportDistribution = {};
 	patternsPerSecondChart.reset();
 	candidatesCheckedPerSecondChart.reset();
 	resetMaxPatternSupport();
@@ -3803,6 +3910,8 @@ function resetPatterns() {
 	drawPatternSizesChart();
 	createPatternListDisplay();
 	updatePatternCountDisplay();
+	setHighlights();
+	resetLastSteeringDetails();
 	// TODO Keep the initial sessions ?
 	buildUserSessions();
 	refreshUserPatterns();
@@ -3815,13 +3924,17 @@ function resetPatterns() {
  * Updates the data after the creation of a new event type
  * @param {JSON} newEvents New events to add to the data
  * @param {number[]} removedIds Ids of events to be removed
+ * @param {json} typeInfo Information about the new type
  */
-function updateDatasetForNewEventType(newEvents, removedIds) {
+function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
 	resetDataFilters();
+	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	removedEventsList = _.concat(removedEventsList, theseRemovedEvents);
 	console.log("Removed");
+
 	let toAdd = [];
 	newEvents.forEach(function(evt) {
 		let time = new Date(evt.start);
@@ -3834,14 +3947,56 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
 			"properties": evt.properties
 		};
 		toAdd.push(evtObj);
+		addedEventIdsList.push(evt.id);
 	});
 	dataset.add(toAdd);
 	console.log("Added");
+
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
-	addToHistory("Event type "+newEvents[0].type+" created from pattern");
+
+	eventTypeInformations[typeInfo.name] = {
+		"category": typeInfo.category,
+		"description": typeInfo.description,
+		"nbOccs": toAdd.length,
+		"nbUsers": 0
+	};
+
+	if (eventTypeCategories.includes(typeInfo.category) == false) {
+		eventTypesByCategory[typeInfo.category] = [];
+		eventTypeCategories.push(typeInfo.category);
+		let catColor = getNextCategoryColor();
+		eventTypeCategoryColors[typeInfo.category] = [d3.rgb(catColor[0]), d3.rgb(catColor[1])];
+		
+		let categoryRow = d3.select("#categoryTableBody").append("tr");
+		categoryRow.append("td").text(typeInfo.category);
+		let categorySvg = categoryRow.append("td")
+			.append("svg")
+			.attr("width",60)
+			.attr("height", 20);
+		categorySvg.append("rect")
+			.attr("width", 30)
+			.attr("height", 20)
+			.attr("fill",eventTypeCategoryColors[typeInfo.category][0].toString());
+		categorySvg.append("rect")
+			.attr("width", 30)
+			.attr("height", 20)
+			.attr("x",30)
+			.attr("fill",eventTypeCategoryColors[typeInfo.category][1].toString());
+	}
+	eventTypesByCategory[typeInfo.category].push(typeInfo.name);
+
+	// Take the first available shape in this category
+	let eCode = shapes[(eventTypesByCategory[typeInfo.category].length - 1)%shapes.length];
+	let eColor = eventTypeCategoryColors[typeInfo.category];
+	
+	colorList[typeInfo.name] = eColor;
+	itemShapes[typeInfo.name] = eCode;
+
+	eventTypeInformations[typeInfo.name].code = eCode;
+
+	updateEventTypesInformations();
+	activityHistory.createEventType(newEvents[0].type, typeInfo.parent);
 }
 
 /**
@@ -3851,9 +4006,13 @@ function updateDatasetForNewEventType(newEvents, removedIds) {
  */
 function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	resetDataFilters();
+	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
+	console.log("thse/ "+theseRemovedEvents.length);
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	removedEventsList = _.concat(removedEventsList, theseRemovedEvents);
+	console.log("rem: "+removedEventsList.length);
 	// Clean the highlights if necessary
 	let intersection = _.intersection(highlightedEventTypes, removedEvents);
 	if (intersection.length > 0) {
@@ -3863,9 +4022,8 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
-	addToHistory(removedEvents.length + " event types removed", removedEvents.join(", "));
+	updateEventTypesInformations();
+	activityHistory.removeEventTypes(removedEvents);
 }
 
 /**
@@ -3875,9 +4033,11 @@ function updateDatasetForRemovedEventTypes(removedIds, removedEvents) {
  */
 function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	resetDataFilters();
+	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
 	dataset.remove(function(d,i) {
 		return removedIds.includes(d.id);
 	});
+	removedEventsList = _.concat(removedEventsList, theseRemovedEvents);
 	// Clean the highlights if necessary
 	let intersection = _.intersection(highlightedUsers, removedUsers);
 	if (intersection.length > 0) {
@@ -3887,9 +4047,8 @@ function updateDatasetForRemovedUsers(removedIds, removedUsers) {
 	console.log("Removed");
 	// Reapply the time filter
 	dataDimensions.time.filterRange(currentTimeFilter);
-	computeUsersPerEventType();
-	createEventTypesListDisplay();
-	addToHistory(removedUsers.length + " users removed", removedUsers.join(", "));
+	updateEventTypesInformations();
+	activityHistory.removeUsers(removedUsers);
 }
 
 /**
@@ -3906,26 +4065,231 @@ function resetDataFilters() {
 /************************************/
 
 /**
+ * Enables the toggle of the pattern list's live update 
+ */
+function enableLiveUpdateControl() {
+	document.getElementById("liveUpdateButton").disabled = false;
+}
+
+/**
+ * Disables the toggle of the pattern list's live update 
+ */
+function disableLiveUpdateControl() {
+	document.getElementById("liveUpdateButton").disabled = true;
+}
+
+/**
+ * Setup the details about the last steering.
+ * @param {string} type The type of steering
+ * @param {string} value The target of the steering
+ */
+function setupLastSteeringDetails(type, value) {
+	let fragment = document.createDocumentFragment();
+	let typeDiv = document.createElement("div");
+	let targetDiv = document.createElement("div");
+	switch(type) {
+		case "time":
+			typeDiv.textContent = "Steering on time";
+			targetDiv.textContent = `Limits: ${value}`;
+			break;
+		case "pattern":
+			typeDiv.textContent = "Steering on pattern";
+			targetDiv.textContent = `Prefix: ${value}`;
+			break;
+		case "user":
+			typeDiv.textContent = "Steering on user";
+			targetDiv.textContent = `User: ${value}`;
+			break;
+		default:
+	}
+	let patternNumberDiv = document.createElement("div");
+	patternNumberDiv.className = "patternNumber";
+	patternNumberDiv.textContent = `${lastSteeringPatterns.length} patterns found`
+	fragment.appendChild(typeDiv);
+	fragment.appendChild(targetDiv);
+	fragment.appendChild(patternNumberDiv);
+
+	let details = document.getElementById("lastSteeringDetails");
+	details.textContent = "";
+	details.appendChild(fragment);
+}
+
+/**
+ * Updates the display of the last steering details
+ */
+function updateLasteSteeringDetails() {
+	document.querySelector("#lastSteeringDetails .patternNumber")
+		.textContent = `${lastSteeringPatterns.length} patterns found`;
+}
+
+/**
+ * Resets the last steering details
+ */
+function resetLastSteeringDetails() {
+	document.getElementById("lastSteeringDetails")
+		.textContent = "No steering yet";
+}
+
+/**
+ * Updates the suggestions of event types to complete the input of the pattern
+ * search field
+ */
+function updatePatternSearchSuggestion() {
+	let searchField = d3.select("#patternListArea input.searchField");
+	let suggestionDiv = d3.select("#patternListArea .suggestionDiv");
+
+	let currentValue = searchField.property("value");
+	currentPatternSearchInput = currentValue.trim();
+	let inputParts = currentPatternSearchInput.split(" ").filter( d => d.length > 0);
+	currentPatternSearchFragment = inputParts.pop();
+	
+	if(currentPatternSearchFragment && currentPatternSearchFragment.length > 0) {
+		let baseLength = currentPatternSearchInput.length -
+							currentPatternSearchFragment.length;
+		let baseValue = currentPatternSearchInput.substr(0, baseLength);
+		relatedEventTypes = eventTypes.filter(function(d, i) {
+			return d.toLowerCase().includes(currentPatternSearchFragment.toLowerCase());
+		});
+		relatedEventTypes.sort();
+		
+		if (relatedEventTypes.length > 0) {
+			let fragment = document.createDocumentFragment();
+			currentPatternSearchSuggestionIdx = 0;
+			relatedEventTypes.forEach(function(d,i) {
+				let child = document.createElement("p");
+				child.className = "clickable";
+				if (i==currentPatternSearchSuggestionIdx)
+					child.classList.add("selectedSuggestion");
+				child.textContent = baseValue + d;
+				child.setAttribute("value", baseValue + relatedEventTypes[i]);
+				child.addEventListener("click", selectPatternSearchSuggestion);
+				fragment.appendChild(child);
+			});
+			suggestionDiv.html(null);
+			suggestionDiv.node().appendChild(fragment);
+		} else {
+			currentPatternSearchSuggestionIdx = -1;
+			suggestionDiv.html(null);
+		}
+	} else {
+		currentPatternSearchInput = "";
+		currentPatternSearchSuggestionIdx = -1;
+		currentPatternSearchFragment = "";
+		relatedEventTypes = [];
+		suggestionDiv.html(null);
+	}
+	suggestionDiv.style("display", "block");
+}
+
+/**
+ * Selects a suggestion in the pattern search field suggestion list and updates
+ * the field's input and pattern list accordingly.
+ * 
+ * @param {number|HTMLElement} selectedSuggestion The selected suggestion, either
+ * the element or its index in the suggestion list
+ */
+function selectPatternSearchSuggestion(selectedSuggestion) {
+	let suggestionDiv = d3.select("#patternListArea .suggestionDiv");
+	let suggestion;
+	if (typeof selectedSuggestion == "number")
+		suggestion = suggestionDiv.node().childNodes[selectedSuggestion].getAttribute("value");
+	else
+		suggestion = this.getAttribute("value");
+	let searchField = d3.select("#patternListArea input.searchField");
+
+	currentPatternSearchInput = suggestion;
+	searchField.property("value", suggestion);
+
+	currentPatternSearchSuggestionIdx = -1;
+	suggestionDiv.style("display", "none");
+	suggestionDiv.html(null);
+
+	debouncedFilterPatterns.cancel();
+	filterPatterns();
+}
+
+/**
+ * Updates the style of the "restart" button, depending on the modifying sliders' values
+ */
+function updateRestartButtonStyle() {
+	if (supportModifySlider.getValues()[0] != algoMinSupport ||
+		durationModifySlider.getValues()[0] != algoMaxDuration ||
+		sizeModifySlider.getValues()[0] != algoMaxSize ||
+		gapModifySlider.getValues()[0] != algoMinGap ||
+		gapModifySlider.getValues()[1] != algoMaxGap) {
+		document.getElementById("restartButton")
+			.disabled = false;
+	} else {
+		document.getElementById("restartButton")
+			.disabled = true;
+	}
+}
+
+/**
+ * Opens a modal window to confirm or cancel the creation of an event type from a pattern
+ * @param {number} patternId The id of the pattern used
+ */
+function askConfirmationToCreateEventType(patternId) {
+	showEventTypeCreationConfirmation();
+	d3.select("#modalTitle")
+		.text("Confirm the creation of event type");
+
+	document.getElementById("newEventTypePattern").textContent = patternsInformation[patternId][0];
+
+	let newName = patternsInformation[patternId][0].replace(" ", "-");
+	document.getElementById("newEventTypeNameInput").value = newName;
+	let description = `Created from '${patternsInformation[patternId][0]}'`;
+	document.getElementById("newEventTypeDescriptionInput").value = description;
+
+
+	d3.selectAll(".eventCreationOption").remove();
+
+	let body = d3.select("#createEventTypeConfirmation .contentBody");
+	patternsInformation[patternId][3].forEach( type => {
+		body.append("div")
+			.classed("eventCreationOption textRight", true)
+			.text(type);
+		body.append("input")
+			.attr("type", "checkbox")
+			.classed("eventCreationOption clickable", true)
+			.attr("value", type);
+	});
+
+	d3.select("#createEventTypeConfirmation .confirmationConfirm")
+		.on("click", function() {
+			let name = document.getElementById("newEventTypeNameInput").value;
+			let description = document.getElementById("newEventTypeDescriptionInput").value;
+			let typesToRemove = [];
+			document.querySelectorAll(".eventCreationOption[type='checkbox']").forEach( d => {
+				if (d.checked)
+					typesToRemove.push(d.value);
+			});
+
+			let options = {
+				removeOccurrences: typesToRemove,
+				description: description
+			};
+			requestEventTypeCreationFromPattern(patternId, name, options);
+			closeModal();
+		});
+}
+
+/**
  * Opens a modal window to confirm or cancel the change of parameters for the algorithm
  */
 function askConfirmationToChangeAlgorithmParameters() {
-	showConfirmationModal();
+	useExtendedAlgorithmView = false;
+	showParameterChangeConfirmation();
 	d3.select("#modalTitle")
 		.text("Confirm the parameters change");
-	d3.select("#actionConfirmation #contentHeader")
-		.text("Do you confirm the following changes :");
-	d3.select("#actionConfirmation #contentBody")
+	d3.select("#changeParametersConfirmation .contentBody")
 		.text("param changes ...");
 		// Add a warning that it will relaunch the process
-	d3.select("#confirmationConfirm")
+	d3.select("#changeParametersConfirmation .confirmationConfirm")
 		.on("click", function() {
 			changeAlgorithmParameters();
 			requestAlgorithmReStart();
 			closeModal();
-		});
-	d3.select("#confirmationCancel")
-		.on("click", function() {
-			toggleExtendedAlgorithmView();
 		});
 }
 
@@ -3934,24 +4298,18 @@ function askConfirmationToChangeAlgorithmParameters() {
  * @param {...string} eventTypeNames The name of event types whose removal must be confirmed
  */
 function askConfirmationToRemoveEventTypes(...eventTypeNames) {
-	showConfirmationModal();
+	showEventTypeRemovalConfirmation();
 	d3.select("#modalTitle")
 		.text("Confirm event type removal");
-	d3.select("#actionConfirmation #contentHeader")
-		.text("Confirm the removal of all events of the following types :");
-	let contentArea = d3.select("#actionConfirmation #contentBody")
+	let contentArea = d3.select("#removeEventTypeConfirmation .contentBody")
 		.text("");
 	eventTypeNames.forEach( (typeName) => {
 		contentArea.append("div")
 			.text(typeName);
 	});
-	d3.select("#confirmationConfirm")
+	d3.select("#removeEventTypeConfirmation .confirmationConfirm")
 		.on("click", function() {
 			requestEventTypesRemoval(eventTypeNames);
-			closeModal();
-		});
-	d3.select("#confirmationCancel")
-		.on("click", function() {
 			closeModal();
 		});
 }
@@ -3961,24 +4319,18 @@ function askConfirmationToRemoveEventTypes(...eventTypeNames) {
  * @param {...string} userNames The name of users whose removal must be confirmed
  */
 function askConfirmationToRemoveUsers(...userNames) {
-	showConfirmationModal();
+	showUserRemovalConfirmation();
 	d3.select("#modalTitle")
 		.text("Confirm user removal");
-	d3.select("#actionConfirmation #contentHeader")
-		.text("Confirm the removal of all events of the following users :");
-	let contentArea = d3.select("#actionConfirmation #contentBody")
+	let contentArea = d3.select("#removeUserConfirmation .contentBody")
 		.text("");
 	userNames.forEach( (userName) => {
 		contentArea.append("div")
 			.text(userName);
 	});
-	d3.select("#confirmationConfirm")
+	d3.select("#removeUserConfirmation .confirmationConfirm")
 		.on("click", function() {
 			requestUsersRemoval(userNames);
-			closeModal();
-		});
-	d3.select("#confirmationCancel")
-		.on("click", function() {
 			closeModal();
 		});
 }
@@ -3989,9 +4341,14 @@ function askConfirmationToRemoveUsers(...userNames) {
  */
 function updatePatternCountDisplay() {
 	d3.select("#patternNumberSpan").text(numberOfPattern);
-	d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
+	document.getElementById("totalPatternFound")
+		.textContent = algorithmState.getTotalPatternNumber();
+	d3.select("#displayedPatternNumberSpan").text(patternIdList.length + filteredOutPatterns.length);
+	d3.select("#updatePatternListButton span").text(availablePatterns.length);
+	document.querySelector("#showOnlyLastSteeringButton span")
+		.textContent = lastSteeringPatterns.length;
 	// TODO dynamically update the number of patterns matching the filter
-	d3.select("#highlightedPatternNumberSpan").text("0");
+	d3.select("#filteredInPatternNumberSpan").text(patternIdList.length);
 }
 
 /**
@@ -4002,20 +4359,6 @@ function resetDatasetInfo() {
 	infoDiv.textContent = "No dataset selected, select a dataset to display more information";
 	
 	datasetInfoIsDefault = true;
-}
-
-/**
- * Resets the display of the history of actions
- * 
- * @deprecated Make sure that it is enough, maybe children should be removed
- * 
- * TODO check the deprecation
- */
-function resetHistory() {
-	let historyDiv = document.getElementById("historyList");
-	historyDiv.textContent = "No history to display";
-	
-	historyDisplayIsDefault = true;
 }
 
 /**
@@ -4365,9 +4708,11 @@ function setHighlights() {
 	else
 		d3.select("#userHighlight .highlightsResetOption").classed("hidden", true);
 	let detailed = d3.select("#detailedUserHighlight");
-	detailed.html("");
+	let detailedSubtitle = detailed.select(".subtitle");
+	let detailedContent = detailed.select(".content");
+	detailedContent.html("");
 	highlightedUsers.forEach(function(usr) {
-		detailed.append("div")
+		detailedContent.append("div")
 			.classed("clickable", true)
 			.classed("highlightButton", true)
 			.text(usr)
@@ -4377,6 +4722,7 @@ function setHighlights() {
 				timeline.displayData();
 			});
 	});
+	detailedSubtitle.classed("hidden", highlightedUsers.length == 0);
 
 	// event type highlights
 	d3.select("#eventTypeHighlight .highlightsValue")
@@ -4386,9 +4732,11 @@ function setHighlights() {
 	else
 		d3.select("#eventTypeHighlight .highlightsResetOption").classed("hidden", true);
 	detailed = d3.select("#detailedEventTypeHighlight");
-	detailed.html("");
+	detailedSubtitle = detailed.select(".subtitle");
+	detailedContent = detailed.select(".content");
+	detailedContent.html("");
 	highlightedEventTypes.forEach(function(type) {
-		detailed.append("div")
+		detailedContent.append("div")
 			.classed("clickable", true)
 			.classed("highlightButton", true)
 			.style("color", colorList[type][0].toString())
@@ -4402,6 +4750,7 @@ function setHighlights() {
 			.style("color", "black")
 			.text("\u00A0"+type);
 	});
+	detailedSubtitle.classed("hidden", highlightedEventTypes.length == 0);
 
 	// pattern highlights
 	d3.select("#patternHighlight .highlightsValue")
@@ -4411,13 +4760,15 @@ function setHighlights() {
 	else
 		d3.select("#patternHighlight .highlightsResetOption").classed("hidden", true);
 	detailed = d3.select("#detailedPatternHighlight");
-	detailed.html("");
+	detailedSubtitle = detailed.select(".subtitle");
+	detailedContent = detailed.select(".content");
+	detailedContent.html("");
 	selectedPatternIds.forEach(function(patternId) {
 		let pSize = patternsInformation[patternId][1];
 		let pString = patternsInformation[patternId][0];
 		let pItems = patternsInformation[patternId][3];
 
-		let row = detailed.append("div")
+		let row = detailedContent.append("div")
 			.classed("clickable",true)
 			.on("click", function() {
 				let index = selectedPatternIds.indexOf(patternId);
@@ -4428,9 +4779,6 @@ function setHighlights() {
 				console.log("click on "+patternId);
 				createPatternListDisplay();
 				setHighlights();
-				
-				// Update the number of selected patterns display
-				d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 			});
 		for (let k=0; k < pSize; k++) {
 			row.append("span")
@@ -4441,6 +4789,7 @@ function setHighlights() {
 			.text(" "+pString)
 			.attr("patternId",patternId);
 	});
+	detailedSubtitle.classed("hidden", selectedPatternIds.length == 0);
 }
 
 /**
@@ -4558,7 +4907,7 @@ function createEventTypesListDisplay() {
 		}
 
 		// Add the context actions
-		let contextActions = eventRow.append("div")
+		let contextActions = eventRow.append("td").append("div")
 			.classed("contextActions", true);
 		let removeAction = contextActions.append("div");
 		removeAction.append("button")
@@ -4572,7 +4921,7 @@ function createEventTypesListDisplay() {
 		let extendedRemoveActions = removeAction.append("div")
 			.classed("extendedContextAction", true);
 		extendedRemoveActions.append("p")
-			.text("Remove one")
+			.text(`Remove ${eType} (${eventTypeInformations[eType].nbOccs} events)`)
 			.on("click", function() {
 				d3.event.stopPropagation();
 				askConfirmationToRemoveEventTypes(eType);
@@ -4765,7 +5114,7 @@ function createUserListDisplay() {
 		}
 		
 		// Add the context actions
-		let contextActions = userRow.append("div")
+		let contextActions = userRow.append("td").append("div")
 			.classed("contextActions", true);
 		let removeAction = contextActions.append("div");
 		removeAction.append("button")
@@ -4780,7 +5129,7 @@ function createUserListDisplay() {
 		let extendedRemoveActions = removeAction.append("div")
 			.classed("extendedContextAction", true);
 		extendedRemoveActions.append("p")
-			.text("Remove one")
+			.text(`Remove '${user}' (${userInformations[user].nbEvents} events)`)
 			.on("click", function() {
 				d3.event.stopPropagation();
 				askConfirmationToRemoveUsers(user);
@@ -4925,9 +5274,6 @@ function stopAlgorithmRuntime(time) {
 		// Reset the startTime
 		algorithmStartTime = -1;
 	}
-	
-	d3.select("#currentAlgorithmWork")
-		.text("(ended)");
 }
 
 /**
@@ -4969,7 +5315,8 @@ function updateAlgorithmStateDisplay() {
 			patternCount.selectAll(".bar")
 			  	.data([lvlData.patternCount])
 				.transition().duration(0)
-				.attr("width", (d) => algorithmExtendedBarAxis(d));
+					.attr("status", lvlData.status)
+					.attr("width", (d) => algorithmExtendedBarAxis(d));
 			row.select(".patternSizeCandidates")
 				.text(lvlData.candidatesChecked+"/"+lvlData.candidates);
 			row.select(".patternSizeProgression")
@@ -4997,6 +5344,7 @@ function updateAlgorithmStateDisplay() {
 				.enter()
 			  .append("rect")
 				  .attr("class", "bar")
+				  .attr("status", lvlData.status)
 				  .attr("x", 0)
 				  .attr("y", 0 )
 				  .attr("height", 15)
@@ -5084,9 +5432,37 @@ function updateAlgorithmStateDisplay() {
 	}
 	
 	// Update the reduced view
-	// Update the display of the runtime
-	d3.select("#runtime")
-		.text(formatElapsedTimeToString(elapsedTime));
+	document.getElementById("totalElapsedTime")
+		.textContent = formatElapsedTimeToString(algorithmState.getTotalElapsedTime(), true);
+	document.getElementById("totalPatternFound")
+		.textContent = algorithmState.getTotalPatternNumber();
+
+	let focusTxt = "Not running";
+	let activityClass = "complete";
+	let activityTxt = "Completed";
+	if (algorithmState.isRunning()) {
+		activityTxt = "Working on size "+algorithmState.getCurrentLevel().size;
+		activityClass = "running";
+		if (algorithmState.isUnderSteering()) {
+			focusTxt = "Steering on ";
+			activityClass = "steering";
+			if (algorithmState.getSteeringTarget()) {
+				focusTxt += algorithmState.getSteeringTarget();
+				if (algorithmState.getSteeringValue())
+					focusTxt += " "+algorithmState.getSteeringValue();
+			} else {
+				focusTxt += "something";
+			}
+		} else {
+			focusTxt = "Default strategy";
+		}
+	}
+	
+	let activity = document.getElementById("algorithmActivity");
+	activity.textContent = activityTxt;
+	activity.className = activityClass;
+	document.getElementById("algorithmFocus")
+		.textContent = focusTxt;
 }
 
 /**
@@ -5096,13 +5472,12 @@ function updateAlgorithmStateDisplay() {
 function handleAlgorithmStartSignal(msg) {
 	let dateUTC = new Date(msg.time);
 	startAlgorithmRuntime(dateUTC.getTime());
+	enableLiveUpdateControl();
+	if (patternLiveUpdate)
+		d3.select("#liveUpdateIndicator").classed("active", true);
 	algorithmState.start();
 
-	let detailSupport = "Min. support: " + algoMinSupport; 
-	let detailGap = "Gap: " + algoMinGap + " - " + algoMaxGap;
-	let detailDuration = "Max. duration: " + algoMaxDuration + "ms";
-	let detailSize = "Max. size: " + algoMaxSize;
-	addToHistory("Algorithm started", "Parameters:", detailSupport, detailGap, detailDuration, detailSize);
+	activityHistory.startAlgorithm(algoMinSupport, algoMinGap, algoMaxGap, algoMaxDuration, algoMaxSize);
 }
 
 /**
@@ -5112,12 +5487,13 @@ function handleAlgorithmStartSignal(msg) {
 function handleAlgorithmEndSignal(msg) {
 	let dateUTC = new Date(msg.time);
 	stopAlgorithmRuntime(dateUTC.getTime());
+	disableLiveUpdateControl();
+	if (patternLiveUpdate)
+		d3.select("#liveUpdateIndicator").classed("active", false);
 	algorithmState.stop();
 	updateAlgorithmStateDisplay();
 	
-	let details = algorithmState.getTotalPatternNumber() + " patterns found over ";
-	details += algorithmState.getTotalElapsedTime() + "ms"
-	addToHistory("Algorithm ended", details);
+	activityHistory.endAlgorithm(algorithmState.getTotalPatternNumber(), algorithmState.getTotalElapsedTime())
 }
 
 /**
@@ -5142,8 +5518,9 @@ function handleLoadingSignal() {
 		default:
 			dots = "";
 		}
-		d3.select("#currentAlgorithmWork")
-			.text("(loading data"+dots+")");
+		let activity = document.getElementById("algorithmActivity");
+		activity.textContent = "Loading data"+dots;
+		activity.className = "";
 		}, 1000);
 }
 
@@ -5153,8 +5530,8 @@ function handleLoadingSignal() {
 function handleLoadedSignal() {
 	clearInterval(loadingAlgorithmDataAnimation);
 	loadingAlgorithmDataAnimationState = 1;
-	d3.select("#currentAlgorithmWork")
-		.text("(Data loaded)");
+	document.getElementById("algorithmActivity")
+		.textContent = "Starting";
 	console.log("Dataset loaded on server");
 }
 
@@ -5163,11 +5540,10 @@ function handleLoadedSignal() {
  * @param {number} level The pattern size
  */
 function handleNewLevelSignal(level) {
-	d3.select("#currentAlgorithmWork")
-		.text("(working on size "+level+")");
-	
 	algorithmState.stopLevel();
 	algorithmState.startLevel(level);
+	drawPatternSizesChart();
+	updateAlgorithmStateDisplay();
 }
 
 /**
@@ -5176,6 +5552,7 @@ function handleNewLevelSignal(level) {
  */
 function handleLevelCompleteSignal(level) {
 	algorithmState.setLevelComplete(level);
+	drawPatternSizesChart();
 }
 
 /**
@@ -5229,13 +5606,19 @@ function drawPatternSizesChart() {
 		.style('fill-opacity', 1e-6)
 		.remove();
 	
+	let barHeight = Math.min(25, Math.round(patternSizesChart.y.bandwidth()));
+	let bandwidthOffset = (patternSizesChart.y.bandwidth() - barHeight) / 2;
+
 	bars.enter().append("rect")
-		.attr("class", "bar")
+		.classed("bar", true)
+		.attr("status", d => algorithmState.getLevel(d).status)
 		.attr("x", patternSizesChart.x(0))
-		.attr("width", (d) => patternSizesChart.x(patternMetrics.sizeDistribution[d]));
+		.attr("y", d => Math.round(patternSizesChart.y(d) + bandwidthOffset))
+		.attr("width", d => Math.round(patternSizesChart.x(patternMetrics.sizeDistribution[d])))
+		.attr("height", barHeight);
 	
 	texts.enter().append("text")
-		.attr("class", "bar")
+		.classed("bar", true)
 		.attr("text-anchor", "start")
 		.attr("alignment-baseline", "middle")
 		.attr("y", function(d) {
@@ -5246,12 +5629,11 @@ function drawPatternSizesChart() {
 		
 	// the "UPDATE" set:
 	bars.transition().duration(0)
-		.attr("y", function(d) { return patternSizesChart.y(d); })
-		.attr("height", patternSizesChart.y.bandwidth())
+		.attr("status", d => algorithmState.getLevel(d).status)
+		.attr("y", d => Math.round(patternSizesChart.y(d) + bandwidthOffset))
+		.attr("height", barHeight)
 		.attr("x", patternSizesChart.x(0))
-		.attr("width", function(d) {
-			return patternSizesChart.x(patternMetrics.sizeDistribution[d]);
-		});
+		.attr("width", d => Math.round(patternSizesChart.x(patternMetrics.sizeDistribution[d])));
 	
 	texts.transition()
 		.duration(0)
@@ -5270,12 +5652,16 @@ function drawPatternSizesChart() {
 function handleSteeringStartSignal(type, value) {
 	d3.select("#focus").text(type+" starting with: "+value);
 	algorithmState.startSteering(type, value);
+	lastSteeringPatterns = [];
+	setupLastSteeringDetails(type, value);
+	updatePatternCountDisplay(); // To reset the number of patterns from the last steering
 }
 
 /**
  * Clears the display of the algorithm's steering after it has ended
  */
 function handleSteeringStopSignal() {
+	activityHistory.stopSteering();
 	d3.select("#focus").text("");
 	algorithmState.stopSteering();
 }
@@ -5362,7 +5748,7 @@ function createPatternListDisplay() {
 	});
 	d3.select("#selectedPatternsArea .body").classed("hidden", selectedPatternIds.length == 0);
 	
-	d3.select("#highlightedPatternNumberSpan").text(filteredPatterns);
+	d3.select("#filteredInPatternNumberSpan").text(filteredPatterns);
 }
 
 /**
@@ -5401,9 +5787,6 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 			//d3.event.stopPropagation();
 			console.log("click on "+pId);
 			createPatternListDisplay();
-			
-			// Update the number of selected patterns display
-			d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 			
 			d3.select("#resetPatternSelectionButton")
 				.classed("hidden", selectedPatternIds.length == 0);
@@ -5446,7 +5829,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.text(pSize);
 	
 	// Add the context actions
-	let contextActions = row.append("div")
+	let contextActions = row.append("td").append("div")
 		.classed("contextActions", true);
 	contextActions.append("button")
 		.classed("clickable", true)
@@ -5454,12 +5837,12 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.attr("title", "Highlight users having this pattern")
 		.on("click", function() {
 			d3.event.stopPropagation();
-			selectUsersHavingPattern(pId);
+			updateUserSelectionFromPattern(pId);
 		});
 	contextActions.append("button")
 		.classed("clickable", true)
 		.classed("icon-steering", true)
-		.attr("title", "Steer algorithm")
+		.attr("title", "Steer algorithm on this pattern")
 		.on("click", function() {
 			d3.event.stopPropagation();
 			requestSteeringOnPatternPrefix(pId);
@@ -5470,7 +5853,7 @@ function createGeneralPatternRow(pId, displayAsSelected = false) {
 		.attr("title", "Convert to event type")
 		.on("click", function() {
 			d3.event.stopPropagation();
-			requestEventTypeCreationFromPattern(pId);
+			askConfirmationToCreateEventType(pId);
 		});
 	
 	return row;
@@ -5512,6 +5895,13 @@ function focusOnTimePeriod(startTime, endTime) {
 
 	timeline.gBrush.call(timeline.brush.move, 
 		[timeline.xContext(start), timeline.xContext(end)]);
+}
+
+/**
+ * Puts the focus on the whole dataset
+ */
+function resetFocus() {
+	focusOnTimePeriod(...timeline.xContext.domain().map( d => d.getTime() ));
 }
 
 /**
@@ -5614,7 +6004,7 @@ function filterUserList() {
 			suggestionDiv.html("");
 			relatedUsers.forEach(function(d,i) {
 				suggestionDiv.append("p")
-					.classed("selected", i==currentUserSearchSuggestionIdx)
+					.classed("selectedSuggestion", i==currentUserSearchSuggestionIdx)
 					.classed("clickable", true)
 					.text(d)
 					.on("click", function() {
@@ -5630,7 +6020,7 @@ function filterUserList() {
 							suggestionDiv.html("");
 							relatedUsers.forEach(function(e,j) {
 								suggestionDiv.append("p")
-									.classed("selected", j==currentUserSearchSuggestionIdx)
+									.classed("selectedSuggestion", j==currentUserSearchSuggestionIdx)
 									.text(e);
 							});
 						} else {
@@ -5767,19 +6157,14 @@ function toggleExtendedAlgorithmView() {
 	useExtendedAlgorithmView = !useExtendedAlgorithmView;
 	if(useExtendedAlgorithmView) { // Show the extended view
 		d3.select("#algorithmExtended").classed("hidden", false);
-		d3.select("#modalTitle").text("Current algorithm state");
+		d3.select("#changeParametersConfirmation").classed("hidden", true);
+		d3.select("#modalTitle").text("Information about the pattern mining algorithm");
 		d3.select("#modalBackground").classed("hidden", false);
-		/*// Move the graph into the extended view
-		document.getElementById("extendedPatternSizesChart")
-			.appendChild(d3.select("#patternSizesSvg").node());*/
 		
 	} else { // Show the shrinked view
 		d3.select("#modalBackground").classed("hidden", true);
 		d3.select("#modalTitle").text("");
 		d3.select("#algorithmExtended").classed("hidden", true);
-		/*// Move the graph out of the extended view
-		document.getElementById("patternSizesChart")
-			.appendChild(d3.select("#patternSizesSvg").node());*/
 	}
 }
 
@@ -5791,15 +6176,52 @@ function closeModal() {
 		toggleExtendedAlgorithmView();
 	d3.select("#modalBackground").classed("hidden", true);
 	d3.select("#modalTitle").text("");
-	d3.select("#actionConfirmation").classed("hidden", true);
+	d3.selectAll(".actionConfirmation").classed("hidden", true);
 }
 
+/**
+ * Shows the modal window in 'action confirmation' mode
+ */
 function showConfirmationModal() {
 	d3.select("#modalBackground").classed("hidden", false);
-	d3.select("#modalTitle").text("Action confirmation");
+	//d3.select("#modalTitle").text("Action confirmation");
 	d3.select("#algorithmExtended").classed("hidden", true);
-	d3.select("#actionConfirmation").classed("hidden", false);
-	document.getElementById("confirmationCancel").focus();
+}
+
+/**
+ * Shows the modal window for confirming the removal of an event type
+ */
+function showEventTypeRemovalConfirmation() {
+	showConfirmationModal();
+	d3.select("#removeEventTypeConfirmation").classed("hidden", false);
+	d3.select("#removeEventTypeConfirmation .confirmationCancel").node().focus();
+}
+
+/**
+ * Shows the modal window for confirming the removal of a user
+ */
+function showUserRemovalConfirmation() {
+	showConfirmationModal();
+	d3.select("#removeUserConfirmation").classed("hidden", false);
+	d3.select("#removeUserConfirmation .confirmationCancel").node().focus();
+}
+
+/**
+ * Shows the modal window for confirming the modification of parameters
+ */
+function showParameterChangeConfirmation() {
+	showConfirmationModal();
+	d3.select("#changeParametersConfirmation").classed("hidden", false);
+	d3.select("#changeParametersConfirmation .confirmationCancel").node().focus();
+}
+
+/**
+ * Shows the modal window for confirming the creation of an event type
+ */
+function showEventTypeCreationConfirmation() {
+	showConfirmationModal();
+	d3.select("#createEventTypeConfirmation").classed("hidden", false);
+	d3.select("#createEventTypeConfirmation .confirmationCancel").node().focus();
 }
 
 /************************************/
@@ -6101,9 +6523,6 @@ function displaySessionTooltip(data) {
 					//d3.event.stopPropagation();
 					console.log("click on "+pId);
 					createPatternListDisplay();
-					
-					// Update the number of selected patterns display
-					d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 				});
 			let firstCell = ttTableRow.append("td");
 			for (let tIdx = 0; tIdx < evtTypes.length; tIdx++) {
@@ -6279,8 +6698,6 @@ function unselectAllPatterns() {
 	timeline.displayData(); // TODO only redraw the pattern occurrences
 	//timeline.drawUsersPatterns(); // TODO uncomment when the above line's TODO will be done
 	
-	// Update the number of selected patterns display
-	d3.select("#selectedPatternNumberSpan").text('0');
 	d3.select("#resetPatternSelectionButton")
 				.classed("hidden", selectedPatternIds.length == 0);
 	setHighlights();
@@ -6331,8 +6748,9 @@ function PatternSizesChart() {
  * @constructor
  * @param {string} elemId Id of the HTML node where the slider will be created
  * @param {function} onupdate Callback used when one of the brushes' value changes
+ * @param {string} metricName Field of patternMetrics whe the data is located
  */
-function FilterSlider(elemId, onupdate) {
+function FilterSlider(elemId, onupdate, metricName) {
 	let self = this;
 	self.parentNodeId = elemId;
 	self.parentNode = d3.select("#"+self.parentNodeId);
@@ -6355,73 +6773,90 @@ function FilterSlider(elemId, onupdate) {
 	self.currentHandleMaxValue = self.currentMaxValue;
 	
 	self.onupdate = (onupdate ? onupdate : function(f){return;});
+	self.metricName = metricName;
+	self.areaData = [];
 
-	self.axis = d3.scaleLinear()
+	self.axisX = d3.scaleLinear()
 		.domain(self.domain)
 		.range([0,self.width])
 		.clamp(true);
+	self.axisY = d3.scaleLinear()
+		.domain([0, 10])
+		.range([self.height/2, 0]);
 	
 	self.slider = self.svg.append("g")
 		.attr("class","slider")
 		.attr("transform","translate("+self.margin.left+","+ self.height / 2 +")");
 	
+	self.area = d3.area()
+		.curve(d3.curveStep)
+		.x( d => self.axisX(d.key) )
+		.y0(self.axisY(0))
+		.y1( d => self.axisY(d.value) );
+
 	self.line = self.slider.append("line")
 		.attr("class","track")
-		.attr("x1",self.axis.range()[0])
-		.attr("x2",self.axis.range()[1])
+		.attr("x1",self.axisX.range()[0])
+		.attr("x2",self.axisX.range()[1])
 		.attr("stroke", "black");
 	
+	self.areaG = self.slider.append("path")
+		.attr("class", "sliderArea")
+		.attr("transform", `translate(0,${-(self.height/2 + 1)})`);
+
+	self.clipPath = self.slider.append("defs")
+		.append("clipPath")
+		.attr("id", `selection-clip-${self.parentNodeId}`)
+		.append("rect")
+		.attr("x", self.axisX(self.currentHandleMinValue - 0.5))
+		.attr("y", 0)
+		.attr("height", self.height/2 + 1)
+		.attr("width", self.axisX(self.currentHandleMaxValue + 0.5) - self.axisX(self.currentHandleMinValue - 0.5));
+		//.attr("transform", `translate(0,${-(self.height/2 + 1)})`);
+	
+	self.blueAreaG = self.slider.append("g")
+		.attr("clip-path", `url(#selection-clip-${self.parentNodeId})`)
+		.attr("transform", `translate(0,${-(self.height/2 + 1)})`)
+		.append("path")
+		.attr("class", "sliderBlueArea");
+
 	self.blueLine = self.slider.append("line")
 		.attr("class","bluetrack")
-		.attr("x1",self.axis(self.currentHandleMinValue))
-		.attr("x2",self.axis(self.currentHandleMaxValue))
+		.attr("x1",self.axisX(self.currentHandleMinValue))
+		.attr("x2",self.axisX(self.currentHandleMaxValue))
 		.attr("stroke", "lightblue");
-	
-	self.currentMin = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMinValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-	
-	self.currentMax = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMaxValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
 	
 	self.handle1 = self.slider.insert("circle", ".track-overlay")
 		.attr("class","handleSlider")
 		.attr("r",5)
-		.attr("cx",self.axis(self.currentMinValue))
+		.attr("cx",self.axisX(self.currentMinValue))
 		.call(d3.drag()
 				.on("start.interrupt", function() { self.slider.interrupt(); })
 				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
+					var roundedPos = Math.round(self.axisX.invert(d3.event.x));
 					self.moveHandle1To(roundedPos);
 					}));
 	
 	self.handle2 = self.slider.insert("circle", ".track-overlay")
 		.attr("class","handleSlider")
 		.attr("r",5)
-		.attr("cx",self.axis(self.currentMaxValue))
+		.attr("cx",self.axisX(self.currentMaxValue))
 		.call(d3.drag()
 				.on("start.interrupt", function() { self.slider.interrupt(); })
 				.on("start drag", function() {
-					var roundedPos = Math.round(self.axis.invert(d3.event.x));
+					var roundedPos = Math.round(self.axisX.invert(d3.event.x));
 					self.moveHandle2To(roundedPos);
 					}));
 
 	self.tooltipMin = self.slider.insert("text", ".track-overlay")
 		.attr("class","handleSliderText")
-		.attr("x", self.axis(self.currentHandleMinValue))
+		.attr("x", self.axisX(self.currentHandleMinValue))
 		.attr("text-anchor","middle")
 		.attr("transform", "translate(0,-"+10+")")
 		.text(self.currentHandleMinValue);
 	self.tooltipMax = self.slider.insert("text", ".track-overlay")
 		.attr("class","handleSliderText")
-		.attr("x", self.axis(self.currentHandleMaxValue))
+		.attr("x", self.axisX(self.currentHandleMaxValue))
 		.attr("text-anchor","middle")
 		.attr("transform", "translate(0,-"+10+")")
 		.text(self.currentHandleMaxValue);
@@ -6430,32 +6865,25 @@ function FilterSlider(elemId, onupdate) {
 	self.updateCurrentValues = function(min, max) {
 		self.currentMinValue = min;
 		self.currentMaxValue = max;
-		self.handle1.attr("cx",self.axis(self.current))
-	};
-	
-	self.moveCurrentMinTo = function(value) {
-		if (value >= self.currentMinValue)
-			self.currentMin.attr("x",self.axis(Math.round(value)));
-	};
-	
-	self.moveCurrentMaxTo = function(value) {
-		if (value <= self.currentMaxValue)
-			self.currentMax.attr("x",self.axis(Math.round(value)));
+		self.handle1.attr("cx",self.axisX(self.current))
 	};
 	
 	self.moveHandle1To = function(value) {
 		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle1.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle2.attr("cx"));	
+			self.handle1.attr("cx",self.axisX(Math.round(value)));
+			var otherValue = self.axisX.invert(self.handle2.attr("cx"));	
 			self.currentHandleMinValue = Math.min(value, otherValue);
 			self.currentHandleMaxValue = Math.max(value, otherValue);
 	
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-			self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
+			self.blueLine.attr("x1",self.axisX(self.currentHandleMinValue))
+				.attr("x2",self.axisX(self.currentHandleMaxValue));
+			self.tooltipMin.attr("x", self.axisX(self.currentHandleMinValue))
 				.text(Math.round(self.currentHandleMinValue));
-			self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
+			self.tooltipMax.attr("x", self.axisX(self.currentHandleMaxValue))
 				.text(Math.round(self.currentHandleMaxValue));
+
+			self.clipPath.attr("x", self.axisX(self.currentHandleMinValue - 0.5))
+				.attr("width", self.axisX(self.currentHandleMaxValue + 0.5) - self.axisX(self.currentHandleMinValue - 0.5));
 		}
 		
 		self.onupdate();
@@ -6466,22 +6894,56 @@ function FilterSlider(elemId, onupdate) {
 	
 	self.moveHandle2To = function(value) {
 		if (value >= self.currentMinValue && value <= self.currentMaxValue) {
-			self.handle2.attr("cx",self.axis(Math.round(value)));
-			var otherValue = self.axis.invert(self.handle1.attr("cx"));	
+			self.handle2.attr("cx",self.axisX(Math.round(value)));
+			var otherValue = self.axisX.invert(self.handle1.attr("cx"));	
 			self.currentHandleMinValue = Math.min(value, otherValue);
 			self.currentHandleMaxValue = Math.max(value, otherValue);
 	
-			self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-				.attr("x2",self.axis(self.currentHandleMaxValue));
-			self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
+			self.blueLine.attr("x1",self.axisX(self.currentHandleMinValue))
+				.attr("x2",self.axisX(self.currentHandleMaxValue));
+			self.tooltipMin.attr("x", self.axisX(self.currentHandleMinValue))
 				.text(Math.round(self.currentHandleMinValue));
-			self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
+			self.tooltipMax.attr("x", self.axisX(self.currentHandleMaxValue))
 				.text(Math.round(self.currentHandleMaxValue));
+				
+			self.clipPath.attr("x", self.axisX(self.currentHandleMinValue - 0.5))
+				.attr("width", self.axisX(self.currentHandleMaxValue + 0.5) - self.axisX(self.currentHandleMinValue - 0.5));
 		}
 		
 		self.onupdate();
 		/*self.blueLine.attr("x1",)
 			.attr("x2",self.axis(Math.round(value)));*/
+	};
+
+	self.draw = function() {
+		self.axisY.domain([0, d3.max(Object.values(patternMetrics[self.metricName]))]);
+		self.areaData = Object.entries(patternMetrics[self.metricName])
+			.map( d => ({key: parseInt(d[0]), value: d[1]}) );
+		// Add important values such as min and max, and maybe 0s between ?
+		let toAdd = [];
+		let actualData = Object.keys(patternMetrics[self.metricName])
+			.map( d => parseInt(d) );
+		self.areaData.forEach( d => {
+			let keyVal = parseInt(d.key);
+			if (!actualData.includes(keyVal-1)) {
+				toAdd.push({key: keyVal-1, value: 0});
+			}
+			if (!actualData.includes(keyVal+1)) {
+				toAdd.push({key: keyVal+1, value: 0});
+			}
+		});
+		self.areaData = _.concat(self.areaData, toAdd);
+		self.areaData = _.sortBy(self.areaData, ['key']);
+
+		self.clipPath.attr("x", self.axisX(self.currentHandleMinValue - 0.5))
+			.attr("width", self.axisX(self.currentHandleMaxValue + 0.5) - self.axisX(self.currentHandleMinValue - 0.5));
+
+		self.slider.select(".sliderArea")
+			.datum(self.areaData)
+			.attr("d", self.area);
+		self.slider.select(".sliderBlueArea")
+			.datum(self.areaData)
+			.attr("d", self.area);
 	};
 
 	self.getSelectedRange = function() {
@@ -6508,18 +6970,16 @@ function FilterSlider(elemId, onupdate) {
 			self.currentHandleMaxValue = self.currentMaxValue;
 		else
 			self.currentHandleMaxValue = Math.max(self.currentMinValue, self.currentHandleMaxValue);
-		self.axis.domain(self.domain);
-		self.line.attr("x1",self.axis.range()[0])
-			.attr("x2",self.axis.range()[1]);
-		self.blueLine.attr("x1",self.axis(self.currentHandleMinValue))
-			.attr("x2",self.axis(self.currentHandleMaxValue));
-		self.currentMin.attr("x",self.axis(self.currentMinValue));
-		self.currentMax.attr("x",self.axis(self.currentMaxValue));
-		self.handle1.attr("cx",self.axis(self.currentHandleMinValue));
-		self.handle2.attr("cx",self.axis(self.currentHandleMaxValue));
-		self.tooltipMin.attr("x", self.axis(self.currentHandleMinValue))
+		self.axisX.domain(self.domain);
+		self.line.attr("x1",self.axisX.range()[0])
+			.attr("x2",self.axisX.range()[1]);
+		self.blueLine.attr("x1",self.axisX(self.currentHandleMinValue))
+			.attr("x2",self.axisX(self.currentHandleMaxValue));
+		self.handle1.attr("cx",self.axisX(self.currentHandleMinValue));
+		self.handle2.attr("cx",self.axisX(self.currentHandleMaxValue));
+		self.tooltipMin.attr("x", self.axisX(self.currentHandleMinValue))
 			.text(self.currentHandleMinValue);
-		self.tooltipMax.attr("x", self.axis(self.currentHandleMaxValue))
+		self.tooltipMax.attr("x", self.axisX(self.currentHandleMaxValue))
 			.text(self.currentHandleMaxValue);
 		
 		self.onupdate();
@@ -6555,7 +7015,7 @@ function ModifySlider(elemId, options) {
 		.attr("width", Math.floor(self.parentWidth).toString())
 		.attr("height","50");
 	
-	self.margin = {right: 10, left: 10};
+	self.margin = {right: 30, left: 10};
 	self.width = +self.svg.attr("width") - self.margin.left - self.margin.right;
 	self.height = +self.svg.attr("height");	
 	
@@ -6566,7 +7026,7 @@ function ModifySlider(elemId, options) {
 	self.axis = d3.scaleLinear()
 		.domain(self.domain)
 		.range([0,self.width])
-		.clamp(true);
+		.clamp(false);
 	
 	self.slider = self.svg.append("g")
 		.attr("class","slider")
@@ -6577,6 +7037,19 @@ function ModifySlider(elemId, options) {
 		.attr("x1",self.axis.range()[0])
 		.attr("x2",self.axis.range()[1])
 		.attr("stroke", "black");
+	
+	let arrowPathData = [
+		{x: self.axis.range()[1]+1, y: 0},
+		{x: self.margin.right/2, y: 0},
+		{x: -self.margin.right/4, y: -5},
+		{x: 0, y: 10},
+		{x: self.margin.right/4, y: -5}
+	];
+
+	self.arrow = self.slider.append("path")
+		.attr("class", "trackArrow")
+		.attr("d", `M${arrowPathData[0].x} ${arrowPathData[0].y} l${arrowPathData[1].x} ${arrowPathData[1].y} l${arrowPathData[2].x} ${arrowPathData[2].y} m${arrowPathData[3].x} ${arrowPathData[3].y} l${arrowPathData[4].x} ${arrowPathData[4].y}`)
+		.attr("stroke", "red");
 		
 	self.ticks = self.slider.insert("g",".track-overlay")
 		.attr("class","ticks")
@@ -6587,20 +7060,6 @@ function ModifySlider(elemId, options) {
 		.attr("x",self.axis)
 		.attr("text-anchor","middle")
 		.text(function(d) { return d; });
-		
-	self.currentMin = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMinValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
-		
-	self.currentMax = self.slider.insert("rect", ".track-overlay")
-		.attr("class","boundary")
-		.attr("x",self.axis(self.currentMaxValue))
-		.attr("y",-5)
-		.attr("width",2)
-		.attr("height",10);
 		
 	self.blueLine = options.brushNumber == 1 ? null :
 		self.slider.append("line")
@@ -6625,11 +7084,13 @@ function ModifySlider(elemId, options) {
 		.attr("r",5)
 		.attr("cx",self.axis(value))
 		.call(d3.drag()
-		.on("start.interrupt", function() { self.slider.interrupt(); })
-		.on("start drag", function() {
-			var roundedPos = Math.round(self.axis.invert(d3.event.x));
-			self.moveHandleTo(obj, roundedPos);
-		}));
+			.on("start.interrupt", function() { self.slider.interrupt(); })
+			.on("start drag", function() {
+				var roundedPos = Math.round(self.axis.invert(d3.event.x));
+				self.moveHandleTo(obj, roundedPos);
+			})
+			.on("end", updateRestartButtonStyle)
+		);
 
 		let tooltip = self.slider.insert("text", ".track-overlay")
 		.attr("class","handleSliderText")
@@ -6677,8 +7138,15 @@ function ModifySlider(elemId, options) {
 						return prev;
 					}, []))));
 			}
+		} else if (value > self.currentMaxValue) { // Touching the max value, we increase it by 1
+			self.increaseMax(handleObject);
 		}
 	};
+
+	self.increaseMax = _.throttle( function(handleObject) {
+		handleObject.value++;
+		self.updateValues(self.handles.map( (h) => h.value ));
+	}, 100);
 
 	self.getValues = function() {
 		return self.handles.map( (h) => h.value ).sort();
@@ -6829,6 +7297,10 @@ function AlgorithmState() {
 			this.stopLevel();
 	}
 
+	this.getCurrentLevel = function() {
+		return this.currentLevel;
+	}
+
 	this.getLevel = function(patternSize) {
 		if (this.patternSizeInfo[patternSize])
 			return this.patternSizeInfo[patternSize];
@@ -6926,15 +7398,18 @@ function PatternPerSecondGraph(elemId) {
 	self.path = self.area.append("path");
 
 	self.data = [];
+	self.lastMinutesData = [];
+
+	self.timeDisplayed = 60*1000;
 
 	self.draw = function() {
-		self.x.domain(d3.extent(self.data, (d) => d.date ));
+		self.x.domain(d3.extent(self.lastMinutesData, (d) => d.date ));
 		self.y.domain(d3.extent(self.data, (d) => d.delta ));
 		
 		self.xAxisG.call(self.xAxis);
 		self.yAxisG.call(self.yAxis);
 
-		self.path.datum(self.data)
+		self.path.datum(self.lastMinutesData)
 			.attr("fill", "none")
 			.attr("stroke", "steelblue")
 			.attr("stroke-linejoin", "round")
@@ -6944,18 +7419,30 @@ function PatternPerSecondGraph(elemId) {
 	}
 
 	self.getLastData = function() {
-		if (self.data.length > 0)
-			return self.data[self.data.length-1];
+		if (self.lastMinutesData.length > 0)
+			return self.lastMinutesData[self.lastMinutesData.length-1];
 		else
 			return null;
 	}
 
 	self.addData = function(newData) {
+		if (self.lastMinutesData.length > 0) {
+			let lastDataTime = self.lastMinutesData[self.lastMinutesData.length - 1].date;
+			while(self.lastMinutesData.length > 0) {
+				if (lastDataTime - self.timeDisplayed > self.lastMinutesData[0].date) {
+					self.lastMinutesData.shift();
+				} else {
+					break;
+				}
+			}
+		}
 		self.data.push(newData);
+		self.lastMinutesData.push(newData);
 	}
 
 	self.reset = function() {
 		self.data = [];
+		self.lastMinutesData = [];
 		self.draw();
 	}
 }
@@ -7000,15 +7487,18 @@ function CandidatesCheckedPerSecondGraph(elemId) {
 	self.path = self.area.append("path");
 
 	self.data = [];
+	self.lastMinutesData = [];
+
+	self.timeDisplayed = 60*1000;
 
 	self.draw = function() {
-		self.x.domain(d3.extent(self.data, (d) => d.date ));
+		self.x.domain(d3.extent(self.lastMinutesData, (d) => d.date ));
 		self.y.domain(d3.extent(self.data, (d) => d.delta ));
 		
 		self.xAxisG.call(self.xAxis);
 		self.yAxisG.call(self.yAxis);
 
-		self.path.datum(self.data)
+		self.path.datum(self.lastMinutesData)
 			.attr("fill", "none")
 			.attr("stroke", "steelblue")
 			.attr("stroke-linejoin", "round")
@@ -7018,22 +7508,322 @@ function CandidatesCheckedPerSecondGraph(elemId) {
 	}
 
 	self.getLastData = function() {
-		if (self.data.length > 0)
-			return self.data[self.data.length-1];
+		if (self.lastMinutesData.length > 0)
+			return self.lastMinutesData[self.lastMinutesData.length-1];
 		else
 			return null;
 	}
 
 	self.addData = function(newData) {
+		if (self.lastMinutesData.length > 0) {
+			let lastDataTime = self.lastMinutesData[self.lastMinutesData.length - 1].date;
+			while(self.lastMinutesData.length > 0) {
+				if (lastDataTime - self.timeDisplayed > self.lastMinutesData[0].date) {
+					self.lastMinutesData.shift();
+				} else {
+					break;
+				}
+			}
+		}
 		self.data.push(newData);
+		self.lastMinutesData.push(newData);
 	}
 
 	self.reset = function() {
 		self.data = [];
+		self.lastMinutesData = [];
 		self.draw();
 	}
 }
 
+/**
+ * Creates an history of actions
+ * @param {string} elemId The id of the parent node for the history's display
+ */
+function ActivityHistory(elemId) {
+	this.parent = d3.select("#"+elemId);
+	this.events = [];
+	this.timeFormat = d3.timeFormat("%H:%M:%S");
+	this.indentLevel = 0;
+
+	// Item management
+
+	this.createItem = function(title, date) {
+		let item = d3.select(document.createElement("div"))
+			.classed("historyItem", true)
+			.style("margin-left", `${this.indentLevel * 10}px`);
+		item.append("p")
+			.classed("historyTitle", true)
+			.text(title);
+		item.append("p")
+			.classed("historyTimestamp", true)
+			.text(date.toString());
+		return item;
+	}
+
+	this.createContent = function(item) {
+		let content = item.append("div")
+			.classed("historyContent hidden", true);
+		item.append("p")
+			.text("Show details")
+			.classed("clickable clickableText smallText historyShowMore", true)
+			.on("click", function() {
+				if (content.classed("hidden")) {
+					this.textContent = "Hide details";
+					content.classed("hidden", false);
+				} else {
+					this.textContent = "Show details";
+					content.classed("hidden", true);
+				}
+			});
+		return content;
+	}
+
+	this.displayItem = function(item) {
+		let parentNode = this.parent.node();
+		parentNode.insertBefore(item.node(), parentNode.firstChild);
+	}
+
+	// Entry points
+
+	this.resetDataset = function() {
+		let event = {
+			action: "resetDataset",
+			time: new Date(),
+			properties: {}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.receiveDataset = function(datasetName) {
+		let event = {
+			action: "receiveDataset",
+			time: new Date(),
+			properties: {
+				name: datasetName
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.createEventType = function(typeName, parent) {
+		let event = {
+			action: "createEventType",
+			time: new Date(),
+			properties: {
+				name: typeName,
+				parent: parent
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.removeEventTypes = function(typeNames) {
+		let event = {
+			action: "removeEventTypes",
+			time: new Date(),
+			properties: {
+				names: typeNames
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.removeUsers = function(userNames) {
+		let event = {
+			action: "removeUsers",
+			time: new Date(),
+			properties: {
+				names: userNames
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.startAlgorithm = function(support, minGap, maxGap, duration, size) {
+		let event = {
+			action: "startAlgorithm",
+			time: new Date(),
+			properties: {
+				support: support,
+				minGap: minGap,
+				maxGap: maxGap,
+				duration: duration,
+				size: size
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.endAlgorithm = function(patternsFound, timeElapsed, hasCompleted=true) {
+		let event = {
+			action: "endAlgorithm",
+			time: new Date(),
+			properties: {
+				patterns: patternsFound,
+				time: timeElapsed,
+				completed: hasCompleted
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.steerOnPrefix = function(patternId) {
+		let event = {
+			action: "steerOnPrefix",
+			time: new Date(),
+			properties: {
+				patternId: patternId,
+				patternString: patternsInformation[patternId][0]
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.steerOnUser = function(userId) {
+		let event = {
+			action: "steerOnUser",
+			time: new Date(),
+			properties: {
+				userId: userId,
+				name: userInformations[userId].name
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.steerOnTime = function(start, end) {
+		let event = {
+			action: "steerOnTime",
+			time: new Date(),
+			properties: {
+				start: start,
+				end: end
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.stopSteering = function() {
+		let event = {
+			action: "stopSteering",
+			time: new Date(),
+			properties: {}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.drawEvent = function(event) {
+		let item, content;
+
+		switch(event.action) {
+			case "resetDataset":
+				item = this.createItem("Reset the dataset", this.timeFormat(event.time));
+				this.displayItem(item);
+				break;
+			case "receiveDataset":
+				item = this.createItem("Dataset "+event.properties.name+" received", this.timeFormat(event.time));
+				this.displayItem(item);
+				break;
+			case "createEventType":
+				item = this.createItem("Event type created: "+event.properties.name, this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("From the occurrences of '"+event.properties.parent+"'");
+				this.displayItem(item);
+				break;
+			case "removeEventTypes":
+				item = this.createItem(event.properties.names.length + " event types removed", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.names.join(", "));
+				this.displayItem(item);
+				break;
+			case "removeUsers":
+				item = this.createItem(event.properties.names.length + " users removed", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.names.join(", "));
+				this.displayItem(item);
+				break;
+			case "startAlgorithm":
+				item = this.createItem("Algorithm started",this.timeFormat(event.time))
+					.classed("emphasizedItem", true);
+				content = this.createContent(item);
+				content.append("p")
+					.text("Parameters:");
+				content.append("p")
+					.text("Min. support: " + event.properties.support);
+				content.append("p")
+					.text("Gap: " + event.properties.minGap + " - " + event.properties.maxGap);
+				content.append("p")
+					.text("Max. duration: " + event.properties.duration + "ms");
+				content.append("p")
+					.text("Max. size: " + event.properties.size);
+				this.displayItem(item);
+				this.indentLevel++;
+				break;
+			case "endAlgorithm":
+				this.indentLevel--;
+				item = this.createItem(event.properties.completed ? "Algorithm completed" : "Algorithm interrupted", this.timeFormat(event.time))
+					.classed("emphasizedItem", true);
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.patterns + " patterns found over " + event.properties.time + "ms");
+				this.displayItem(item);
+				break;
+			case "steerOnPrefix":
+				item = this.createItem("Steering on prefix", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Looking for patterns starting with '" + event.properties.patternString + "'");
+				this.displayItem(item);
+				break;
+			case "steerOnUser":
+				item = this.createItem("Steering on user", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Looking for patterns present in the trace of user '" + event.properties.name + "'");
+				this.displayItem(item);
+				break;
+			case "steerOnTime":
+				item = this.createItem("Steering on time", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Looking for patterns present between " + formatDate(new Date(event.properties.start)) + " and " + formatDate(new Date(event.properties.end)));
+				this.displayItem(item);
+				break;
+			case "stopSteering":
+				item = this.createItem("Steering end", this.timeFormat(event.time));
+				this.displayItem(item);
+				break;
+			default:
+				console.log("Trying to display an unknown action in the history: "+event);
+		}
+	}
+
+	this.resetHistory = function() {
+		this.events = [];
+		this.indentLevel = 0;
+	}
+
+	this.redrawHistory = function() {
+		this.parent.html("");
+		this.indentLevel = 0;
+		this.events.forEach( event => this.drawEvent(event) );
+	}
+}
 
 
 
@@ -7068,7 +7858,7 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisUsers);
 		
 		if (dataDimensions.time) {
-			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			updateCurrentTimeFilter(self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1);
 			dataDimensions.time.filterRange(currentTimeFilter);
 		}
 		/*self.focus.selectAll(".dot")
@@ -7099,7 +7889,7 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisUsers);
 
 		if (dataDimensions.time) {
-			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			updateCurrentTimeFilter(self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1);
 			dataDimensions.time.filterRange(currentTimeFilter);
 		}
 		/*self.focus.selectAll(".dot")
@@ -7365,7 +8155,6 @@ var Timeline = function(elemId, options) {
 								if (index >= 0) {
 									selectedPatternIds.splice(index, 1);
 									createPatternListDisplay();
-									d3.select("#selectedPatternNumberSpan").text(selectedPatternIds.length);
 									self.displayData(); // TODO Only redraw the pattern occurrences
 								}
 		        			});
@@ -7509,18 +8298,18 @@ var Timeline = function(elemId, options) {
 				self.canvasContext.beginPath();
 				let binStart = bins.getStart(bin.value.aDateInside);
 				let binEnd = bins.getEnd(bin.value.aDateInside);
-				let x = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart));
-				let x2 = self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd));
+				let x = Math.round(self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binStart)));
+				let x2 = Math.round(self.xFocus(d3.timeParse('%Y-%m-%dT%H:%M:%S')(binEnd)));
 				
-				y = self.yFocus(maxHeight-bin.value.eventCount);
-				binHeight = self.yFocus(bin.value.eventCount);
+				y = Math.round(self.yFocus(maxHeight-bin.value.eventCount));
+				binHeight = Math.round(self.yFocus(bin.value.eventCount));
 				self.canvasContext.fillStyle = "#a6a7a8";
 				self.canvasContext.fillRect(x, binHeight, x2-x, y);
-				self.canvasContext.lineWidth = 0.25;
+				/*self.canvasContext.lineWidth = 0.25;
 				self.canvasContext.strokeStyle = "black";
-				self.canvasContext.stroke();
+				self.canvasContext.stroke();*/
 				//  self.canvasContext.fillRect(x, binHeight, x2-x, y);
-				self.canvasContext.closePath();
+				//self.canvasContext.closePath();
 				
 				// Attributing a color to data link for the hidden canvas
 				var color = [];
@@ -7639,11 +8428,11 @@ var Timeline = function(elemId, options) {
 					
 					self.canvasContext.fillStyle = color.toString();
 					self.canvasContext.fillRect(x, binHeight, x2-x, y);
-					self.canvasContext.lineWidth = 0.25;
+					/*self.canvasContext.lineWidth = 0.25;
 					self.canvasContext.strokeStyle = "black";
-					self.canvasContext.stroke();
+					self.canvasContext.stroke();*/
 					//  self.canvasContext.fillRect(x, binHeight, x2-x, y);
-					self.canvasContext.closePath();
+					//self.canvasContext.closePath();
 					
 					// Attributing a color to data link for the hidden canvas
 					let hiddenColor = [];
@@ -7786,11 +8575,11 @@ var Timeline = function(elemId, options) {
 			self.canvasOverviewContext.beginPath();
 			let binStartTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getStart(bin.value.aDateInside));
 			let binEndTime = d3.timeParse('%Y-%m-%dT%H:%M:%S')(bins.getEnd(bin.value.aDateInside));
-		    let x = self.xContext(binStartTime);
-			let x2 = self.xContext(binEndTime);
-			let y = self.yContext(maxBin-bin.value.eventCount);
+		    let x = Math.round(self.xContext(binStartTime));
+			let x2 = Math.round(self.xContext(binEndTime));
+			let y = Math.round(self.yContext(maxBin-bin.value.eventCount));
 			
-			binHeight = self.yContext(bin.value.eventCount);
+			binHeight = Math.round(self.yContext(bin.value.eventCount));
 
 			// Draw the full bin outside of the brush
 			if (binEndTime < brushStartTime || binStartTime > brushEndTime) {
@@ -7804,7 +8593,7 @@ var Timeline = function(elemId, options) {
 			} else
 			// The brush start is over the bin
 			if (binStartTime < brushStartTime && binEndTime < brushEndTime) {
-				let xBrushStart = self.xContext(brushStartTime);
+				let xBrushStart = Math.round(self.xContext(brushStartTime));
 				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
 				self.canvasOverviewContext.fillRect(x, binHeight, xBrushStart-x, y);
 				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
@@ -7812,17 +8601,17 @@ var Timeline = function(elemId, options) {
 			} else
 			// The brush end is over the bin
 			if (binStartTime > brushStartTime && binEndTime > brushEndTime) {
-				let xBrushEnd = self.xContext(brushEndTime);
+				let xBrushEnd = Math.round(self.xContext(brushEndTime));
 				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
 				self.canvasOverviewContext.fillRect(x, binHeight, xBrushEnd-x, y);
 				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
 				self.canvasOverviewContext.fillRect(xBrushEnd, binHeight, x2-xBrushEnd, y);
 			} else {// The bin is over the brush
-				let xBrushStart = self.xContext(brushStartTime);
+				let xBrushStart = Math.round(self.xContext(brushStartTime));
 				self.canvasOverviewContext.fillStyle = fillStyle.outOfBrush;
 				self.canvasOverviewContext.fillRect(x, binHeight, xBrushStart-x, y);
 
-				let xBrushEnd = self.xContext(brushEndTime);
+				let xBrushEnd = Math.round(self.xContext(brushEndTime));
 				self.canvasOverviewContext.fillStyle = fillStyle.underBrush;
 				self.canvasOverviewContext.fillRect(xBrushStart, binHeight, xBrushEnd-xBrushStart, y);
 
@@ -7955,7 +8744,7 @@ var Timeline = function(elemId, options) {
 			.call(self.xAxisUsers);
 		
 		if (dataDimensions.time) {
-			currentTimeFilter = [self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1];
+			updateCurrentTimeFilter(self.xFocus.domain()[0].getTime(), self.xFocus.domain()[1].getTime()+1);
 			dataDimensions.time.filterRange(currentTimeFilter);
 		}
 		
@@ -8023,7 +8812,6 @@ var Timeline = function(elemId, options) {
 	};
 	
 	self.displayData = function() {
-		//startRunningTaskIndicator();
 		//console.log("----DisplayData----");
 		// check if we need to adapt the semantic zoom
 		let displaySeconds = (self.xFocus.domain()[1] - self.xFocus.domain()[0])/1000;
@@ -8104,7 +8892,6 @@ var Timeline = function(elemId, options) {
 		self.drawUsersPatterns();
 		
 		//self.drawUsers();
-		//stopRunningTaskIndicator();
 	};
 	
 	self.zoomClick = function() {
@@ -8748,6 +9535,7 @@ var Timeline = function(elemId, options) {
 			data.push(mouseUser);
 			
 			let theSession = null;
+			self.hoveredSession = null;
 			
 			// try to find the session if there is one under (the pixel is not white)
 			let pixelColors = self.canvasUsersContext.getImageData(coords[0], coords[1],1,1).data;

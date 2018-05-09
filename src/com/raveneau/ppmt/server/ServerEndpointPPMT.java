@@ -81,6 +81,11 @@ public class ServerEndpointPPMT {
 			  			sessionHandler.provideDatasetInfo(jsonMessage.getString("dataset"),session);
 						break;
 						
+					case "datasetReset":
+						System.out.println("user requests a reset of its dataset");
+			  			sessionHandler.resetDataset(session);
+						break;
+						
 					case "eventTypes":
 						System.out.println("user requests event types on the "+jsonMessage.getString("dataset")+" dataset");
 			  			sessionHandler.provideEventTypes(jsonMessage.getString("dataset"),session);
@@ -124,7 +129,10 @@ public class ServerEndpointPPMT {
 				sessionHandler.sessionAltersDataset(session);
 				switch(jsonMessage.getString("alteration")) {
 					case "createEventTypeFromPattern" :
-						sessionHandler.createEventTypeFromPattern(jsonMessage.getInt("patternId"), session);
+						int patternId = jsonMessage.getInt("patternId");
+						String newName = jsonMessage.getString("typeName");
+						JsonObject options = jsonMessage.getJsonObject("options");
+						sessionHandler.createEventTypeFromPattern(patternId, newName, options, session);
 						break;
 					case "removeEventTypes" :
 						sessionHandler.removeEventTypes(jsonMessage.getJsonArray("eventNames"), session);
