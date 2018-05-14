@@ -91,7 +91,7 @@
 								<div class="searchBarArea">
 									<div class="searchFieldArea">
 										&nbsp;
-										<input type="text" class="searchField" placeholder="Write user names here">
+										<input type="text" class="searchField noInput" placeholder="Write user names here">
 										<input type="text" class="hidden" disabled>
 										<div class="suggestionDiv"></div>
 									</div>
@@ -333,7 +333,7 @@
 									<form>
 										<div class="searchFieldArea">
 											&nbsp;
-											<input type="text" class="searchField" placeholder="Write event types here">
+											<input type="text" class="searchField noInput" placeholder="Write event types here">
 											<input type="text" class="hidden" disabled> <!-- To prevent submitting the form and reloading the page -->
 											<div class="suggestionDiv">
 											</div>
@@ -511,9 +511,9 @@
 							<div class="contentHeader">Pattern used: <span id="newEventTypePattern"></span></div>
 							<div class="contentBody">
 								<div class="textLeft">Name of the new type:</div>
-								<input id="newEventTypeNameInput" type="text">
+								<input id="newEventTypeNameInput" type="text" class="noInput">
 								<div class="textLeft">Description of the new type:</div>
-								<input id="newEventTypeDescriptionInput" type="text">
+								<input id="newEventTypeDescriptionInput" type="text" class="noInput">
 								<div class="fullSpan textLeft">Remove all occurrences of:</div>
 							</div>
 							<button class="confirmationCancel clickable" onclick="closeModal();">Cancel</button>

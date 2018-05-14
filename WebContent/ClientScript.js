@@ -1268,6 +1268,7 @@ function setupTool() {
 	setupAlgorithmSpeedGraphs();
 	setupTableSortIndicators();
 	setupModalWindows();
+	disableUserInputWhereNeeded();
 	setupAlgorithmSearchField();
 	setupUserSearchField();
 	
@@ -1410,6 +1411,19 @@ function setupUserSearchField() {
 		}
 		currentKeyDownUser = "";
 	});
+}
+
+/**
+ * Disables user input when it causes problems, mainly for text input fields
+ */
+function disableUserInputWhereNeeded() {
+	d3.selectAll(".noInput")
+		.on("focus", () => {
+			userInputIsDisabled = true;
+		})
+		.on("focusout", () => {
+			userInputIsDisabled = false;
+		});
 }
 
 /**
