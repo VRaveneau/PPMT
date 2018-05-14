@@ -558,6 +558,12 @@ public class ClientHandler {
 		}
 		dataMessage.add("newEvents", newEvents.build());
 		
+		JsonArrayBuilder removedTypes = provider.createArrayBuilder();
+		for (String s : modifs.getRemovedEvents()) {
+			removedTypes.add(s);
+		}
+		dataMessage.add("removedTypes", removedTypes.build());
+		
 		String evtType = modifs.getNewEvents().get(0).getType();
 		
 		JsonObject typeInfo = provider.createObjectBuilder()

@@ -1010,6 +1010,7 @@ public class Dataset {
 		if (typesToRemove.size() > 0) {
 			TraceModification mods = removeEventTypes(typesToRemove, session);
 			modifs.addRemovedIds(mods.getRemovedIds());
+			modifs.addRemovedEvents(mods.getRemovedEvents());
 		}
 		
 		System.out.println("Options applied");
@@ -1044,6 +1045,7 @@ public class Dataset {
 			
 			removeEvents(eventsToDelete);
 			modifs.addRemovedIds(eventIdToDelete);
+			modifs.addRemovedEvent(eventName);
 			
 			System.out.println("Size after : "+timeSortedEvents.size());
 

@@ -2120,7 +2120,7 @@ function processMessage(message/*Compressed*/) {
 			.classed("hidden", false);
 		
 		if (msg.type === "eventTypeCreated") {
-			updateDatasetForNewEventType(msg.newEvents, msg.removedIds, msg.typeInfo);
+			updateDatasetForNewEventType(msg.newEvents, msg.removedIds, msg.typeInfo, msg.removedTypes);
 		}
 		if (msg.type === "eventTypeRemoved") {
 			updateDatasetForRemovedEventTypes(msg.removedIds, msg.removedEvents);
@@ -3963,10 +3963,11 @@ function resetPatterns() {
 /**
  * Updates the data after the creation of a new event type
  * @param {JSON} newEvents New events to add to the data
- * @param {number[]} removedIds Ids of events to be removed
+ * @param {[number]} removedIds Ids of events to be removed
  * @param {json} typeInfo Information about the new type
+ * @param {[string]} removedTypes Event types completely removed
  */
-function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
+function updateDatasetForNewEventType(newEvents, removedIds, typeInfo, removedTypes) {
 	resetDataFilters();
 	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
 	dataset.remove(function(d,i) {
@@ -4036,7 +4037,7 @@ function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
 	eventTypeInformations[typeInfo.name].code = eCode;
 
 	updateEventTypesInformations();
-	activityHistory.createEventType(newEvents[0].type, typeInfo.parent);
+	activityHistory.createEventType(newEvents[0].type, typeInfo.parent, removedTypes);
 }
 
 /**
@@ -7691,13 +7692,14 @@ function ActivityHistory(elemId) {
 		this.drawEvent(event);
 	}
 
-	this.createEventType = function(typeName, parent) {
+	this.createEventType = function(typeName, parent, removedTypes) {
 		let event = {
 			action: "createEventType",
 			time: new Date(),
 			properties: {
 				name: typeName,
-				parent: parent
+				parent: parent,
+				removedTypes: removedTypes
 			}
 		};
 		this.events.push(event);
@@ -7843,6 +7845,15 @@ function ActivityHistory(elemId) {
 				content = this.createContent(item);
 				content.append("p")
 					.text("From the occurrences of '"+event.properties.parent+"'");
+				if (event.properties.removedTypes.length > 0) {
+					content.append("p")
+						.text("Other events from the following types have been removed:");
+					let removedTypesDiv = content.append("div");
+					event.properties.removedTypes.forEach( type => {
+						removedTypesDiv.append("p")
+							.text(type);
+					});
+				}
 				this.displayItem(item);
 				break;
 			case "removeEventTypes":
@@ -7864,16 +7875,17 @@ function ActivityHistory(elemId) {
 				content = this.createContent(item);
 				content.append("p")
 					.text("Parameters (modified values in bold):");
-				content.append("p")
+				let newParametersDiv = content.append("div");
+				newParametersDiv.append("p")
 					.text("Min. support: " + event.properties.support)
 					.classed("bold", event.properties.modifiedValues.support);
-				content.append("p")
+				newParametersDiv.append("p")
 					.text("Gap: " + event.properties.minGap + " - " + event.properties.maxGap)
 					.classed("bold", event.properties.modifiedValues.minGap || event.properties.modifiedValues.maxGap);
-				content.append("p")
+				newParametersDiv.append("p")
 					.text("Max. duration: " + event.properties.duration + "ms")
 					.classed("bold", event.properties.modifiedValues.duration);
-				content.append("p")
+				newParametersDiv.append("p")
 					.text("Max. size: " + event.properties.size)
 					.classed("bold", event.properties.modifiedValues.size);
 				this.displayItem(item);
@@ -7884,13 +7896,14 @@ function ActivityHistory(elemId) {
 				content = this.createContent(item);
 				content.append("p")
 					.text("Parameters:");
-				content.append("p")
+				let parametersDiv = content.append("div");
+				parametersDiv.append("p")
 					.text("Min. support: " + event.properties.support);
-				content.append("p")
+				parametersDiv.append("p")
 					.text("Gap: " + event.properties.minGap + " - " + event.properties.maxGap);
-				content.append("p")
+				parametersDiv.append("p")
 					.text("Max. duration: " + event.properties.duration + "ms");
-				content.append("p")
+				parametersDiv.append("p")
 					.text("Max. size: " + event.properties.size);
 				this.displayItem(item);
 				this.indentLevel++;

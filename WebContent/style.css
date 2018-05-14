@@ -786,6 +786,10 @@ body {
 	font-size: smaller;
 }
 
+.historyContent div {
+	margin-left: 5px;
+}
+
 .historyContent p {
 	margin: 2px 0px;
 }

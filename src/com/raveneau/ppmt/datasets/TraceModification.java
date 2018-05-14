@@ -8,6 +8,7 @@ import com.raveneau.ppmt.events.Event;
 public class TraceModification {
 	private List<Integer> removedIds = new ArrayList<>();
 	private List<Event> newEvents = new ArrayList<>();
+	private List<String> removedEvents = new ArrayList<>();
 	
 	public TraceModification() {
 		super();
@@ -35,5 +36,21 @@ public class TraceModification {
 	
 	public void addNewEvent(Event e) {
 		this.newEvents.add(e);
+	}
+	
+	public List<String> getRemovedEvents() {
+		return removedEvents;
+	}
+	
+	public void setRemovedEvents(List<String> oldEvents) {
+		this.removedEvents = oldEvents;
+	}
+	
+	public void addRemovedEvents(List<String> oldEvents) {
+		this.removedEvents.addAll(oldEvents);
+	}
+	
+	public void addRemovedEvent(String oldEvent) {
+		this.removedEvents.add(oldEvent);
 	}
 }
