@@ -118,6 +118,10 @@ public class SessionHandler {
 		clientHandlers.get(session).runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay);
 	}
 
+	public void stopAlgorithm(Session session) {
+		clientHandlers.get(session).stopAlgorithm();
+	}
+	
 	/**
 	 * Provides the occurrences of a given pattern. Only timestamps of involved events are sent, not their ids
 	 * @param patternId

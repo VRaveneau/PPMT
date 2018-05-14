@@ -407,6 +407,10 @@ var maxPatternSize = 0;
 /*			State elements			 */
 /*************************************/
 
+// Whether to request a new start after a notification that the algorithm has
+// been stopped or not
+var algorithmWillRestart = false;
+
 // Whether to consider all the patterns or only the ones found in the last steering
 var showOnlyLastSteering = false;
 
@@ -1898,6 +1902,17 @@ function requestAlgorithmReStart() {
 }
 
 /**
+ * Requests the termination of the algorithm
+ */
+function requestAlgorithmStop() {
+	let action = {
+		action: "stop",
+		object: "algorithm"
+	};
+	sendToServer(action);
+}
+
+/**
  * Updates the parameters used by the algorithm, based on the sliders in the
  * extended algorithm view
  */
@@ -2054,6 +2069,8 @@ function processMessage(message/*Compressed*/) {
 			handleAlgorithmStartSignal(msg);
 		if (msg.type === "end")
 			handleAlgorithmEndSignal(msg);
+		if (msg.type === "stop")
+			handleAlgorithmStopSignal(msg);
 		if (msg.type === "newLevel")
 			handleNewLevelSignal(parseInt(msg.level));
 		if (msg.type === "levelComplete")
@@ -4288,7 +4305,12 @@ function askConfirmationToChangeAlgorithmParameters() {
 	d3.select("#changeParametersConfirmation .confirmationConfirm")
 		.on("click", function() {
 			changeAlgorithmParameters();
-			requestAlgorithmReStart();
+			if (algorithmState.isRunning()) {
+				algorithmWillRestart = true;
+				requestAlgorithmStop();
+			} else {
+				requestAlgorithmReStart();
+			}
 			closeModal();
 		});
 }
@@ -5494,6 +5516,27 @@ function handleAlgorithmEndSignal(msg) {
 	updateAlgorithmStateDisplay();
 	
 	activityHistory.endAlgorithm(algorithmState.getTotalPatternNumber(), algorithmState.getTotalElapsedTime())
+}
+
+/**
+ * Handles the signal that the algorithm has been stoped on the server
+ * @param {json} msg The received message
+ */
+function handleAlgorithmStopSignal(msg) {
+	let dateUTC = new Date(msg.time);
+	stopAlgorithmRuntime(dateUTC.getTime());
+	disableLiveUpdateControl();
+	if (patternLiveUpdate)
+		d3.select("#liveUpdateIndicator").classed("active", false);
+	algorithmState.stopInterrupted();
+	updateAlgorithmStateDisplay();
+	
+	activityHistory.endAlgorithm(algorithmState.getTotalPatternNumber(), algorithmState.getTotalElapsedTime(), false);
+
+	if (algorithmWillRestart) {
+		algorithmWillRestart = false;
+		requestAlgorithmReStart();
+	}
 }
 
 /**
@@ -7187,6 +7230,11 @@ function AlgorithmState() {
 	this.stop = function() {
 		this.running = false;
 		this.globalStatus = "Complete";
+	}
+
+	this.stopInterrupted = function() {
+		this.running = false;
+		this.globalStatus = "Interrupted";
 	}
 
 	this.startLevel = function(pSize) {
