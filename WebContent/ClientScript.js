@@ -1917,12 +1917,21 @@ function requestAlgorithmStop() {
  * extended algorithm view
  */
 function changeAlgorithmParameters() {
+	let gapValues = gapModifySlider.getValues();
+	let modifiedValues = {
+		support: algoMinSupport != supportModifySlider.getValues()[0],
+		minGap: algoMinGap != gapValues[0],
+		maxGap: algoMaxGap != gapValues[1],
+		duration: algoMaxDuration != durationModifySlider.getValues()[0],
+		size: algoMaxSize != sizeModifySlider.getValues()[0]
+	};
 	algoMinSupport = supportModifySlider.getValues()[0];
 	algoMaxSize = sizeModifySlider.getValues()[0];
-	let gapValues = gapModifySlider.getValues();
 	algoMinGap = gapValues[0];
 	algoMaxGap = gapValues[1];
 	algoMaxDuration = durationModifySlider.getValues()[0];
+
+	activityHistory.changeParameters(algoMinSupport, algoMinGap, algoMaxGap, algoMaxDuration, algoMaxSize, modifiedValues);
 }
 
 /*************************************/
@@ -7705,6 +7714,23 @@ function ActivityHistory(elemId) {
 		this.drawEvent(event);
 	}
 
+	this.changeParameters = function(support, minGap, maxGap, duration, size, modifiedValues) {
+		let event = {
+			action: "changeParameters",
+			time: new Date(),
+			properties: {
+				support: support,
+				minGap: minGap,
+				maxGap: maxGap,
+				duration: duration,
+				size: size,
+				modifiedValues: modifiedValues
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
 	this.startAlgorithm = function(support, minGap, maxGap, duration, size) {
 		let event = {
 			action: "startAlgorithm",
@@ -7815,6 +7841,25 @@ function ActivityHistory(elemId) {
 				content = this.createContent(item);
 				content.append("p")
 					.text(event.properties.names.join(", "));
+				this.displayItem(item);
+				break;
+			case "changeParameters":
+				item = this.createItem("Parameters changed",this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Parameters (modified values in bold):");
+				content.append("p")
+					.text("Min. support: " + event.properties.support)
+					.classed("bold", event.properties.modifiedValues.support);
+				content.append("p")
+					.text("Gap: " + event.properties.minGap + " - " + event.properties.maxGap)
+					.classed("bold", event.properties.modifiedValues.minGap || event.properties.modifiedValues.maxGap);
+				content.append("p")
+					.text("Max. duration: " + event.properties.duration + "ms")
+					.classed("bold", event.properties.modifiedValues.duration);
+				content.append("p")
+					.text("Max. size: " + event.properties.size)
+					.classed("bold", event.properties.modifiedValues.size);
 				this.displayItem(item);
 				break;
 			case "startAlgorithm":

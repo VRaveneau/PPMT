@@ -500,6 +500,10 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
+.italic {
+	font-style: italic;
+}
+
 .foldingText {
 	font-weight: normal;
 	border-bottom: 1px dotted black;
