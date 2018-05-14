@@ -160,7 +160,12 @@ public class AlgoGSP {
         end = System.currentTimeMillis();
         // Sends the end signal to the pattern manager
         // TODO move the call to another object than the pattern manager
-        patternManager.signalEnd(end);
+        
+        if (parameters.isTerminationRequested()) {
+        	patternManager.signalStop(end);
+        } else {
+        	patternManager.signalEnd(end);
+        }
         
         // close the output file if the result was saved to a file
         if (writer != null) {
@@ -377,6 +382,7 @@ public class AlgoGSP {
 	        	}
 	        }*/
         }
+        
         /*When the loop is over, if we were interested in keeping the output in
          * a file, we store the last level found.
          */

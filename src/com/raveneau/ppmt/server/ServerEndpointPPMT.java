@@ -53,6 +53,12 @@ public class ServerEndpointPPMT {
 					}
 				}
 				break;
+			
+			case "stop":
+				if ("algorithm".equals(jsonMessage.getString("object"))) {
+					sessionHandler.stopAlgorithm(session);
+				}
+				break;
 				
 			case "load":
 				if ("dataset".equals(jsonMessage.getString("object")))

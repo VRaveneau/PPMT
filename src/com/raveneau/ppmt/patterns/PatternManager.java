@@ -200,6 +200,10 @@ public class PatternManager {
 	public void signalEnd(long end) {
 		this.clientHandler.signalEnd(end);
 	}
+	
+	public void signalStop(long end) {
+		this.clientHandler.signalStop(end);
+	}
 
 	/**
 	 * Send to the client a message indicating that a new level is starting to be investigated

@@ -450,6 +450,11 @@ body {
 	font-size: 90%;
 }
 
+.wrapping {
+	word-wrap: break-word;
+	word-break: break-all;
+}
+
 .button {
     display: inline;
     color: #fff;
@@ -498,6 +503,10 @@ body {
 	  This may be a MacOS exclusive issue.
 	*/
 	-webkit-font-smoothing: antialiased;
+}
+
+.italic {
+	font-style: italic;
 }
 
 .foldingText {
@@ -780,6 +789,10 @@ body {
 	margin: 0px 5px;
 	border-top: 1px solid lightgrey;
 	font-size: smaller;
+}
+
+.historyContent div {
+	margin-left: 5px;
 }
 
 .historyContent p {

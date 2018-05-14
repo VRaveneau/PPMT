@@ -308,6 +308,8 @@ public class ClientHandler {
 	
 	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, long delay) {
 		if (patternManager == null) {
+			if (dataset.getPatternManager(session) != null)
+				dataset.removePatternManagerFromSession(session);
 			setPatternManager(new PatternManager(this));
 			dataset.addPatternManagerToSession(session, patternManager);
 		} else {
@@ -319,6 +321,12 @@ public class ClientHandler {
 		}
 		
 		algorithmHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay);
+	}
+	
+	public void stopAlgorithm() {
+		if (patternManager != null) {
+			algorithmHandler.stopMining();
+		}
 	}
 	
 	public void alertOfNewPattern(Pattern p) {
@@ -417,6 +425,15 @@ public class ClientHandler {
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
 				.add("action", "signal")
 				.add("type", "end")
+				.add("time", utcDateFormat.format(new Date(end)));
+		sendToSession(session, dataMessage.build());
+	}
+
+	public void signalStop(long end) {
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "signal")
+				.add("type", "stop")
 				.add("time", utcDateFormat.format(new Date(end)));
 		sendToSession(session, dataMessage.build());
 	}
@@ -540,6 +557,12 @@ public class ClientHandler {
 			newEvents.add(e.toJsonObject());
 		}
 		dataMessage.add("newEvents", newEvents.build());
+		
+		JsonArrayBuilder removedTypes = provider.createArrayBuilder();
+		for (String s : modifs.getRemovedEvents()) {
+			removedTypes.add(s);
+		}
+		dataMessage.add("removedTypes", removedTypes.build());
 		
 		String evtType = modifs.getNewEvents().get(0).getType();
 		
