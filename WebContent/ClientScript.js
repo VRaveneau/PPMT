@@ -4944,7 +4944,8 @@ function createEventTypesListDisplay() {
 		eventRow.append("td").text(eventTypeInformations[eType].nbUsers == 0 ?
 			"??" :
 			eventTypeInformations[eType].nbUsers);
-		eventRow.append("td")
+		eventRow.append("td").append("div")
+			.classed("wrapping", true)
 			.style("color",colorList[eType][0].toString())
 			.text(eventTypeInformations[eType].category);
 

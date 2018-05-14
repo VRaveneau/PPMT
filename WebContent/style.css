@@ -450,6 +450,11 @@ body {
 	font-size: 90%;
 }
 
+.wrapping {
+	word-wrap: break-word;
+	word-break: break-all;
+}
+
 .button {
     display: inline;
     color: #fff;
