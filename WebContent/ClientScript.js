@@ -5727,7 +5727,7 @@ function handleSteeringStartSignal(type, value) {
  * Clears the display of the algorithm's steering after it has ended
  */
 function handleSteeringStopSignal() {
-	activityHistory.stopSteering();
+	activityHistory.stopSteering(lastSteeringPatterns);
 	d3.select("#focus").text("");
 	algorithmState.stopSteering();
 }
@@ -7814,11 +7814,13 @@ function ActivityHistory(elemId) {
 		this.drawEvent(event);
 	}
 
-	this.stopSteering = function() {
+	this.stopSteering = function(patternsFoundList) {
 		let event = {
 			action: "stopSteering",
 			time: new Date(),
-			properties: {}
+			properties: {
+				patternsFound: patternsFoundList.length
+			}
 		};
 		this.events.push(event);
 		this.drawEvent(event);
@@ -7903,28 +7905,23 @@ function ActivityHistory(elemId) {
 				this.displayItem(item);
 				break;
 			case "steerOnPrefix":
-				item = this.createItem("Steering on prefix", this.timeFormat(event.time));
-				content = this.createContent(item);
-				content.append("p")
-					.text("Looking for patterns starting with '" + event.properties.patternString + "'");
+				item = this.createItem(`Steering on prefix ${event.properties.patternString}`, this.timeFormat(event.time));
 				this.displayItem(item);
 				break;
 			case "steerOnUser":
-				item = this.createItem("Steering on user", this.timeFormat(event.time));
-				content = this.createContent(item);
-				content.append("p")
-					.text("Looking for patterns present in the trace of user '" + event.properties.name + "'");
+				item = this.createItem(`Steering on user ${event.properties.name}`, this.timeFormat(event.time));
 				this.displayItem(item);
 				break;
 			case "steerOnTime":
-				item = this.createItem("Steering on time", this.timeFormat(event.time));
-				content = this.createContent(item);
-				content.append("p")
-					.text("Looking for patterns present between " + formatDate(new Date(event.properties.start)) + " and " + formatDate(new Date(event.properties.end)));
+				let bounds = [formatDate(new Date(event.properties.start)), formatDate(new Date(event.properties.end))]
+				item = this.createItem(`Steering on time beetween ${bounds[0]} and ${bounds[1]}`, this.timeFormat(event.time));
 				this.displayItem(item);
 				break;
 			case "stopSteering":
 				item = this.createItem("Steering end", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.patternsFound + " patterns found during this steering");
 				this.displayItem(item);
 				break;
 			default:
