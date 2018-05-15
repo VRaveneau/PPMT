@@ -1469,7 +1469,7 @@ table {
 		[indicator-start] min-content
 		[indicator-end liveUpdate-start] max-content
 		[liveUpdate-end] 1fr
-		[lastSteering-start] max-content
+		[lastSteering-start] minmax(min-content, max-content)
 		[lastSteering-end];
 	grid-template-rows:
 		min-content
