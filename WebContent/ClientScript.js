@@ -576,6 +576,15 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*				Utility				 */
 /*************************************/
 
+function resetExpe() {
+	if (algorithmState.isRunning()) {
+		algorithmWillRestart = true;
+		requestAlgorithmStop();
+	} else {
+		requestAlgorithmReStart();
+	}
+}
+
 /**
  * Updates the value of the current time focus
  * @param {number} start The start of the intervale
