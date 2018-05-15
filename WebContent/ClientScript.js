@@ -4139,8 +4139,11 @@ function setupLastSteeringDetails(type, value) {
 	let targetDiv = document.createElement("div");
 	switch(type) {
 		case "time":
+			let bounds = value.split(" ");
+			let start = new Date(parseInt(bounds[0]));
+			let end = new Date(parseInt(bounds[1]));
 			typeDiv.textContent = "Steering on time";
-			targetDiv.textContent = `Limits: ${value}`;
+			targetDiv.textContent = `Limits: ${formatDate(start, true)} <-> ${formatDate(end, true)}`;
 			break;
 		case "pattern":
 			typeDiv.textContent = "Steering on pattern";
@@ -7410,7 +7413,14 @@ function AlgorithmState() {
 	this.startSteering = function(target, value) {
 		this.underSteering = true;
 		this.steeringTarget = target;
-		this.steeringValue = value;
+		if (target == "time") {
+			let bounds = value.split(" ");
+			let start = new Date(parseInt(bounds[0]));
+			let end = new Date(parseInt(bounds[1]));
+			this.steeringValue = formatDate(start) + " <-> " + formatDate(end);
+		} else {
+			this.steeringValue = value;
+		}
 	}
 
 	this.stopSteering = function() {

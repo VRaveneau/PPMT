@@ -117,12 +117,12 @@ class SupportCounting {
         		String steeringValue = "";
         		switch (parameters.getSteeringTypeOccurring()) {
 				case PATTERN_START:
-					for (String event : patternManager.getPattern(parameters.getSteeringPatternIdOccurring()).getItems())
-						steeringValue+=event+" "; // TODO get the event name instead of the id
+					for (String event : patternManager.getPattern(parameters.getSteeringPatternIdOccurring()).getReadableItems())
+						steeringValue+=event+" ";
 					steeringValue = steeringValue.trim();
 					break;
 				case TIME:
-					steeringValue = "time";
+					steeringValue = String.valueOf(parameters.getSteeringStartOccurring()) + " " + String.valueOf(parameters.getSteeringEndOccurring());
 					break;
 				case USER:
 					steeringValue = "user";
