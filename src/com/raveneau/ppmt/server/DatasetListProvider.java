@@ -15,7 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.raveneau.ppmt.datasets.Dataset;
 import com.raveneau.ppmt.datasets.DatasetManager;
 
-public class Servlet extends HttpServlet {
+public class DatasetListProvider extends HttpServlet {
 
 	private DatasetManager datasetManager = DatasetManager.getInstance();
 	

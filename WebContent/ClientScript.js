@@ -407,6 +407,10 @@ var maxPatternSize = 0;
 /*			State elements			 */
 /*************************************/
 
+// Whether to request a new start after a notification that the algorithm has
+// been stopped or not
+var algorithmWillRestart = false;
+
 // Whether to consider all the patterns or only the ones found in the last steering
 var showOnlyLastSteering = false;
 
@@ -571,6 +575,15 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*************************************/
 /*				Utility				 */
 /*************************************/
+
+function resetExpe() {
+	if (algorithmState.isRunning()) {
+		algorithmWillRestart = true;
+		requestAlgorithmStop();
+	} else {
+		requestAlgorithmReStart();
+	}
+}
 
 /**
  * Updates the value of the current time focus
@@ -1264,6 +1277,7 @@ function setupTool() {
 	setupAlgorithmSpeedGraphs();
 	setupTableSortIndicators();
 	setupModalWindows();
+	disableUserInputWhereNeeded();
 	setupAlgorithmSearchField();
 	setupUserSearchField();
 	
@@ -1406,6 +1420,19 @@ function setupUserSearchField() {
 		}
 		currentKeyDownUser = "";
 	});
+}
+
+/**
+ * Disables user input when it causes problems, mainly for text input fields
+ */
+function disableUserInputWhereNeeded() {
+	d3.selectAll(".noInput")
+		.on("focus", () => {
+			userInputIsDisabled = true;
+		})
+		.on("focusout", () => {
+			userInputIsDisabled = false;
+		});
 }
 
 /**
@@ -1898,16 +1925,36 @@ function requestAlgorithmReStart() {
 }
 
 /**
+ * Requests the termination of the algorithm
+ */
+function requestAlgorithmStop() {
+	let action = {
+		action: "stop",
+		object: "algorithm"
+	};
+	sendToServer(action);
+}
+
+/**
  * Updates the parameters used by the algorithm, based on the sliders in the
  * extended algorithm view
  */
 function changeAlgorithmParameters() {
+	let gapValues = gapModifySlider.getValues();
+	let modifiedValues = {
+		support: algoMinSupport != supportModifySlider.getValues()[0],
+		minGap: algoMinGap != gapValues[0],
+		maxGap: algoMaxGap != gapValues[1],
+		duration: algoMaxDuration != durationModifySlider.getValues()[0],
+		size: algoMaxSize != sizeModifySlider.getValues()[0]
+	};
 	algoMinSupport = supportModifySlider.getValues()[0];
 	algoMaxSize = sizeModifySlider.getValues()[0];
-	let gapValues = gapModifySlider.getValues();
 	algoMinGap = gapValues[0];
 	algoMaxGap = gapValues[1];
 	algoMaxDuration = durationModifySlider.getValues()[0];
+
+	activityHistory.changeParameters(algoMinSupport, algoMinGap, algoMaxGap, algoMaxDuration, algoMaxSize, modifiedValues);
 }
 
 /*************************************/
@@ -2054,6 +2101,8 @@ function processMessage(message/*Compressed*/) {
 			handleAlgorithmStartSignal(msg);
 		if (msg.type === "end")
 			handleAlgorithmEndSignal(msg);
+		if (msg.type === "stop")
+			handleAlgorithmStopSignal(msg);
 		if (msg.type === "newLevel")
 			handleNewLevelSignal(parseInt(msg.level));
 		if (msg.type === "levelComplete")
@@ -2080,7 +2129,7 @@ function processMessage(message/*Compressed*/) {
 			.classed("hidden", false);
 		
 		if (msg.type === "eventTypeCreated") {
-			updateDatasetForNewEventType(msg.newEvents, msg.removedIds, msg.typeInfo);
+			updateDatasetForNewEventType(msg.newEvents, msg.removedIds, msg.typeInfo, msg.removedTypes);
 		}
 		if (msg.type === "eventTypeRemoved") {
 			updateDatasetForRemovedEventTypes(msg.removedIds, msg.removedEvents);
@@ -2338,7 +2387,7 @@ function requestUsersRemoval(userNames) {
 function handleDatasetValidation(msg) {
 	if (msg.answer === "valid") {
 		// Ask for the selected dataset
-		selectDataset(msg.dataset);
+		selectDataset(msg.dataset, msg.datasetToken);
 	} else {
 		// If the dataset is not available, go to the dataset selection
 		location.href = "/ppmt";
@@ -3923,10 +3972,11 @@ function resetPatterns() {
 /**
  * Updates the data after the creation of a new event type
  * @param {JSON} newEvents New events to add to the data
- * @param {number[]} removedIds Ids of events to be removed
+ * @param {[number]} removedIds Ids of events to be removed
  * @param {json} typeInfo Information about the new type
+ * @param {[string]} removedTypes Event types completely removed
  */
-function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
+function updateDatasetForNewEventType(newEvents, removedIds, typeInfo, removedTypes) {
 	resetDataFilters();
 	let theseRemovedEvents = dataset.all().filter( d => removedIds.includes(d.id) );
 	dataset.remove(function(d,i) {
@@ -3996,7 +4046,7 @@ function updateDatasetForNewEventType(newEvents, removedIds, typeInfo) {
 	eventTypeInformations[typeInfo.name].code = eCode;
 
 	updateEventTypesInformations();
-	activityHistory.createEventType(newEvents[0].type, typeInfo.parent);
+	activityHistory.createEventType(newEvents[0].type, typeInfo.parent, removedTypes);
 }
 
 /**
@@ -4089,8 +4139,11 @@ function setupLastSteeringDetails(type, value) {
 	let targetDiv = document.createElement("div");
 	switch(type) {
 		case "time":
+			let bounds = value.split(" ");
+			let start = new Date(parseInt(bounds[0]));
+			let end = new Date(parseInt(bounds[1]));
 			typeDiv.textContent = "Steering on time";
-			targetDiv.textContent = `Limits: ${value}`;
+			targetDiv.textContent = `Limits: ${formatDate(start, true)} <-> ${formatDate(end, true)}`;
 			break;
 		case "pattern":
 			typeDiv.textContent = "Steering on pattern";
@@ -4288,7 +4341,12 @@ function askConfirmationToChangeAlgorithmParameters() {
 	d3.select("#changeParametersConfirmation .confirmationConfirm")
 		.on("click", function() {
 			changeAlgorithmParameters();
-			requestAlgorithmReStart();
+			if (algorithmState.isRunning()) {
+				algorithmWillRestart = true;
+				requestAlgorithmStop();
+			} else {
+				requestAlgorithmReStart();
+			}
 			closeModal();
 		});
 }
@@ -4898,7 +4956,8 @@ function createEventTypesListDisplay() {
 		eventRow.append("td").text(eventTypeInformations[eType].nbUsers == 0 ?
 			"??" :
 			eventTypeInformations[eType].nbUsers);
-		eventRow.append("td")
+		eventRow.append("td").append("div")
+			.classed("wrapping", true)
 			.style("color",colorList[eType][0].toString())
 			.text(eventTypeInformations[eType].category);
 
@@ -5497,6 +5556,27 @@ function handleAlgorithmEndSignal(msg) {
 }
 
 /**
+ * Handles the signal that the algorithm has been stoped on the server
+ * @param {json} msg The received message
+ */
+function handleAlgorithmStopSignal(msg) {
+	let dateUTC = new Date(msg.time);
+	stopAlgorithmRuntime(dateUTC.getTime());
+	disableLiveUpdateControl();
+	if (patternLiveUpdate)
+		d3.select("#liveUpdateIndicator").classed("active", false);
+	algorithmState.stopInterrupted();
+	updateAlgorithmStateDisplay();
+	
+	activityHistory.endAlgorithm(algorithmState.getTotalPatternNumber(), algorithmState.getTotalElapsedTime(), false);
+
+	if (algorithmWillRestart) {
+		algorithmWillRestart = false;
+		requestAlgorithmReStart();
+	}
+}
+
+/**
  * Displays that the algorithm is loading its data
  */
 function handleLoadingSignal() {
@@ -5661,7 +5741,7 @@ function handleSteeringStartSignal(type, value) {
  * Clears the display of the algorithm's steering after it has ended
  */
 function handleSteeringStopSignal() {
-	activityHistory.stopSteering();
+	activityHistory.stopSteering(lastSteeringPatterns);
 	d3.select("#focus").text("");
 	algorithmState.stopSteering();
 }
@@ -6675,17 +6755,29 @@ function updateTooltip() {
 /**
  * Selects the given dataset to be used in the tool
  * @param {string} datasetName - Name of the dataset
+ * @param {string} datasetToken - Token to request the dataset
  */
-function selectDataset(datasetName) {
+function selectDataset(datasetName, datasetToken) {
 	currentDatasetName = datasetName;
 	
-	requestDatasetLoad(datasetName);
+	if (!pageParameters.gzip)
+		requestDatasetLoad(datasetName);
 	
 	requestDatasetInfo(datasetName);
 	requestEventTypes(datasetName);
 	requestUserList(datasetName);
 	enableCentralOverlay("The dataset is loading...");
-	requestDataset(datasetName);
+	
+	if (!pageParameters.gzip)
+		requestDataset(datasetName);
+	else {
+		let servletAdress = config.servletAdress.replace("dataset", "data");
+		fetch(`${servletAdress}?session=${datasetToken}`)
+			.then( response => response.json() )
+			.then( json => {
+				receiveEvents(json);
+			});
+	}
 }
 
 /**
@@ -7177,6 +7269,11 @@ function AlgorithmState() {
 		this.globalStatus = "Complete";
 	}
 
+	this.stopInterrupted = function() {
+		this.running = false;
+		this.globalStatus = "Interrupted";
+	}
+
 	this.startLevel = function(pSize) {
 		// Go to a previously started pattern size
 		if (Object.keys(this.patternSizeInfo).includes(pSize.toString())) {
@@ -7316,7 +7413,14 @@ function AlgorithmState() {
 	this.startSteering = function(target, value) {
 		this.underSteering = true;
 		this.steeringTarget = target;
-		this.steeringValue = value;
+		if (target == "time") {
+			let bounds = value.split(" ");
+			let start = new Date(parseInt(bounds[0]));
+			let end = new Date(parseInt(bounds[1]));
+			this.steeringValue = formatDate(start) + " <-> " + formatDate(end);
+		} else {
+			this.steeringValue = value;
+		}
 	}
 
 	this.stopSteering = function() {
@@ -7608,13 +7712,14 @@ function ActivityHistory(elemId) {
 		this.drawEvent(event);
 	}
 
-	this.createEventType = function(typeName, parent) {
+	this.createEventType = function(typeName, parent, removedTypes) {
 		let event = {
 			action: "createEventType",
 			time: new Date(),
 			properties: {
 				name: typeName,
-				parent: parent
+				parent: parent,
+				removedTypes: removedTypes
 			}
 		};
 		this.events.push(event);
@@ -7639,6 +7744,23 @@ function ActivityHistory(elemId) {
 			time: new Date(),
 			properties: {
 				names: userNames
+			}
+		};
+		this.events.push(event);
+		this.drawEvent(event);
+	}
+
+	this.changeParameters = function(support, minGap, maxGap, duration, size, modifiedValues) {
+		let event = {
+			action: "changeParameters",
+			time: new Date(),
+			properties: {
+				support: support,
+				minGap: minGap,
+				maxGap: maxGap,
+				duration: duration,
+				size: size,
+				modifiedValues: modifiedValues
 			}
 		};
 		this.events.push(event);
@@ -7714,11 +7836,13 @@ function ActivityHistory(elemId) {
 		this.drawEvent(event);
 	}
 
-	this.stopSteering = function() {
+	this.stopSteering = function(patternsFoundList) {
 		let event = {
 			action: "stopSteering",
 			time: new Date(),
-			properties: {}
+			properties: {
+				patternsFound: patternsFoundList.length
+			}
 		};
 		this.events.push(event);
 		this.drawEvent(event);
@@ -7741,6 +7865,15 @@ function ActivityHistory(elemId) {
 				content = this.createContent(item);
 				content.append("p")
 					.text("From the occurrences of '"+event.properties.parent+"'");
+				if (event.properties.removedTypes.length > 0) {
+					content.append("p")
+						.text("Other events from the following types have been removed:");
+					let removedTypesDiv = content.append("div");
+					event.properties.removedTypes.forEach( type => {
+						removedTypesDiv.append("p")
+							.text(type);
+					});
+				}
 				this.displayItem(item);
 				break;
 			case "removeEventTypes":
@@ -7757,19 +7890,40 @@ function ActivityHistory(elemId) {
 					.text(event.properties.names.join(", "));
 				this.displayItem(item);
 				break;
+			case "changeParameters":
+				item = this.createItem("Parameters changed",this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text("Parameters (modified values in bold):");
+				let newParametersDiv = content.append("div");
+				newParametersDiv.append("p")
+					.text("Min. support: " + event.properties.support)
+					.classed("bold", event.properties.modifiedValues.support);
+				newParametersDiv.append("p")
+					.text("Gap: " + event.properties.minGap + " - " + event.properties.maxGap)
+					.classed("bold", event.properties.modifiedValues.minGap || event.properties.modifiedValues.maxGap);
+				newParametersDiv.append("p")
+					.text("Max. duration: " + event.properties.duration + "ms")
+					.classed("bold", event.properties.modifiedValues.duration);
+				newParametersDiv.append("p")
+					.text("Max. size: " + event.properties.size)
+					.classed("bold", event.properties.modifiedValues.size);
+				this.displayItem(item);
+				break;
 			case "startAlgorithm":
 				item = this.createItem("Algorithm started",this.timeFormat(event.time))
 					.classed("emphasizedItem", true);
 				content = this.createContent(item);
 				content.append("p")
 					.text("Parameters:");
-				content.append("p")
+				let parametersDiv = content.append("div");
+				parametersDiv.append("p")
 					.text("Min. support: " + event.properties.support);
-				content.append("p")
+				parametersDiv.append("p")
 					.text("Gap: " + event.properties.minGap + " - " + event.properties.maxGap);
-				content.append("p")
+				parametersDiv.append("p")
 					.text("Max. duration: " + event.properties.duration + "ms");
-				content.append("p")
+				parametersDiv.append("p")
 					.text("Max. size: " + event.properties.size);
 				this.displayItem(item);
 				this.indentLevel++;
@@ -7784,28 +7938,23 @@ function ActivityHistory(elemId) {
 				this.displayItem(item);
 				break;
 			case "steerOnPrefix":
-				item = this.createItem("Steering on prefix", this.timeFormat(event.time));
-				content = this.createContent(item);
-				content.append("p")
-					.text("Looking for patterns starting with '" + event.properties.patternString + "'");
+				item = this.createItem(`Steering on prefix ${event.properties.patternString}`, this.timeFormat(event.time));
 				this.displayItem(item);
 				break;
 			case "steerOnUser":
-				item = this.createItem("Steering on user", this.timeFormat(event.time));
-				content = this.createContent(item);
-				content.append("p")
-					.text("Looking for patterns present in the trace of user '" + event.properties.name + "'");
+				item = this.createItem(`Steering on user ${event.properties.name}`, this.timeFormat(event.time));
 				this.displayItem(item);
 				break;
 			case "steerOnTime":
-				item = this.createItem("Steering on time", this.timeFormat(event.time));
-				content = this.createContent(item);
-				content.append("p")
-					.text("Looking for patterns present between " + formatDate(new Date(event.properties.start)) + " and " + formatDate(new Date(event.properties.end)));
+				let bounds = [formatDate(new Date(event.properties.start)), formatDate(new Date(event.properties.end))]
+				item = this.createItem(`Steering on time beetween ${bounds[0]} and ${bounds[1]}`, this.timeFormat(event.time));
 				this.displayItem(item);
 				break;
 			case "stopSteering":
 				item = this.createItem("Steering end", this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p")
+					.text(event.properties.patternsFound + " patterns found during this steering");
 				this.displayItem(item);
 				break;
 			default:

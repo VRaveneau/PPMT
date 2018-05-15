@@ -12,6 +12,12 @@
 http://paletton.com/#uid=43q0u0k++tcOTZA+VHf+Xnt+xht
 */
 
+#expeResetButton {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+}
+
 *:disabled {
 	color: grey;
 }
@@ -450,6 +456,11 @@ body {
 	font-size: 90%;
 }
 
+.wrapping {
+	word-wrap: break-word;
+	word-break: break-all;
+}
+
 .button {
     display: inline;
     color: #fff;
@@ -498,6 +509,10 @@ body {
 	  This may be a MacOS exclusive issue.
 	*/
 	-webkit-font-smoothing: antialiased;
+}
+
+.italic {
+	font-style: italic;
 }
 
 .foldingText {
@@ -782,6 +797,10 @@ body {
 	font-size: smaller;
 }
 
+.historyContent div {
+	margin-left: 5px;
+}
+
 .historyContent p {
 	margin: 2px 0px;
 }
@@ -997,6 +1016,7 @@ table.sortable th:not(.sorttable_sorted):not(.sorttable_sorted_reverse):not(.sor
 
 .invisible {
 	opacity: 0;
+	cursor: default;
 }
 
 .visible {
@@ -1449,7 +1469,7 @@ table {
 		[indicator-start] min-content
 		[indicator-end liveUpdate-start] max-content
 		[liveUpdate-end] 1fr
-		[lastSteering-start] max-content
+		[lastSteering-start] minmax(min-content, max-content)
 		[lastSteering-end];
 	grid-template-rows:
 		min-content
