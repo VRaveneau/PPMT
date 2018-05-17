@@ -72,6 +72,11 @@ public class SessionHandler {
 	public void provideDatasetInfo(String datasetName, Session session) {
 		clientHandlers.get(session).provideDatasetInfo();
 	}
+	
+	public void resetDataset(Session session) {
+		sessionResetsDataset(session);
+		clientHandlers.get(session).resetDataset();
+	}
 
     // TODO see if the datasetName is still needed
 	public void provideEventTypes(String datasetName, Session session) {
@@ -113,6 +118,10 @@ public class SessionHandler {
 		clientHandlers.get(session).runAlgorithm(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay);
 	}
 
+	public void stopAlgorithm(Session session) {
+		clientHandlers.get(session).stopAlgorithm();
+	}
+	
 	/**
 	 * Provides the occurrences of a given pattern. Only timestamps of involved events are sent, not their ids
 	 * @param patternId
@@ -175,15 +184,27 @@ public class SessionHandler {
 				.add("object", "dataset")
 				.add("dataset", datasetName)
 				.add("answer", answer);
+		
+		if ("valid".equals(answer)) {
+			loadDataset(session, datasetName);
+			dataMessage.add("datasetToken", generateDatasetToken(session));
+		}
 		clientHandlers.get(session).sendMessage(dataMessage.build());
+	}
+	
+	private String generateDatasetToken(Session session) {
+		Dataset ds = clientHandlers.get(session).getDataset();
+		String token = String.valueOf(session.hashCode());
+		datasetManager.addDatasetToken(ds, token);
+		return token;
 	}
 	
 	public void profileDatasetSize(Session session) {
 		clientHandlers.get(session).profileDatasetSize();
 	}
 	
-	public void createEventTypeFromPattern(int patternId, Session session) {
-		clientHandlers.get(session).createEventTypeFromPattern(patternId);
+	public void createEventTypeFromPattern(int patternId, String newName, JsonObject options, Session session) {
+		clientHandlers.get(session).createEventTypeFromPattern(patternId, newName, options);
 	}
 	
 	public void removeEventTypes(JsonArray eventNames, Session session) {
@@ -208,6 +229,14 @@ public class SessionHandler {
 		} else {
 			System.out.println("Dataset was already user-specific");
 		}
+	}
+	
+	public void sessionResetsDataset(Session session) {
+		ClientHandler ch = clientHandlers.get(session);
+		Dataset oldDS = ch.getDataset();
 		
+    	ch.setDataset(datasetManager.getDataset(oldDS.getName()));
+    	
+    	System.out.println("Dataset was reset");
 	}
 }

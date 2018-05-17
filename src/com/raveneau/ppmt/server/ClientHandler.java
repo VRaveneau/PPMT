@@ -206,6 +206,10 @@ public class ClientHandler {
 		
 		sendToSession(session, dataMessage.build());
 	}
+	
+	public void resetDataset() {
+		//provideEventTypes();
+	}
 
 	public void provideEventTypes() {
 		JsonObjectBuilder dataMessage = null;
@@ -304,6 +308,8 @@ public class ClientHandler {
 	
 	public void runAlgorithm(int minSup, int windowSize, int maxSize, int minGap, int maxGap, int maxDuration, long delay) {
 		if (patternManager == null) {
+			if (dataset.getPatternManager(session) != null)
+				dataset.removePatternManagerFromSession(session);
 			setPatternManager(new PatternManager(this));
 			dataset.addPatternManagerToSession(session, patternManager);
 		} else {
@@ -315,6 +321,12 @@ public class ClientHandler {
 		}
 		
 		algorithmHandler.startMining(minSup, windowSize, maxSize, minGap, maxGap, maxDuration, delay);
+	}
+	
+	public void stopAlgorithm() {
+		if (patternManager != null) {
+			algorithmHandler.stopMining();
+		}
 	}
 	
 	public void alertOfNewPattern(Pattern p) {
@@ -417,6 +429,15 @@ public class ClientHandler {
 		sendToSession(session, dataMessage.build());
 	}
 
+	public void signalStop(long end) {
+		JsonProvider provider = JsonProvider.provider();
+		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
+				.add("action", "signal")
+				.add("type", "stop")
+				.add("time", utcDateFormat.format(new Date(end)));
+		sendToSession(session, dataMessage.build());
+	}
+
 	public void signalNewLevel(int k) {
 		JsonProvider provider = JsonProvider.provider();
 		JsonObjectBuilder dataMessage = provider.createObjectBuilder()
@@ -508,14 +529,17 @@ public class ClientHandler {
 		System.out.println("Profile sent");
 	}
 	
-	public void createEventTypeFromPattern(int patternId) {
-		TraceModification modifs = dataset.createEventTypeFromPattern(patternId, session);
+	public void createEventTypeFromPattern(int patternId, String newName, JsonObject options) {
+		String parentName = dataset.getPatternManager(session).getPattern(patternId).readableItemsToString();
+		TraceModification modifs = dataset.createEventTypeFromPattern(patternId, newName, options, session);
 		
 		// Stop the algorithm
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
+		
+		Map<String,Map<String,String>> et = dataset.getEventTypeInfo();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
@@ -533,7 +557,24 @@ public class ClientHandler {
 			newEvents.add(e.toJsonObject());
 		}
 		dataMessage.add("newEvents", newEvents.build());
-				
+		
+		JsonArrayBuilder removedTypes = provider.createArrayBuilder();
+		for (String s : modifs.getRemovedEvents()) {
+			removedTypes.add(s);
+		}
+		dataMessage.add("removedTypes", removedTypes.build());
+		
+		String evtType = modifs.getNewEvents().get(0).getType();
+		
+		JsonObject typeInfo = provider.createObjectBuilder()
+				.add("name", evtType)
+				.add("description", et.get(evtType).get("description"))
+				.add("category", et.get(evtType).get("category"))
+				.add("parent", parentName)
+				.build();
+		
+		dataMessage.add("typeInfo", typeInfo);
+		
 		// Send this message
 		sendToSession(session, dataMessage.build());
 		
@@ -549,7 +590,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();
@@ -578,7 +619,7 @@ public class ClientHandler {
 		algorithmHandler.stopMining();
 		
 		// Send the new event types info
-		provideEventTypes();
+		//provideEventTypes();
 		
 		// Create the message to communicate the changes to the client
 		JsonProvider provider = JsonProvider.provider();

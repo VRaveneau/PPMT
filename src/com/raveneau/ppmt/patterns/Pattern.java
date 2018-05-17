@@ -84,6 +84,14 @@ public class Pattern {
 		return str.trim();
 	}
 
+	public String readableItemsToString() {
+		String str = "";
+		for (String i : itemsReadable) {
+			str += i + " ";
+		}
+		return str.trim();
+	}
+
 	public javax.json.JsonObject itemsToJson() {
 		
 		JsonObjectBuilder job = Json.createObjectBuilder();
