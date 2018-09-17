@@ -3845,12 +3845,18 @@ function addPatternToList(message) {
 	let pSupport = parseInt(message.support);
 	let pId = message.id;
 
-	if (maxPatternSupport < pSupport)
+	let shouldUpdateSupportSlider = false;
+	let shouldUpdateSizeSlider = false;
+
+	if (maxPatternSupport < pSupport) {
 		increaseMaxPatternSupport(pSupport);
+		shouldUpdateSupportSlider = true;
+	}
 
 	if (maxPatternSize < pSize) {
 		increaseMaxPatternSize(pSize);
 		patternMetrics["sizeDistribution"][pSize] = 0;
+		shouldUpdateSizeSlider = true;
 	}
 
 	let pUsers = message.userDistribution.users.split(";");
@@ -3874,8 +3880,10 @@ function addPatternToList(message) {
 		patternMetrics["supportDistribution"][pSupport] = 1;
 	}
 
-	supportSlider.draw();
-	sizeSlider.draw();
+	if (shouldUpdateSupportSlider)
+		supportSlider.draw();
+	if (shouldUpdateSizeSlider)
+		sizeSlider.draw();
 
 	let properPatternSearchInput = currentPatternSearchInput.split(" ")
 		.filter( d => d.length > 0 ).join(" ");
