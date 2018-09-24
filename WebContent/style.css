@@ -1584,7 +1584,7 @@ table {
 
 #List {
 	grid-row: patternList-start / patternList-end;
-	/*max-height: 90%;*/
+	max-height: 100%;
 	overflow: auto;
 }
 
@@ -2083,6 +2083,10 @@ table {
 /********************************/
 /* 		Event types tabs 		*/
 /********************************/
+
+#Events {
+	max-height: 100%;
+}
 
 #eventTable {
 	border-collapse: collapse;
