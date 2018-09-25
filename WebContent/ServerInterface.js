@@ -140,8 +140,8 @@ class LocalServer extends ServerInterface {
         return {
             "id": _.uniqueId("o"),
 			"type": event.verb,
-			"start": event._stored,
-			"end": event._stored,
+			"start": event.timestamp,
+			"end": event.timestamp,
 			"user": event.actor.replace(/[^a-zA-Z0-9]/g, "_"),
 			"properties": [ JSON.stringify(event, null, 4) ]
         }
@@ -153,8 +153,8 @@ class LocalServer extends ServerInterface {
 	        "numberOfDifferentEvents": _.uniqBy(this._dataset, "verb").length,
 	        "nbEvents": this._dataset.length,
 	        "users": _.uniq(_.map(this._dataset, "actor")),
-	        "firstEvent": this._dataset[0]._stored,
-	        "lastEvent": this._dataset[this._dataset.length - 1]._stored,
+	        "firstEvent": this._dataset[0].timestamp,
+	        "lastEvent": this._dataset[this._dataset.length - 1].timestamp,
 	        "name": "dataset",
         });
     }
@@ -196,7 +196,7 @@ class LocalServer extends ServerInterface {
             "users": userInfo.map((count, name) => {
                 var range = d3.extent(_.map(_.filter(_this._dataset, function (i) {
                     return i.actor == name;
-                }), "_stored"));
+                }), "timestamp"));
                 return {
                     "name": name.replace(/[^a-zA-Z0-9]/g, "_"),
                     "eventNumber": count,
