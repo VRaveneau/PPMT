@@ -59,3 +59,14 @@ The main configuration file is `WebContent/config.js`. Two parameters are presen
 Another configuration file is `src/com/raveneau/ppmt/datasets/messages.properties`. One parameter is present:
 
 - The address of the folder where the server can find its datasets. Subfolders are scanned too. Every `.csv` file is considered a potential dataset, even though its content may not match the expected format of **PPMT**.
+
+## Local usage
+
+**PPMT** has basic support for serverless operations. It can read and
+display data from a simple json file. The json file is expected to
+contain an array of xAPI objects, each holding at least the following keys: actor, verb, timestamp.
+
+In order to activate the local mode, the `localdata` parameter,
+pointing to the Json resource, has to be specified:
+`tool.html?parameter=data.json`. In this mode, the `config.js` is
+ignored, and some features are not implemented.
