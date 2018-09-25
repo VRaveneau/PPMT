@@ -1797,8 +1797,8 @@ table {
 	grid-area: content;
 	display: grid;
 	grid-template-rows: [modal-top] 40px [content-top] 1fr [modal-bottom];
-	grid-template-columns: [modal-left] 1fr [modal-close-left] 100px [modal-right];
-	grid-gap: 5px;
+	grid-template-columns: [modal-left] 1fr [modal-close-left] 40px [modal-right];
+	row-gap: 5px;
 	border-radius: 5px;
 	padding: 5px;
 	background-color: #BEC6D3;
@@ -1827,6 +1827,7 @@ table {
 	font-size: x-large;
 	padding-left: 5px;
 	padding-right: 5px;
+	border-radius: 5px 0px 0px 5px;
 }
 
 #modalCloseArea {
@@ -1835,9 +1836,14 @@ table {
 	/*flex-grow: 1;*/
 	margin-top: 0px;
 	text-align: center;
-	border: 1px solid black;
+	/*border: 1px solid black;*/
 	/*margin-right: 3px;*/
 	font-size: x-large;
+	border-radius: 0px 5px 5px 0px;
+}
+
+#modalCloseArea:hover {
+	background-color: lightgray;
 }
 
 /********************************/

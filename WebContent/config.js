@@ -10,7 +10,7 @@ var config = {
 	// Type of server to use
 	serverType : "websocket",
 	// Adress of the websocket that we want to connect to
-	websocketAdress : "ppmt.univ-nantes.fr/ppmt/wsppmt",
+	websocketAdress : "localhost:8080/ppmt/wsppmt",
 	// Adress of the servlet that provides the dataset list
-	servletAdress : "http://ppmt.univ-nantes.fr/ppmt/datasetProvider"
+	servletAdress : "http://localhost:8080/ppmt/datasetProvider"
 };
