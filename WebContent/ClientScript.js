@@ -9,7 +9,7 @@ window.addEventListener ?
 /******************************************************************************/
 
 // The server the tool will be connected to
-var server = createServer();
+var server;
 
 // The parameters passed in the URL
 var pageParameters = {};
@@ -1224,10 +1224,18 @@ function init() {
 
 	// If a dataset is given as parameters, open the websocket to ask for it
 	if (pageParameters.data) {
+        server = createServer("websocket");
+
 		server.connect();
 
 		setupTool();
-	} else { // Otherwise, redirect to the dataset selection page
+	} else if (pageParameters.localdata) {
+        server = createServer("local");
+
+		server.connect();
+
+		setupTool();
+    } else { // Otherwise, redirect to the dataset selection page
 		location.href = "/ppmt";
 	}
 }
@@ -1236,8 +1244,8 @@ function init() {
  * Creates the server, depending on the serverType given in the config object.
  * @returns {ServerInterface} The server interface object
  */
-function createServer() {
-	switch(config.serverType) {
+function createServer(serverType) {
+	switch(serverType) {
 		case "websocket":
 			return new WebSocketServer(config.websocketAdress,
 				processOpen, processClose, processError, processMessage);
@@ -1247,7 +1255,7 @@ function createServer() {
 			break;
 		default:
 			// TODO raise an error or ask to choose a local dataset ?
-			console.error("!! The requested server type (" + config.serverType +
+			console.error("!! The requested server type (" + serverType +
 						") is unknown !!");
 	}
 }
@@ -1981,7 +1989,7 @@ function processOpen(message) {
 	}, 10*60*1000); // every 10 minutes
 
 	// Ask if the target dataset is available
-	requestDatasetValidation(pageParameters.data);
+	requestDatasetValidation(pageParameters.data || pageParameters.localdata);
 }
 
 /**
