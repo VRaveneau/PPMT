@@ -1240,7 +1240,7 @@ function init() {
 		server.connect();
 		setupTool();
 	} else { // Otherwise, redirect to the dataset selection page
-		location.href = "/ppmt";
+		handleUnknownDataset();
 	}
 }
 
@@ -2402,8 +2402,7 @@ function handleDatasetValidation(msg) {
 		// Ask for the selected dataset
 		selectDataset(msg.dataset, msg.datasetToken);
 	} else {
-		// If the dataset is not available, go to the dataset selection
-		location.href = "/ppmt";
+		handleUnknownDataset();
 	}
 }
 
@@ -4135,7 +4134,12 @@ function resetDataFilters() {
 /*			HCI manipulation		*/
 /************************************/
 
-
+/**
+ * Handles the case where the dataset is either not specified or unknown
+ */
+function handleUnknownDataset() {
+	location.href = "/ppmt";
+}
 
 /**
  * Enables the toggle of the pattern list's live update 
