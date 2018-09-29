@@ -3903,7 +3903,7 @@ function addPatternToList(message) {
 	
 	if (algorithmState.isUnderSteering()) {
 		lastSteeringPatterns.push(pId);
-		updateLasteSteeringDetails();
+		updateLastSteeringDetails();
 	}
 
 	if (!patternLiveUpdate) {
@@ -4135,6 +4135,8 @@ function resetDataFilters() {
 /*			HCI manipulation		*/
 /************************************/
 
+
+
 /**
  * Enables the toggle of the pattern list's live update 
  */
@@ -4191,7 +4193,7 @@ function setupLastSteeringDetails(type, value) {
 /**
  * Updates the display of the last steering details
  */
-function updateLasteSteeringDetails() {
+function updateLastSteeringDetails() {
 	document.querySelector("#lastSteeringDetails .patternNumber")
 		.textContent = `${lastSteeringPatterns.length} patterns found`;
 }
