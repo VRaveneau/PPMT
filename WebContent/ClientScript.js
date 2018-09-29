@@ -576,6 +576,10 @@ var debouncedFilterPatterns = _.debounce(filterPatterns, 200);
 /*				Utility				 */
 /*************************************/
 
+/**
+ * Specific to the user study.
+ * Restarts the pattern mining algorithm without changing the parameters
+ */
 function resetExpe() {
 	if (algorithmState.isRunning()) {
 		algorithmWillRestart = true;
@@ -586,9 +590,9 @@ function resetExpe() {
 }
 
 /**
- * Updates the value of the current time focus
- * @param {number} start The start of the intervale
- * @param {number} end The end of the intervale
+ * Updates the display of the current time focus
+ * @param {number} start The start of the interval
+ * @param {number} end The end of the interval
  */
 function updateCurrentTimeFilter(start, end) {
 	currentTimeFilter = [start, end];
@@ -722,7 +726,7 @@ function displayServerDebugMessage(message) {
  * Takes a time duration and returns a string display of it. The returned string
  * can be in a short format (default), or in a long format
  * @param {number} time The time duration to format
- * @param {} long Whether the return string will be short (XX:YY) or not (XXmin YYs)
+ * @param {boolean} long Whether the return string will be short (XX:YY) or not (XXmin YYs)
  */
 function formatElapsedTimeToString(time, long) {
 	let elapsedMinutes = Math.floor(time/60000);
@@ -809,7 +813,7 @@ function handleKeyPress() {
 }
 
 /**
- * (De)activates debug tools
+ * Toggles on or off the debug tools
  */
 function debug() {
 	if (debugMode) {
@@ -831,7 +835,7 @@ function debug() {
 }
 
 /**
- * (De)activates the visualization of the pointer target in the focus view
+ * Toggles on or off the visualization of the pointer target in the focus view
  */
 function switchPointerTarget() {
 	showPointerTarget = !showPointerTarget;
@@ -846,7 +850,7 @@ function switchPointerTarget() {
 }
 
 /**
- * Switches between accepting and rejecting incomming patterns
+ * Switches between accepting and rejecting incoming patterns
  */
 function switchPatternAcceptance() {
 	if (acceptNewPatterns) {
@@ -863,7 +867,7 @@ function switchPatternAcceptance() {
 }
 
 /**
- * Toggles the live updating of the pattern list when new patterns arrive
+ * Toggles on or off the live updating of the pattern list when new patterns arrive
  */
 function toggleLiveUpdate() {
 	if (patternLiveUpdate) {
@@ -893,7 +897,7 @@ function enableCentralOverlay(message) {
 }
 
 /**
- * Hide the blocking overlay over the center of the tool
+ * Hides the blocking overlay over the center of the tool
  */
 function disableCentralOverlay() {
 	d3.select("#centerOverlay")
@@ -1222,26 +1226,27 @@ function init() {
 		}
 	}
 
-	// If a dataset is given as parameters, open the websocket to ask for it
+	// If a dataset is given as parameters, open the relevant server to ask for it
+	let serverInformation = false;
 	if (pageParameters.data) {
         server = createServer("websocket");
-
-		server.connect();
-
-		setupTool();
+		serverInformation = true;
 	} else if (pageParameters.localdata) {
         server = createServer("local");
-
+		serverInformation = true;
+	}
+	
+	if (serverInformation) {
 		server.connect();
-
 		setupTool();
-    } else { // Otherwise, redirect to the dataset selection page
+	} else { // Otherwise, redirect to the dataset selection page
 		location.href = "/ppmt";
 	}
 }
 
 /**
  * Creates the server, depending on the serverType given in the config object.
+ * @param {string} serverType The type of server, either "websocket" or "local"
  * @returns {ServerInterface} The server interface object
  */
 function createServer(serverType) {
@@ -4774,7 +4779,7 @@ function clickOnPatternSupportHeader() {
  * (Re)creates the display of the highlights summary
  */
 function setHighlights() {
-	// user highlihgts
+	// user highlights
 	d3.select("#userHighlight .highlightsValue")
 		.text(highlightedUsers.length);
 	if(highlightedUsers.length > 0)
