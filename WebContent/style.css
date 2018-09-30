@@ -2087,6 +2087,48 @@ table {
 }*/
 
 /********************************/
+/* 		Dataset error modal 	*/
+/********************************/
+
+#datasetError {
+	grid-column: modal-left / modal-right;
+	grid-row: content-top / modal-bottom;
+	padding: 0px;
+	flex-direction: column;
+	justify-content: space-around;
+	/*width: 50%;
+	height: 20%;*/
+	align-self: center;
+}
+
+#datasetError:not(.hidden) {
+	display: grid;
+	grid-template-columns:
+		[main-start] 20px
+		[content-start] 1fr
+		[content-end] 20px
+		[main-end];
+	grid-template-rows:
+		[main-start] 10px
+		[message-start] max-content
+		[message-end] 10px
+		[buttons-start] 20px
+		[buttons-end] 10px
+		[main-end];
+}
+
+#datasetErrorMessage {
+	grid-column: content-start / content-end;
+	grid-row: message-start / message-end;
+	text-align: center;
+}
+
+#datasetErrorRedirect {
+	grid-column: content-start / content-end;
+	grid-row: buttons-start / buttons-end;
+}
+
+/********************************/
 /* 		Event types tabs 		*/
 /********************************/
 

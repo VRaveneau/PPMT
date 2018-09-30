@@ -4138,6 +4138,14 @@ function resetDataFilters() {
  * Handles the case where the dataset is either not specified or unknown
  */
 function handleUnknownDataset() {
+	showDatasetErrorModal();
+	//redirectToDatasetSelection();
+}
+
+/**
+ * Redirects the page to the dataset selection
+ */
+function redirectToDatasetSelection() {
 	location.href = "/ppmt";
 }
 
@@ -6284,6 +6292,19 @@ function closeModal() {
 	d3.select("#modalBackground").classed("hidden", true);
 	d3.select("#modalTitle").text("");
 	d3.selectAll(".actionConfirmation").classed("hidden", true);
+	d3.select("#datasetError").classed("hidden", true);
+}
+
+/**
+ * Shows the modal window in 'dataset error' mode
+ */
+function showDatasetErrorModal() {
+	d3.select("#modalBackground").classed("hidden", false);
+	d3.select("#modalTitle").text("Error in dataset selection");
+	if (useExtendedAlgorithmView)
+		toggleExtendedAlgorithmView();
+	d3.selectAll(".actionConfirmation").classed("hidden", true);
+	d3.select("#datasetError").classed("hidden", false);
 }
 
 /**
