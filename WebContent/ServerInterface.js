@@ -89,7 +89,7 @@ class WebSocketServer extends ServerInterface {
  */
 class LocalServer extends ServerInterface {
 	/**
-	 * Sets the server up, without openning the connexion yet.
+	 * Sets the server up, without opening the connexion yet.
 	 * @param {function} handleOpen Function to call when the connexion opens
 	 * @param {function} handleClose Function to call when the connexion closes
 	 * @param {function} handleError Function to call when the connexion has an
@@ -208,6 +208,11 @@ class LocalServer extends ServerInterface {
     }
     sendMessage(msg) {
         console.log("sendMessage", msg);
+        
+        // debug to see if 'type' is still used (should not)
+        if (msg.type)
+            console.log(`!!! msg.type : ${msg.type} !!!`)
+
         let name = `${msg.action}_${msg.type || msg.object}`;
 
         if (this[name] !== undefined) {

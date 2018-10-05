@@ -213,19 +213,47 @@ public class CandidateInSequenceFinder {
     	//System.out.println("------- Looking for candidate in sequence------");
     	//System.out.println("Sequence:"+sequence);
     	//System.out.println("Candidate:"+candidate);
+        
+        // Reach the target subsequence
+        if (sequence.get(sequence.size()-1).getTimestamp() < start || sequence.get(0).getTimestamp() > end)
+        	return false;
+        
+        //We get the current pair to deal with
+        ItemAbstractionPair pair = candidate.getIthElement(currentItem);
+        //And we keep its item,
+        Item itemPair = pair.getItem();
+        //Initialization of the position of the current item, itemPair, to search for
+        int[] pos = sequence.searchForTheFirstAppearance(currentStart[0], currentStart[1], itemPair);
+        
+        if (pos == null) // no occurrence of the first event in the sequence
+        	return false;
+        
+        long ts = sequence.get(pos[0]).getTimestamp();
+
+        while (ts < start) {
+        	currentStart = increasePosition(sequence, pos);
+        	pos = sequence.searchForTheFirstAppearance(currentStart[0], currentStart[1], itemPair);
+        	if (pos == null)
+        		return false;
+        	ts = sequence.get(pos[0]).getTimestamp();
+        }
+        
+        if (ts > end)
+        	return false;
+        
         // while we still have items in the sequence
         while (currentStart[0] < sequence.size()) {
         	//System.out.println("Start at "+currentStart[0]+","+currentStart[1]+", looking for item "+currentItem);
         	//We get the current pair to deal with
-            ItemAbstractionPair pair = candidate.getIthElement(currentItem);
+            pair = candidate.getIthElement(currentItem);
             //And we keep its item,
-            Item itemPair = pair.getItem();
+            itemPair = pair.getItem();
             //its abstraction
             Abstraction_Generic abstractionPair = pair.getAbstraction();
             // and the previous abstraction
             Abstraction_Generic previousAbstraction = currentItem > 0 ? candidate.getIthElement(currentItem - 1).getAbstraction() : null;
             //Initialization of the position of the current item, itemPair, to search for
-            int[] pos = null;
+            pos = null;
             
         	/*If we are dealing with the first element of the candidate, we 
              * search for the item from the beginning of the sequence
@@ -249,9 +277,11 @@ public class CandidateInSequenceFinder {
             	boolean violatedConstraint = false;
         		
         		// Check that we are in the sub sequence
-            	long ts = sequence.get(pos[0]).getTimestamp();
-            	if (ts < start || ts > end)
+            	ts = sequence.get(pos[0]).getTimestamp();
+            	if (ts < start)
             		violatedConstraint = true;
+            	if (ts > end)
+            		return false;
             	
             	if (!violatedConstraint && foundPositions.size() > 0) {
             		// Check that the duration between the first item and this one is lower than the maxDuration
