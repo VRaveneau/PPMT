@@ -5765,6 +5765,7 @@ function drawPatternSizesChart() {
  * @param {string} value The focus of the steering, according to its type
  */
 function handleSteeringStartSignal(type, value) {
+	console.log(`${type} steering starts on ${value}`);
 	d3.select("#focus").text(type+" starting with: "+value);
 	algorithmState.startSteering(type, value);
 	lastSteeringPatterns = [];
@@ -5776,6 +5777,7 @@ function handleSteeringStartSignal(type, value) {
  * Clears the display of the algorithm's steering after it has ended
  */
 function handleSteeringStopSignal() {
+	console.log(`Steering stops`);
 	activityHistory.stopSteering(lastSteeringPatterns);
 	d3.select("#focus").text("");
 	algorithmState.stopSteering();

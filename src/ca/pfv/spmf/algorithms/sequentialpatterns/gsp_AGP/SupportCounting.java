@@ -126,6 +126,7 @@ class SupportCounting {
 					break;
 				case USER:
 					steeringValue = parameters.getSteeringUserIdOccurring();
+					System.out.println("Starting steering on user "+steeringValue);
 					break;
 				default:
 					System.out.println("Unknown steering type occurring : "+parameters.getSteeringTypeOccurring());
@@ -167,7 +168,7 @@ class SupportCounting {
         				continue;
         		}
         		/*		STEERING on user, check if the pattern is found		*/
-        		if (parameters.getSteeringTypeOccurring() == SteeringTypes.TIME) {
+        		if (parameters.getSteeringTypeOccurring() == SteeringTypes.USER) {
         			if (!checkCandidateInSpecificSequence(k, candidate, parameters.getMaxDuration(), parameters.getMinGap(), parameters.getMaxGap(), parameters.getSteeringUserIdOccurring()))
         				continue;
         		}

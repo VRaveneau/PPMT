@@ -93,7 +93,7 @@ public class AlgorithmHandler implements SteeringListener/*, ThreadListener*/ {
 
 	@Override
 	public void steeringRequestedOnUser(String user) {
-		// TODO Auto-generated method stub
+		this.algorithmParameters.requestSteeringOnUser(user);
 		System.out.println("Steering requested on user "+user);
 	}
 

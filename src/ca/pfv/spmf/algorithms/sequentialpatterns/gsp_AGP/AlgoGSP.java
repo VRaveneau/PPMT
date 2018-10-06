@@ -233,8 +233,8 @@ public class AlgoGSP {
 	        		k < this.parameters.getMaxSize()) {
 	            //We start with the k+1 level
 	            k++;
-	            System.out.println("AlgoGSP: entering main loop at level "+k);
 	            if (verbose) {
+	            	System.out.println("AlgoGSP: entering main loop at level "+k);
 	                System.out.println("k=" + k);
 	                System.out.println("generating candidates...");
 	            }
@@ -320,14 +320,20 @@ public class AlgoGSP {
 	            	this.lastIndexationMapCompleted = new HashMap<Item, Set<Pattern>>(indexationMap);
 	            	this.lastFrequentSetCompleted = new LinkedHashSet<>(frequentSet);
 	            	patternManager.signalLevelExtracted(k);
-	            	System.out.println("AlgoGSP : go to level "+(k+1)+", no steering");
+	            	
+	            	if (verbose) {	            		
+	            		System.out.println("AlgoGSP : go to level "+(k+1)+", no steering");
+	            	}
 	            } else {
 	            	// if a steering is still occurring
 	            	// Update the stored indexation map and frequent set with the discovered patterns
 	            	// -> no
 	            	//this.lastIndexationMapCompleted = new HashMap<Item, Set<Pattern>>(indexationMap);
 	            	// ... do nothing ? 
-	            	System.out.println("AlgoGSP : go to level "+(k+1)+", steering at level "+(this.lastLevelCompleted+1));
+	            	
+	            	if (verbose) {
+	            		System.out.println("AlgoGSP : go to level "+(k+1)+", steering at level "+(this.lastLevelCompleted+1));
+	            	}
 	            }
 	            
 	        }
@@ -342,7 +348,10 @@ public class AlgoGSP {
 			        patternManager.sendSteeringEndNotificationToClient();
 			        // reset the fact that steering occured for the support counter
 			        supportCounter.resetSteeringHasOccured();
-			        System.out.println("AlgoGSP: steering ended, going back to level "+(k+1));
+			        if (verbose) {
+			        	System.out.println("AlgoGSP: steering ended, going back to level "+(k+1));
+			        }
+			        System.out.println("End of steering");
 	        	} else {
 	        		patternManager.signalLevelExtracted(k);
 	        		break;
