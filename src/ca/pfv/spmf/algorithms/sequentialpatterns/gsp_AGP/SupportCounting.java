@@ -125,7 +125,7 @@ class SupportCounting {
 					steeringValue = String.valueOf(parameters.getSteeringStartOccurring()) + " " + String.valueOf(parameters.getSteeringEndOccurring());
 					break;
 				case USER:
-					steeringValue = "user";
+					steeringValue = parameters.getSteeringUserIdOccurring();
 					break;
 				default:
 					System.out.println("Unknown steering type occurring : "+parameters.getSteeringTypeOccurring());
@@ -161,10 +161,14 @@ class SupportCounting {
         		if (parameters.getSteeringTypeOccurring() == SteeringTypes.PATTERN_END) {
         			System.out.println("!!!!!!! Steering on PATTERN_END not implemented !!!!!!!");
         		}
-        		
         		/*		STEERING on time, check if the pattern is found		*/
         		if (parameters.getSteeringTypeOccurring() == SteeringTypes.TIME) {
         			if (!checkCandidateInSubSequence(k, candidate, parameters.getMaxDuration(), parameters.getMinGap(), parameters.getMaxGap(), parameters.getSteeringStartOccurring(), parameters.getSteeringEndOccurring()))
+        				continue;
+        		}
+        		/*		STEERING on user, check if the pattern is found		*/
+        		if (parameters.getSteeringTypeOccurring() == SteeringTypes.TIME) {
+        			if (!checkCandidateInSpecificSequence(k, candidate, parameters.getMaxDuration(), parameters.getMinGap(), parameters.getMaxGap(), parameters.getSteeringUserIdOccurring()))
         				continue;
         		}
         	}
@@ -212,6 +216,18 @@ class SupportCounting {
         candidateSet = null;
         //We end returning the frequent candidates, i.e. the frequent k-sequence set
         return result;
+    }
+    
+    private boolean checkCandidateInSpecificSequence(int k, Pattern candidate, long maxDuration, int minGap, int maxGap, String userId) {
+    	Sequence sequence = database.getUserSequence(userId);
+    	List<int[]> position = new ArrayList<int[]>(k);
+        for (int i = 0; i < k; i++) {
+            position.add(new int[]{0,0});
+        }
+        CandidateInSequenceFinder finder = new CandidateInSequenceFinder(abstractionCreator);
+        //we check if the current candidate appears in the sequence
+        abstractionCreator.isCandidateInSequence(finder, candidate, sequence, k, 0, position, maxDuration, minGap, maxGap);
+        return finder.isPresent();
     }
 
     /**

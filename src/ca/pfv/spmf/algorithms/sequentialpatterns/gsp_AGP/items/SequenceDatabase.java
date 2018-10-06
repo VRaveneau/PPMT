@@ -285,6 +285,14 @@ public class SequenceDatabase {
     public List<Sequence> getSequences() {
         return sequences;
     }
+    
+    public Sequence getUserSequence(String userId) {
+    	for (Sequence s : sequences) {
+    		if (s.getUser().equals(userId))
+    			return s;
+    	}
+    	return null;
+    }
 
     /**
      * It returns the frequent 1-patterns
