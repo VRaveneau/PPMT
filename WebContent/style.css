@@ -172,7 +172,7 @@ tr:hover .contextActions {
 	font-weight: normal;
 }
 
-.contextActions:hover .extendedContextAction {
+.contextActions > div:hover > .extendedContextAction {
 	visibility: visible;
 }
 

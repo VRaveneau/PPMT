@@ -5210,6 +5210,15 @@ function createUserListDisplay() {
 		// Add the context actions
 		let contextActions = userRow.append("td").append("div")
 			.classed("contextActions", true);
+		let steerAction = contextActions.append("div");
+		steerAction.append("button")
+			.classed("clickable", true)
+			.classed("icon-steering", true)
+			.attr("title", "Steer algorithm on this user")
+			.on("click", function() {
+				requestSteeringOnUser(user);
+				d3.event.stopPropagation();
+			});
 		let removeAction = contextActions.append("div");
 		removeAction.append("button")
 			.classed("clickable", true)
@@ -5243,16 +5252,11 @@ function createUserListDisplay() {
 
 
 		userRow.on("click", function(){
-			if (d3.event.shiftKey) { // Shift + click, steering
-				requestSteeringOnUser(user);
-				d3.event.stopPropagation();
-			} else { // normal click, highlight
-				//console.log(userName);
-				highlightUserRow(user);
-				setHighlights();
-				timeline.displayData();
-				//d3.event.stopPropagation();
-			}
+			//console.log(userName);
+			highlightUserRow(user);
+			setHighlights();
+			timeline.displayData();
+			//d3.event.stopPropagation();
 		});
 	});
 }
