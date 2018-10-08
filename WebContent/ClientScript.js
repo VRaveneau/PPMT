@@ -5210,6 +5210,15 @@ function createUserListDisplay() {
 		// Add the context actions
 		let contextActions = userRow.append("td").append("div")
 			.classed("contextActions", true);
+		let steerAction = contextActions.append("div");
+		steerAction.append("button")
+			.classed("clickable", true)
+			.classed("icon-steering", true)
+			.attr("title", "Steer algorithm on this user")
+			.on("click", function() {
+				requestSteeringOnUser(user);
+				d3.event.stopPropagation();
+			});
 		let removeAction = contextActions.append("div");
 		removeAction.append("button")
 			.classed("clickable", true)
@@ -5243,16 +5252,11 @@ function createUserListDisplay() {
 
 
 		userRow.on("click", function(){
-			if (d3.event.shiftKey) { // Shift + click, steering
-				requestSteeringOnUser(user);
-				d3.event.stopPropagation();
-			} else { // normal click, highlight
-				//console.log(userName);
-				highlightUserRow(user);
-				setHighlights();
-				timeline.displayData();
-				//d3.event.stopPropagation();
-			}
+			//console.log(userName);
+			highlightUserRow(user);
+			setHighlights();
+			timeline.displayData();
+			//d3.event.stopPropagation();
 		});
 	});
 }
@@ -5765,6 +5769,7 @@ function drawPatternSizesChart() {
  * @param {string} value The focus of the steering, according to its type
  */
 function handleSteeringStartSignal(type, value) {
+	console.log(`${type} steering starts on ${value}`);
 	d3.select("#focus").text(type+" starting with: "+value);
 	algorithmState.startSteering(type, value);
 	lastSteeringPatterns = [];
@@ -5776,6 +5781,7 @@ function handleSteeringStartSignal(type, value) {
  * Clears the display of the algorithm's steering after it has ended
  */
 function handleSteeringStopSignal() {
+	console.log(`Steering stops`);
 	activityHistory.stopSteering(lastSteeringPatterns);
 	d3.select("#focus").text("");
 	algorithmState.stopSteering();
