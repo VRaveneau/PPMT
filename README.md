@@ -68,5 +68,5 @@ contain an array of xAPI objects, each holding at least the following keys: acto
 
 In order to activate the local mode, the `localdata` parameter,
 pointing to the Json resource, has to be specified:
-`tool.html?parameter=data.json`. In this mode, the `config.js` is
+`tool.html?localdata=data.json`. In this mode, the `config.js` is
 ignored, and some features are not implemented.
