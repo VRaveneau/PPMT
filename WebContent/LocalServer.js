@@ -66,6 +66,11 @@ class LocalServer extends ServerInterface {
 			"properties": [ JSON.stringify(event, null, 4) ]
         }
     }
+    // Return the event type category
+    categorize(name) {
+        return name.match(/^[a-zA-Z]$/) ? "letter" : (name.match(/^[0-9.]$/) ? "digit" : "main");
+    }
+
     request_datasetInfo(params) {
         this.sendAnswer({
             "action": "datasetInfo",
@@ -102,7 +107,7 @@ class LocalServer extends ServerInterface {
                 "type": name,
                 "nbOccs": count,
                 "description": "",
-                "category": "main"
+                "category": this.categorize(name)
             } }).value()
         });
     }
