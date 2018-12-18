@@ -46,9 +46,23 @@ class LocalServer extends ServerInterface {
                     "action": "validation",
                     "object": "dataset",
                     "answer": "valid"
-                })
+                });
+            }).catch((error) => {
+                console.log("Error while parsing data", error);
+                _this.sendAnswer({
+                    "action": "message",
+                    "message": error,
+                    "title": "Error while parsing data"
+                });
             });
-        })
+        }).catch((error) => {
+            console.log("Error while loading data", error);
+            _this.sendAnswer({
+                "action": "message",
+                "message": error,
+                "title": "Error while loading data"
+            });
+        });
     }
 
     /* Serialize the event.

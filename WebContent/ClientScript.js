@@ -2081,6 +2081,9 @@ function processMessage(message/*Compressed*/) {
 	if (msg.action === "patterns") {	// Reception of patterns
 		displayUserPatterns(msg);
 	}
+    if (msg.action === "message") { // Receive a status/info/error message from the server
+        activityHistory.serverMessage(msg.message, msg.title);
+    }
 	if (msg.action === "debug") {	// Receiving a debug message from the server
 		if (msg.object && msg.object === "memory") { // The debug is about the memory size of the dataset
 			let fullSize = parseInt(msg.size);
@@ -7723,7 +7726,7 @@ function ActivityHistory(elemId) {
 		let content = item.append("div")
 			.classed("historyContent hidden", true);
 		item.append("p")
-			.text("Show details")
+    		.text("Show details")
 			.classed("clickable clickableText smallText historyShowMore", true)
 			.on("click", function() {
 				if (content.classed("hidden")) {
@@ -7743,163 +7746,129 @@ function ActivityHistory(elemId) {
 	}
 
 	// Entry points
-
-	this.resetDataset = function() {
-		let event = {
-			action: "resetDataset",
-			time: new Date(),
-			properties: {}
-		};
+    this.publishEvent = function (event) {
+        if (event.time === undefined) {
+            event.time = new Date();
+        }
 		this.events.push(event);
 		this.drawEvent(event);
+    }
+
+    this.serverMessage = function (message, title) {
+        this.publishEvent({ action: "servermessage",
+                            properties: {
+                                message: message,
+                                title: title
+                            }});
+    }
+
+	this.resetDataset = function() {
+        this.publishEvent({ action: "resetDataset",
+			                properties: {} });
 	}
 
 	this.receiveDataset = function(datasetName) {
-		let event = {
-			action: "receiveDataset",
-			time: new Date(),
-			properties: {
-				name: datasetName
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+        this.publishEvent({ action: "receiveDataset",
+			                properties: {
+				                name: datasetName
+			                }
+                          });
 	}
 
 	this.createEventType = function(typeName, parent, removedTypes) {
-		let event = {
-			action: "createEventType",
-			time: new Date(),
-			properties: {
-				name: typeName,
-				parent: parent,
-				removedTypes: removedTypes
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+        this.publishEvent({ action: "createEventType",
+			                properties: {
+				                name: typeName,
+				                parent: parent,
+				                removedTypes: removedTypes
+			                }
+		                  });
 	}
 
 	this.removeEventTypes = function(typeNames) {
-		let event = {
-			action: "removeEventTypes",
-			time: new Date(),
-			properties: {
-				names: typeNames
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+		this.publishEvent({ action: "removeEventTypes",
+			                properties: {
+				                names: typeNames
+			                }
+		                  });
 	}
 
 	this.removeUsers = function(userNames) {
-		let event = {
-			action: "removeUsers",
-			time: new Date(),
-			properties: {
-				names: userNames
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+		this.publishEvent({ action: "removeUsers",
+			                properties: {
+				                names: userNames
+			                }
+		                  });
 	}
 
 	this.changeParameters = function(support, minGap, maxGap, duration, size, modifiedValues) {
-		let event = {
-			action: "changeParameters",
-			time: new Date(),
-			properties: {
-				support: support,
-				minGap: minGap,
-				maxGap: maxGap,
-				duration: duration,
-				size: size,
-				modifiedValues: modifiedValues
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+        this.publishEvent({ action: "changeParameters",
+			                properties: {
+				                support: support,
+				                minGap: minGap,
+				                maxGap: maxGap,
+				                duration: duration,
+				                size: size,
+				                modifiedValues: modifiedValues
+			                }
+		                  });
 	}
 
 	this.startAlgorithm = function(support, minGap, maxGap, duration, size) {
-		let event = {
-			action: "startAlgorithm",
-			time: new Date(),
-			properties: {
-				support: support,
-				minGap: minGap,
-				maxGap: maxGap,
-				duration: duration,
-				size: size
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+        this.publishEvent({ action: "startAlgorithm",
+			                properties: {
+				                support: support,
+				                minGap: minGap,
+				                maxGap: maxGap,
+				                duration: duration,
+				                size: size
+			                }
+		                  });
 	}
 
 	this.endAlgorithm = function(patternsFound, timeElapsed, hasCompleted=true) {
-		let event = {
-			action: "endAlgorithm",
-			time: new Date(),
-			properties: {
-				patterns: patternsFound,
-				time: timeElapsed,
-				completed: hasCompleted
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+        this.publishEvent({ action: "endAlgorithm",
+			                properties: {
+				                patterns: patternsFound,
+				                time: timeElapsed,
+				                completed: hasCompleted
+			                }
+		                  });
 	}
 
 	this.steerOnPrefix = function(patternId) {
-		let event = {
-			action: "steerOnPrefix",
-			time: new Date(),
-			properties: {
-				patternId: patternId,
-				patternString: patternsInformation[patternId][0]
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+        this.publishEvent({ action: "steerOnPrefix",
+			                properties: {
+				                patternId: patternId,
+				                patternString: patternsInformation[patternId][0]
+			                }
+		                  });
 	}
 
 	this.steerOnUser = function(userId) {
-		let event = {
-			action: "steerOnUser",
-			time: new Date(),
-			properties: {
-				userId: userId,
-				name: userInformations[userId].name
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+        this.publishEvent({ action: "steerOnUser",
+			                properties: {
+				                userId: userId,
+				                name: userInformations[userId].name
+			                }
+		                  });
 	}
 
 	this.steerOnTime = function(start, end) {
-		let event = {
-			action: "steerOnTime",
-			time: new Date(),
-			properties: {
-				start: start,
-				end: end
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+        this.publishEvent({ action: "steerOnTime",
+			                properties: {
+				                start: start,
+				                end: end
+			                }
+		                  });
 	}
 
 	this.stopSteering = function(patternsFoundList) {
-		let event = {
-			action: "stopSteering",
-			time: new Date(),
-			properties: {
-				patternsFound: patternsFoundList.length
-			}
-		};
-		this.events.push(event);
-		this.drawEvent(event);
+        this.publishEvent({ action: "stopSteering",
+			                properties: {
+				                patternsFound: patternsFoundList.length
+			                }
+		                  });
 	}
 
 	this.drawEvent = function(event) {
@@ -8010,9 +7979,20 @@ function ActivityHistory(elemId) {
 				content.append("p")
 					.text(event.properties.patternsFound + " patterns found during this steering");
 				this.displayItem(item);
-				break;
+    			break;
+            case "servermessage":
+				item = this.createItem(`Server message ${event.properties.title || ""}`, this.timeFormat(event.time));
+				content = this.createContent(item);
+				content.append("p").text(event.properties.message);
+				this.displayItem(item);
+    			break;
 			default:
 				console.log("Trying to display an unknown action in the history: "+event);
+				item = this.createItem(`Unknown action ${event.action}`, this.timeFormat(event.time));
+				content = this.createContent(item);
+     			content.append("p").text(event);
+				this.displayItem(item);
+				break;
 		}
 	}
 
